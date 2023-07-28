@@ -82,8 +82,8 @@ let userDasha = getDasha(nextMahaDasa!, moment(nextMahaDasaStart), endDate, endD
 
 const dashaTable: string[] = [];
 
-const reportStart = moment();
-const reportEnd = moment().add(5, "years");
+const reportStart = moment("2020-01-01");
+const reportEnd = moment("2027-12-31");
 
 userDasha = userDasha.map(dasha => {
   let subDasha = getDasha(dasha.graha, dasha.start, dasha.end, dasha.end.diff(dasha.start, "s"), 0);
