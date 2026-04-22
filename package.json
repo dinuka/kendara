@@ -1,0 +1,13 @@
+{
+  "name": "kendara",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": ["frontend", "backend"],
+  "scripts": {
+    "dev": "concurrently --names \"BE,FE\" --prefix-colors \"yellow,cyan\" \"npm run dev --workspace=backend\" \"npm run dev --workspace=frontend\"",
+    "build": "npm run build --workspace=backend && npm run build --workspace=frontend"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  }
+}
