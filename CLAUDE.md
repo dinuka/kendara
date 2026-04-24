@@ -57,3 +57,10 @@ Add handlers in `backend/src/`. Call from frontend using:
 fetch('http://localhost:4000/api/your-route')
 ```
 For production, replace the base URL with an environment variable.
+
+## Plans & Architectural Decisions
+
+- Feature plans live in `plans/` as `YYYY-MM-DD_<feature>.md`
+- When finalising a plan (i.e. the plan is approved and ready to implement), extract any architectural decisions it introduces and add them to `DECISIONS.md`
+- `DECISIONS.md` records *why* things are done a certain way — patterns, conventions, and constraints that should be consistent across the codebase
+- Read `DECISIONS.md` before writing new backend code to stay consistent with established patterns
