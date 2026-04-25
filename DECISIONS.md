@@ -25,22 +25,24 @@ Error:
 ### Per-Endpoint Request/Response Types
 
 - Two shared generic wrappers live at the top of `types/`:
-  - `requestType.ts` exports `RequestType<P, Q, B>` — typed `{ params, query, body }`
-  - `actionResponse.ts` exports `ActionResponse<T>` — typed `{ status, data?, error? }`
-- Each endpoint has its own dedicated files in `backend/src/types/<domain>/`, named `<methodName>Request.ts` / `<methodName>Response.ts`
-- Each per-endpoint file exports two types:
-  - A concrete body/data alias (e.g. `SyncUserBody`, `SyncUserData`) — the schema generation target
-  - A full wrapper alias (e.g. `SyncUserRequest`, `SyncUserResponse`) — used for controller typing
+  - `RequestType.ts` exports `RequestType<B, P, Q>` (default) — typed `{ body, params, query }`. `P` and `Q` default to `void` — body-only endpoints use `RequestType<SyncUserBody>`
+  - `ActionResponse.ts` exports `ActionResponse<T>` (default) — typed `{ status, data?, error? }`
+- Each endpoint has its own dedicated files in `backend/src/types/<domain>/`, named `<MethodName>Request.ts` / `<MethodName>Response.ts`
+- Each per-endpoint file default-exports the wrapper type (matching the filename) and named-exports the concrete body/data alias:
+  - Default export: the full wrapper alias (e.g. `SyncUserRequest`, `SyncUserResponse`) — used for controller typing
+  - Named export: the concrete body/data alias (e.g. `SyncUserBody`, `SyncUserData`) — the schema generation target
   ```ts
-  // syncUserRequest.ts
+  // SyncUserRequest.ts
   export type SyncUserBody = { idToken: string };
-  export type SyncUserRequest = RequestType<Record<string, string>, Record<string, string>, SyncUserBody>;
+  type SyncUserRequest = RequestType<SyncUserBody>;
+  export default SyncUserRequest;
 
-  // syncUserResponse.ts
+  // SyncUserResponse.ts
   export type SyncUserData = { user: User };
-  export type SyncUserResponse = ActionResponse<SyncUserData>;
+  type SyncUserResponse = ActionResponse<SyncUserData>;
+  export default SyncUserResponse;
   ```
-- Controllers receive the specific `<Method>Request` type and destructure `{ body }` (and `params`/`query` if needed) from it
+- Controllers receive the specific `<Method>Request` type (default import) and destructure `{ body }` (and `params`/`query` if needed) from it
 
 ### Repository Methods
 
@@ -55,20 +57,34 @@ Error:
 ### Runtime Validation
 
 - Request/response types are validated at runtime using `ajv` (JSON Schema draft-07)
-- JSON Schemas are generated from TypeScript types using `typescript-json-schema` CLI — run manually from `backend/` whenever a request/response type changes, then commit the output
-- Schema generation targets the concrete body/data aliases (`SyncUserBody`, `SyncUserData`), not the generic `RequestType`/`ActionResponse` wrappers
-- Generated schemas live in `backend/src/schemas/<domain>/` and are committed to git
+- JSON Schemas are generated from TypeScript types using `typescript-json-schema` **programmatic API** at build time — not the CLI
+- A build script (`backend/scripts/generateSchemas.ts`) scans `backend/src/types/**/*.ts`, discovers all exported symbols, and generates schemas based on naming convention:
+  - Types ending in `Body` → request schema (`noExtraProps: true` — rejects unknown fields from clients)
+  - Types ending in `Data` → response schema (no `noExtraProps`)
+  - All other types are skipped
+- Export names in generated file: camelCase type name + `Schema` suffix (e.g. `SyncUserBody` → `syncUserBodySchema`)
+- Generated file (`backend/src/schemas/generated.ts`) is gitignored — never committed, always regenerated
+- `prebuild` and `predev` npm scripts run the generator automatically — schemas are always fresh
+- `typescript-json-schema` is a `devDependency` — not needed at runtime
 - `Date` fields in types must have `@format date` JSDoc so the schema emits `{ "type": "string", "format": "date" }` — response data is coerced via `JSON.parse(JSON.stringify(...))` before validation to convert `Date` objects to strings
-- Schema generation commands (run from `backend/`):
-  ```bash
-  npx typescript-json-schema tsconfig.schema.json SyncUserBody --required --strictNullChecks --noExtraProps --out src/schemas/auth/syncUserBody.json
-  npx typescript-json-schema tsconfig.schema.json SyncUserData --required --strictNullChecks --out src/schemas/auth/syncUserData.json
-  ```
-- `--noExtraProps` on request schemas only — rejects unknown fields from clients; omitted on response schemas
-- `backend/tsconfig.schema.json` has a narrow `include` (types, models, errors only) to prevent the CLI from tripping over files that import runtime packages
 - AJV instance and validators are created once at module scope in `backend/src/lib/validate.ts` — never per-request
-- Two compile utilities: `compileValidator` (throws 400 on failure) for requests, `compileResponseValidator` (throws 500 on failure) for responses
+- Two compile utilities: `compileRequestValidator` (throws 400 on failure) for requests, `compileResponseValidator` (throws 500 on failure) for responses
 - Route validates request body before calling the controller — controller can assume body is valid and does not re-check
+
+### Bootstrap
+
+- `index.ts` uses an `async start()` function with `await` — no `.then()` chains
+- Express middleware (`cors`, `json`) and health route registered before `start()` — only DB-dependent wiring goes inside
+
+### Config
+
+- Single `config` object in `backend/src/config/config.ts` — the only place `process.env` is read
+- All other modules import `config` — never access `process.env` directly
+
+### Models
+
+- Entity IDs are custom UUIDs via `crypto.randomUUID()` — no MongoDB `ObjectId`
+- `Date` fields must have `@format date` JSDoc so `typescript-json-schema` emits `{ "type": "string", "format": "date" }` instead of `date-time`
 
 ### Dependency Injection
 
