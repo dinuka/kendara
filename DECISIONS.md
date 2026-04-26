@@ -7,8 +7,9 @@
 - `ErrorCodes` is a TypeScript enum (PascalCase members, e.g. `ErrorCodes.BadRequest`) — not a `const` object
 - `AppError` shape: `{ status: number; code: ErrorCodes; message: string }`
 - Error factories (`badRequest`, `forbidden`, `notFound`, `internalServerError`) return `AppError` — all named exports from `errors.ts`
+- `isAppError(err): err is AppError` type guard (named export from `errors.ts`) — checks the value is a non-null object with a `code` that is a valid `ErrorCodes` member; use this instead of `(err as AppError).code !== undefined` casts
 - Controllers **throw** `AppError` on failure — no return-based error path in controllers
-- Routes catch thrown `AppError` and serialise to `{ error: { code, message } }` JSON; unknown errors go to `next(err)`
+- Routes catch thrown errors with `if (isAppError(err))` — serialise to `{ error: { code, message } }` JSON; unknown errors go to `next(err)`
 - Global error handler in `index.ts` also uses `{ error: { code, message } }` shape — consistent across all error paths
 
 ### Response Shape
@@ -25,7 +26,7 @@ Error:
 ### Per-Endpoint Request/Response Types
 
 - Two shared generic wrappers live at the top of `types/`:
-  - `RequestType.ts` exports `RequestType<B, P, Q>` (default) — typed `{ body, params, query }`. `P` and `Q` default to `void` — body-only endpoints use `RequestType<SyncUserBody>`
+  - `RequestType.ts` exports `RequestType<B, P, Q>` (default). `P` and `Q` default to `void` — when `void`, those keys are excluded via conditional types (`{ params?: never }`). Body-only endpoints use `RequestType<SyncUserBody>`
   - `ActionResponse.ts` exports `ActionResponse<T>` (default) — typed `{ status, data?, error? }`
 - Each endpoint has its own dedicated files in `backend/src/types/<domain>/`, named `<MethodName>Request.ts` / `<MethodName>Response.ts`
 - Each per-endpoint file default-exports the wrapper type (matching the filename) and named-exports the concrete body/data alias:
@@ -84,7 +85,8 @@ Error:
 ### Models
 
 - Entity IDs are custom UUIDs via `crypto.randomUUID()` — no MongoDB `ObjectId`
-- `Date` fields must have `@format date` JSDoc so `typescript-json-schema` emits `{ "type": "string", "format": "date" }` instead of `date-time`
+- `avatarUrl` is optional (`avatarUrl?: string`) — not `string | undefined` — consistent with the repo method param convention
+- `Date` fields do not carry `@format date` JSDoc on the model type itself — that annotation is only needed if schema generation targets the model directly. Response schemas pick up the format via the `SyncUserData` wrapper type
 
 ### Dependency Injection
 

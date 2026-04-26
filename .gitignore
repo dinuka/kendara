@@ -6,6 +6,9 @@ backend/dist/
 frontend/.next/
 frontend/out/
 
+# Auto-generated
+backend/src/schemas/generated.ts
+
 # Environment files
 .env
 .env.local
