@@ -2,12 +2,17 @@
   "name": "kendara",
   "version": "1.0.0",
   "private": true,
-  "workspaces": ["frontend", "backend"],
+  "workspaces": [
+    "frontend",
+    "backend"
+  ],
   "scripts": {
     "dev": "concurrently --names \"BE,FE\" --prefix-colors \"yellow,cyan\" \"npm run dev --workspace=backend\" \"npm run dev --workspace=frontend\"",
-    "build": "npm run build --workspace=backend && npm run build --workspace=frontend"
+    "build": "npm run build --workspace=backend && npm run build --workspace=frontend",
+    "format": "git diff --name-only --diff-filter=ACMR HEAD | xargs prettier --write --ignore-unknown"
   },
   "devDependencies": {
-    "concurrently": "^9.2.1"
+    "concurrently": "^9.2.1",
+    "prettier": "^3.8.3"
   }
 }
