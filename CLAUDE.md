@@ -8,6 +8,7 @@ npm workspaces monorepo. No Turborepo or Nx.
 kendara/
 ├── frontend/   Next.js 14 App Router (TypeScript) — port 3000
 ├── backend/    Express.js (TypeScript) — port 4000
+├── plans/      Feature implementation plans (YYYY-MM-DD_<feature>.md)
 └── specs/      Feature specifications (daily spec files)
 ```
 
@@ -20,6 +21,7 @@ npm run build      # build both workspaces
 ```
 
 Run a single workspace:
+
 ```bash
 npm run dev --workspace=backend
 npm run dev --workspace=frontend
@@ -28,7 +30,7 @@ npm run dev --workspace=frontend
 ## Ports
 
 | Service  | URL                              |
-|----------|----------------------------------|
+| -------- | -------------------------------- |
 | Frontend | http://localhost:3000            |
 | Backend  | http://localhost:4000            |
 | Health   | http://localhost:4000/api/health |
@@ -52,15 +54,23 @@ npm run dev --workspace=frontend
 
 ## Adding API routes
 
-Add handlers in `backend/src/`. Call from frontend using:
+Add handlers in `backend/src/`. Call from frontend using the fetch helpers:
+
 ```ts
-fetch('http://localhost:4000/api/your-route')
+// server components
+import apiFetch from '@/lib/apiFetch';
+const data = await apiFetch('/api/your-route');
+
+// client components
+import apiFetchClient from '@/lib/apiFetchClient';
+const data = await apiFetchClient('/api/your-route');
 ```
-For production, replace the base URL with an environment variable.
+
+The base URL comes from `config.backendUrl` in `frontend/src/lib/config.ts` — never hardcode it.
 
 ## Plans & Architectural Decisions
 
 - Feature plans live in `plans/` as `YYYY-MM-DD_<feature>.md`
 - When finalising a plan (i.e. the plan is approved and ready to implement), extract any architectural decisions it introduces and add them to `DECISIONS.md`
-- `DECISIONS.md` records *why* things are done a certain way — patterns, conventions, and constraints that should be consistent across the codebase
+- `DECISIONS.md` records _why_ things are done a certain way — patterns, conventions, and constraints that should be consistent across the codebase
 - Read `DECISIONS.md` before writing new backend code to stay consistent with established patterns

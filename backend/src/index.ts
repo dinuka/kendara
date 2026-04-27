@@ -1,12 +1,13 @@
 import 'dotenv/config';
 import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
-import { config } from './config/config';
+import config from './config/config';
 import { connectClient } from './config/db';
 import UserRepo from './repos/UserRepo';
 import AuthController from './controllers/AuthController';
 import { makeAuthRouter } from './routes/authRoutes';
 import { internalServerError } from './errors';
+import logger from './lib/logger';
 
 const app = express();
 
@@ -31,9 +32,7 @@ const start = async () => {
     res.status(err.status).json({ error: { code: err.code, message: err.message } });
   });
 
-  app.listen(config.port, () =>
-    console.log(`[backend] Server running on http://localhost:${config.port}`)
-  );
+  app.listen(config.port, () => logger.info(`Server running on http://localhost:${config.port}`));
 };
 
 start();

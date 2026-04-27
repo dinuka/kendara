@@ -1,6 +1,6 @@
 import { OAuth2Client } from 'google-auth-library';
 import UserRepo from '../repos/UserRepo';
-import { config } from '../config/config';
+import config from '../config/config';
 import { forbidden } from '../errors';
 import SyncUserRequest from '../types/auth/SyncUserRequest';
 import SyncUserResponse from '../types/auth/SyncUserResponse';

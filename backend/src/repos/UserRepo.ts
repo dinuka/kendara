@@ -4,13 +4,13 @@ import User, { Role } from '../models/User';
 const COLLECTION = 'users';
 
 export default class UserRepo {
-  constructor(private readonly db: Db) { }
+  constructor(private readonly db: Db) {}
 
   async upsertByGoogleId(
     googleId: string,
     email: string,
     name: string,
-    avatarUrl?: string,
+    avatarUrl?: string
   ): Promise<User> {
     const now = new Date();
 
@@ -20,13 +20,17 @@ export default class UserRepo {
         $set: { email, name, avatarUrl, updatedAt: now },
         $setOnInsert: { id: crypto.randomUUID(), googleId, role: Role.User, createdAt: now },
       },
-      { upsert: true, returnDocument: 'after' }
+      { upsert: true, returnDocument: 'after', projection: { _id: 0 } }
     );
 
     return result!;
   }
 
   async findByGoogleId(googleId: string): Promise<User | undefined> {
-    return await this.db.collection<User>(COLLECTION).findOne({ googleId }) ?? undefined;
+    return (
+      (await this.db
+        .collection<User>(COLLECTION)
+        .findOne({ googleId }, { projection: { _id: 0 } })) ?? undefined
+    );
   }
 }

@@ -15,10 +15,13 @@
 ### Response Shape
 
 Success:
+
 ```json
 { "data": { "user": { ... } } }
 ```
+
 Error:
+
 ```json
 { "error": { "code": "BAD_REQUEST", "message": "Missing ID token" } }
 ```
@@ -32,6 +35,7 @@ Error:
 - Each per-endpoint file default-exports the wrapper type (matching the filename) and named-exports the concrete body/data alias:
   - Default export: the full wrapper alias (e.g. `SyncUserRequest`, `SyncUserResponse`) — used for controller typing
   - Named export: the concrete body/data alias (e.g. `SyncUserBody`, `SyncUserData`) — the schema generation target
+
   ```ts
   // SyncUserRequest.ts
   export type SyncUserBody = { idToken: string };
@@ -43,17 +47,29 @@ Error:
   type SyncUserResponse = ActionResponse<SyncUserData>;
   export default SyncUserResponse;
   ```
+
 - Controllers receive the specific `<Method>Request` type (default import) and destructure `{ body }` (and `params`/`query` if needed) from it
 
 ### Repository Methods
 
 - Repo method params are flat positional arguments — no input object wrappers
 - Optional fields use `?` param syntax (e.g. `avatarUrl?: string`), not `string | undefined`
+- All queries must include `projection: { _id: 0 }` — MongoDB's `_id` is never exposed outside the repo layer
+- Scoping queries use dot-notation for nested fields (e.g. `{ 'owner.id': ownerId }`)
+
+### Models
+
+- Entity IDs are custom UUIDs via `crypto.randomUUID()` — no MongoDB `ObjectId`
+- `avatarUrl` is optional (`avatarUrl?: string`) — not `string | undefined` — consistent with the repo method param convention
+- `Date` fields do not carry `@format date` JSDoc on the model type itself — that annotation is only needed if schema generation targets the model directly. Response schemas pick up the format via the `SyncUserData` wrapper type
+- Model relationships use an embedded object typed with `Pick<RelatedModel, 'id'>` — never a bare `relatedId: string` field. Example: `owner: Pick<User, 'id'>` on `Horoscope`
 
 ### Auth Controller
 
 - `syncUser` is a public (unauthenticated) endpoint — no `AuthUser` parameter
 - Only include an `AuthUser` parameter on controller methods that require an authenticated user (e.g. activation flows)
+- On protected controller methods, the request object comes first and `authUser` comes last — e.g. `async create({ body }: CreateHoroscopeRequest, authUser: AuthUser)`
+- `AuthUser` lives in `backend/src/types/AuthUser.ts` (not under `types/<domain>/`) — it is a shared runtime contract, not an endpoint type; the schema generator skips it
 
 ### Runtime Validation
 
@@ -79,16 +95,64 @@ Error:
 
 ### Config
 
-- Single `config` object in `backend/src/config/config.ts` — the only place `process.env` is read
-- All other modules import `config` — never access `process.env` directly
-
-### Models
-
-- Entity IDs are custom UUIDs via `crypto.randomUUID()` — no MongoDB `ObjectId`
-- `avatarUrl` is optional (`avatarUrl?: string`) — not `string | undefined` — consistent with the repo method param convention
-- `Date` fields do not carry `@format date` JSDoc on the model type itself — that annotation is only needed if schema generation targets the model directly. Response schemas pick up the format via the `SyncUserData` wrapper type
+- Single `config` object in `backend/src/config/config.ts` — the only place `process.env` is read; default export
+- All other modules import `config` as a default import — never access `process.env` directly
 
 ### Dependency Injection
 
 - Plain constructor injection — no DI framework, no interfaces
 - Flow: `connectClient()` → `UserRepo(db)` → `AuthController(userRepo)` → `makeAuthRouter(authController)`
+
+## Frontend
+
+### Config
+
+- Single `config` object in `frontend/src/lib/config.ts` — the only place `process.env` is read; default export
+- All other modules import `config` as a default import — never access `process.env` directly
+- All external service URLs (e.g. Nominatim) live in `config` with defaults — so every third-party call is visible in one place
+
+### Error Handling
+
+- FE uses its own `AppError` type in `frontend/src/lib/errors.ts` — same shape as BE but without `status` (`{ code: ErrorCodes; message: string }`)
+- Same `ErrorCodes` enum, same factory functions (`forbidden`, `notFound`, `internalServerError`), same `isAppError` guard — all named exports
+- `apiFetch` / `apiFetchClient` catch server errors, log them via `logger`, then map to a clean FE `AppError` via `mapServerError` — raw server error detail is never re-thrown to the UI
+- Unknown non-`AppError` responses fall through to `internalServerError()` with no detail leaked
+
+### Fetch Helpers
+
+- `frontend/src/lib/apiFetch.ts` — server-side (Next.js server components), reads session via `auth()`; default export
+- `frontend/src/lib/apiFetchClient.ts` — client-side (`'use client'` components), reads session via `getSession()`; default export
+- Both helpers forward `Authorization: Bearer <idToken>` and handle error mapping identically
+
+### Logging
+
+- Both BE and FE use `pino` via a `logger.ts` file in their respective `lib/` directories — default export matching the filename
+- Logger reads `logLevel` and `nodeEnv` from the local `config` — never from `process.env` directly
+- In non-production environments, `pino-pretty` transport is used for human-readable output; in production, plain JSON (ready for Datadog ingestion via `pino-datadog-transport`)
+- All `console.*` calls are replaced with `logger.*` — `logger.info`, `logger.error`, etc.
+- To add Datadog: install `pino-datadog-transport` and add it as a transport in `logger.ts` when `nodeEnv === 'production'`
+
+### Class Methods
+
+- Class methods are declared with **regular method syntax** — not arrow function class fields
+- Example:
+
+  ```ts
+  // Correct
+  export default class AuthController {
+    constructor(private readonly userRepo: UserRepo) {}
+
+    async syncUser({ body: { idToken } }: SyncUserRequest): Promise<SyncUserResponse> {
+      // ...
+    }
+  }
+
+  // Incorrect — do not use arrow function class fields
+  export default class AuthController {
+    syncUser = async ({ body: { idToken } }: SyncUserRequest): Promise<SyncUserResponse> => {
+      // ...
+    };
+  }
+  ```
+
+- When a method is passed as a callback (e.g. to an Express route handler) and `this` binding is needed, bind it at the call site or wrap in an inline arrow — do **not** convert the method to an arrow class field

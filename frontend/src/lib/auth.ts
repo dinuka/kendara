@@ -1,6 +1,7 @@
 import NextAuth, { Session } from 'next-auth';
 import { JWT } from 'next-auth/jwt';
 import Google from 'next-auth/providers/google';
+import config from './config';
 
 declare module 'next-auth' {
   interface Session {
@@ -18,7 +19,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       if (!account?.id_token) return false;
 
       try {
-        const res = await fetch(`${process.env.BACKEND_URL}/api/auth/sync`, {
+        const res = await fetch(`${config.backendUrl}/api/auth/sync`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ idToken: account.id_token }),
