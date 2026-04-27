@@ -1,5 +1,6 @@
 import { auth } from '@/lib/auth';
 import { redirect } from 'next/navigation';
+import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import SignOutButton from '@/components/SignOutButton';
 
@@ -15,7 +16,12 @@ export default async function DashboardPage() {
       <header className="border-b px-4 py-3">
         <div className="mx-auto flex max-w-2xl items-center justify-between">
           <span className="font-semibold">Kendara</span>
-          <SignOutButton />
+          <nav className="flex items-center gap-4">
+            <Link href="/horoscopes" className="text-sm hover:underline">
+              Horoscopes
+            </Link>
+            <SignOutButton />
+          </nav>
         </div>
       </header>
 

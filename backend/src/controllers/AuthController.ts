@@ -10,7 +10,7 @@ export default class AuthController {
 
   constructor(private readonly userRepo: UserRepo) {}
 
-  syncUser = async ({ body: { idToken } }: SyncUserRequest): Promise<SyncUserResponse> => {
+  async syncUser({ body: { idToken } }: SyncUserRequest): Promise<SyncUserResponse> {
     const ticket = await this.client.verifyIdToken({ idToken, audience: config.googleClientId });
     const payload = ticket.getPayload();
 
@@ -22,5 +22,5 @@ export default class AuthController {
     const user = await this.userRepo.upsertByGoogleId(googleId, email, name, avatarUrl);
 
     return { status: 200, data: { user } };
-  };
+  }
 }

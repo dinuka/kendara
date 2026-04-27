@@ -4,8 +4,12 @@ import cors from 'cors';
 import config from './config/config';
 import { connectClient } from './config/db';
 import UserRepo from './repos/UserRepo';
+import HoroscopeRepo from './repos/HoroscopeRepo';
 import AuthController from './controllers/AuthController';
+import HoroscopeController from './controllers/HoroscopeController';
 import { makeAuthRouter } from './routes/authRoutes';
+import { makeHoroscopeRouter } from './routes/horoscopeRoutes';
+import { makeAuthMiddleware } from './middleware/authMiddleware';
 import { internalServerError } from './errors';
 import logger from './lib/logger';
 
@@ -22,10 +26,14 @@ const start = async () => {
   const db = await connectClient(config.mongoUri, config.mongoDbName);
 
   const userRepo = new UserRepo(db);
+  const horoscopeRepo = new HoroscopeRepo(db);
 
   const authController = new AuthController(userRepo);
+  const horoscopeController = new HoroscopeController(horoscopeRepo);
+  const authMiddleware = makeAuthMiddleware(userRepo);
 
   app.use('/api/auth', makeAuthRouter(authController));
+  app.use('/api/horoscopes', makeHoroscopeRouter(horoscopeController, authMiddleware));
 
   app.use((_err: unknown, _req: Request, res: Response, _next: NextFunction) => {
     const err = internalServerError();

@@ -156,3 +156,18 @@ Error:
   ```
 
 - When a method is passed as a callback (e.g. to an Express route handler) and `this` binding is needed, bind it at the call site or wrap in an inline arrow — do **not** convert the method to an arrow class field
+
+## Auth Middleware
+
+- `makeAuthMiddleware(userRepo)` returns an Express `RequestHandler` — factory pattern, same as `makeAuthRouter`
+- The middleware re-verifies the Google ID token on every request using `OAuth2Client.verifyIdToken`
+- On success it attaches the full `User` (as `AuthUser`) to `req.authUser` via a cast: `(req as Request & { authUser: AuthUser }).authUser = user`
+- On failure it responds immediately with `403` and `{ error: { code, message } }` — it does **not** call `next(err)`, so the global error handler is not involved
+- Protected routers apply `router.use(authMiddleware)` at the top — every handler in that router is automatically protected
+- `AuthUser` is the same shape as `User` today; the separate type exists so request-scoped fields (e.g. `idToken`, permissions) can be added later without touching the `User` model
+
+## Repo Owner-Scoping
+
+- Every `HoroscopeRepo` method that reads or writes data accepts `ownerId` and includes `'owner.id': ownerId` in the MongoDB filter
+- No method can return or mutate a document belonging to a different user — the scoping is enforced in the repo, not the controller
+- Dot-notation for nested filter fields follows the existing pattern (`{ 'owner.id': ownerId }`)

@@ -3,7 +3,7 @@ export enum Role {
   Admin = 'admin',
 }
 
-type User = {
+interface User {
   id: string;
   googleId: string;
   email: string;
@@ -12,6 +12,6 @@ type User = {
   role: Role;
   createdAt: Date;
   updatedAt: Date;
-};
+}
 
 export default User;
