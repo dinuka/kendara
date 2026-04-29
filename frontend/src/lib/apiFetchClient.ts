@@ -19,13 +19,15 @@ const apiFetchClient = async <T>(path: string, init: RequestInit = {}): Promise<
   const session = await getSession();
   if (!session?.idToken) throw forbidden('Not authenticated');
 
+  const isFormData = init.body instanceof FormData;
+  const baseHeaders: Record<string, string> = {
+    Authorization: `Bearer ${session.idToken}`,
+  };
+  if (!isFormData) baseHeaders['Content-Type'] = 'application/json';
+
   const res = await fetch(`${config.backendUrl}${path}`, {
     ...init,
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${session.idToken}`,
-      ...(init.headers ?? {}),
-    },
+    headers: { ...baseHeaders, ...(init.headers ?? {}) },
   });
 
   const json = await res.json();

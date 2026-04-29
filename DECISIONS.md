@@ -171,3 +171,26 @@ Error:
 - Every `HoroscopeRepo` method that reads or writes data accepts `ownerId` and includes `'owner.id': ownerId` in the MongoDB filter
 - No method can return or mutate a document belonging to a different user — the scoping is enforced in the repo, not the controller
 - Dot-notation for nested filter fields follows the existing pattern (`{ 'owner.id': ownerId }`)
+
+## Polyglot Subprocess Invocation (Python from Node)
+
+- All Python invocations go through a single helper in `backend/src/lib/<feature>Parser.ts`. The helper uses `child_process.execFile` (never `exec` — no shell, no metacharacter risk) wrapped via `util.promisify`.
+- Python paths come from `config` (`parserPythonPath`, `parserScriptPath`) — never hardcoded. Defaults resolve relative to repo root via `path.resolve(__dirname, '../../..', 'parser/...')`. Override via env vars in production.
+- A timeout (`config.parsePdfTimeoutMs`) and `maxBuffer` are required on every subprocess call.
+- The Python script's stdout is reserved for a single JSON document on success. Progress and diagnostic prints go to stderr. Non-zero exit codes signal parse failure; the helper maps them to `badRequest` (user-supplied data is the cause).
+- The caller is responsible for tmp-file cleanup. Use `try/finally` with `fs.unlink(...).catch(() => {})`.
+
+## Multipart Upload Pattern
+
+- Multer 2.x is the supported version (Express 5 compatibility). Pin `multer@^2`.
+- Disk storage in `os.tmpdir()` with `randomUUID()` filenames. File-size and file-count limits configured via `config`. `fileFilter` rejects non-PDF mimetypes before the file lands on disk.
+- Auth middleware MUST run before multer. With `router.use(authMiddleware)` followed by `router.post('/parse-pdf', upload.single('pdf'), handler)`, Express runs auth first; an unauthenticated request returns 403 without ever invoking multer's disk write.
+- Multer errors (`MulterError`, including `LIMIT_FILE_SIZE`) and `fileFilter` errors are not `AppError`s. Handle them in a router-level error middleware that maps them to `{ error: { code: ErrorCodes.BadRequest, message } }`.
+- Multipart endpoints have **no `Body` type** — there is no JSON body for the schema generator to target. Only the `Data` response type is generated. The route handler skips body validation. The controller method takes a plain inline object type (e.g. `{ filePath: string }`), not `RequestType<Body>`. No `authUser` parameter is needed on controller methods that don't use it.
+- On the frontend, `apiFetchClient` detects `FormData` bodies and skips setting `Content-Type: application/json` — the browser sets the correct multipart boundary automatically.
+
+## Two-Step Import Flow
+
+- An import endpoint that does heavy work (parse, OCR, transform) MUST NOT also perform the persistent write. It returns the extracted/derived data; the FE displays it for review and confirmation; the existing create endpoint persists.
+- FE buffers the parse result in `sessionStorage` (key prefixed `kendara:`) for the cross-page handoff. The review page is a client component; it `router.replace`s away if storage is empty.
+- The persistent write extends the existing create endpoint with optional fields (`chartData?` here) — never a new `POST /api/horoscopes/import-save` shadow endpoint. One canonical write path.

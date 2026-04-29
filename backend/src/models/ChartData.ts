@@ -1,32 +1,32 @@
-export type Planet = {
+interface Planet {
   id: number;
   name: string;
   code: string;
-};
+}
 
-export type Sign = {
+interface Sign {
   id: number;
   name: string;
   load: Planet;
-};
+}
 
-export type House = {
-  id: number;
-};
-
-export type Nakshatra = {
+interface Nakshatra {
   id: number;
   name: string;
   load: Planet;
-};
+}
 
-export type Degrees = {
+interface House {
+  id: number;
+}
+
+interface Degrees {
   d: number;
   m: number;
   s: number;
-};
+}
 
-export type PlanetaryPosition = {
+interface PlanetaryPosition {
   planet: Planet;
   degrees: Degrees;
   house: House;
@@ -35,25 +35,25 @@ export type PlanetaryPosition = {
   subLoad: Planet;
   subSubLoad: Planet;
   direct: boolean;
-};
+}
 
-export type CuspalPosition = {
+interface CuspalPosition {
   id: number;
   sign: Sign;
   degrees: Degrees;
   starLoad: Planet;
   subLoad: Planet;
   subSubLoad: Planet;
-};
+}
 
-export type DashaPeriod = {
+interface DashaPeriod {
   lord: Planet;
   startDate: string;
   endDate: string;
   subDashaPeriods: DashaPeriod[];
-};
+}
 
-export type ChartData = {
+interface ChartData {
   nakshatra: Nakshatra;
   nakshatraPada: number;
   tithi: {
@@ -63,26 +63,6 @@ export type ChartData = {
   planetaryPositions: PlanetaryPosition[];
   cuspalPositions: CuspalPosition[];
   dashas: DashaPeriod[];
-};
+}
 
-export type Horoscope = {
-  id: string;
-  owner: { id: string };
-  name: string;
-  birthTime: string;
-  timezone: string;
-  location: {
-    latitude: number;
-    longitude: number;
-    label: string;
-  };
-  chartData?: ChartData;
-  createdAt: string;
-  updatedAt: string;
-};
-
-export type ParsedHoroscope = Pick<Horoscope, 'name' | 'timezone' | 'location'> & {
-  birthDate: string;
-  birthTimeOfDay: string;
-  chartData: ChartData;
-};
+export default ChartData;

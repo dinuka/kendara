@@ -1,5 +1,6 @@
 import { Db } from 'mongodb';
 import Horoscope from '../models/Horoscope';
+import ChartData from '../models/ChartData';
 
 const COLLECTION = 'horoscopes';
 
@@ -13,7 +14,8 @@ export default class HoroscopeRepo {
     timezone: string,
     latitude: number,
     longitude: number,
-    locationLabel: string
+    locationLabel: string,
+    chartData?: ChartData
   ): Promise<Horoscope> {
     const now = new Date();
     const horoscope: Horoscope = {
@@ -23,6 +25,7 @@ export default class HoroscopeRepo {
       birthTime,
       timezone,
       location: { latitude, longitude, label: locationLabel },
+      ...(chartData ? { chartData } : {}),
       createdAt: now,
       updatedAt: now,
     };
@@ -54,21 +57,24 @@ export default class HoroscopeRepo {
     timezone: string,
     latitude: number,
     longitude: number,
-    locationLabel: string
+    locationLabel: string,
+    chartData?: ChartData
   ): Promise<Horoscope | undefined> {
-    const result = await this.db.collection<Horoscope>(COLLECTION).findOneAndUpdate(
-      { id, 'owner.id': ownerId },
-      {
-        $set: {
-          name,
-          birthTime,
-          timezone,
-          location: { latitude, longitude, label: locationLabel },
-          updatedAt: new Date(),
-        },
-      },
-      { returnDocument: 'after', projection: { _id: 0 } }
-    );
+    const $set: Record<string, unknown> = {
+      name,
+      birthTime,
+      timezone,
+      location: { latitude, longitude, label: locationLabel },
+      updatedAt: new Date(),
+    };
+    if (chartData) $set.chartData = chartData;
+    const result = await this.db
+      .collection<Horoscope>(COLLECTION)
+      .findOneAndUpdate(
+        { id, 'owner.id': ownerId },
+        { $set },
+        { returnDocument: 'after', projection: { _id: 0 } }
+      );
     return result ?? undefined;
   }
 

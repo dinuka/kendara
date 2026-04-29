@@ -10,6 +10,8 @@ import UpdateHoroscopeRequest from '../types/horoscope/UpdateHoroscopeRequest';
 import UpdateHoroscopeResponse from '../types/horoscope/UpdateHoroscopeResponse';
 import DeleteHoroscopeRequest from '../types/horoscope/DeleteHoroscopeRequest';
 import DeleteHoroscopeResponse from '../types/horoscope/DeleteHoroscopeResponse';
+import { parseHoroscopePdf } from '../lib/horoscopeParser';
+import ParseHoroscopePdfResponse from '../types/horoscope/ParseHoroscopePdfResponse';
 
 export default class HoroscopeController {
   constructor(private readonly horoscopeRepo: HoroscopeRepo) {}
@@ -18,7 +20,7 @@ export default class HoroscopeController {
     { body }: CreateHoroscopeRequest,
     authUser: AuthUser
   ): Promise<CreateHoroscopeResponse> {
-    const { name, birthTime, timezone, location } = body;
+    const { name, birthTime, timezone, location, chartData } = body;
     const horoscope = await this.horoscopeRepo.create(
       authUser.id,
       name,
@@ -26,7 +28,8 @@ export default class HoroscopeController {
       timezone,
       location.latitude,
       location.longitude,
-      location.label
+      location.label,
+      chartData
     );
     return { status: 201, data: { horoscope } };
   }
@@ -46,15 +49,17 @@ export default class HoroscopeController {
     { body, params }: UpdateHoroscopeRequest,
     authUser: AuthUser
   ): Promise<UpdateHoroscopeResponse> {
+    const { name, birthTime, timezone, location, chartData } = body;
     const updated = await this.horoscopeRepo.update(
       params.id,
       authUser.id,
-      body.name,
-      new Date(body.birthTime),
-      body.timezone,
-      body.location.latitude,
-      body.location.longitude,
-      body.location.label
+      name,
+      new Date(birthTime),
+      timezone,
+      location.latitude,
+      location.longitude,
+      location.label,
+      chartData
     );
     if (!updated) throw notFound('Horoscope not found');
     return { status: 200, data: { horoscope: updated } };
@@ -67,5 +72,10 @@ export default class HoroscopeController {
     const deleted = await this.horoscopeRepo.deleteByIdAndOwner(params.id, authUser.id);
     if (!deleted) throw notFound('Horoscope not found');
     return { status: 200, data: { success: true } };
+  }
+
+  async parsePdf({ filePath }: { filePath: string }): Promise<ParseHoroscopePdfResponse> {
+    const parsed = await parseHoroscopePdf(filePath);
+    return { status: 200, data: { parsed } };
   }
 }

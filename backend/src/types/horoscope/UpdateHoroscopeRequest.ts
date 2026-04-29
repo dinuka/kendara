@@ -1,15 +1,12 @@
 import RequestType from '../RequestType';
+import Horoscope from '../../models/Horoscope';
 
-export type UpdateHoroscopeBody = {
-  name: string;
+export type UpdateHoroscopeBody = Pick<
+  Horoscope,
+  'name' | 'timezone' | 'location' | 'chartData'
+> & {
   /** @format date-time */
   birthTime: string;
-  timezone: string;
-  location: {
-    latitude: number;
-    longitude: number;
-    label: string;
-  };
 };
 
 type UpdateHoroscopeRequest = RequestType<UpdateHoroscopeBody, { id: string }>;
