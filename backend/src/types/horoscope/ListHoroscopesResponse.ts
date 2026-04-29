@@ -1,7 +1,7 @@
-import Horoscope from '../../models/Horoscope';
 import ActionResponse from '../ActionResponse';
+import { HoroscopePopulated } from '../../models/HoroscopePopulated';
 
-export type ListHoroscopesData = { horoscopes: Horoscope[] };
+export type ListHoroscopesData = { horoscopes: HoroscopePopulated[] };
 
 type ListHoroscopesResponse = ActionResponse<ListHoroscopesData>;
 

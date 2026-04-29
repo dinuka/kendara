@@ -58,7 +58,7 @@ export type ChartData = {
   nakshatraPada: number;
   tithi: {
     paksha: string;
-    id: number;
+    number: number;
   };
   planetaryPositions: PlanetaryPosition[];
   cuspalPositions: CuspalPosition[];

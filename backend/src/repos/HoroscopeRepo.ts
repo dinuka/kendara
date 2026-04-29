@@ -1,6 +1,6 @@
 import { Db } from 'mongodb';
 import Horoscope from '../models/Horoscope';
-import ChartData from '../models/ChartData';
+import StoredChartData from '../models/ChartDataStored';
 
 const COLLECTION = 'horoscopes';
 
@@ -15,7 +15,7 @@ export default class HoroscopeRepo {
     latitude: number,
     longitude: number,
     locationLabel: string,
-    chartData?: ChartData
+    chartData?: StoredChartData
   ): Promise<Horoscope> {
     const now = new Date();
     const horoscope: Horoscope = {
@@ -58,7 +58,7 @@ export default class HoroscopeRepo {
     latitude: number,
     longitude: number,
     locationLabel: string,
-    chartData?: ChartData
+    chartData?: StoredChartData
   ): Promise<Horoscope | undefined> {
     const $set: Record<string, unknown> = {
       name,

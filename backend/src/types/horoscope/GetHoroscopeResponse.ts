@@ -1,7 +1,7 @@
-import Horoscope from '../../models/Horoscope';
 import ActionResponse from '../ActionResponse';
+import { HoroscopePopulated } from '../../models/HoroscopePopulated';
 
-export type GetHoroscopeData = { horoscope: Horoscope };
+export type GetHoroscopeData = { horoscope: HoroscopePopulated };
 
 type GetHoroscopeResponse = ActionResponse<GetHoroscopeData>;
 

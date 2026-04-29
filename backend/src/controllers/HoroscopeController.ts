@@ -12,6 +12,18 @@ import DeleteHoroscopeRequest from '../types/horoscope/DeleteHoroscopeRequest';
 import DeleteHoroscopeResponse from '../types/horoscope/DeleteHoroscopeResponse';
 import { parseHoroscopePdf } from '../lib/horoscopeParser';
 import ParseHoroscopePdfResponse from '../types/horoscope/ParseHoroscopePdfResponse';
+import { depopulateChartData } from '../lib/depopulateChartData';
+import { populateChartData } from '../lib/populateChartData';
+import { HoroscopePopulated } from '../models/HoroscopePopulated';
+import Horoscope from '../models/Horoscope';
+
+function populateHoroscope(doc: Horoscope): HoroscopePopulated {
+  const { chartData: storedChartData, ...rest } = doc;
+  return {
+    ...rest,
+    ...(storedChartData ? { chartData: populateChartData(storedChartData) } : {}),
+  };
+}
 
 export default class HoroscopeController {
   constructor(private readonly horoscopeRepo: HoroscopeRepo) {}
@@ -29,20 +41,20 @@ export default class HoroscopeController {
       location.latitude,
       location.longitude,
       location.label,
-      chartData
+      chartData ? depopulateChartData(chartData) : undefined
     );
-    return { status: 201, data: { horoscope } };
+    return { status: 201, data: { horoscope: populateHoroscope(horoscope) } };
   }
 
   async list(authUser: AuthUser): Promise<ListHoroscopesResponse> {
     const horoscopes = await this.horoscopeRepo.listByOwner(authUser.id);
-    return { status: 200, data: { horoscopes } };
+    return { status: 200, data: { horoscopes: horoscopes.map(populateHoroscope) } };
   }
 
   async get({ params }: GetHoroscopeRequest, authUser: AuthUser): Promise<GetHoroscopeResponse> {
     const horoscope = await this.horoscopeRepo.findByIdAndOwner(params.id, authUser.id);
     if (!horoscope) throw notFound('Horoscope not found');
-    return { status: 200, data: { horoscope } };
+    return { status: 200, data: { horoscope: populateHoroscope(horoscope) } };
   }
 
   async update(
@@ -59,10 +71,10 @@ export default class HoroscopeController {
       location.latitude,
       location.longitude,
       location.label,
-      chartData
+      chartData ? depopulateChartData(chartData) : undefined
     );
     if (!updated) throw notFound('Horoscope not found');
-    return { status: 200, data: { horoscope: updated } };
+    return { status: 200, data: { horoscope: populateHoroscope(updated) } };
   }
 
   async delete(

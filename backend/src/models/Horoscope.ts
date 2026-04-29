@@ -1,5 +1,5 @@
 import User from './User';
-import ChartData from './ChartData';
+import StoredChartData from './ChartDataStored';
 
 interface Horoscope {
   id: string;
@@ -12,7 +12,7 @@ interface Horoscope {
     longitude: number;
     label: string;
   };
-  chartData?: ChartData;
+  chartData?: StoredChartData;
   createdAt: Date;
   updatedAt: Date;
 }

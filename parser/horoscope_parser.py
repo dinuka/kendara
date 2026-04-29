@@ -80,6 +80,24 @@ NAKSHATRA_LORDS = {
 }
 NAKSHATRA_IDS = {name: i + 1 for i, name in enumerate(NAKSHATRA_LIST)}
 
+NAKSHATRA_ALIASES = {
+    "shravishtha": "Dhanishta",
+    "shravishta":  "Dhanishta",
+    "shravishti":  "Dhanishta",
+    "dhanista":    "Dhanishta",
+    "chitta":      "Chitra",
+    "ashwathi":    "Ashwini",
+    "ashvini":     "Ashwini",
+    "pooram":      "PurvaPhalguni",
+    "poorva":      "PurvaPhalguni",
+    "uttaram":     "UttaraPhalguni",
+    "uttara":      "UttaraPhalguni",
+    "pooradam":    "PurvaShadha",
+    "uttaradam":   "UttaraShadha",
+    "thiruvonam":  "Shravana",
+    "sravanam":    "Shravana",
+}
+
 TZ_LOOKUP = {
     "+5:30": "Asia/Colombo", "5:30": "Asia/Colombo", "+05:30": "Asia/Colombo",
     "IST": "Asia/Colombo", "Indian Standard Time": "Asia/Colombo",
@@ -104,11 +122,37 @@ TITHI_PAKSHA = {
     26: "Krishna", 27: "Krishna", 28: "Krishna", 29: "Krishna", 30: "Krishna",
 }
 
+TITHI_NAMES = {
+    "prathama": 1,   "pratipada": 1,
+    "dwitiya": 2,    "dvitiya": 2,
+    "tritiya": 3,    "thrithiya": 3,
+    "chaturthi": 4,  "chathurthi": 4,
+    "panchami": 5,
+    "shashti": 6,    "sashti": 6,
+    "saptami": 7,
+    "ashtami": 8,
+    "navami": 9,
+    "dasami": 10,    "dashami": 10,
+    "ekadashi": 11,  "ekadasi": 11,
+    "dwadashi": 12,  "dwadasi": 12,
+    "trayodashi": 13, "trayodasi": 13,
+    "chaturdashi": 14, "chaturdasi": 14,
+    "purnima": 15,   "poornima": 15,
+    "amavasya": 30,  "amavasai": 30,
+}
+
 # ─────────────────────────────────────────────
 #  Helper factories
 # ─────────────────────────────────────────────
+
+# Add this near the top with other lookup tables
+PLANET_CODE_TO_NAME = {v: k for k, v in PLANET_CODES.items()}
+# e.g. {"Su": "Sun", "Mo": "Moon", "Ma": "Mars", ...}
+
 def _planet(name):
-    n = PLANET_NORM.get(name, name)
+    # Resolve abbreviation → full name if needed
+    n = PLANET_CODE_TO_NAME.get(name, name)
+    n = PLANET_NORM.get(n, n)
     return {"id": PLANET_IDS[n], "name": n, "code": PLANET_CODES[n]}
 
 def _sign(abbr):
@@ -128,22 +172,39 @@ def _degrees(dms_str):
     return {"d": 0, "m": 0, "s": 0}
 
 def _tithi(raw):
-    """Best-effort tithi extraction — return {paksha, id}."""
+    """Extract tithi from OCR text — handles numeric and Sanskrit names."""
     if not raw:
         return None
-    m = re.search(r"(\d{1,2})", raw)
+    raw_lower = raw.lower()
+
+    if "krishna" in raw_lower:
+        paksha = "Krishna"
+    elif "shukla" in raw_lower:
+        paksha = "Shukla"
+    else:
+        paksha = None
+
+    m = re.search(r"\b(\d{1,2})\b", raw)
     if m:
         tid = int(m.group(1))
-        paksha = TITHI_PAKSHA.get(tid, "Shukla")
-        return {"paksha": paksha, "id": tid}
+        return {"paksha": paksha or TITHI_PAKSHA.get(tid, "Shukla"), "number": tid}
+
+    for name, tid in TITHI_NAMES.items():
+        if name in raw_lower:
+            return {"paksha": paksha or TITHI_PAKSHA.get(tid, "Shukla"), "number": tid}
+
     return None
 
 def _resolve_nakshatra(raw):
     """Find a nakshatra name from OCR text, return full object."""
     if not raw:
         return None
+    raw_lower = raw.lower()
+    for alias, canonical in NAKSHATRA_ALIASES.items():
+        if alias in raw_lower:
+            return _nakshatra(canonical)
     for name in NAKSHATRA_LIST:
-        if name.lower() in raw.lower():
+        if name.lower() in raw_lower:
             return _nakshatra(name)
     return None
 
@@ -290,105 +351,44 @@ def _section(text, s_marker, e_marker):
 def _norm_planet_name(name):
     return PLANET_NORM.get(name.strip(), name.strip())
 
-def _parse_periods(block, depth):
-    out = []
-    for m in PERIOD_PAT.finditer(block):
-        planets = [_norm_planet_name(p) for p in m.group(1).split("-")]
-        if len(planets) == depth:
-            out.append({
-                "planets": planets,
-                "startDate": None,  # filled by parent
-                "endDate": m.group(2),
-                "endTime": m.group(3),
-            })
-    return out
-
 def _ddmmyyy_to_ddmmyyyy(s):
     """Convert DD/MM/YYYY → DD-MM-YYYY."""
     return s.replace("/", "-")
 
 def parse_dashas(text):
     dasha_block = _section(text, "Dashas", "Current Bhukti")
-    bhukti_block = _section(text, "Current Bhukti", "Current Antara")
-    antara_block = _section(text, "Current Antara", "Current Sukshama")
-    sukshama_block = _section(text, "Current Sukshama", "Current Prana")
-    prana_block = _section(text, "Current Prana", "ASTROLOGER")
-
-    mahadashas = []
+    out = []
     for m in PERIOD_PAT.finditer(dasha_block):
         planets = [_norm_planet_name(p) for p in m.group(1).split("-")]
         if len(planets) == 1:
-            mahadashas.append({
-                "planets": planets,
-                "startDate": None,
-                "endDate": m.group(2),
-                "endTime": m.group(3),
+            out.append({
+                "lord": _planet(planets[0]),
+                "startDate": _ddmmyyy_to_ddmmyyyy(m.group(2)),
+                "endDate": None,
             })
-
-    bhuktis = _parse_periods(bhukti_block, 2)
-    antarass = _parse_periods(antara_block, 3)
-    sukshamas = _parse_periods(sukshama_block, 4)
-    pranas = _parse_periods(prana_block, 5)
-
-    def _date_from_periods(ps):
-        if ps and ps[0]["startDate"]:
-            return ps[0]["startDate"]
-        return None
-
-    def _build_tree(maha, b_list, a_list, s_list, p_list):
-        b_filtered = [b for b in b_list if b["planets"][0] == maha["planets"][0]]
-        if not b_filtered:
-            return []
-        children = []
-        for b in b_filtered:
-            a_filtered = [a for a in a_list if a["planets"][0] == maha["planets"][0] and a["planets"][1] == b["planets"][1]]
-            b_children = []
-            for a in a_filtered:
-                s_filtered = [s for s in s_list if s["planets"][0] == maha["planets"][0] and s["planets"][1] == b["planets"][1] and s["planets"][2] == a["planets"][2]]
-                a_children = []
-                for s in s_filtered:
-                    p_filtered = [p for p in p_list if p["planets"][0] == maha["planets"][0] and p["planets"][1] == b["planets"][1] and p["planets"][2] == a["planets"][2] and p["planets"][3] == s["planets"][3]]
-                    s_children = []
-                    for p in p_filtered:
-                        s_children.append({
-                            "lord": _planet(p["planets"][3]),
-                            "startDate": p.get("startDate", _ddmmyyy_to_ddmmyyyy(p["endDate"])) if p.get("startDate") else _ddmmyyy_to_ddmmyyyy(p["endDate"]),
-                            "endDate": _ddmmyyy_to_ddmmyyyy(p["endDate"]),
-                            "subDashaPeriods": [],
-                        })
-                    a_children.append({
-                        "lord": _planet(s["planets"][2]),
-                        "startDate": _date_from_periods(s_filtered) or _ddmmyyy_to_ddmmyyyy(s["endDate"]),
-                        "endDate": _ddmmyyy_to_ddmmyyyy(s["endDate"]),
-                        "subDashaPeriods": s_children,
-                    })
-                b_children.append({
-                    "lord": _planet(a["planets"][1]),
-                    "startDate": _date_from_periods(a_filtered) or _ddmmyyy_to_ddmmyyyy(a["endDate"]),
-                    "endDate": _ddmmyyy_to_ddmmyyyy(a["endDate"]),
-                    "subDashaPeriods": a_children,
-                })
-            children.append({
-                "lord": _planet(b["planets"][0]),
-                "startDate": _ddmmyyy_to_ddmmyyyy(b["endDate"]),
-                "endDate": _ddmmyyy_to_ddmmyyyy(b["endDate"]),
-                "subDashaPeriods": b_children,
-            })
-        return children
-
-    tree = []
-    for m in mahadashas:
-        tree.append({
-            "lord": _planet(m["planets"][0]),
-            "startDate": _ddmmyyy_to_ddmmyyyy(m["endDate"]),
-            "endDate": _ddmmyyy_to_ddmmyyyy(m["endDate"]),
-            "subDashaPeriods": _build_tree(m, bhuktis, antarass, sukshamas, pranas),
-        })
-    return tree
+    for i in range(len(out) - 1):
+        out[i]["endDate"] = out[i + 1]["startDate"]
+    return out
 
 # ─────────────────────────────────────────────
 #  6. Build output document
 # ─────────────────────────────────────────────
+def _dms_to_decimal(dms_str):
+    """Convert '79-54-30-E' or '06-54-10-N' to decimal degrees."""
+    if not dms_str:
+        return 0.0
+    # Strip direction letter
+    direction = dms_str[-1].upper() if dms_str[-1].upper() in "NSEW" else None
+    parts = re.split(r"[-\s]", dms_str.rstrip("NSEWnsew").strip())
+    try:
+        d, m, s = int(parts[0]), int(parts[1]), int(parts[2])
+        decimal = d + m / 60 + s / 3600
+        if direction in ("S", "W"):
+            decimal = -decimal
+        return round(decimal, 6)
+    except (ValueError, IndexError):
+        return 0.0
+
 def build_document(pdf_path):
     print(f"[1/4] OCR  → {pdf_path}", file=sys.stderr, flush=True)
     raw = ocr_pdf(pdf_path)
@@ -402,21 +402,25 @@ def build_document(pdf_path):
 
     raw_nakshatra = _grab(r"Nakshatra\s*:(.*?)(?:\n|Tithi)", raw)
     raw_tithi = _grab(r"Tithi\s*:(.*?)(?:\n|Time)", raw)
+
+    pada_match = re.search(r"-\s*(\d)\s*Qtr", raw_nakshatra or "", re.IGNORECASE)
+    nakshatra_pada = int(pada_match.group(1)) if pada_match else 1
+
     nakshatra = _resolve_nakshatra(raw_nakshatra) if raw_nakshatra else None
     tithi = _tithi(raw_tithi) if raw_tithi else None
 
     chart_data = {
         "nakshatra": nakshatra if nakshatra else {"id": 0, "name": "", "load": _planet("Sun")},
-        "nakshatraPada": 1,
-        "tithi": tithi if tithi else {"paksha": "", "id": 0},
+        "nakshatraPada": nakshatra_pada,
+        "tithi": tithi if tithi else {"paksha": "", "number": 0},
         "planetaryPositions": planets,
         "cuspalPositions": cusps,
         "dashas": vimsh,
     }
 
     location = {
-        "latitude": float(hdr["latitude"]) if hdr["latitude"] else 0,
-        "longitude": float(hdr["longitude"]) if hdr["longitude"] else 0,
+        "latitude":  _dms_to_decimal(hdr["latitude"]),
+        "longitude": _dms_to_decimal(hdr["longitude"]),
         "label": hdr.get("place", ""),
     }
 
