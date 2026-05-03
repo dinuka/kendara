@@ -3,6 +3,7 @@ import * as React from 'react';
 import { useRouter } from 'next/navigation';
 import { format } from 'date-fns';
 import apiFetchClient from '@/lib/apiFetchClient';
+import { Eye, Pencil, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -95,7 +96,7 @@ const HoroscopeListClient = ({ initial }: Props) => {
   return (
     <div className="flex min-h-screen flex-col">
       <header className="border-b px-4 py-3">
-        <div className="mx-auto flex max-w-2xl items-center justify-between">
+        <div className="mx-auto flex max-w-5xl items-center justify-between">
           <span className="font-semibold">Horoscopes</span>
           <div className="flex gap-2">
             <Button variant="outline" onClick={handleImportClick} disabled={importing}>
@@ -113,28 +114,46 @@ const HoroscopeListClient = ({ initial }: Props) => {
         />
       </header>
 
-      <main className="mx-auto w-full max-w-2xl px-4 py-6">
+      <main className="mx-auto w-full max-w-5xl px-4 py-6">
         {horoscopes.length === 0 ? (
           <p className="text-center text-sm text-muted-foreground">
             No horoscopes yet. Click "+ New" to add one.
           </p>
         ) : (
-          <div className="flex flex-col gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {horoscopes.map((h) => (
-              <Card key={h.id}>
+              <Card key={h.id} className="flex flex-col">
                 <CardHeader className="pb-2">
                   <CardTitle className="text-base">{h.name}</CardTitle>
                 </CardHeader>
-                <CardContent className="flex flex-col gap-1 text-sm text-muted-foreground">
+                <CardContent className="flex flex-1 flex-col gap-1 text-sm text-muted-foreground">
                   <span>{format(new Date(h.birthTime), 'PPpp')}</span>
                   <span>{h.location.label}</span>
                   <span className="text-xs">{h.timezone}</span>
-                  <div className="mt-2 flex gap-2">
-                    <Button variant="outline" size="sm" onClick={() => setEditTarget(h)}>
-                      Edit
+                  <div className="mt-auto flex gap-1 pt-3">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      title="View"
+                      onClick={() => router.push(`/horoscopes/${h.id}`)}
+                    >
+                      <Eye className="h-4 w-4" />
                     </Button>
-                    <Button variant="outline" size="sm" onClick={() => setDeleteTarget(h)}>
-                      Delete
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      title="Edit"
+                      onClick={() => setEditTarget(h)}
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      title="Delete"
+                      onClick={() => setDeleteTarget(h)}
+                    >
+                      <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>
                 </CardContent>
