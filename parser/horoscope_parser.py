@@ -213,7 +213,30 @@ def _resolve_nakshatra(raw):
 # ─────────────────────────────────────────────
 def ocr_pdf(pdf_path, dpi=300):
     pages = convert_from_path(pdf_path, dpi=dpi)
-    return "\n".join(pytesseract.image_to_string(p, config="--psm 6") for p in pages)
+    full_texts = []
+    dasha_texts = []
+
+    for page in pages:
+        w, h = page.size
+
+        # Full page OCR for everything except dashas
+        full_texts.append(
+            pytesseract.image_to_string(page, config="--psm 1")
+        )
+
+        # Crop the Vimshottari / dasha column (right ~35% of page, top ~65%)
+        # Adjust these fractions if the layout shifts between PDFs
+        left   = int(w * 0.38)
+        top    = int(h * 0.18)
+        right  = int(w * 0.72)
+        bottom = int(h * 0.65)
+        dasha_crop = page.crop((left, top, right, bottom))
+
+        dasha_texts.append(
+            pytesseract.image_to_string(dasha_crop, config="--psm 6")
+        )
+ 
+    return "\n".join(full_texts), "\n".join(dasha_texts)
 
 # ─────────────────────────────────────────────
 #  2. Header → birthDate, birthTimeOfDay, timezone, location, name
@@ -239,7 +262,6 @@ def parse_header(text):
             birth_time = f"{int(parts[0]):02d}:{int(parts[1]):02d}"
 
     raw_tz = _grab(r"Time\s*Zone\s*:([\+\-\d:]+)", text)
-    tz_iana = TZ_LOOKUP.get(raw_tz, "") if raw_tz else ""
 
     lon_lat = _grab(r"Longitude\s*&\s*Latitude\s*:([\w\-./]+)", text)
     lon = lat = None
@@ -252,7 +274,7 @@ def parse_header(text):
         "name":      _grab(r"Name\s*:(.*?)(?:\n|Place)", text),
         "birthDate": birth_date,
         "birthTimeOfDay": birth_time,
-        "timezone":  tz_iana,
+        "timezone":  raw_tz,
         "longitude": lon,
         "latitude":  lat,
     }
@@ -356,19 +378,30 @@ def _ddmmyyy_to_ddmmyyyy(s):
     return s.replace("/", "-")
 
 def parse_dashas(text):
-    dasha_block = _section(text, "Dashas", "Current Bhukti")
+    start = text.find("Dashas")
+    if start == -1:
+        return []
+    block = text[start:]
+
     out = []
-    for m in PERIOD_PAT.finditer(dasha_block):
+    for m in PERIOD_PAT.finditer(block):
         planets = [_norm_planet_name(p) for p in m.group(1).split("-")]
         if len(planets) == 1:
             out.append({
                 "lord": _planet(planets[0]),
                 "startDate": _ddmmyyy_to_ddmmyyyy(m.group(2)),
-                "endDate": None,
+                "startTime": m.group(3),
             })
-    for i in range(len(out) - 1):
-        out[i]["endDate"] = out[i + 1]["startDate"]
-    return out
+
+    seen = set()
+    deduped = []
+    for d in out:
+        key = (d["lord"]["code"], d["startDate"])
+        if key not in seen:
+            seen.add(key)
+            deduped.append(d)
+
+    return deduped
 
 # ─────────────────────────────────────────────
 #  6. Build output document
@@ -391,14 +424,17 @@ def _dms_to_decimal(dms_str):
 
 def build_document(pdf_path):
     print(f"[1/4] OCR  → {pdf_path}", file=sys.stderr, flush=True)
-    raw = ocr_pdf(pdf_path)
+    raw, dasha_raw = ocr_pdf(pdf_path)          # <-- unpack two values now
+
     print("[2/4] Parsing header …", file=sys.stderr, flush=True)
     hdr = parse_header(raw)
+
     print("[3/4] Parsing positions …", file=sys.stderr, flush=True)
     planets = parse_planetary_positions(raw)
-    cusps = parse_cuspal_positions(raw)
+    cusps   = parse_cuspal_positions(raw)
+
     print("[4/4] Parsing Vimshottari …", file=sys.stderr, flush=True)
-    vimsh = parse_dashas(raw)
+    vimsh = parse_dashas(dasha_raw)             # <-- use the clean crop
 
     raw_nakshatra = _grab(r"Nakshatra\s*:(.*?)(?:\n|Tithi)", raw)
     raw_tithi = _grab(r"Tithi\s*:(.*?)(?:\n|Time)", raw)
