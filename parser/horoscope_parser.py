@@ -214,29 +214,37 @@ def _resolve_nakshatra(raw):
 def ocr_pdf(pdf_path, dpi=300):
     pages = convert_from_path(pdf_path, dpi=dpi)
     full_texts = []
+    planet_texts = []
     dasha_texts = []
 
     for page in pages:
         w, h = page.size
 
-        # Full page OCR for everything except dashas
+        # Full page OCR — used for header, nakshatra, tithi, etc.
         full_texts.append(
             pytesseract.image_to_string(page, config="--psm 1")
         )
 
+        # Crop the PLANETARY POSITION table. --psm 1 splits the Kethu row
+        # across two lines on the full page; a tight crop with --psm 6
+        # keeps each planet on a single line.
+        planet_crop = page.crop(
+            (int(w * 0.02), int(h * 0.42), int(w * 0.40), int(h * 0.62))
+        )
+        planet_texts.append(
+            pytesseract.image_to_string(planet_crop, config="--psm 6")
+        )
+
         # Crop the Vimshottari / dasha column (right ~35% of page, top ~65%)
         # Adjust these fractions if the layout shifts between PDFs
-        left   = int(w * 0.38)
-        top    = int(h * 0.18)
-        right  = int(w * 0.72)
-        bottom = int(h * 0.65)
-        dasha_crop = page.crop((left, top, right, bottom))
-
+        dasha_crop = page.crop(
+            (int(w * 0.38), int(h * 0.18), int(w * 0.72), int(h * 0.65))
+        )
         dasha_texts.append(
             pytesseract.image_to_string(dasha_crop, config="--psm 6")
         )
- 
-    return "\n".join(full_texts), "\n".join(dasha_texts)
+
+    return "\n".join(full_texts), "\n".join(planet_texts), "\n".join(dasha_texts)
 
 # ─────────────────────────────────────────────
 #  2. Header → birthDate, birthTimeOfDay, timezone, location, name
@@ -282,37 +290,52 @@ def parse_header(text):
 # ─────────────────────────────────────────────
 #  3. Planetary positions → ChartData shape
 # ─────────────────────────────────────────────
+# Replace the existing PLANET_PAT with this pipe-aware version
 PLANET_PAT = re.compile(
-    r"(Sun|Moon|Mars|Mercury|Jupiter|Venus|Saturn|Rahu|Kethu|Ketu)"
-    r"\s*[|\s]\s*([A-Z][a-z]{2})\s*[|\s().\s]*"
-    r"(\d{2}[-]\d{2}[-]\d{2})\s*[|\s)(\s]*"
-    r"([A-Z][a-z])\s*[|\s]*([A-Z][a-z])\s*[|\s]*([A-Z][a-z])\s*[|\s]*([A-Z][a-z])"
-    r"\s*[|\s]*(\d{1,2})\s*(R)?",
+    r'(Sun|Moon|Mars|Mercury|Jupiter|Venus|Saturn|Rahu|Kethu|Ketu)'  # planet
+    r'[\s_|]+([A-Z][a-z]{2})[\s_|)()]+'                              # sign
+    r'(\d{2}-\d{2}-\d{2})[\s_|)()]+'                                 # degrees
+    r'([A-Z][a-z])[\s_|]+'                                            # RL
+    r'([A-Z][a-z])[\s_|]+'                                            # STL
+    r'([A-Z][a-z])[\s_|]+'                                            # SL
+    r'([A-Z][a-z])[\s_|]+'                                            # SSL
+    r'(\d{1,2})'                                                       # house
+    r'\s*(R)?',                                                        # retrograde
     re.IGNORECASE | re.MULTILINE,
 )
 
 def parse_planetary_positions(text):
+    # When given a dedicated planetary crop the whole text is the table; on
+    # the full-page OCR we still slice between the section headers.
     start = text.find("PLANETARY POSITION")
     end   = text.find("CUSPAL POSITION")
-    block = text[start: end if end != -1 else start + 3000] if start != -1 else text
+    if start != -1:
+        block = text[start: end if end != -1 else start + 3000]
+    else:
+        block = text[: end if end != -1 else len(text)]
+
     results, seen = [], set()
     for m in PLANET_PAT.finditer(block):
         planet_raw = m.group(1)
         planet_name = PLANET_NORM.get(planet_raw, planet_raw)
         sign = m.group(2)
-        if sign not in SIGNS_ABBR or planet_name in seen:
+ 
+        if sign not in SIGNS_ABBR or planet_name in seen: 
             continue
+
         seen.add(planet_name)
         results.append({
-            "planet":     _planet(planet_name),
-            "degrees":    _degrees(m.group(3)),
-            "house":      _house(int(m.group(8))),
-            "sign":       _sign(sign),
-            "starLoad":   _planet(m.group(5)),
-            "subLoad":    _planet(m.group(6)),
-            "subSubLoad": _planet(m.group(7)),
-            "direct":     not bool(m.group(9)),
+            "planet":        _planet(planet_name),
+            "degrees":       _degrees(m.group(3)),
+            "house":         _house(int(m.group(8))),
+            "sign":          _sign(sign),
+            "rashiLoad":     _planet(m.group(4)),
+            "starLoad":      _planet(m.group(5)),
+            "subLoad":       _planet(m.group(6)),
+            "subSubLoad":    _planet(m.group(7)),
+            "direct":        not bool(m.group(9)),
         })
+
     return results
 
 # ─────────────────────────────────────────────
@@ -424,17 +447,17 @@ def _dms_to_decimal(dms_str):
 
 def build_document(pdf_path):
     print(f"[1/4] OCR  → {pdf_path}", file=sys.stderr, flush=True)
-    raw, dasha_raw = ocr_pdf(pdf_path)          # <-- unpack two values now
+    raw, planet_raw, dasha_raw = ocr_pdf(pdf_path)
 
     print("[2/4] Parsing header …", file=sys.stderr, flush=True)
     hdr = parse_header(raw)
 
     print("[3/4] Parsing positions …", file=sys.stderr, flush=True)
-    planets = parse_planetary_positions(raw)
+    planets = parse_planetary_positions(planet_raw)
     cusps   = parse_cuspal_positions(raw)
 
     print("[4/4] Parsing Vimshottari …", file=sys.stderr, flush=True)
-    vimsh = parse_dashas(dasha_raw)             # <-- use the clean crop
+    vimsh = parse_dashas(dasha_raw)
 
     raw_nakshatra = _grab(r"Nakshatra\s*:(.*?)(?:\n|Tithi)", raw)
     raw_tithi = _grab(r"Tithi\s*:(.*?)(?:\n|Time)", raw)

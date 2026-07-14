@@ -62,13 +62,10 @@ export const parseHoroscopePdf = async (pdfPath: string): Promise<ParsedHoroscop
       const startDate = combineDatetime(d.startDate, d.startTime);
       const next = rawDashas[i + 1];
 
-      console.log(next);
-
       const endDate = next
         ? combineDatetime(next.startDate, next.startTime)
         : format(addYears(new Date(startDate), 120), "yyyy-MM-dd'T'HH:mm:ss");
 
-      console.log(endDate);
       return { lord: d.lord, startDate, endDate, subDashaPeriods: [] };
     });
 

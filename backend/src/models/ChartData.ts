@@ -31,6 +31,7 @@ interface PlanetaryPosition {
   degrees: Degrees;
   house: House;
   sign: Sign;
+  rashiLoad: Planet;
   starLoad: Planet;
   subLoad: Planet;
   subSubLoad: Planet;
