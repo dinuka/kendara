@@ -1,0 +1,85 @@
+{
+  "app": {
+    "title": "කේන්දර",
+    "tagline": "ජ්‍යෝතිෂ්‍ය අධ්‍යයන වේදිකාව"
+  },
+  "nav": {
+    "dashboard": "මුල් පිටුව",
+    "addHoroscope": "කේන්දරයක් එක් කරන්න",
+    "search": "සොයන්න",
+    "settings": "සැකසුම්",
+    "admin": "පරිපාලන",
+    "signOut": "පිටවන්න"
+  },
+  "auth": {
+    "signIn": "Google සමඟින් පුරනය වන්න",
+    "signInDesc": "කේන්දර වෙත ප්‍රවේශ වීමට ඔබගේ Google ගිණුම භාවිතා කරන්න",
+    "signOut": "පිටවන්න"
+  },
+  "horoscope": {
+    "add": "කේන්දරයක් එක් කරන්න",
+    "edit": "කේන්දරය සංස්කරණය කරන්න",
+    "name": "නම",
+    "birthDate": "උපන් දිනය",
+    "birthTime": "උපන් වේලාව",
+    "location": "ස්ථානය",
+    "latitude": "අක්ෂාංශ",
+    "longitude": "දේශාංශ",
+    "gender": "ස්ත්‍රී/පුරුෂ භාවය",
+    "male": "පිරිමි",
+    "female": "ගැහැණු",
+    "other": "වෙනත්",
+    "ayanamsha": "අයනාංශ",
+    "lahiri": "ලාහිරි",
+    "raman": "රාමන්",
+    "krishnamurti": "ක්‍රිෂ්ණමූර්ති",
+    "yukteshwar": "යුක්තේශ්වර්",
+    "save": "සුරකින්න",
+    "cancel": "අවලංගු කරන්න",
+    "calculating": "කේන්දරය ගණනය කරමින්...",
+    "delete": "මකන්න",
+    "private": "පෞද්ගලික",
+    "public": "ප්‍රසිද්ධ",
+    "showName": "නම පෙන්වන්න",
+    "charts": "සටහන්",
+    "calculations": "ගණනය කිරීම්",
+    "dashas": "දශා",
+    "metadata": "පාර-දත්ත",
+    "download": "බාගන්න",
+    "share": "බෙදා ගන්න"
+  },
+  "search": {
+    "title": "කේන්දර සොයන්න",
+    "placeholder": "සිංහලෙන් හෝ ඉංග්‍රීසියෙන් සොයන්න...",
+    "search": "සොයන්න",
+    "results": "ප්‍රතිඵල",
+    "noResults": "කේන්දර හමු නොවීය",
+    "relevance": "ගැළපුම",
+    "configPanel": "සංදර්ශකය වින්‍යාස කරන්න",
+    "resetConfig": "පෙරනිමියට යළි සකසන්න",
+    "basicSearch": "උදා: මේෂ ලග්නය, ශනි උච්ච, ගුරු 3",
+    "complexSearch": "උදා: මේෂ ලග්නයේ ශනි උච්චව ගුරු 3 භාවයේ"
+  },
+  "admin": {
+    "title": "පරිපාලන",
+    "horoscopes": "සියලුම කේන්දර",
+    "users": "පරිශීලකයින්",
+    "manageUsers": "පරිශීලක කළමනාකරණය"
+  },
+  "settings": {
+    "title": "සැකසුම්",
+    "language": "භාෂාව",
+    "sinhala": "සිංහල",
+    "english": "English",
+    "saved": "සැකසුම් සුරකින ලදී"
+  },
+  "common": {
+    "loading": "පූරණය වෙමින්...",
+    "error": "දෝෂයක් ඇති විය",
+    "save": "සුරකින්න",
+    "cancel": "අවලංගු කරන්න",
+    "delete": "මකන්න",
+    "confirm": "තහවුරු කරන්න",
+    "back": "ආපසු"
+  }
+}
