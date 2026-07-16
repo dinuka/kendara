@@ -1,0 +1,314 @@
+# Architecture Overview
+
+## High-Level System Architecture
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    Client Layer                              │
+│  ┌─────────────────────┐  ┌──────────────────────────────┐  │
+│  │   Next.js Frontend  │  │   PDF/Image Export Client    │  │
+│  │  (React, Tailwind)  │  │   (html2canvas, jsPDF)       │  │
+│  └──────────┬──────────┘  └──────────────────────────────┘  │
+└─────────────┼────────────────────────────────────────────────┘
+              │ HTTPS / WebSocket
+┌─────────────┼────────────────────────────────────────────────┐
+│             │            API Gateway Layer                    │
+│  ┌──────────┴──────────┐                                     │
+│  │   Next.js API Routes│                                     │
+│  │   (REST + GraphQL)  │                                     │
+│  └──────────┬──────────┘                                     │
+└─────────────┼────────────────────────────────────────────────┘
+              │
+┌─────────────┼────────────────────────────────────────────────┐
+│             │            Service Layer                        │
+│  ┌──────────┴──────────┐  ┌──────────────────────────────┐  │
+│  │  Auth Service       │  │  Horoscope Calculation       │  │
+│  │  (Google SSO, JWT)  │  │  Engine (Offline Library)    │  │
+│  └─────────────────────┘  └──────────┬───────────────────┘  │
+│  ┌─────────────────────┐  ┌──────────┴───────────────────┐  │
+│  │  Chart Generator    │  │  RAG Search Engine           │  │
+│  │  (SVG/Canvas)       │  │  (Embedding + LLM)           │  │
+│  └─────────────────────┘  └──────────┬───────────────────┘  │
+│  ┌─────────────────────┐  ┌──────────┴───────────────────┐  │
+│  │  Metadata Service   │  │  Share/Export Service        │  │
+│  └─────────────────────┘  └──────────────────────────────┘  │
+└─────────────┼────────────────────────────────────────────────┘
+              │
+┌─────────────┼────────────────────────────────────────────────┐
+│             │            Data Layer                           │
+│  ┌──────────┴──────────┐  ┌──────────────────────────────┐  │
+│  │  MongoDB            │  │  Vector DB (Qdrant)          │  │
+│  │  (Document Store)   │  │  (Embeddings)                │  │
+│  └─────────────────────┘  └──────────────────────────────┘  │
+│  ┌─────────────────────┐                                     │
+│  │  MinIO/S3           │                                     │
+│  │  (Chart Images,     │                                     │
+│  │   Exports)          │                                     │
+│  └─────────────────────┘                                     │
+└──────────────────────────────────────────────────────────────┘
+```
+
+## Technology Stack
+
+| Layer | Technology | Justification |
+|-------|-----------|---------------|
+| Frontend | Next.js, React, Tailwind CSS | Full-stack framework, SSR, i18n support |
+| Backend | Next.js API Routes (REST) | Server-side logic, MongoDB access, calculation orchestration |
+| Auth | NextAuth.js | Google SSO provider, JWT session management |
+| Astrology Calc | jyotish-calculations + swisseph | Vedic astrology library built on Swiss Ephemeris — Nakshatra, Graha, Rashi, Bhava, Dasha calculations |
+| Chart Rendering | D3.js / SVG | Client-side chart generation without external APIs |
+| Database | MongoDB | Document store — flexible schema for calculated horoscope JSON data |
+| Vector DB | Qdrant | Dedicated vector DB for horoscope embeddings (HNSW index) |
+| RAG Pipeline | Gemini API + Transformers.js + Qdrant JS client | Free online LLM (Gemini API) for query parsing, Transformers.js for local embeddings, Qdrant JS client for vector search |
+| Object Storage | MinIO / S3-compatible | Chart images, PDF exports |
+| i18n | next-intl | Sinhala/English bilingual support with ICU message format |
+| PDF Export | jsPDF + html2canvas | Client-side PDF/image generation |
+
+## Key Architecture Decisions
+
+### 1. Offline-First Astrology Calculations
+- All ephemeris and astrological calculations run locally using **jyotish-calculations** (built on Swiss Ephemeris via swisseph)
+- No external astrology API calls — ensures privacy, zero cost, offline capability
+- Calculations run on the server during horoscope creation (Node.js/Next.js API routes)
+- Embedding generation for RAG search runs asynchronously as a background job — horoscope creation returns immediately, embedding is queued and processed offline
+
+### 2. RAG-Based Search Pipeline
+- Horoscope data is converted to text descriptions and embedded as vectors using **Transformers.js** (@xenova/transformers) — runs locally in Node.js
+- Search queries are parsed by a free online LLM (**Gemini API** — generous free tier, strong Sinhala support) into structured astrological conditions
+- Embeddings stored and searched in **Qdrant** via its JS client library
+- Hybrid approach: Qdrant vector similarity + MongoDB structured filter for precise astrological conditions
+
+### 3. Bilingual Support (Sinhala/English)
+- Astrological terms stored as numeric enums — display names mapped per language
+- UI text via next-intl with ICU message format
+- Search queries handled in both languages via the RAG pipeline
+
+## Data Flows
+
+### Add Horoscope Flow
+```
+User → Submit Birth Details → Server Validates →
+  → Geocode Location (from location name → auto-populate Lat/Lon) →
+    → User can override Lat/Lon before final submission
+  → Calculate Horoscope (jyotish-calculations) →
+    → Ascendant, Houses, Planets, Nakshatra, Dashas
+    → Advanced: Strengths, Aspects, Lords, Yogas, Doshas
+  → Generate Charts (D3.js server-side SVG) →
+  → Store in MongoDB (horoscope + calculated details + charts) →
+  → Queue embedding generation (async background job) →
+  → Return to User immediately
+  → [Background] Generate embedding text → Store in Qdrant
+```
+
+### Search Flow
+```
+User → Enter Natural Language Query (SI/EN) →
+  → RAG Pipeline:
+    → Parse query with Local LLM → Extract astrological conditions
+    → Generate query embedding
+    → Vector similarity search in Qdrant
+    → Structured filter on parsed conditions (MongoDB)
+  → Merge & Rank Results →
+  → Return matching horoscopes with relevance scores
+  → User configures visible sections → UI updates accordingly
+```
+
+### Authentication Flow
+```
+User → Click "Login with Google" →
+  → Google OAuth → Callback →
+  → NextAuth.js handles JWT →
+  → Check if existing user → Create if new (auto-assign Student role) →
+  → Redirect to dashboard
+```
+
+## API Route Design
+
+### Authentication
+| Method | Route | Description |
+|--------|-------|-------------|
+| POST | /api/auth/signin | Google SSO sign-in |
+| POST | /api/auth/signout | Sign out |
+| GET | /api/auth/session | Get current session |
+
+### Horoscope
+| Method | Route | Description |
+|--------|-------|-------------|
+| GET | /api/horoscope | List user's + public horoscopes |
+| POST | /api/horoscope | Create horoscope (triggers calculation) |
+| GET | /api/horoscope/:id | Get horoscope with all details |
+| PUT | /api/horoscope/:id | Update horoscope |
+| DELETE | /api/horoscope/:id | Delete horoscope (own) |
+| PATCH | /api/horoscope/:id/privacy | Toggle public/private |
+
+### Search
+| Method | Route | Description |
+|--------|-------|-------------|
+| POST | /api/search | Search horoscopes (RAG + structured) |
+| GET | /api/search/filter | Get saved filters for user |
+| POST | /api/search/filter | Save a filter configuration |
+
+### Chart
+| Method | Route | Description |
+|--------|-------|-------------|
+| GET | /api/horoscope/:id/chart | Get all charts for horoscope |
+| GET | /api/horoscope/:id/chart/:type | Get specific chart type |
+| GET | /api/horoscope/:id/export | Export horoscope as PDF |
+| GET | /api/horoscope/:id/export/chart/:type | Export chart as image |
+
+### Metadata
+| Method | Route | Description |
+|--------|-------|-------------|
+| GET | /api/horoscope/:id/metadata | Get metadata |
+| POST | /api/horoscope/:id/metadata | Add metadata |
+| PUT | /api/horoscope/:id/metadata/:metaId | Update metadata |
+| DELETE | /api/horoscope/:id/metadata/:metaId | Delete metadata |
+
+### Share
+| Method | Route | Description |
+|--------|-------|-------------|
+| POST | /api/horoscope/:id/share | Generate share link |
+| DELETE | /api/horoscope/:id/share/:token | Revoke share link |
+| GET | /api/share/:token | Access shared horoscope |
+
+### Admin
+| Method | Route | Description |
+|--------|-------|-------------|
+| GET | /api/admin/horoscope | List all horoscopes |
+| PUT | /api/admin/horoscope/:id | Update any horoscope |
+| DELETE | /api/admin/horoscope/:id | Delete public horoscope |
+| GET | /api/admin/user | List users |
+| PATCH | /api/admin/user/:id | Update user role/status |
+
+## Database Schema
+
+### MongoDB Collections
+
+**users**
+```
+{
+  id: UUID (string),
+  googleId: string (unique),
+  email: string,
+  name: string,
+  role: "student" | "super-admin",
+  preferredLanguage: "si" | "en",
+  createdAt: Date,
+  updatedAt: Date
+}
+```
+
+**horoscopes**
+```
+{
+  id: UUID (string),
+  owner: { id: UUID },
+  name: string,
+  displayName: boolean,
+  birthDate: Date,
+  birthTime: string,
+  location: string,
+  latitude: number,
+  longitude: number,
+  gender: "male" | "female" | "other",
+  ayanamsha: "lahiri" | "raman" | "krishnamurti" | "yukteshwar",
+  isPublic: boolean,
+  createdAt: Date,
+  updatedAt: Date
+}
+```
+
+**calculatedDetails**
+```
+{
+  id: UUID (string),
+  horoscope: { id: UUID },
+  ascendant: { sign: number, degree: number, lord: number },
+  houses: [{ houseNumber, startDegree, middleDegree, endDegree, sign, lord }],
+  planets: [{ name, sign, degree, house, nakshatra, pada, strength, aspects, ... }],
+  nakshatra: { moonNakshatra: {}, ascendantNakshatra: {} },
+  dashas: { mahadasha: [...], currentPeriod: {} },
+  lord22ndDrekkana: number,
+  lord64thNavamsa: number,
+  badhakaPlanet: number[],
+  marakaPlanets: number[],
+  atmakaraka: number,
+  yogas: [...],
+  doshas: { doshas: [...] },
+  createdAt: Date
+}
+```
+
+**charts**
+```
+{
+  id: UUID (string),
+  horoscope: { id: UUID },
+  type: "birth" | "house" | "navamsa-d9" | "drekkana-d3" | "dasamsa-d10" | "shodasha-vargas" | "chandra-lagna" | "surya-lagna",
+  data: object,
+  imageKey: string,
+  createdAt: Date
+}
+```
+
+**metadata**
+```
+{
+  id: UUID (string),
+  horoscope: { id: UUID },
+  key: string,
+  value: string,
+  isPublic: boolean,
+  createdBy: { id: UUID },
+  createdAt: Date,
+  updatedAt: Date
+}
+```
+
+**shareLinks**
+```
+{
+  id: UUID (string),
+  horoscope: { id: UUID },
+  token: string (unique),
+  expiresAt: Date,
+  createdAt: Date
+}
+```
+
+**savedFilters**
+```
+{
+  id: UUID (string),
+  user: { id: UUID },
+  query: string,
+  filterConfig: object,
+  createdAt: Date
+}
+```
+
+### Indexes
+- users: { googleId: 1 } (unique)
+- horoscopes: { "owner.id": 1 }, { isPublic: 1 }, { createdAt: -1 }
+- calculatedDetails: { "horoscope.id": 1 } (unique)
+- charts: { "horoscope.id": 1 }
+- metadata: { "horoscope.id": 1 }, { key: 1 }
+- shareLinks: { token: 1 } (unique)
+
+## Security Considerations
+- Google SSO only — no password authentication
+- JWT tokens with expiry for API authentication
+- MongoDB access control for data isolation
+- Share links use cryptographically random tokens with expiration
+- All astrology calculations performed server-side
+- Admin routes require SuperAdmin role middleware
+- Rate limiting on search and export endpoints
+- CORS configured for frontend domain only
+
+## Performance Considerations
+- Vector search index (HNSW in Qdrant) for fast similarity search
+- Chart data cached after initial calculation
+- Horoscope calculation runs asynchronously with progress indication
+- Search results paginated
+- Image/CDN caching for chart images
+- Lazy loading for chart rendering in UI

@@ -1,0 +1,478 @@
+# Data Model
+
+## Entities
+
+### User
+
+| Field | Type | Description |
+|-------|------|-------------|
+| id | UUID | Primary key |
+| googleId | String | Google SSO ID |
+| email | String | Email address |
+| name | String | Display name |
+| role | Enum(student, super-admin) | System role |
+| preferredLanguage | Enum(si, en) | UI language (si=Sinhala, en=English) |
+| createdAt | DateTime | Account created |
+| updatedAt | DateTime | Last updated |
+
+**Relationships**:
+
+- User 1---* Horoscope (owner)
+- User 1---* Metadata (creator)
+
+### Horoscope
+
+| Field | Type | Description |
+|-------|------|-------------|
+| id | UUID | Primary key |
+| owner | Object | `{ id: UUID }` — reference to User |
+| name | String | Person's name |
+| displayName | Boolean | Show/hide name in public |
+| birthDate | Date | Date of birth |
+| birthTime | Time | Time of birth |
+| location | String | Location name (used for auto-geocoding) |
+| latitude | Float | Latitude (auto-populated from location, user can edit) |
+| longitude | Float | Longitude (auto-populated from location, user can edit) |
+| gender | Enum(male, female, other) | Gender |
+| ayanamsha | Enum(lahiri, raman, krishnamurti, yukteshwar) | Ayanamsha system (default: lahiri) |
+| isPublic | Boolean | Visibility flag |
+| createdAt | DateTime | Record created |
+| updatedAt | DateTime | Last updated |
+
+**Relationships**:
+
+- Horoscope *---1 User (owner)
+- Horoscope 1---1 CalculatedDetails
+- Horoscope 1---* Metadata
+- Horoscope 1---* ShareLink
+- Horoscope 1---* Chart
+
+### CalculatedDetails
+
+| Field | Type | Description |
+|-------|------|-------------|
+| id | UUID | Primary key |
+| horoscope | Object | `{ id: UUID }` — reference to Horoscope |
+| ascendant | String | Ascendant sign with degree |
+| houses | JSON | House details — see [Houses](#houses) structure |
+| planets | JSON | Planet positions with strengths/aspects — see [Planets](#planets) structure |
+| nakshatra | JSON | Lunar Mansion / Nakshatra and Pada — see [Nakshatra](#nakshatra) structure |
+| dashas | JSON | Mahadasha, Antardasha / Bhukti periods — see [Dashas](#dashas) structure |
+| lord22ndDrekkana | String | Lord of 22nd Drekkana |
+| lord64thNavamsa | String | Lord of 64th Navamsa |
+| badhakaPlanet | String | Badhaka planet |
+| marakaPlanets | JSON | Maraka planets — see [MarakaPlanets](#marakaplanets) structure |
+| atmakaraka | String | Atmakaraka planet |
+| yogas | JSON | Yoga formations — see [Yogas](#yogas) structure |
+| doshas | JSON | Dosha calculations — see [Doshas](#doshas) structure |
+| createdAt | DateTime | Record created |
+
+**Relationships**:
+
+- CalculatedDetails *---1 Horoscope
+
+### Chart
+
+| Field | Type | Description |
+|-------|------|-------------|
+| id | UUID | Primary key |
+| horoscope | Object | `{ id: UUID }` — reference to Horoscope |
+| type | Enum(birth, house, navamsa-d9, drekkana-d3, dasamsa-d10, shodasha-vargas, chandra-lagna, surya-lagna) | Chart type |
+| data | JSON | Chart data (planet positions, houses, etc.) |
+| imageUrl | String | Rendered chart image URL (optional) |
+| createdAt | DateTime | Record created |
+
+**Relationships**:
+
+- Chart *---1 Horoscope
+
+### Metadata
+
+| Field | Type | Description |
+|-------|------|-------------|
+| id | UUID | Primary key |
+| horoscope | Object | `{ id: UUID }` — reference to Horoscope |
+| key | String | Label/tag name |
+| value | String | Label/tag value |
+| isPublic | Boolean | Visible to others |
+| createdBy | Object | `{ id: UUID }` — reference to User |
+| createdAt | DateTime | Record created |
+| updatedAt | DateTime | Last updated |
+
+**Relationships**:
+
+- Metadata *---1 Horoscope
+- Metadata *---1 User (creator)
+
+### ShareLink
+
+| Field | Type | Description |
+|-------|------|-------------|
+| id | UUID | Primary key |
+| horoscope | Object | `{ id: UUID }` — reference to Horoscope |
+| token | String | Unique share token |
+| expiresAt | DateTime | Expiration time |
+| createdAt | DateTime | Record created |
+
+**Relationships**:
+
+- ShareLink *---1 Horoscope
+
+### SavedFilter
+
+| Field | Type | Description |
+|-------|------|-------------|
+| id | UUID | Primary key |
+| user | Object | `{ id: UUID }` — reference to User |
+| query | String | Search query text |
+| filterConfig | JSON | Configured visible sections |
+| createdAt | DateTime | Record created |
+
+**Relationships**:
+
+- SavedFilter *---1 User
+
+### SearchEmbedding
+
+| Field | Type | Description |
+|-------|------|-------------|
+| id | UUID | Primary key |
+| horoscope | Object | `{ id: UUID }` — reference to Horoscope |
+| embedding | Vector | Vector embedding for RAG search |
+| textContent | Text | Full text content for search |
+| createdAt | DateTime | Record created |
+
+**Relationships**:
+
+- SearchEmbedding *---1 Horoscope
+
+## Enums
+
+All enums use numeric values for easy i18n. Display names are mapped separately per language.
+
+### Planet
+
+| Value | English | Sinhala |
+|-------|---------|---------|
+| 1 | Sun | රවි |
+| 2 | Moon | සඳු |
+| 3 | Mars | කුජ |
+| 4 | Mercury | බුධ |
+| 5 | Jupiter | ගුරු |
+| 6 | Venus | සිකුරු |
+| 7 | Saturn | ශනි |
+| 8 | Rahu | රාහු |
+| 9 | Ketu | කේතු |
+
+### Zodiac Sign
+
+| Value | English | Sinhala |
+|-------|---------|---------|
+| 1 | Aries | මේෂ |
+| 2 | Taurus | වෘෂභ |
+| 3 | Gemini | මිථුන |
+| 4 | Cancer | කටක |
+| 5 | Leo | සිංහ |
+| 6 | Virgo | කන්යා |
+| 7 | Libra | තුලා |
+| 8 | Scorpio | වෘශ්චික |
+| 9 | Sagittarius | ධනු |
+| 10 | Capricorn | මකර |
+| 11 | Aquarius | කුම්භ |
+| 12 | Pisces | මීන |
+
+### Nakshatra
+
+| Value | English | Sinhala |
+|-------|---------|---------|
+| 1 | Ashwini | අශ්විනි |
+| 2 | Bharani | භරණී |
+| 3 | Krittika | කෘත්තිකා |
+| 4 | Rohini | රෝහිණී |
+| 5 | Mrigashira | මෘගශීර්ෂ |
+| 6 | Ardra | ආර්ද්රා |
+| 7 | Punarvasu | පුනර්වසු |
+| 8 | Pushya | පුෂ්ය |
+| 9 | Ashlesha | ආශ්ලේෂා |
+| 10 | Magha | මාඝ |
+| 11 | Purva Phalguni | පූර්ව ඵල්ගුනී |
+| 12 | Uttara Phalguni | උත්තර ඵල්ගුනී |
+| 13 | Hasta | හස්ත |
+| 14 | Chitra | චිත්රා |
+| 15 | Swati | ස්වාති |
+| 16 | Vishakha | විශාඛා |
+| 17 | Anuradha | අනුරාධා |
+| 18 | Jyeshtha | ජ්‍යෙෂ්ඨා |
+| 19 | Mula | මූල |
+| 20 | Purva Ashadha | පූර්ව ආෂාඪ |
+| 21 | Uttara Ashadha | උත්තර ආෂාඪ |
+| 22 | Shravana | ශ්‍රවණ |
+| 23 | Dhanishta | ධනිෂ්ඨා |
+| 24 | Shatabhisha | ශතභිෂා |
+| 25 | Purva Bhadrapada | පූර්ව භාද්‍රපද |
+| 26 | Uttara Bhadrapada | උත්තර භාද්‍රපද |
+| 27 | Revati | රේවතී |
+
+### Planetary Strength
+
+| Value | Name | Description |
+|-------|------|-------------|
+| 1 | Uchcha (Exaltation) | උච්ච |
+| -1 | Neecha (Debilitation) | නීච |
+| 0.75 | මූලත්‍රිකෝණ ‍| මූල ත්‍රිකෝණ |
+| 0.5 | Own Sign ‍| ස්වක්ෂේත්‍ර |
+| 0.1 | Mitra (Friend) | මිත්‍ර |
+| -0.1 | Shatru (Enemy) | සතුරු |
+| 0 | Sama (Neutral) | සම |
+
+### Aspect Type
+
+| Value | Name |
+|-------|------|
+| 0 | Conjunction |
+| 60 | Sextile |
+| 90 | Square |
+| 120 | Trine |
+| 180 | Opposition |
+
+## JSON Structures
+
+### Houses
+
+```json
+[
+  {
+    "houseNumber": 1,
+    "startDegree": 0.0,
+    "middleDegree": 15.5,
+    "endDegree": 30.0,
+    "sign": 1,
+    "lord": 3
+  },
+  {
+    "houseNumber": 2,
+    "startDegree": 30.0,
+    "middleDegree": 45.0,
+    "endDegree": 60.0,
+    "sign": 2,
+    "lord": 6
+  }
+]
+```
+
+### Planets
+
+```json
+[
+  {
+    "name": 1,
+    "sign": 1,
+    "degree": 12.5,
+    "house": 1,
+    "nakshatra": 1,
+    "pada": 2,
+    "retrograde": false,
+    "combustion": false,
+    "strength": 1,
+    "absoluteDegree": 12.5,
+    "aspects": [
+      {
+        "planetName": 4,
+        "aspectType": 60,
+        "planetAbsoluteDegree": 75.0,
+        "degreeGap": 2.5,
+        "exactAspectDegree": 60.0,
+        "isBeneficial": true
+      },
+      {
+        "planetName": 7,
+        "aspectType": 180,
+        "planetAbsoluteDegree": 192.5,
+        "degreeGap": 0.0,
+        "exactAspectDegree": 180.0,
+        "isBeneficial": false
+      }
+    ]
+  },
+  {
+    "name": 2,
+    "sign": 4,
+    "degree": 5.0,
+    "house": 4,
+    "nakshatra": 8,
+    "pada": 1,
+    "retrograde": false,
+    "combustion": false,
+    "strength": 0,
+    "absoluteDegree": 95.0,
+    "aspects": []
+  }
+]
+```
+
+**Note:** `degreeGap` = longitudinal distance between two planets minus the nearest major aspect angle (Conjunction 0°, Sextile 60°, Square 90°, Trine 120°, Opposition 180°). Maximum valid `degreeGap` is < 30° — beyond this, the aspect is not considered effective. In the example above, Sun (12.5°) to Mercury (75.0°) has a raw distance of 62.5°, and the nearest major aspect is Sextile (60°), so `degreeGap` = 2.5°.
+
+### Nakshatra
+
+```json
+{
+  "moonNakshatra": {
+    "id": 8,
+    "pada": 1,
+    "lord": 7,
+    "startDegree": 93.33,
+    "endDegree": 106.66
+  },
+  "ascendantNakshatra": {
+    "id": 1,
+    "pada": 2,
+    "lord": 9,
+    "startDegree": 0.0,
+    "endDegree": 13.33
+  }
+}
+```
+
+### Dashas
+
+```json
+{
+  "mahadasha": [
+    {
+      "planet": 1,
+      "startDate": "1990-01-15",
+      "endDate": "1996-01-15",
+      "durationYears": 6,
+      "antardasha": [
+        {
+          "planet": 2,
+          "startDate": "1990-01-15",
+          "endDate": "1990-10-10",
+          "durationMonths": 9
+        },
+        {
+          "planet": 3,
+          "startDate": "1990-10-10",
+          "endDate": "1991-07-05",
+          "durationMonths": 9
+        }
+      ]
+    }
+  ],
+  "currentPeriod": {
+    "mahadashaLord": 5,
+    "antardashaLord": 6
+  }
+}
+```
+
+### MarakaPlanets
+
+```json
+[7, 6, 3]
+```
+
+### Yogas
+
+```json
+[
+  {
+    "name": "Parivartana Yoga",
+    "description": "Mutual exchange between 1st and 5th lords",
+    "planetsInvolved": [1, 5],
+    "housesInvolved": [1, 5],
+    "isBeneficial": true
+  },
+  {
+    "name": "Dharma-karmadhipati Yoga",
+    "description": "Lord of 1st and 9th in mutual aspect",
+    "planetsInvolved": [3, 5],
+    "housesInvolved": [1, 9],
+    "isBeneficial": true
+  }
+]
+```
+
+### Doshas
+
+```json
+{
+  "doshas": [
+    {
+      "name": "Manglik Dosha",
+      "description": "Mars in 1st, 4th, 7th, 8th, or 12th house",
+      "isPresent": true,
+      "severity": "Medium",
+      "affectingHouses": [1, 7],
+      "planetsInvolved": [3]
+    }
+  ]
+}
+```
+
+### Chart Data
+
+```json
+{
+  "houses": [
+    {
+      "houseNumber": 1,
+      "sign": 1,
+      "startDegree": 340.0,
+      "endDegree": 10.0,
+      "planets": [
+        {
+          "name": 1,
+          "degree": 12.5,
+          "sign": 1,
+          "retrograde": false
+        }
+      ],
+      "lord": 3
+    }
+  ],
+  "ascendant": {
+    "sign": 1,
+    "degree": 5.0,
+    "lord": 3,
+    "nakshatra": 1
+  },
+  "lagna": 1,
+  "chartType": "Rasi"
+}
+```
+
+### FilterConfig (SavedFilter)
+
+```json
+{
+  "visibleSections": {
+    "birthChart": true,
+    "houseChart": false,
+    "navamsaD9": true,
+    "drekkanaD3": false,
+    "dasamsaD10": false,
+    "shodashaVargas": false,
+    "chandraLagna": false,
+    "suryaLagna": false,
+    "planetaryStrengths": true,
+    "aspects": false,
+    "yogas": true,
+    "doshas": false
+  }
+}
+```
+
+## Entity Relationship Diagram
+
+```
+User (1) ---< (N) Horoscope
+User (1) ---< (N) Metadata
+User (1) ---< (N) SavedFilter
+
+Horoscope (1) --- (1) CalculatedDetails
+Horoscope (1) ---< (N) Chart
+Horoscope (1) ---< (N) Metadata
+Horoscope (1) ---< (N) ShareLink
+Horoscope (1) ---< (N) SearchEmbedding
+```
