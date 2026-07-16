@@ -1,26 +1,25 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
-import { connectDB } from "@/lib/db";
-import { Horoscope } from "@/models/Horoscope";
+import { getServerSession } from "next-auth";
+import { NextRequest, NextResponse } from "next/server";
+
 import { Chart } from "@/models/Chart";
+import { Horoscope } from "@/models/Horoscope";
 
-export async function GET(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+import { connectDB } from "@/lib/db";
 
-  const { id } = await params;
-  await connectDB();
+export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const horoscope = await Horoscope.findById(id);
-  if (!horoscope) return NextResponse.json({ error: "Not found" }, { status: 404 });
-  if (horoscope.owner.id !== session.user.id && !horoscope.isPublic) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
+    const { id } = await params;
+    await connectDB();
 
-  const charts = await Chart.find({ "horoscope.id": id }).lean();
-  return NextResponse.json(charts);
+    const horoscope = await Horoscope.findById(id);
+    if (!horoscope) return NextResponse.json({ error: "Not found" }, { status: 404 });
+    if (horoscope.owner.id !== session.user.id && !horoscope.isPublic) {
+        return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
+    const charts = await Chart.find({ "horoscope.id": id }).lean();
+    return NextResponse.json(charts);
 }
