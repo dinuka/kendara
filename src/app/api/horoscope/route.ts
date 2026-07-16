@@ -6,6 +6,8 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { NextRequest, NextResponse } from "next/server";
 import { calculateHoroscope } from "@/lib/calculation";
+import { ALL_CHART_TYPES } from "@/lib/chartTypes";
+import { generateChartSvg } from "@/lib/chartRenderer";
 import logger from "@/lib/logger";
 
 export async function GET(req: NextRequest) {
@@ -68,17 +70,23 @@ export async function POST(req: NextRequest) {
     ...calculated,
   });
 
-  const chartTypes = [
-    "birth", "house", "navamsa-d9", "drekkana-d3",
-    "dasamsa-d10", "shodasha-vargas", "chandra-lagna", "surya-lagna",
-  ] as const;
-  logger.info("saving %d chart records...", chartTypes.length);
+  logger.info("saving %d chart records...", ALL_CHART_TYPES.length);
 
-  const chartDocs = chartTypes.map((type) => ({
+  const chartInput = {
+    houses: calculated.houses,
+    planets: calculated.planets,
+    ascendant: calculated.ascendant
+  };
+
+  const chartDocs = ALL_CHART_TYPES.map((type) => ({
     horoscope: { id: horoscope.id },
     type,
-    data: { houses: calculated.houses, planets: calculated.planets, ascendant: calculated.ascendant },
+    data: chartInput,
     imageKey: "",
+    svgData: generateChartSvg(
+      { planets: calculated.planets, houses: calculated.houses, ascendant: calculated.ascendant },
+      type,
+    ),
   }));
 
   await Chart.insertMany(chartDocs);

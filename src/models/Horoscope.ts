@@ -48,5 +48,4 @@ HoroscopeSchema.index({ "owner.id": 1 });
 HoroscopeSchema.index({ isPublic: 1 });
 HoroscopeSchema.index({ createdAt: -1 });
 
-export const Horoscope: Model<IHoroscope> =
-  mongoose.models.Horoscope || mongoose.model<IHoroscope>("Horoscope", HoroscopeSchema);
+export const Horoscope: Model<IHoroscope> = mongoose.models.Horoscope || mongoose.model<IHoroscope>("Horoscope", HoroscopeSchema);

@@ -17,9 +17,10 @@ interface LocationInputProps {
   onLatChange: (v: string) => void;
   onLngChange: (v: string) => void;
   initialValue?: string;
+  onQueryChange?: (v: string) => void;
 }
 
-export function LocationInput({ onSelect, lat, lng, onLatChange, onLngChange, initialValue }: LocationInputProps) {
+export function LocationInput({ onSelect, lat, lng, onLatChange, onLngChange, initialValue, onQueryChange }: LocationInputProps) {
   const { t } = useI18n();
   const [query, setQuery] = useState(initialValue || "");
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
@@ -44,6 +45,7 @@ export function LocationInput({ onSelect, lat, lng, onLatChange, onLngChange, in
 
   const handleChange = (value: string) => {
     setQuery(value);
+    onQueryChange?.(value);
     if (timer.current) clearTimeout(timer.current);
 
     if (value.length < 2) {

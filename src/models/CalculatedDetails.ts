@@ -1,20 +1,9 @@
 import mongoose, { Schema, Model, Document } from "mongoose";
+import type { CalculationResult } from "@/lib/astrology";
 
-export interface ICalculatedDetails extends Document {
+export interface ICalculatedDetails extends Document, CalculationResult {
   id: string;
   horoscope: { id: string };
-  ascendant: Record<string, unknown>;
-  houses: Record<string, unknown>[];
-  planets: Record<string, unknown>[];
-  nakshatra: Record<string, unknown>;
-  dashas: Record<string, unknown>;
-  lord22ndDrekkana: number;
-  lord64thNavamsa: number;
-  badhakaPlanet: number[];
-  marakaPlanets: number[];
-  atmakaraka: number;
-  yogas: Record<string, unknown>[];
-  doshas: Record<string, unknown>;
   createdAt: Date;
 }
 
