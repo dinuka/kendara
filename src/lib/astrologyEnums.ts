@@ -40,6 +40,7 @@ export const PLANET_NAMES: Record<string, Planet> = {
     mercury: Planet.MERCURY,
     ගුරු: Planet.JUPITER,
     jupiter: Planet.JUPITER,
+    ශුක්‍ර: Planet.VENUS,
     සිකුරු: Planet.VENUS,
     venus: Planet.VENUS,
     ශනි: Planet.SATURN,
