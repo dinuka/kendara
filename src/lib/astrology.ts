@@ -33,8 +33,14 @@ export interface Planet {
 export interface House {
     houseNumber: number;
     startDegree: number;
+    startSign: number;
+    startLord: number;
     middleDegree: number;
+    middleSign: number;
+    middleLord: number;
     endDegree: number;
+    endSign: number;
+    endLord: number;
     sign: number;
     lord: number;
 }

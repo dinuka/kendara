@@ -11,6 +11,7 @@ import { calculateHoroscope } from "@/lib/calculation";
 import { generateChartSvg } from "@/lib/chartRenderer";
 import { ALL_CHART_TYPES } from "@/lib/chartTypes";
 import { connectDB } from "@/lib/db";
+import { User } from "@/models/User";
 import logger from "@/lib/logger";
 
 const CALC_FIELDS = ["birthDate", "birthTime", "latitude", "longitude", "ayanamsha"];
@@ -60,7 +61,9 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 
     if (needsRecalc) {
         logger.info("calculation fields changed, recalculating horoscope id=%s", id);
-        const calculated = calculateHoroscope(horoscope);
+        const user = await User.findOne({ googleId: session.user.id }).lean();
+        const planetaryOrbs = (user?.planetaryOrbs ?? {}) as Record<string, number>;
+        const calculated = calculateHoroscope(horoscope, planetaryOrbs);
 
         await CalculatedDetails.findOneAndUpdate({ "horoscope.id": id }, { ...calculated }, { upsert: true });
 

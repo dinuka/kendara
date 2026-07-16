@@ -183,7 +183,11 @@ function computePlanetStrength(planet: number, sign: number): { strength: number
     return { strength: STRENGTH_VALUES.neutral, strengthLabel: "neutral" };
 }
 
-export function calculateHoroscope(data: IHoroscope): CalculationResult {
+const DEFAULT_ORBS: Record<string, number> = {
+    "1": 15, "2": 12, "3": 8, "4": 7, "5": 9, "6": 7, "7": 9, "8": 0, "9": 0,
+};
+
+export function calculateHoroscope(data: IHoroscope, planetaryOrbs: Record<string, number> = DEFAULT_ORBS): CalculationResult {
     logger.info({ name: data.name, ayanamsha: data.ayanamsha }, "starting horoscope calculation");
 
     const birthDate = new Date(data.birthDate);
@@ -238,22 +242,34 @@ export function calculateHoroscope(data: IHoroscope): CalculationResult {
     );
     const cusps = sweResult.house;
 
-    const h1Size = (cusps[1] - cusps[0] + 360) % 360;
-    const halfH1 = h1Size / 2;
-
     const houses: House[] = Array.from({ length: 12 }, (_, i) => {
-        const start = (cusps[i] - halfH1 + 360) % 360;
-        const end = (cusps[(i + 1) % 12] - halfH1 + 360) % 360;
-        const endAdj = end < start ? end + 360 : end;
-        const mid = (start + endAdj) / 2;
-        const midNorm = mid % 360;
+        const cusp = cusps[i];
+        const nextCusp = cusps[(i + 1) % 12];
+        const prevCusp = cusps[(i + 11) % 12];
+
+        const cForNext = nextCusp < cusp ? nextCusp + 360 : nextCusp;
+        const cForPrev = cusp < prevCusp ? cusp + 360 : cusp;
+
+        const start = ((prevCusp + cForPrev) / 2) % 360;
+        const end = ((cusp + cForNext) / 2) % 360;
+        const mid = cusp;
+
+        const startSign = Math.floor(start / 30) + 1;
+        const endSign = Math.floor(end / 30) + 1;
+        const midSign = Math.floor(mid / 30) + 1;
         return {
             houseNumber: i + 1,
-            startDegree: +(start % 30).toFixed(2),
-            middleDegree: +((mid % 360) % 30).toFixed(2),
-            endDegree: +(end % 30).toFixed(2),
-            sign: Math.floor(midNorm / 30) + 1,
-            lord: SIGN_LORD[Math.floor(midNorm / 30) + 1] || Math.floor(midNorm / 30) + 1,
+            startDegree: +(start % 30).toFixed(4),
+            startSign,
+            startLord: SIGN_LORD[startSign] || 1,
+            middleDegree: +(mid % 30).toFixed(4),
+            middleSign: midSign,
+            middleLord: SIGN_LORD[midSign] || 1,
+            endDegree: +(end % 30).toFixed(4),
+            endSign,
+            endLord: SIGN_LORD[endSign] || 1,
+            sign: midSign,
+            lord: SIGN_LORD[midSign] || 1,
         };
     });
 
@@ -285,13 +301,15 @@ export function calculateHoroscope(data: IHoroscope): CalculationResult {
 
     const sunLong = positions.Su.longitude;
 
+    const sunOrb = (planetaryOrbs["1"] ?? 15) / 2;
+
     for (let i = 0; i < planetDetails.length; i++) {
         planetDetails[i].combustion =
             i === 0
                 ? false
-                : Math.abs(planetDetails[i].absoluteDegree - sunLong) < 8 ||
-                  Math.abs(planetDetails[i].absoluteDegree - sunLong + 360) < 8 ||
-                  Math.abs(planetDetails[i].absoluteDegree - sunLong - 360) < 8;
+                : Math.abs(planetDetails[i].absoluteDegree - sunLong) < sunOrb ||
+                  Math.abs(planetDetails[i].absoluteDegree - sunLong + 360) < sunOrb ||
+                  Math.abs(planetDetails[i].absoluteDegree - sunLong - 360) < sunOrb;
 
         const aspects: Aspect[] = [];
         for (let j = 0; j < planetDetails.length; j++) {
@@ -351,47 +369,99 @@ export function calculateHoroscope(data: IHoroscope): CalculationResult {
             ],
             currentPeriod: { mahadashaLord: 5, antardashaLord: 6 },
         },
-        lord22ndDrekkana: ((ascSign + 22 - 1) % 12) + 1,
-        lord64thNavamsa: ((ascSign + 64 - 1) % 12) + 1,
+        lord22ndDrekkana: computeDrekkanaLord(ascSign, ascLong % 30),
+        lord64thNavamsa: computeNavamsaLord(planetDetails),
         badhakaPlanet: computeBadhaka(ascSign),
-        marakaPlanets: computeMaraka(houses),
+        marakaPlanets: computeMaraka(ascSign, planetDetails),
         atmakaraka: computeAtmakaraka(planetDetails),
         yogas: [],
         doshas: { doshas: [] },
     };
 }
 
-function computeBadhaka(ascSign: number): number[] {
-    const badhakaSigns: Record<number, number> = {
-        1: 11,
-        2: 12,
-        3: 1,
-        4: 2,
-        5: 3,
-        6: 4,
-        7: 5,
-        8: 6,
-        9: 7,
-        10: 8,
-        11: 9,
-        12: 10,
-    };
-    const badhakaSign = badhakaSigns[ascSign] || 7;
-    return [badhakaSign];
+function drekkanaSign(sourceSign: number, drekkanaNum: number): number {
+    return ((sourceSign - 1 + (drekkanaNum - 1) * 4) % 12) + 1;
 }
 
-function computeMaraka(houses: House[]): number[] {
-    const h2 = houses.find((h) => h.houseNumber === 2);
-    const h7 = houses.find((h) => h.houseNumber === 7);
-    return [h2?.lord || 2, h7?.lord || 7];
+function computeDrekkanaLord(ascSign: number, ascDegree: number): number {
+    const ascDrekkanaNum = Math.floor(ascDegree / 10) + 1;
+    const absDrekkana = (ascSign - 1) * 3 + ascDrekkanaNum;
+    const targetAbs = ((absDrekkana + 21 - 1) % 36) + 1;
+    const sourceSign = Math.floor((targetAbs - 1) / 3) + 1;
+    const drekkanaNum = ((targetAbs - 1) % 3) + 1;
+    const mappedSign = drekkanaSign(sourceSign, drekkanaNum);
+    return SIGN_LORD[mappedSign] || 1;
+}
+
+function navamsaSign(sourceSign: number, navamsaNum: number): number {
+    const NAVAMSA_OFFSET = [0, 8, 4];
+    const offset = NAVAMSA_OFFSET[(sourceSign - 1) % 3];
+    return ((sourceSign - 1 + offset + navamsaNum - 1) % 12) + 1;
+}
+
+function computeNavamsaLord(planets: Planet[]): number {
+    const moon = planets.find((p) => p.name === 2);
+    if (!moon) return 1;
+    const moonNavamsaNum = Math.floor(moon.degree / (20 / 3)) + 1;
+    const absNavamsa = (moon.sign - 1) * 9 + moonNavamsaNum;
+    const targetAbs = ((absNavamsa + 63 - 1) % 108) + 1;
+    const sourceSign = Math.floor((targetAbs - 1) / 9) + 1;
+    const navamsaNum = ((targetAbs - 1) % 9) + 1;
+    const mappedSign = navamsaSign(sourceSign, navamsaNum);
+    return SIGN_LORD[mappedSign] || 1;
+}
+
+function computeBadhaka(ascSign: number): number[] {
+    const isMovable = [1, 4, 7, 10].includes(ascSign);
+    const isFixed = [2, 5, 8, 11].includes(ascSign);
+
+    let badhakaHouse: number;
+    if (isMovable) badhakaHouse = 11;
+    else if (isFixed) badhakaHouse = 9;
+    else badhakaHouse = 7;
+
+    const badhakaSign = ((ascSign + badhakaHouse - 2) % 12) + 1;
+    return [SIGN_LORD[badhakaSign] || 1];
+}
+
+function computeMaraka(ascSign: number, planets: Planet[]): number[] {
+    const secondSign = (ascSign % 12) + 1;
+    const seventhSign = ((ascSign + 6 - 1) % 12) + 1;
+
+    const secondLord = SIGN_LORD[secondSign] || 1;
+    const seventhLord = SIGN_LORD[seventhSign] || 1;
+
+    const marakas = new Set<number>();
+    marakas.add(secondLord);
+    marakas.add(seventhLord);
+
+    for (const p of planets) {
+        if (p.name === 8 || p.name === 9) continue;
+        if (p.house === 2 || p.house === 7) {
+            marakas.add(p.name);
+        }
+    }
+
+    for (const p of planets) {
+        if (p.name === 8 || p.name === 9) continue;
+        if (p.name === secondLord || p.name === seventhLord) continue;
+        const conjWith2nd = p.aspects.some((a) => a.planetName === secondLord && a.aspectType === 0);
+        const conjWith7th = p.aspects.some((a) => a.planetName === seventhLord && a.aspectType === 0);
+        if (conjWith2nd || conjWith7th) {
+            marakas.add(p.name);
+        }
+    }
+
+    return Array.from(marakas);
 }
 
 function computeAtmakaraka(planets: Planet[]): number {
     let maxDeg = -1;
     let atmakaraka = 1;
     for (const p of planets) {
-        if (p.absoluteDegree > maxDeg) {
-            maxDeg = p.absoluteDegree;
+        if (p.name === 8 || p.name === 9) continue;
+        if (p.degree > maxDeg) {
+            maxDeg = p.degree;
             atmakaraka = p.name;
         }
     }

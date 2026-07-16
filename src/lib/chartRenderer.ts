@@ -154,11 +154,16 @@ export function generateChartSvg(data: ChartInput, type: ChartType): string {
             show.forEach((p, i) => {
                 const px = x + 10 + (i % 2) * 50;
                 const py = y + 52 + Math.floor(i / 2) * 28;
-                const symbol = PLANET_SYMBOLS[p.name] || "";
-                svg += `
+                if (p.name === 8 || p.name === 9) {
+                    svg += `
+    <text x="${px}" y="${py - 2}" class="planet" font-size="14">${escapeXml(PLANET_SHORT[p.name] || "")}</text>`;
+                } else {
+                    const symbol = PLANET_SYMBOLS[p.name] || "";
+                    svg += `
     <text x="${px}" y="${py}" class="planet">${escapeXml(symbol)}</text>`;
-                svg += `
+                    svg += `
     <text x="${px + 22}" y="${py - 2}" class="plabel">${escapeXml(PLANET_SHORT[p.name] || "")}</text>`;
+                }
             });
             if (housePlanets.length > maxShow) {
                 svg += `

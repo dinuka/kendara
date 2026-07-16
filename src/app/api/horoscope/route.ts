@@ -10,6 +10,7 @@ import { calculateHoroscope } from "@/lib/calculation";
 import { generateChartSvg } from "@/lib/chartRenderer";
 import { ALL_CHART_TYPES } from "@/lib/chartTypes";
 import { connectDB } from "@/lib/db";
+import { User } from "@/models/User";
 import logger from "@/lib/logger";
 
 export async function GET(req: NextRequest) {
@@ -59,8 +60,11 @@ export async function POST(req: NextRequest) {
     });
     logger.info("horoscope saved: id=%s", horoscope.id);
 
+    const user = await User.findOne({ googleId: session.user.id }).lean();
+    const planetaryOrbs = (user?.planetaryOrbs ?? {}) as Record<string, number>;
+
     logger.info("running astrological calculation...");
-    const calculated = calculateHoroscope(horoscope);
+    const calculated = calculateHoroscope(horoscope, planetaryOrbs);
 
     logger.info("saving calculated details...");
     await CalculatedDetails.create({
