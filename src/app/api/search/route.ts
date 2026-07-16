@@ -7,6 +7,7 @@ import { SavedFilter } from "@/models/SavedFilter";
 
 import { connectDB } from "@/lib/db";
 import logger from "@/lib/logger";
+import { ZODIAC_SIGN_NAMES, PLANET_NAMES } from "@/lib/astrologyEnums";
 
 export async function POST(req: NextRequest) {
     const session = await getServerSession(authOptions);
@@ -35,64 +36,13 @@ export async function POST(req: NextRequest) {
             let score = 0;
             const q = query.toLowerCase();
 
-            const signMap: Record<string, number> = {
-                මේෂ: 1,
-                aries: 1,
-                වෘෂභ: 2,
-                taurus: 2,
-                මිථුන: 3,
-                gemini: 3,
-                කටක: 4,
-                cancer: 4,
-                සිංහ: 5,
-                leo: 5,
-                කන්යා: 6,
-                virgo: 6,
-                තුලා: 7,
-                libra: 7,
-                වෘශ්චික: 8,
-                scorpio: 8,
-                ධනු: 9,
-                sagittarius: 9,
-                මකර: 10,
-                capricorn: 10,
-                කුම්භ: 11,
-                aquarius: 11,
-                මීන: 12,
-                pisces: 12,
-            };
-
-            const planetMap: Record<string, number> = {
-                ඉර: 1,
-                රවි: 1,
-                sun: 1,
-                හඳ: 2,
-                සඳ: 2,
-                moon: 2,
-                කුජ: 3,
-                mars: 3,
-                අඟහරු: 3,
-                බුධ: 4,
-                mercury: 4,
-                ගුරු: 5,
-                jupiter: 5,
-                සිකුරු: 6,
-                venus: 6,
-                ශනි: 7,
-                saturn: 7,
-                රාහු: 8,
-                rahu: 8,
-                කේතු: 9,
-                ketu: 9,
-            };
-
-            for (const [word] of Object.entries(signMap)) {
+            for (const [word] of Object.entries(ZODIAC_SIGN_NAMES)) {
                 if (q.includes(word)) {
                     score += 0.5;
                 }
             }
 
-            for (const [word] of Object.entries(planetMap)) {
+            for (const [word] of Object.entries(PLANET_NAMES)) {
                 if (q.includes(word)) {
                     score += 0.3;
                 }
