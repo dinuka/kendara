@@ -34,7 +34,7 @@ export default function HoroscopeDetailPage() {
     const { data: session, status } = useSession();
     const router = useRouter();
     const params = useParams();
-    const { t, locale } = useI18n();
+    const { t } = useI18n();
     const [data, setData] = useState<{
         horoscope: HoroscopeData;
         calculatedDetails: {
@@ -85,68 +85,10 @@ export default function HoroscopeDetailPage() {
 
     const { horoscope, calculatedDetails, charts } = data;
 
-    const planetNames: Record<number, string> = {
-        1: locale === "si" ? "රවි" : "Sun",
-        2: locale === "si" ? "සඳ" : "Moon",
-        3: locale === "si" ? "කුජ" : "Mars",
-        4: locale === "si" ? "බුධ" : "Mercury",
-        5: locale === "si" ? "ගුරු" : "Jupiter",
-        6: locale === "si" ? "සිකුරු" : "Venus",
-        7: locale === "si" ? "ශනි" : "Saturn",
-        8: locale === "si" ? "රාහු" : "Rahu",
-        9: locale === "si" ? "කේතු" : "Ketu",
-    };
-
-    const signNames: Record<number, string> = {
-        1: locale === "si" ? "මේෂ" : "Aries",
-        2: locale === "si" ? "වෘෂභ" : "Taurus",
-        3: locale === "si" ? "මිථුන" : "Gemini",
-        4: locale === "si" ? "කටක" : "Cancer",
-        5: locale === "si" ? "සිංහ" : "Leo",
-        6: locale === "si" ? "කන්යා" : "Virgo",
-        7: locale === "si" ? "තුලා" : "Libra",
-        8: locale === "si" ? "වෘශ්චික" : "Scorpio",
-        9: locale === "si" ? "ධනු" : "Sagittarius",
-        10: locale === "si" ? "මකර" : "Capricorn",
-        11: locale === "si" ? "කුම්භ" : "Aquarius",
-        12: locale === "si" ? "මීන" : "Pisces",
-    };
-
-    const nakshatraNames: Record<number, string> = {
-        1: locale === "si" ? "අස්විද" : "Ashwini",
-        2: locale === "si" ? "බෙරණ" : "Bharani",
-        3: locale === "si" ? "කැති" : "Krittika",
-        4: locale === "si" ? "රෙහෙණ" : "Rohini",
-        5: locale === "si" ? "මුවසිරිස" : "Mrigashira",
-        6: locale === "si" ? "අද" : "Ardra",
-        7: locale === "si" ? "පුනාවස" : "Punarvasu",
-        8: locale === "si" ? "පුස" : "Pushya",
-        9: locale === "si" ? "අස්ලිය" : "Ashlesha",
-        10: locale === "si" ? "මා" : "Magha",
-        11: locale === "si" ? "පුවපල්" : "Purva Phalguni",
-        12: locale === "si" ? "උත්‍රපල්" : "Uttara Phalguni",
-        13: locale === "si" ? "හත" : "Hasta",
-        14: locale === "si" ? "සිත" : "Chitra",
-        15: locale === "si" ? "සා" : "Swati",
-        16: locale === "si" ? "විසා" : "Vishakha",
-        17: locale === "si" ? "අනුර" : "Anuradha",
-        18: locale === "si" ? "දෙට" : "Jyestha",
-        19: locale === "si" ? "මූල" : "Mula",
-        20: locale === "si" ? "පුවසල" : "Purva Aashada",
-        21: locale === "si" ? "උත්‍රසල" : "Uttara Aashada",
-        22: locale === "si" ? "සුවන" : "Shravana",
-        23: locale === "si" ? "දෙනට" : "Dhanishta",
-        24: locale === "si" ? "සියාවස" : "Shatabhisha",
-        25: locale === "si" ? "පුවපුටුප" : "Purva Bhadrapada",
-        26: locale === "si" ? "උත්‍රපුටුප" : "Uttara Bhadrapada",
-        27: locale === "si" ? "රේවතී" : "Revati",
-    };
-
-    function ordinalSuffix(n: number): string {
-        const s = ["th", "st", "nd", "rd"];
-        const v = n % 100;
-        return n + (s[(v - 20) % 10] || s[v] || s[0]);
-    }
+    const getPlanetName = (id: number): string => t(`astrology.planetNames.${id}`);
+    const getSignName = (id: number): string => t(`astrology.signNames.${id}`);
+    const getNakshatraName = (id: number): string => t(`astrology.nakshatraNames.${id}`);
+    const getPadaFormat = (pada: number): string => t("astrology.padaFormat", { pada: String(pada) });
 
     const tabs = [
         { id: "charts", label: t("horoscope.charts") },
@@ -247,16 +189,14 @@ export default function HoroscopeDetailPage() {
                                     {t("astrology.ascendant")}
                                 </h4>
                                 <p className="text-sm mb-1">
-                                    {signNames[calculatedDetails.ascendant.sign]} (
-                                    {planetNames[calculatedDetails.ascendant.lord]}){" "}
+                                    {getSignName(calculatedDetails.ascendant.sign)} (
+                                    {getPlanetName(calculatedDetails.ascendant.lord)}){" "}
                                     {formatDegree(calculatedDetails.ascendant.degree)}
                                 </p>
                                 <p className="text-sm text-gray-600">
-                                    {nakshatraNames[calculatedDetails.nakshatra.ascendantNakshatra?.id ?? 0]} (
-                                    {planetNames[calculatedDetails.nakshatra.ascendantNakshatra?.lord ?? 0]}){" "}
-                                    {locale === "si"
-                                        ? `${calculatedDetails.nakshatra.ascendantNakshatra?.pada} වෙනි පාදය`
-                                        : `${ordinalSuffix(calculatedDetails.nakshatra.ascendantNakshatra?.pada ?? 1)} Pada`}
+                                    {getNakshatraName(calculatedDetails.nakshatra.ascendantNakshatra?.id ?? 0)} (
+                                    {getPlanetName(calculatedDetails.nakshatra.ascendantNakshatra?.lord ?? 0)}){" "}
+                                    {getPadaFormat(calculatedDetails.nakshatra.ascendantNakshatra?.pada ?? 1)}
                                 </p>
                             </div>
                             <div className="bg-gray-50 rounded p-3">
@@ -264,11 +204,9 @@ export default function HoroscopeDetailPage() {
                                     {t("astrology.nakshatra")}
                                 </h4>
                                 <p className="text-sm">
-                                    {nakshatraNames[calculatedDetails.nakshatra.moonNakshatra?.id ?? 0]} (
-                                    {planetNames[calculatedDetails.nakshatra.moonNakshatra?.lord ?? 0]}){" "}
-                                    {locale === "si"
-                                        ? `${calculatedDetails.nakshatra.moonNakshatra?.pada} වෙනි පාදය`
-                                        : `${ordinalSuffix(calculatedDetails.nakshatra.moonNakshatra?.pada ?? 1)} Pada`}
+                                    {getNakshatraName(calculatedDetails.nakshatra.moonNakshatra?.id ?? 0)} (
+                                    {getPlanetName(calculatedDetails.nakshatra.moonNakshatra?.lord ?? 0)}){" "}
+                                    {getPadaFormat(calculatedDetails.nakshatra.moonNakshatra?.pada ?? 1)}
                                 </p>
                             </div>
                         </div>
@@ -294,8 +232,8 @@ export default function HoroscopeDetailPage() {
                                     {calculatedDetails.houses.map((h) => (
                                         <tr key={h.houseNumber} className="border-b border-gray-50">
                                             <td className="py-1 pr-3 font-medium">{h.houseNumber}</td>
-                                            <td className="py-1 pr-3">{signNames[h.sign] || h.sign}</td>
-                                            <td className="py-1 pr-3">{planetNames[h.lord] || h.lord}</td>
+                                            <td className="py-1 pr-3">{getSignName(h.sign) || h.sign}</td>
+                                            <td className="py-1 pr-3">{getPlanetName(h.lord) || h.lord}</td>
                                             <td className="py-1 pr-3 text-gray-500">{formatDegree(h.startDegree)}</td>
                                             <td className="py-1 pr-3 text-gray-500">{formatDegree(h.middleDegree)}</td>
                                             <td className="py-1 pr-3 text-gray-500">{formatDegree(h.endDegree)}</td>
@@ -328,12 +266,12 @@ export default function HoroscopeDetailPage() {
                                 <tbody>
                                     {calculatedDetails.planets.map((p) => (
                                         <tr key={p.name} className="border-b border-gray-50">
-                                            <td className="py-1 pr-3 font-medium">{planetNames[p.name]}</td>
-                                            <td className="py-1 pr-3">{signNames[p.sign]}</td>
+                                            <td className="py-1 pr-3 font-medium">{getPlanetName(p.name)}</td>
+                                            <td className="py-1 pr-3">{getSignName(p.sign)}</td>
                                             <td className="py-1 pr-3 text-gray-600">{formatDegree(p.degree)}</td>
                                             <td className="py-1 pr-3">{p.house}</td>
                                             <td className="py-1 pr-3 text-gray-600">
-                                                {nakshatraNames[p.nakshatra] || p.nakshatra}
+                                                {getNakshatraName(p.nakshatra) || p.nakshatra}
                                             </td>
                                             <td className="py-1 pr-3">{p.pada}</td>
                                             <td className="py-1 pr-3">{p.retrograde ? "🔄" : "—"}</td>
@@ -354,7 +292,7 @@ export default function HoroscopeDetailPage() {
                         </h3>
                         {calculatedDetails.planets.map((p) => (
                             <div key={p.name} className="mb-2 text-sm">
-                                <span className="font-medium">{planetNames[p.name]}</span>
+                                <span className="font-medium">{getPlanetName(p.name)}</span>
                                 {p.aspects.length === 0 ? (
                                     <span className="text-gray-400 ml-2">{t("astrology.noAspects")}</span>
                                 ) : (
@@ -364,7 +302,7 @@ export default function HoroscopeDetailPage() {
                                                 <span className={a.isBeneficial ? "text-green-600" : "text-red-600"}>
                                                     {a.aspectType}°
                                                 </span>{" "}
-                                                → {planetNames[a.planetName]}
+                                                → {getPlanetName(a.planetName)}
                                                 <span className="text-gray-400 text-xs ml-1">
                                                     ({t("astrology.orb")}: {a.degreeGap}°)
                                                 </span>
@@ -383,15 +321,15 @@ export default function HoroscopeDetailPage() {
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
                             <div className="bg-gray-50 rounded p-3">
                                 <span className="text-gray-500">{t("astrology.drekkanaLord")}</span>
-                                <p className="font-medium">{planetNames[calculatedDetails.lord22ndDrekkana] || "-"}</p>
+                                <p className="font-medium">{getPlanetName(calculatedDetails.lord22ndDrekkana) || "-"}</p>
                             </div>
                             <div className="bg-gray-50 rounded p-3">
                                 <span className="text-gray-500">{t("astrology.navamsaLord")}</span>
-                                <p className="font-medium">{planetNames[calculatedDetails.lord64thNavamsa] || "-"}</p>
+                                <p className="font-medium">{getPlanetName(calculatedDetails.lord64thNavamsa) || "-"}</p>
                             </div>
                             <div className="bg-gray-50 rounded p-3">
                                 <span className="text-gray-500">{t("astrology.atmakaraka")}</span>
-                                <p className="font-medium">{planetNames[calculatedDetails.atmakaraka] || "-"}</p>
+                                <p className="font-medium">{getPlanetName(calculatedDetails.atmakaraka) || "-"}</p>
                             </div>
                         </div>
                     </section>
@@ -404,14 +342,14 @@ export default function HoroscopeDetailPage() {
                             <div className="bg-gray-50 rounded p-3">
                                 <span className="text-gray-500">{t("astrology.marakaPlanets")}</span>
                                 <p className="font-medium">
-                                    {calculatedDetails.marakaPlanets?.map((p: number) => planetNames[p]).join(", ") ||
+                                    {calculatedDetails.marakaPlanets?.map((p: number) => getPlanetName(p)).join(", ") ||
                                         "-"}
                                 </p>
                             </div>
                             <div className="bg-gray-50 rounded p-3">
                                 <span className="text-gray-500">{t("astrology.badhakaPlanets")}</span>
                                 <p className="font-medium">
-                                    {calculatedDetails.badhakaPlanet?.map((p: number) => planetNames[p]).join(", ") ||
+                                    {calculatedDetails.badhakaPlanet?.map((p: number) => getPlanetName(p)).join(", ") ||
                                         "-"}
                                 </p>
                             </div>
