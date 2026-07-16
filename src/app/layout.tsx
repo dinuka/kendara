@@ -3,7 +3,8 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Providers } from "@/components/Providers";
 import { Nav } from "@/components/Nav";
-import { cookies } from "next/headers";
+import { NextIntlClientProvider } from "next-intl";
+import { getLocale, getMessages } from "next-intl/server";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -25,17 +26,19 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const cookieStore = await cookies();
-  const locale = cookieStore.get("locale")?.value || "si";
+  const locale = await getLocale();
+  const messages = await getMessages();
 
   return (
-    <html lang={locale === "si" ? "si" : "en"} className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
+    <html lang={locale} className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col bg-gray-50">
-        <Providers locale={locale}>
-          <Nav />
-          <main className="flex-1 container mx-auto px-4 py-6 max-w-6xl">
-            {children}
-          </main>
+        <Providers>
+          <NextIntlClientProvider locale={locale} messages={messages}>
+            <Nav />
+            <main className="flex-1 container mx-auto px-4 py-6 max-w-6xl">
+              {children}
+            </main>
+          </NextIntlClientProvider>
         </Providers>
       </body>
     </html>
