@@ -50,6 +50,10 @@ export default function EditHoroscopePage() {
     setLocationLabel(label);
   };
 
+  const handleLocationQuery = (value: string) => {
+    setLocationLabel(value);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
@@ -122,6 +126,7 @@ export default function EditHoroscopePage() {
             onLatChange={setLat}
             onLngChange={setLng}
             initialValue={locationLabel}
+            onQueryChange={handleLocationQuery}
           />
         </div>
 

@@ -3,4 +3,5 @@ allowBuilds:
   '@swc/core': true
   protobufjs: true
   sharp: true
+  swisseph-v2: true
   unrs-resolver: true

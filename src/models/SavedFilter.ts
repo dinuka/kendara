@@ -17,6 +17,4 @@ const SavedFilterSchema = new Schema<ISavedFilter>({
   createdAt: { type: Date, default: Date.now },
 });
 
-export const SavedFilter: Model<ISavedFilter> =
-  mongoose.models.SavedFilter ||
-  mongoose.model<ISavedFilter>("SavedFilter", SavedFilterSchema);
+export const SavedFilter: Model<ISavedFilter> = mongoose.models.SavedFilter || mongoose.model<ISavedFilter>("SavedFilter", SavedFilterSchema);

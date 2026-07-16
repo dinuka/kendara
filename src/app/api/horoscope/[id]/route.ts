@@ -7,6 +7,8 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { NextRequest, NextResponse } from "next/server";
 import { calculateHoroscope } from "@/lib/calculation";
+import { ALL_CHART_TYPES } from "@/lib/chartTypes";
+import { generateChartSvg } from "@/lib/chartRenderer";
 import logger from "@/lib/logger";
 
 const CALC_FIELDS = ["birthDate", "birthTime", "latitude", "longitude", "ayanamsha"];
@@ -70,16 +72,17 @@ export async function PUT(
 
     await Chart.deleteMany({ "horoscope.id": id });
 
-    const chartTypes = [
-      "birth", "house", "navamsa-d9", "drekkana-d3",
-      "dasamsa-d10", "shodasha-vargas", "chandra-lagna", "surya-lagna",
-    ] as const;
+    const chartInput = { houses: calculated.houses, planets: calculated.planets, ascendant: calculated.ascendant } as const;
 
-    const chartDocs = chartTypes.map((type) => ({
+    const chartDocs = ALL_CHART_TYPES.map((type) => ({
       horoscope: { id },
       type,
-      data: { houses: calculated.houses, planets: calculated.planets, ascendant: calculated.ascendant },
+      data: chartInput,
       imageKey: "",
+      svgData: generateChartSvg(
+        { planets: calculated.planets, houses: calculated.houses, ascendant: calculated.ascendant },
+        type,
+      ),
     }));
 
     await Chart.insertMany(chartDocs);
