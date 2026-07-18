@@ -1,7 +1,7 @@
 export enum ChartType {
     BIRTH = "birth",
-    HOUSE = "house",
     NAVAMSA_D9 = "navamsa-d9",
+    HOUSE = "house",
     DREKKANA_D3 = "drekkana-d3",
     DASAMSA_D10 = "dasamsa-d10",
     SHODASHA_VARGAS = "shodasha-vargas",

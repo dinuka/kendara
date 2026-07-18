@@ -13,7 +13,15 @@ export interface IUser extends Document {
 }
 
 const DEFAULT_ORBS: Record<string, number> = {
-    "1": 15, "2": 12, "3": 8, "4": 7, "5": 9, "6": 7, "7": 9, "8": 0, "9": 0,
+    "1": 15,
+    "2": 12,
+    "3": 8,
+    "4": 7,
+    "5": 9,
+    "6": 7,
+    "7": 9,
+    "8": 0,
+    "9": 0,
 };
 
 const UserSchema = new Schema<IUser>(

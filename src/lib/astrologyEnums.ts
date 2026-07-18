@@ -51,6 +51,30 @@ export const PLANET_NAMES: Record<string, Planet> = {
     ketu: Planet.KETU,
 };
 
+export enum PlanetaryStrength {
+    ATHI_UCHCHA = "AthiUchcha",
+    UCHCHA = "Uchcha",
+    NEECHA = "Neecha",
+    ATHI_NEECHA = "AthiNeecha",
+    MOOLATRIKONA = "Moolatrikona",
+    OWN_SIGN = "OwnSign",
+    MITRA = "Mitra",
+    SHATRU = "Shatru",
+    SAMA = "Sama",
+}
+
+export const PLANETARY_STRENGTH_VALUES: Record<PlanetaryStrength, number> = {
+    [PlanetaryStrength.ATHI_UCHCHA]: 1.25,
+    [PlanetaryStrength.UCHCHA]: 1,
+    [PlanetaryStrength.NEECHA]: -1,
+    [PlanetaryStrength.ATHI_NEECHA]: -1.25,
+    [PlanetaryStrength.MOOLATRIKONA]: 0.75,
+    [PlanetaryStrength.OWN_SIGN]: 0.5,
+    [PlanetaryStrength.MITRA]: 0.1,
+    [PlanetaryStrength.SHATRU]: -0.1,
+    [PlanetaryStrength.SAMA]: 0,
+};
+
 export const ZODIAC_SIGN_NAMES: Record<string, ZodiacSign> = {
     මේෂ: ZodiacSign.ARIES,
     aries: ZodiacSign.ARIES,

@@ -27,6 +27,9 @@ export function Nav() {
                             <Link href="/search" className="hover:text-indigo-600 transition-colors">
                                 {t("nav.search")}
                             </Link>
+                            <Link href="/locations" className="hover:text-indigo-600 transition-colors">
+                                {t("nav.locations")}
+                            </Link>
                             <Link href="/settings" className="hover:text-indigo-600 transition-colors">
                                 {t("nav.settings")}
                             </Link>

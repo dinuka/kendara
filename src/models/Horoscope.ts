@@ -7,7 +7,8 @@ export interface IHoroscope extends Document {
     displayName: boolean;
     birthDate: Date;
     birthTime: string;
-    location: string;
+    location: { id: string } | null;
+    locationName: string;
     latitude: number;
     longitude: number;
     gender: "male" | "female" | "other";
@@ -26,7 +27,10 @@ const HoroscopeSchema = new Schema<IHoroscope>(
         displayName: { type: Boolean, default: true },
         birthDate: { type: Date, required: true },
         birthTime: { type: String, required: true },
-        location: { type: String, default: "" },
+        location: {
+            id: { type: String },
+        },
+        locationName: { type: String, default: "" },
         latitude: { type: Number, default: 0 },
         longitude: { type: Number, default: 0 },
         gender: {

@@ -1,3 +1,14 @@
+import { PlanetaryStrength } from "./astrologyEnums";
+
+/** Maps a sign + navamsa-index-within-sign (1-9) to the D9 (navamsa) sign, using the standard
+ *  movable/fixed/dual offset table. Shared by the D1 calculation pipeline and any client-side
+ *  chart that needs to resolve navamsa wedge identity without a full recalculation. */
+export function navamsaSign(sourceSign: number, navamsaNum: number): number {
+    const NAVAMSA_OFFSET = [0, 8, 4];
+    const offset = NAVAMSA_OFFSET[(sourceSign - 1) % 3];
+    return ((sourceSign - 1 + offset + navamsaNum - 1) % 12) + 1;
+}
+
 export function formatDegree(deg: number): string {
     const totalVikala = Math.round(deg * 3600);
     const anshaka = Math.floor(totalVikala / 3600);
@@ -25,8 +36,9 @@ export interface Planet {
     pada: number;
     retrograde: boolean;
     combustion: boolean;
-    strength: number;
-    strengthLabel: string;
+    strength: PlanetaryStrength;
+    navamsaSign: number;
+    navamsaStrength: PlanetaryStrength;
     aspects: Aspect[];
 }
 

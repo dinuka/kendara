@@ -1,6 +1,8 @@
-import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
-import { User, DEFAULT_ORBS } from "@/models/User";
+import { NextResponse } from "next/server";
+
+import { DEFAULT_ORBS, User } from "@/models/User";
+
 import { connectDB } from "@/lib/db";
 
 export async function GET() {
@@ -36,19 +38,12 @@ export async function PUT(req: Request) {
     for (const key of Object.keys(planetaryOrbs)) {
         const val = planetaryOrbs[key];
         if (typeof val !== "number" || val < 0 || val > 30 || !Number.isFinite(val)) {
-            return NextResponse.json(
-                { error: `Invalid orb value for planet ${key}: must be 0-30` },
-                { status: 400 },
-            );
+            return NextResponse.json({ error: `Invalid orb value for planet ${key}: must be 0-30` }, { status: 400 });
         }
     }
 
     await connectDB();
-    const user = await User.findOneAndUpdate(
-        { email: session.user.email },
-        { $set: { planetaryOrbs } },
-        { new: true },
-    );
+    const user = await User.findOneAndUpdate({ email: session.user.email }, { $set: { planetaryOrbs } }, { new: true });
 
     if (!user) {
         return NextResponse.json({ error: "User not found" }, { status: 404 });
