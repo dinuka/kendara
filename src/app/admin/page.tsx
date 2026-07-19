@@ -1,10 +1,12 @@
 "use client";
 
+import ConfirmDeleteModal from "@/components/ConfirmDeleteModal";
 import { useI18n } from "@/hooks/useI18n";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
+import { formatDate } from "@/lib/date";
 import Link from "next/link";
 
 export default function AdminPage() {
@@ -14,6 +16,9 @@ export default function AdminPage() {
     const [tab, setTab] = useState<"horoscopes" | "users">("horoscopes");
     const [items, setItems] = useState<Record<string, unknown>[]>([]);
     const [loading, setLoading] = useState(true);
+    const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+    const [deletingId, setDeletingId] = useState<string | null>(null);
+    const [deleteError, setDeleteError] = useState<string | null>(null);
 
     useEffect(() => {
         if (status === "unauthenticated") {
@@ -36,6 +41,24 @@ export default function AdminPage() {
 
     if (status === "loading") return <div className="text-center py-20 text-gray-500">{t("common.loading")}</div>;
     if (!session || session.user?.role !== "super-admin") return null;
+
+    const handleDelete = async (id: string) => {
+        setDeletingId(id);
+        setDeleteError(null);
+        try {
+            const res = await fetch(`/api/admin/horoscope/${id}`, { method: "DELETE" });
+            if (!res.ok) {
+                const data = await res.json();
+                throw new Error(data.error || "Delete failed");
+            }
+            setItems((prev) => prev.filter((item) => item._id !== id));
+            setConfirmDelete(null);
+        } catch (err) {
+            setDeleteError(err instanceof Error ? err.message : t("common.error"));
+        } finally {
+            setDeletingId(null);
+        }
+    };
 
     return (
         <div>
@@ -73,6 +96,7 @@ export default function AdminPage() {
                                         <th className="text-left px-4 py-2">Owner</th>
                                         <th className="text-left px-4 py-2">Public</th>
                                         <th className="text-left px-4 py-2">Date</th>
+                                        <th className="px-4 py-2">Actions</th>
                                     </>
                                 ) : (
                                     <>
@@ -108,9 +132,54 @@ export default function AdminPage() {
                                                 </span>
                                             </td>
                                             <td className="px-4 py-2 text-gray-500">
-                                                {item.createdAt
-                                                    ? new Date(item.createdAt as string).toLocaleDateString()
-                                                    : ""}
+                                                {formatDate(item.createdAt as string)}
+                                            </td>
+                                            <td className="px-4 py-2 text-right">
+                                                <div className="flex gap-1 justify-end">
+                                                    <Link
+                                                        href={`/horoscopes/${item._id}`}
+                                                        className="p-1.5 text-gray-400 hover:text-indigo-600 transition-colors rounded hover:bg-indigo-50"
+                                                        aria-label="View horoscope"
+                                                    >
+                                                        <svg
+                                                            xmlns="http://www.w3.org/2000/svg"
+                                                            viewBox="0 0 24 24"
+                                                            fill="none"
+                                                            stroke="currentColor"
+                                                            strokeWidth="2"
+                                                            strokeLinecap="round"
+                                                            strokeLinejoin="round"
+                                                            className="w-4 h-4"
+                                                        >
+                                                            <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+                                                            <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+                                                        </svg>
+                                                    </Link>
+                                                    {item.isPublic === true && (
+                                                        <button
+                                                            onClick={() => setConfirmDelete(item._id as string)}
+                                                            aria-label={`${t("common.delete")} ${item.name as string}`}
+                                                            className="p-1.5 text-gray-400 hover:text-red-600 transition-colors rounded hover:bg-red-50"
+                                                        >
+                                                            <svg
+                                                                xmlns="http://www.w3.org/2000/svg"
+                                                                viewBox="0 0 24 24"
+                                                                fill="none"
+                                                                stroke="currentColor"
+                                                                strokeWidth="2"
+                                                                strokeLinecap="round"
+                                                                strokeLinejoin="round"
+                                                                className="w-4 h-4"
+                                                            >
+                                                                <path d="M3 6h18" />
+                                                                <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
+                                                                <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
+                                                                <line x1="10" y1="11" x2="10" y2="17" />
+                                                                <line x1="14" y1="11" x2="14" y2="17" />
+                                                            </svg>
+                                                        </button>
+                                                    )}
+                                                </div>
                                             </td>
                                         </>
                                     ) : (
@@ -133,6 +202,19 @@ export default function AdminPage() {
                     </table>
                 </div>
             )}
+
+            <ConfirmDeleteModal
+                open={confirmDelete !== null}
+                onConfirm={() => {
+                    if (confirmDelete) handleDelete(confirmDelete);
+                }}
+                onCancel={() => {
+                    setConfirmDelete(null);
+                    setDeleteError(null);
+                }}
+                loading={deletingId !== null}
+                error={deleteError}
+            />
         </div>
     );
 }

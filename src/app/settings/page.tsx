@@ -69,7 +69,7 @@ export default function SettingsPage() {
         return <div className="text-center py-20 text-gray-500">{t("common.loading")}</div>;
     if (!session) return null;
 
-    const planetIds = ["1", "2", "3", "4", "5", "6", "7", "8", "9"];
+    const planetPairs = [["1", "2"], ["3", "4"], ["5", "6"], ["7"], ["8", "9"]];
 
     return (
         <div className="max-w-2xl mx-auto">
@@ -104,21 +104,25 @@ export default function SettingsPage() {
                     <h2 className="text-lg font-semibold mb-3">{t("settings.planetaryOrbs")}</h2>
                     <p className="text-sm text-gray-500 mb-4">{t("settings.orbDescription")}</p>
                     <div className="space-y-2">
-                        {planetIds.map((id) => (
-                            <div key={id} className="flex items-center gap-3">
-                                <label className="w-24 text-sm font-medium text-gray-700">
-                                    {t(`astrology.planetNames.${id}`)}
-                                </label>
-                                <input
-                                    type="number"
-                                    min="0"
-                                    max="30"
-                                    step="0.5"
-                                    value={orbs[id] ?? 0}
-                                    onChange={(e) => updateOrb(id, e.target.value)}
-                                    className="w-20 px-2 py-1.5 border rounded text-sm text-center focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                                />
-                                <span className="text-xs text-gray-400">°</span>
+                        {planetPairs.map((pair) => (
+                            <div key={pair.join("-")} className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2">
+                                {pair.map((id) => (
+                                    <div key={id} className="flex items-center gap-3">
+                                        <label className="w-24 text-sm font-medium text-gray-700">
+                                            {t(`astrology.planetNames.${id}`)}
+                                        </label>
+                                        <input
+                                            type="number"
+                                            min="0"
+                                            max="30"
+                                            step="0.5"
+                                            value={orbs[id] ?? 0}
+                                            onChange={(e) => updateOrb(id, e.target.value)}
+                                            className="w-20 px-2 py-1.5 border rounded text-sm text-center focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                                        />
+                                        <span className="text-xs text-gray-400">°</span>
+                                    </div>
+                                ))}
                             </div>
                         ))}
                     </div>

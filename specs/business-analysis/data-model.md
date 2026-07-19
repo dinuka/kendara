@@ -60,7 +60,7 @@
 | houses | JSON | House details — see [Houses](#houses) structure |
 | planets | JSON | Planet positions with strengths/aspects — see [Planets](#planets) structure |
 | nakshatra | JSON | Lunar Mansion / Nakshatra and Pada — see [Nakshatra](#nakshatra) structure |
-| dashas | JSON | Mahadasha, Antardasha / Bhukti periods — see [Dashas](#dashas) structure |
+| dashas | JSON | Mahadasha, Antardasha, Vidasa, Sukshama, and optional Prana sub-periods — see [Dashas](#dashas) structure |
 | lord22ndDrekkana | String | Lord of 22nd Drekkana |
 | lord64thNavamsa | String | Lord of 64th Navamsa |
 | badhakaPlanet | String | Badhaka planet |
@@ -358,6 +358,8 @@ All enums use numeric values for easy i18n. Display names are mapped separately 
 
 ### Dashas
 
+**Calculation note:** The first Mahadasha period uses the remaining portion of the Moon's Nakshatra (balance of dasha at birth). The starting planet and duration are determined by the Nakshatra lord and the degrees remaining in the Moon's Nakshatra at the time of birth.
+
 ```json
 {
   "mahadasha": [
@@ -366,28 +368,84 @@ All enums use numeric values for easy i18n. Display names are mapped separately 
       "startDate": "1990-01-15",
       "endDate": "1996-01-15",
       "durationYears": 6,
+      "remainingYearsAtBirth": 6.0,
       "antardasha": [
         {
           "planet": 2,
           "startDate": "1990-01-15",
           "endDate": "1990-10-10",
-          "durationMonths": 9
+          "durationMonths": 9,
+          "vidasa": [
+            {
+              "planet": 3,
+              "startDate": "1990-01-15",
+              "endDate": "1990-02-05",
+              "durationDays": 21,
+              "sukshama": [
+                {
+                  "planet": 4,
+                  "startDate": "1990-01-15",
+                  "endDate": "1990-01-18",
+                  "durationDays": 3,
+                  "prana": [
+                    {
+                      "planet": 5,
+                      "startDate": "1990-01-15",
+                      "endDate": "1990-01-16",
+                      "durationHours": 12
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
         },
         {
           "planet": 3,
           "startDate": "1990-10-10",
           "endDate": "1991-07-05",
-          "durationMonths": 9
+          "durationMonths": 9,
+          "vidasa": [
+            {
+              "planet": 4,
+              "startDate": "1990-10-10",
+              "endDate": "1990-11-01",
+              "durationDays": 22,
+              "sukshama": []
+            }
+          ]
         }
       ]
     }
   ],
   "currentPeriod": {
     "mahadashaLord": 5,
-    "antardashaLord": 6
+    "antardashaLord": 6,
+    "vidasaLord": 2,
+    "sukshamaLord": 8,
+    "pranaLord": 4
   }
 }
 ```
+
+**Period hierarchy:**
+
+| Level | Name | Contained Within | Typical Duration |
+|-------|------|-----------------|-----------------|
+| 1 | Mahadasha | Root | Years |
+| 2 | Antardasha | Mahadasha | Months |
+| 3 | Vidasa | Antardasha | Days–Weeks |
+| 4 | Sukshama | Vidasa | Days |
+| 5 | Prana (optional) | Sukshama | Hours |
+
+**Date range rules:**
+- Every period at every level must have both `startDate` and `endDate` in ISO date (or ISO datetime for Prana) format
+- For a given parent period, the first child period's `startDate` equals the parent's `startDate`
+- The last child period's `endDate` equals the parent's `endDate`
+- Child periods within the same parent must be contiguous (no gaps, no overlaps)
+- Prana periods use `durationHours`; all other levels use the coarsest unit that fits (years for Mahadasha, months for Antardasha, days for Vidasa/Sukshama)
+
+**Empty arrays:** If a period has no sub-periods calculated, the corresponding array MUST be present as an empty array `[]` (not omitted).
 
 ### MarakaPlanets
 

@@ -1,5 +1,6 @@
-import { Nav } from "@/components/Nav";
 import { Providers } from "@/components/Providers";
+import { Sidebar } from "@/components/Sidebar";
+import { TopBar } from "@/components/TopBar";
 import type { Metadata } from "next";
 import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getMessages } from "next-intl/server";
@@ -32,11 +33,14 @@ export default async function RootLayout({
 
     return (
         <html lang={locale} className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
-            <body className="min-h-full flex flex-col bg-gray-50">
+            <body className="h-full flex flex-col bg-gray-50">
                 <Providers>
                     <NextIntlClientProvider locale={locale} messages={messages}>
-                        <Nav />
-                        <main className="flex-1 container mx-auto px-4 py-6 max-w-6xl">{children}</main>
+                        <TopBar />
+                        <div className="flex flex-1 overflow-hidden">
+                            <Sidebar />
+                            <main className="flex-1 overflow-y-auto px-6 py-6">{children}</main>
+                        </div>
                     </NextIntlClientProvider>
                 </Providers>
             </body>

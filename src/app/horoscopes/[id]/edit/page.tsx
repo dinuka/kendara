@@ -6,6 +6,8 @@ import { useSession } from "next-auth/react";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
+import { formatDate } from "@/lib/date";
+
 export default function EditHoroscopePage() {
     const { data: session, status } = useSession();
     const router = useRouter();
@@ -31,7 +33,7 @@ export default function EditHoroscopePage() {
                 const h = d.horoscope;
                 setForm({
                     name: h.name || "",
-                    birthDate: h.birthDate?.split("T")[0] || "",
+                    birthDate: formatDate(h.birthDate) || "",
                     birthTime: h.birthTime || "",
                     gender: h.gender || "male",
                     ayanamsha: h.ayanamsha || "lahiri",
@@ -39,7 +41,7 @@ export default function EditHoroscopePage() {
                 });
                 setLat(String(h.latitude ?? ""));
                 setLng(String(h.longitude ?? ""));
-                setLocationLabel(h.location || "");
+                setLocationLabel(h.locationName || "");
                 setLoading(false);
             });
     }, [status, params.id, router]);
@@ -102,6 +104,7 @@ export default function EditHoroscopePage() {
                             value={form.birthDate}
                             onChange={(e) => setForm({ ...form, birthDate: e.target.value })}
                             required
+                            lang="sv"
                             className="w-full border rounded px-3 py-2 text-sm"
                         />
                     </div>

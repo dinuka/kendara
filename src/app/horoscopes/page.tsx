@@ -23,9 +23,7 @@ interface Horoscope {
     owner: { id: string };
 }
 
-const RECENT_COUNT = 3;
-
-export default function DashboardPage() {
+export default function HoroscopesPage() {
     const { data: session, status } = useSession();
     const router = useRouter();
     const { t } = useI18n();
@@ -73,21 +71,16 @@ export default function DashboardPage() {
         }
     };
 
-    const total = horoscopes.length;
-    const now = new Date();
-    const thisMonthCount = horoscopes.filter((h) => {
-        const created = new Date(h.createdAt);
-        return created.getFullYear() === now.getFullYear() && created.getMonth() === now.getMonth();
-    }).length;
+    const isOwner = (h: Horoscope) => h.owner?.id === session.user?.id;
 
-    const recentHoroscopes = [...horoscopes]
-        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-        .slice(0, RECENT_COUNT);
+    const total = horoscopes.length;
+    const publicCount = horoscopes.filter((h) => h.isPublic).length;
+    const privateCount = total - publicCount;
 
     return (
         <div>
             <div className="flex justify-between items-center mb-8">
-                <h1 className="text-2xl font-bold">{t("dashboard.welcome", { name: session.user?.name ?? "" })}</h1>
+                <h1 className="text-2xl font-bold">{t("nav.horoscopes")}</h1>
                 <Link
                     href="/horoscopes/new"
                     className="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700 transition-colors text-sm"
@@ -96,14 +89,18 @@ export default function DashboardPage() {
                 </Link>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
                 <div className="bg-white p-6 rounded-lg shadow-sm border">
                     <div className="text-3xl font-bold text-indigo-600">{total}</div>
                     <div className="text-sm text-gray-500 mt-1">{t("horoscope.charts")}</div>
                 </div>
                 <div className="bg-white p-6 rounded-lg shadow-sm border">
-                    <div className="text-3xl font-bold text-indigo-600">{thisMonthCount}</div>
-                    <div className="text-sm text-gray-500 mt-1">{t("dashboard.thisMonth")}</div>
+                    <div className="text-3xl font-bold text-indigo-600">{publicCount}</div>
+                    <div className="text-sm text-gray-500 mt-1">{t("horoscope.public")}</div>
+                </div>
+                <div className="bg-white p-6 rounded-lg shadow-sm border">
+                    <div className="text-3xl font-bold text-indigo-600">{privateCount}</div>
+                    <div className="text-sm text-gray-500 mt-1">{t("horoscope.private")}</div>
                 </div>
             </div>
 
@@ -126,9 +123,7 @@ export default function DashboardPage() {
                 error={deleteError}
             />
 
-            <h2 className="text-lg font-semibold mb-3">{t("dashboard.recentHoroscopes")}</h2>
-
-            {recentHoroscopes.length === 0 ? (
+            {horoscopes.length === 0 ? (
                 <div className="bg-white rounded-lg shadow-sm border p-8 text-center text-gray-400">
                     {t("search.noResults")}
                 </div>
@@ -151,7 +146,7 @@ export default function DashboardPage() {
                             </tr>
                         </thead>
                         <tbody>
-                            {recentHoroscopes.map((h) => (
+                            {horoscopes.map((h) => (
                                 <tr
                                     key={h._id}
                                     className="border-t hover:bg-gray-50 cursor-pointer"
@@ -197,12 +192,6 @@ export default function DashboardPage() {
                     </table>
                 </div>
             )}
-
-            <div className="mt-4 text-right">
-                <Link href="/horoscopes" className="text-indigo-600 hover:text-indigo-700 text-sm font-medium">
-                    {t("dashboard.viewAll")}
-                </Link>
-            </div>
         </div>
     );
 }

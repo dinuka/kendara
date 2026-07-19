@@ -158,7 +158,11 @@ export default function LocationPicker({ selectedLocationId, onChange, disabled 
                 <label className="block text-sm font-medium mb-1">{t("location_picker.title")}</label>
                 <div className="bg-red-50 border border-red-200 rounded p-3" role="alert">
                     <p className="text-xs text-red-600">{error}</p>
-                    <button onClick={fetchLocations} className="text-xs text-red-600 underline mt-1 hover:no-underline">
+                    <button
+                        type="button"
+                        onClick={fetchLocations}
+                        className="text-xs text-red-600 underline mt-1 hover:no-underline"
+                    >
                         {t("location_picker.retry")}
                     </button>
                 </div>
@@ -172,7 +176,11 @@ export default function LocationPicker({ selectedLocationId, onChange, disabled 
                 <label className="block text-sm font-medium mb-1">{t("location_picker.title")}</label>
                 <div className="bg-gray-50 border border-dashed border-gray-200 rounded-lg p-4 text-center">
                     <p className="text-sm text-gray-500 mb-2">{t("location_picker.empty")}</p>
-                    <button onClick={() => setShowQuickAdd(true)} className="text-sm text-indigo-600 hover:underline">
+                    <button
+                        type="button"
+                        onClick={() => setShowQuickAdd(true)}
+                        className="text-sm text-indigo-600 hover:underline"
+                    >
                         {t("locations.add")}
                     </button>
                 </div>
@@ -192,6 +200,7 @@ export default function LocationPicker({ selectedLocationId, onChange, disabled 
                     <div className="flex items-center justify-between border rounded px-3 py-2">
                         <span className="text-sm truncate">📍 {selectedLocation.name}</span>
                         <button
+                            type="button"
                             onClick={handleChange}
                             className="text-xs text-indigo-600 hover:underline ml-2 whitespace-nowrap"
                         >
@@ -203,6 +212,7 @@ export default function LocationPicker({ selectedLocationId, onChange, disabled 
             ) : (
                 <button
                     ref={triggerRef}
+                    type="button"
                     onClick={() => !disabled && setOpen(true)}
                     disabled={disabled}
                     className="w-full text-left border rounded px-3 py-2 text-sm text-gray-500 hover:border-gray-300 disabled:opacity-50 transition-colors"
@@ -252,6 +262,7 @@ export default function LocationPicker({ selectedLocationId, onChange, disabled 
                                 </div>
                                 {filteredPublic.map((loc, i) => (
                                     <button
+                                        type="button"
                                         key={loc.id}
                                         onClick={() => handleSelect(loc)}
                                         className={`w-full text-left px-3 py-2 text-sm hover:bg-indigo-50 transition-colors flex items-center gap-2 ${
@@ -279,6 +290,7 @@ export default function LocationPicker({ selectedLocationId, onChange, disabled 
                                 </div>
                                 {filteredMine.map((loc, i) => (
                                     <button
+                                        type="button"
                                         key={loc.id}
                                         onClick={() => handleSelect(loc)}
                                         className={`w-full text-left px-3 py-2 text-sm hover:bg-indigo-50 transition-colors flex items-center gap-2 ${
@@ -298,6 +310,7 @@ export default function LocationPicker({ selectedLocationId, onChange, disabled 
 
                     <div className="border-t">
                         <button
+                            type="button"
                             onClick={() => {
                                 setOpen(false);
                                 setShowQuickAdd(true);

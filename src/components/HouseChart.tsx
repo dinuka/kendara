@@ -4,7 +4,7 @@ import { useState } from "react";
 import type { ReactElement } from "react";
 
 import type { Ascendant, House, Planet } from "@/lib/astrology";
-import { navamsaSign } from "@/lib/astrology";
+import { PLANET_COLORS, navamsaSign } from "@/lib/astrology";
 import { NAKSHATRA_SHORT_SI, PLANET_SHORT_SI, SIGN_SHORT_SI } from "@/lib/chartVisuals";
 
 const MIN_ZOOM = 0.5;
@@ -55,18 +55,6 @@ function degreeInWedge(absDeg: number, start: number, end: number): boolean {
     if (end <= 360) return normalized >= start && normalized < end;
     return normalized >= start || normalized < end - 360;
 }
-
-const PLANET_COLORS: Record<number, string> = {
-    1: "#dc2626", // Sun
-    2: "#64748b", // Moon
-    3: "#c2410c", // Mars
-    4: "#16a34a", // Mercury
-    5: "#1e293b", // Jupiter
-    6: "#1d4ed8", // Venus
-    7: "#0891b2", // Saturn
-    8: "#7c3aed", // Rahu
-    9: "#92400e", // Ketu
-};
 
 const NAKSHATRA_SPAN = 360 / 27;
 const PADA_SPAN = NAKSHATRA_SPAN / 4;
@@ -348,6 +336,16 @@ export function HouseChart({ planets, houses, ascendant }: HouseChartProps) {
     const [lagnaOuterX, lagnaOuterY] = polar(ascAbsDeg, ascAbsDeg, R_NAKSHATRA_OUTER);
     const [lagnaLabelX, lagnaLabelY] = polar(ascAbsDeg, ascAbsDeg, lagnaRadius);
 
+    // Crop the viewBox to what this chart actually draws (planet/lagna markers can stagger
+    // outward when clustered) instead of the full SIZE canvas, so there's no dead margin around
+    // charts where markers don't spread out.
+    const MARKER_DRAW_RADIUS = 15; // marker circle + direction-arrow badge extent
+    const CONTENT_PAD = 20;
+    const maxMarkerRadius = Math.max(lagnaRadius, ...placements.map((p) => p.radius)) + MARKER_DRAW_RADIUS;
+    const contentRadius = Math.min(SIZE / 2, Math.max(R_NAKSHATRA_OUTER, maxMarkerRadius) + CONTENT_PAD);
+    const viewSize = contentRadius * 2;
+    const viewOrigin = CX - contentRadius;
+
     const planetMarkers = placements.map(({ planet, radius }) => {
         const [mx, my] = polar(planet.absoluteDegree, ascAbsDeg, radius);
         const color = PLANET_COLORS[planet.name] || "#374151";
@@ -411,7 +409,7 @@ export function HouseChart({ planets, houses, ascendant }: HouseChartProps) {
     const zoomReset = () => setZoom(1);
 
     return (
-        <div className="flex flex-col items-center gap-2">
+        <div className="flex flex-col items-center gap-0.5">
             <div className="flex items-center gap-1">
                 <button
                     type="button"
@@ -441,9 +439,9 @@ export function HouseChart({ planets, houses, ascendant }: HouseChartProps) {
                 </button>
             </div>
             <svg
-                width={SIZE * zoom}
-                height={SIZE * zoom}
-                viewBox={`0 0 ${SIZE} ${SIZE}`}
+                width={viewSize * zoom}
+                height={viewSize * zoom}
+                viewBox={`${viewOrigin} ${viewOrigin} ${viewSize} ${viewSize}`}
                 className={zoom <= 1 ? "max-w-full h-auto" : undefined}
             >
                 <circle cx={CX} cy={CY} r={R_NAKSHATRA_OUTER} fill="#ffffff" stroke="#d1d5db" strokeWidth={1} />

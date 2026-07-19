@@ -222,6 +222,24 @@ Add/Edit Horoscope → Location field →
   → Future edits to saved location don't cascade to this horoscope
 ```
 
+### Flow 9: View Dasha Timeline
+
+```
+Horoscope Detail → Navigate to Dashas tab/section →
+  → Dasha timeline loads from calculatedDetails.dashas →
+  → Client detects current date → matches against period date ranges →
+  → Summary bar appears: "Current Period" badge chain →
+  → Mahadasha list renders as nested accordion →
+  → Currently active Mahadasha is auto-expanded → reveals Antardasha periods →
+  → Currently active Antardasha is auto-expanded → reveals Vidasa periods →
+  → Currently active Vidasa is auto-expanded → reveals Sukshama periods →
+  → Currently active Sukshama is auto-expanded → reveals Prana periods (if any) →
+  → Active periods highlighted with left-border accent + "Active" badge →
+  → User expands/collapses periods at any level to explore →
+  → User clicks Current Period badge → scrolls to that period in accordion →
+  → Smooth CSS animations on expand/collapse
+```
+
 ## Responsive Breakpoints
 
 | Breakpoint | Width | Layout |
@@ -232,6 +250,7 @@ Add/Edit Horoscope → Location field →
 | Wide | > 1440px | Extended sidebar, max-width content |
 
 ### Mobile Considerations
+
 - Sidebar collapses to bottom tab bar or hamburger menu
 - Chart views stack vertically
 - Config panel becomes a slide-up sheet
@@ -239,6 +258,7 @@ Add/Edit Horoscope → Location field →
 - Forms use full-width inputs
 
 ### Bilingual (Sinhala) Considerations
+
 - Sinhala text is typically 15-20% wider than English — use `min-width` on labels
 - Sinhala numerals not used — Western numerals for all data
 - Sinhala font loading: preload Noto Sans Sinhala weights 400, 600
@@ -264,6 +284,18 @@ Add/Edit Horoscope → Location field →
 - Max width: 480px (mobile: full-width with padding)
 - Close: Click outside, X button, Escape key
 - Focus trap: First focusable element receives focus
+
+### Nested Accordion (Dasha Timeline)
+
+- **Tab**: Move focus through accordion headers (tree items)
+- **Enter/Space**: Expand or collapse the focused period
+- **Up/Down arrows**: Navigate between periods at the same hierarchy level
+- **Left arrow**: Collapse the focused period (if expanded); move to parent (if collapsed)
+- **Right arrow**: Expand the focused period (if collapsed); move to first child (if expanded)
+- **Escape**: Collapse the deepest expanded level in the active chain
+- **Home**: Jump to the first period at the top level
+- **End**: Jump to the last period at the top level
+- ARIA: `role="tree"` on container, `role="treeitem"` on each period, `aria-expanded` on toggle, `aria-current="true"` on active period
 
 ### Loading States
 
@@ -295,6 +327,8 @@ Add/Edit Horoscope → Location field →
 | No saved filters | "No saved searches yet." | "තවම සුරැකුම් පෙරහන් නැත." | "Save a search" prompt |
 | No saved locations | "No saved locations yet. Add your first one!" | "තවම සුරැකි ස්ථාන නැත. ඔබේ පළමු ස්ථානය එකතු කරන්න!" | "Add Location" button |
 | No locations match search | "No locations match your search." | "ඔබේ සෙවුමට ගැළපෙන ස්ථාන නැත." | Clear search suggestion |
+| Dasha data not available | "Dasha data not available." | "දශා දත්ත නොමැත." | (No action — inline message only) |
+| Birth details incomplete for dashas | "Complete birth details to calculate dashas." | "දශා ගණනය කිරීමට උපන් තොරතුරු සම්පූර්ණ කරන්න." | Link to edit horoscope |
 
 ---
 

@@ -110,12 +110,12 @@ export default function EditLocationPage() {
 
     if (loading) {
         return (
-            <div className="max-w-2xl mx-auto">
-                <div className="h-4 w-24 bg-gray-100 animate-pulse rounded mb-4" />
+            <div className="max-w-xl mx-auto">
+                <div className="h-4 w-24 bg-gray-100 animate-pulse rounded mb-5" />
                 <div className="h-8 w-64 bg-gray-100 animate-pulse rounded mb-6" />
-                <div className="bg-white rounded-lg border p-6 space-y-5">
+                <div className="bg-white rounded-2xl border border-gray-200 shadow-sm shadow-gray-900/5 p-6 space-y-5">
                     {[1, 2, 3, 4].map((i) => (
-                        <div key={i} className="h-10 bg-gray-100 animate-pulse rounded" />
+                        <div key={i} className="h-10 bg-gray-100 animate-pulse rounded-lg" />
                     ))}
                 </div>
             </div>
@@ -123,32 +123,38 @@ export default function EditLocationPage() {
     }
 
     return (
-        <div className="max-w-2xl mx-auto">
-            <button onClick={handleCancel} className="text-sm text-gray-500 hover:text-gray-700 mb-4 transition-colors">
-                ← {t("common.back")}
+        <div className="max-w-xl mx-auto">
+            <button
+                type="button"
+                onClick={handleCancel}
+                className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-900 focus-visible:ring-2 focus-visible:ring-indigo-500 outline-none rounded mb-5 transition-colors"
+            >
+                <span aria-hidden="true">←</span> {t("common.back")}
             </button>
 
-            <h1 className="text-2xl font-bold mb-6">{t("locations.edit")}</h1>
+            <h1 className="text-[1.75rem] font-semibold tracking-tight text-gray-900 mb-6">{t("locations.edit")}</h1>
 
             {error && (
-                <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4" role="alert">
+                <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-4" role="alert">
                     <p className="text-red-700 text-sm">{error}</p>
                 </div>
             )}
 
             <aside
-                className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-4"
+                className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-xl p-3.5 mb-4"
                 role="note"
                 aria-label={t("locations.edit_independence")}
             >
-                <p className="text-xs text-amber-700">⚠️ {t("locations.edit_independence")}</p>
+                <span aria-hidden="true">⚠️</span>
+                <p className="text-xs text-amber-700 leading-relaxed">{t("locations.edit_independence")}</p>
             </aside>
-            <div className="bg-white rounded-lg border">
-                <div className="px-6 py-4 space-y-6">
-                    <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">Details</h2>
 
+            <div className="bg-white rounded-2xl border border-gray-200 shadow-sm shadow-gray-900/5">
+                <div className="px-6 py-6 space-y-6">
                     <div>
-                        <label className="block text-sm font-medium mb-1">{t("location_form.name")} *</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                            {t("location_form.name")} <span className="text-indigo-500">*</span>
+                        </label>
                         <input
                             value={name}
                             onChange={(e) => {
@@ -156,19 +162,25 @@ export default function EditLocationPage() {
                                 setDirty(true);
                                 if (fieldErrors.name) setFieldErrors((prev) => ({ ...prev, name: "" }));
                             }}
-                            className={`w-full border rounded px-3 py-2 text-sm ${fieldErrors.name ? "border-red-400" : ""}`}
+                            className={`w-full border rounded-lg px-3.5 py-2.5 text-sm text-gray-900 outline-none transition-shadow ${
+                                fieldErrors.name
+                                    ? "border-red-300 focus:ring-2 focus:ring-red-200 focus:border-red-400"
+                                    : "border-gray-200 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400"
+                            }`}
                             aria-required="true"
                         />
                         {fieldErrors.name && (
-                            <p className="text-xs text-red-500 mt-1" aria-live="polite">
+                            <p className="text-xs text-red-500 mt-1.5" aria-live="polite">
                                 {fieldErrors.name}
                             </p>
                         )}
                     </div>
 
-                    <div className="grid grid-cols-2 gap-6">
+                    <div className="grid grid-cols-2 gap-4">
                         <div>
-                            <label className="block text-sm font-medium mb-1">{t("location_form.latitude")} *</label>
+                            <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                                {t("location_form.latitude")} <span className="text-indigo-500">*</span>
+                            </label>
                             <input
                                 type="number"
                                 step="any"
@@ -178,17 +190,23 @@ export default function EditLocationPage() {
                                     setDirty(true);
                                     if (fieldErrors.latitude) setFieldErrors((prev) => ({ ...prev, latitude: "" }));
                                 }}
-                                className={`w-full border rounded px-3 py-2 text-sm ${fieldErrors.latitude ? "border-red-400" : ""}`}
+                                className={`w-full border rounded-lg px-3.5 py-2.5 text-sm text-gray-900 outline-none transition-shadow ${
+                                    fieldErrors.latitude
+                                        ? "border-red-300 focus:ring-2 focus:ring-red-200 focus:border-red-400"
+                                        : "border-gray-200 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400"
+                                }`}
                                 aria-required="true"
                             />
                             {fieldErrors.latitude && (
-                                <p className="text-xs text-red-500 mt-1" aria-live="polite">
+                                <p className="text-xs text-red-500 mt-1.5" aria-live="polite">
                                     {fieldErrors.latitude}
                                 </p>
                             )}
                         </div>
                         <div>
-                            <label className="block text-sm font-medium mb-1">{t("location_form.longitude")} *</label>
+                            <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                                {t("location_form.longitude")} <span className="text-indigo-500">*</span>
+                            </label>
                             <input
                                 type="number"
                                 step="any"
@@ -198,11 +216,15 @@ export default function EditLocationPage() {
                                     setDirty(true);
                                     if (fieldErrors.longitude) setFieldErrors((prev) => ({ ...prev, longitude: "" }));
                                 }}
-                                className={`w-full border rounded px-3 py-2 text-sm ${fieldErrors.longitude ? "border-red-400" : ""}`}
+                                className={`w-full border rounded-lg px-3.5 py-2.5 text-sm text-gray-900 outline-none transition-shadow ${
+                                    fieldErrors.longitude
+                                        ? "border-red-300 focus:ring-2 focus:ring-red-200 focus:border-red-400"
+                                        : "border-gray-200 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400"
+                                }`}
                                 aria-required="true"
                             />
                             {fieldErrors.longitude && (
-                                <p className="text-xs text-red-500 mt-1" aria-live="polite">
+                                <p className="text-xs text-red-500 mt-1.5" aria-live="polite">
                                     {fieldErrors.longitude}
                                 </p>
                             )}
@@ -210,53 +232,55 @@ export default function EditLocationPage() {
                     </div>
 
                     <div>
-                        <label className="block text-sm font-medium mb-2">{t("location_form.visibility")}</label>
-                        <div className="flex gap-6">
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                            {t("location_form.visibility")}
+                        </label>
+                        <div className="inline-flex p-1 bg-gray-100 rounded-lg gap-1">
                             <button
+                                type="button"
                                 onClick={() => {
                                     setIsPublic(false);
                                     setDirty(true);
                                 }}
-                                className={`px-4 py-2 text-sm rounded-full border transition-colors ${
-                                    !isPublic
-                                        ? "bg-gray-100 border-gray-300 text-gray-700"
-                                        : "bg-white border-gray-200 text-gray-500 hover:bg-gray-50"
+                                className={`flex items-center gap-1.5 px-3.5 py-1.5 text-sm rounded-md focus-visible:ring-2 focus-visible:ring-indigo-500 outline-none transition-all ${
+                                    !isPublic ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"
                                 }`}
                             >
                                 🔒 {t("locations.badge_private")}
                             </button>
                             <button
+                                type="button"
                                 onClick={() => {
                                     setIsPublic(true);
                                     setDirty(true);
                                 }}
-                                className={`px-4 py-2 text-sm rounded-full border transition-colors ${
-                                    isPublic
-                                        ? "bg-green-50 border-green-300 text-green-700"
-                                        : "bg-white border-gray-200 text-gray-500 hover:bg-gray-50"
+                                className={`flex items-center gap-1.5 px-3.5 py-1.5 text-sm rounded-md focus-visible:ring-2 focus-visible:ring-indigo-500 outline-none transition-all ${
+                                    isPublic ? "bg-white text-green-700 shadow-sm" : "text-gray-500 hover:text-gray-700"
                                 }`}
                             >
                                 🌐 {t("locations.badge_public")}
                             </button>
                         </div>
                     </div>
+                </div>
 
-                    <div className="flex gap-6 pt-4">
-                        <button
-                            onClick={handleCancel}
-                            className="px-4 py-2 border rounded text-sm hover:bg-gray-50 transition-colors"
-                        >
-                            {t("location_form.cancel")}
-                        </button>
-                        <button
-                            onClick={handleSave}
-                            disabled={saving}
-                            className="px-6 py-2 bg-indigo-600 text-white rounded text-sm hover:bg-indigo-700 disabled:opacity-50 transition-colors"
-                            aria-busy={saving}
-                        >
-                            {saving ? t("location_form.saving") : t("location_form.save_changes")}
-                        </button>
-                    </div>
+                <div className="flex gap-3 justify-end border-t border-gray-100 px-6 py-5">
+                    <button
+                        type="button"
+                        onClick={handleCancel}
+                        className="px-4 py-2 border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 outline-none transition-colors"
+                    >
+                        {t("location_form.cancel")}
+                    </button>
+                    <button
+                        type="button"
+                        onClick={handleSave}
+                        disabled={saving}
+                        className="px-5 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 outline-none disabled:opacity-50 shadow-sm shadow-indigo-600/20 transition-colors"
+                        aria-busy={saving}
+                    >
+                        {saving ? t("location_form.saving") : t("location_form.save_changes")}
+                    </button>
                 </div>
             </div>
         </div>

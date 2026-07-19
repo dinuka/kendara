@@ -37,6 +37,10 @@
 │  │  (Geocoding, CRUD,  │                                     │
 │  │   CSV Parsing)      │                                     │
 │  └─────────────────────┘                                     │
+│  ┌─────────────────────┐                                     │
+│  │  Dasha Calculation  │                                     │
+│  │  Engine             │                                     │
+│  └─────────────────────┘                                     │
 └─────────────┼────────────────────────────────────────────────┘
               │
 ┌─────────────┼────────────────────────────────────────────────┐
@@ -73,18 +77,21 @@
 ## Key Architecture Decisions
 
 ### 1. Offline-First Astrology Calculations
+
 - All ephemeris and astrological calculations run locally using **jyotish-calculations** (built on Swiss Ephemeris via swisseph)
 - No external astrology API calls — ensures privacy, zero cost, offline capability
 - Calculations run on the server during horoscope creation (Node.js/Next.js API routes)
 - Embedding generation for RAG search runs asynchronously as a background job — horoscope creation returns immediately, embedding is queued and processed offline
 
 ### 2. RAG-Based Search Pipeline
+
 - Horoscope data is converted to text descriptions and embedded as vectors using **Transformers.js** (@xenova/transformers) — runs locally in Node.js
 - Search queries are parsed by a free online LLM (**Gemini API** — generous free tier, strong Sinhala support) into structured astrological conditions
 - Embeddings stored and searched in **Qdrant** via its JS client library
 - Hybrid approach: Qdrant vector similarity + MongoDB structured filter for precise astrological conditions
 
 ### 3. Bilingual Support (Sinhala/English)
+
 - Astrological terms stored as numeric enums — display names mapped per language
 - UI text via next-intl with ICU message format
 - Search queries handled in both languages via the RAG pipeline
@@ -92,6 +99,7 @@
 ## Data Flows
 
 ### Add Horoscope Flow
+
 ```
 User → Open Horoscope Form →
   → Select Location (dropdown of saved locations from DB — public + own private) →
@@ -116,6 +124,7 @@ User → Open Horoscope Form →
 ```
 
 ### Search Flow
+
 ```
 User → Enter Natural Language Query (SI/EN) →
   → RAG Pipeline:
@@ -128,7 +137,20 @@ User → Enter Natural Language Query (SI/EN) →
   → User configures visible sections → UI updates accordingly
 ```
 
+### View Dasha Timeline Flow
+
+```
+User → Open Horoscope Detail →
+  → Dasha section loads nested JSON from calculatedDetails.dashas →
+  → Client determines current date → Matches against period date ranges →
+  → Client identifies current MD, AD, Vidasa, Sukshama →
+  → Renders nested accordion with active periods auto-expanded →
+  → User expands/collapses periods to explore →
+  → Smooth animation on toggle
+```
+
 ### Authentication Flow
+
 ```
 User → Click "Login with Google" →
   → Google OAuth → Callback →
@@ -140,6 +162,7 @@ User → Click "Login with Google" →
 ## API Route Design
 
 ### Authentication
+
 | Method | Route | Description |
 |--------|-------|-------------|
 | POST | /api/auth/signin | Google SSO sign-in |
@@ -147,6 +170,7 @@ User → Click "Login with Google" →
 | GET | /api/auth/session | Get current session |
 
 ### Horoscope
+
 | Method | Route | Description |
 |--------|-------|-------------|
 | GET | /api/horoscope | List user's + public horoscopes |
@@ -155,8 +179,10 @@ User → Click "Login with Google" →
 | PUT | /api/horoscope/:id | Update horoscope |
 | DELETE | /api/horoscope/:id | Delete horoscope (own) |
 | PATCH | /api/horoscope/:id/privacy | Toggle public/private |
+| GET | /api/horoscope/:id/dasha | Get dasha timeline data (returns dashas JSON from CalculatedDetails) — optional standalone endpoint; data also available via GET /api/horoscope/:id |
 
 ### Location
+
 | Method | Route | Description |
 |--------|-------|-------------|
 | GET | /api/location | List locations (public + user's own private), supports pagination |
@@ -167,6 +193,7 @@ User → Click "Login with Google" →
 | DELETE | /api/location/[id] | Delete location (own locations only; admin can delete public) |
 
 ### Search
+
 | Method | Route | Description |
 |--------|-------|-------------|
 | POST | /api/search | Search horoscopes (RAG + structured) |
@@ -174,6 +201,7 @@ User → Click "Login with Google" →
 | POST | /api/search/filter | Save a filter configuration |
 
 ### Chart
+
 | Method | Route | Description |
 |--------|-------|-------------|
 | GET | /api/horoscope/:id/chart | Get all charts for horoscope |
@@ -182,6 +210,7 @@ User → Click "Login with Google" →
 | GET | /api/horoscope/:id/export/chart/:type | Export chart as image |
 
 ### Metadata
+
 | Method | Route | Description |
 |--------|-------|-------------|
 | GET | /api/horoscope/:id/metadata | Get metadata |
@@ -190,6 +219,7 @@ User → Click "Login with Google" →
 | DELETE | /api/horoscope/:id/metadata/:metaId | Delete metadata |
 
 ### Share
+
 | Method | Route | Description |
 |--------|-------|-------------|
 | POST | /api/horoscope/:id/share | Generate share link |
@@ -197,6 +227,7 @@ User → Click "Login with Google" →
 | GET | /api/share/:token | Access shared horoscope |
 
 ### Admin
+
 | Method | Route | Description |
 |--------|-------|-------------|
 | GET | /api/admin/horoscope | List all horoscopes |
@@ -210,6 +241,7 @@ User → Click "Login with Google" →
 ### MongoDB Collections
 
 **users**
+
 ```
 {
   id: UUID (string),
@@ -224,6 +256,7 @@ User → Click "Login with Google" →
 ```
 
 **horoscopes**
+
 ```
 {
   id: UUID (string),
@@ -245,6 +278,7 @@ User → Click "Login with Google" →
 ```
 
 **calculatedDetails**
+
 ```
 {
   id: UUID (string),
@@ -253,7 +287,46 @@ User → Click "Login with Google" →
   houses: [{ houseNumber, startDegree, middleDegree, endDegree, sign, lord }],
   planets: [{ name, sign, degree, house, nakshatra, pada, strength, aspects, ... }],
   nakshatra: { moonNakshatra: {}, ascendantNakshatra: {} },
-  dashas: { mahadasha: [...], currentPeriod: {} },
+  dashas: {
+    mahadasha: [{
+      planet: number,
+      startDate: string,
+      endDate: string,
+      durationYears: number,
+      remainingYearsAtBirth: number,
+      antardasha: [{
+        planet: number,
+        startDate: string,
+        endDate: string,
+        durationMonths: number,
+        vidasa: [{
+          planet: number,
+          startDate: string,
+          endDate: string,
+          durationDays: number,
+          sukshama: [{
+            planet: number,
+            startDate: string,
+            endDate: string,
+            durationDays: number,
+            prana: [{
+              planet: number,
+              startDate: string,
+              endDate: string,
+              durationHours: number
+            }]
+          }]
+        }]
+      }]
+    }],
+    currentPeriod: {
+      mahadashaLord: number,
+      antardashaLord: number,
+      vidasaLord?: number,
+      sukshamaLord?: number,
+      pranaLord?: number
+    }
+  },
   lord22ndDrekkana: number,
   lord64thNavamsa: number,
   badhakaPlanet: number[],
@@ -266,6 +339,7 @@ User → Click "Login with Google" →
 ```
 
 **charts**
+
 ```
 {
   id: UUID (string),
@@ -278,6 +352,7 @@ User → Click "Login with Google" →
 ```
 
 **metadata**
+
 ```
 {
   id: UUID (string),
@@ -292,6 +367,7 @@ User → Click "Login with Google" →
 ```
 
 **shareLinks**
+
 ```
 {
   id: UUID (string),
@@ -303,6 +379,7 @@ User → Click "Login with Google" →
 ```
 
 **savedFilters**
+
 ```
 {
   id: UUID (string),
@@ -314,6 +391,7 @@ User → Click "Login with Google" →
 ```
 
 **locations**
+
 ```
 {
   id: UUID (string),
@@ -328,6 +406,7 @@ User → Click "Login with Google" →
 ```
 
 ### Indexes
+
 - users: { googleId: 1 } (unique)
 - horoscopes: { "owner.id": 1 }, { isPublic: 1 }, { createdAt: -1 }
 - calculatedDetails: { "horoscope.id": 1 } (unique)
@@ -335,8 +414,10 @@ User → Click "Login with Google" →
 - metadata: { "horoscope.id": 1 }, { key: 1 }
 - shareLinks: { token: 1 } (unique)
 - locations: { "createdBy.id": 1 }, { isPublic: 1 }, { name: "text" }
+- calculatedDetails: { "dashas.currentPeriod.mahadashaLord": 1 } (for querying by current dasha lord)
 
 ## Security Considerations
+
 - Google SSO only — no password authentication
 - JWT tokens with expiry for API authentication
 - MongoDB access control for data isolation
@@ -351,6 +432,7 @@ User → Click "Login with Google" →
 - Location overrides on horoscope (latitude/longitude) do not propagate back to the saved Location record
 
 ## Performance Considerations
+
 - Vector search index (HNSW in Qdrant) for fast similarity search
 - Chart data cached after initial calculation
 - Horoscope calculation runs asynchronously with progress indication

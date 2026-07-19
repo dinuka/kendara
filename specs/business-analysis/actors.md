@@ -1,6 +1,7 @@
 # Actors
 
 ## 1. Student
+
 - **Description**: Primary user of the system. An astrology student who studies horoscopes.
 - **Goals**: Add and manage horoscopes, search and filter horoscopes for study, apply metadata/labels for research, share horoscopes
 - **Permissions**:
@@ -21,9 +22,13 @@
   - Edit/delete own locations
   - Select from saved locations when adding horoscopes
   - Override Lat/Lon values on horoscope after location selection
+  - View full dasha timeline showing Mahadasha, Antardasha, Vidasa, Sukshama, and Prana periods
+  - Expand/collapse dasha hierarchy with nested accordion UI
+  - View automatically expanded current active period at all dasha levels
 - **Authentication**: Google SSO (auto-assigned)
 
 ## 2. Super Admin
+
 - **Description**: System administrator with full access to manage the platform.
 - **Goals**: Manage all horoscopes, manage users, ensure system integrity
 - **Permissions**:
@@ -37,6 +42,7 @@
 - **Authentication**: Google SSO (manually assigned)
 
 ## 3. System (Background Services)
+
 - **Description**: Automated services that perform calculations and background tasks.
 - **Goals**: Calculate horoscope details, generate charts, process search queries
 - **Responsibilities**:

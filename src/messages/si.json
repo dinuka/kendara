@@ -3,13 +3,23 @@
         "title": "කේන්දර",
         "tagline": "ජ්‍යෝතිෂ්‍ය අධ්‍යයන වේදිකාව"
     },
+    "dashboard": {
+        "welcome": "ආයුබෝවන්, {name}!",
+        "thisMonth": "මෙම මාසයේ එකතු කළ",
+        "recentHoroscopes": "මෑත කේන්දර",
+        "viewAll": "සියලුම කේන්දර බලන්න →"
+    },
     "nav": {
         "dashboard": "මුල් පිටුව",
         "addHoroscope": "කේන්දරයක් එක් කරන්න",
+        "horoscopes": "කේන්දර",
+        "newHoroscope": "නව කේන්දරයක්",
         "search": "සොයන්න",
         "locations": "ස්ථාන",
         "settings": "සැකසුම්",
         "admin": "පරිපාලන",
+        "savedFilters": "සුරැකුම් පෙරහන්",
+        "searchPlaceholder": "කේන්දර සොයන්න...",
         "signOut": "පිටවන්න"
     },
     "auth": {
@@ -94,6 +104,13 @@
         "badhakaLabel": "බාධක",
         "marakaBadhaka": "මාරක / බාධක",
         "dashas": "දශා",
+        "dashaLevels": {
+            "mahadasha": "මහා දශා",
+            "antardasha": "අන්තර් දශා",
+            "vidasa": "විදශා",
+            "sukshama": "සූක්ෂම",
+            "prana": "ප්‍රාණ"
+        },
         "sign": "රාශිය",
         "degree": "අංශකය",
         "lord": "අධිපති",
@@ -207,6 +224,9 @@
         "badge_private": "පුද්ගලික",
         "coordinates": "ඛණ්ඩාංක",
         "added_date": "එකතු කළ දිනය",
+        "title_pair": "ස්ථාන / Locations",
+        "section_search_add": "සොයන්න සහ එකතු කරන්න",
+        "section_list": "ස්ථාන ලැයිස්තුව",
         "edit_independence": "මෙම ස්ථානය සංස්කරණය කිරීමෙන් එය භාවිතා කරන පවතින ලග්නවලට බලපාන්නේ නැත."
     },
     "location_picker": {
@@ -259,6 +279,9 @@
         "cancel": "අවලංගු කරන්න",
         "delete": "මකන්න",
         "confirm": "තහවුරු කරන්න",
-        "back": "ආපසු"
+        "back": "ආපසු",
+        "previous": "පෙර",
+        "next": "ඊළඟ",
+        "page_of": "පිටුව {page} / {total}"
     }
 }
