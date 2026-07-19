@@ -35,6 +35,8 @@
   - View all horoscopes (public and private)
   - Update any horoscope
   - Delete public horoscopes
+  - View all locations (public and private)
+  - Delete any public location
   - Manage users (activate/deactivate, assign roles)
   - Full system access
 - **Authentication**: Google SSO (manually assigned)
@@ -48,4 +50,4 @@
   - Calculate Planetary Strength, Aspects, Lords, Badhaka, Maraka, Atmakaraka, Yoga, Dosha
   - Generate Birth Chart, House Chart, Navamsa (D9), Drekkana (D3), Dasamsa (D10), Shodasha Vargas, Chandra Lagna, Surya Lagna
   - Process RAG-based search queries
-  - Geocode location to Lat/Lon
+  - Geocode location name to Lat/Lon via external API for location suggestions

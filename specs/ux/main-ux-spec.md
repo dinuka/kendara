@@ -88,6 +88,8 @@ Kendara is a bilingual (Sinhala/English) astrology study web app for students to
 │          │                                          │
 │ ● සොයන │                                          │
 │          │                                          │
+│ ● ස්ථාන │                                          │
+│          │                                          │
 │ ● සැකසුම්│                                          │
 │          │                                          │
 ├──────────┴──────────────────────────────────────────┤
@@ -104,6 +106,7 @@ Kendara is a bilingual (Sinhala/English) astrology study web app for students to
 | Plus | Add Horoscope | නව ලග්න | `/horoscopes/new` |
 | Search | Search | සොයන්න | `/search` |
 | Bookmark | Saved Filters | සුරැකුම් පෙරහන් | `/search/filters` |
+| MapPin | Locations | ස්ථාන | `/locations` |
 | Settings | Settings | සැකසුම් | `/settings` |
 | Shield | Admin (if admin) | පරිපාලක | `/admin` |
 
@@ -143,9 +146,12 @@ Landing Page → Click "Login with Google" → Google OAuth →
 
 ```
 Dashboard → Click "Add Horoscope" →
-  → Fill Form (Name, Date, Time, Location) →
-  → Location auto-geocodes (Lat/Lon auto-filled) →
-  → User can override Lat/Lon →
+  → Fill Form (Name, Date, Time) →
+  → Location field shows LocationPicker dropdown (saved locations) →
+  → Select location → Name auto-fills → Lat/Lon auto-fill from saved data →
+  → Or type to search an existing location →
+  → Or click "Add new location..." to open quick-add modal →
+  → User can override Lat/Lon fields manually if needed →
   → Submit → Loading spinner ("Calculating...") →
   → Horoscope Detail View (charts + calculations)
 ```
@@ -188,7 +194,33 @@ Horoscope Detail → Click "Export" →
   → Image: Renders chart as PNG → Download
 ```
 
----
+### Flow 7: Location Management
+
+```
+Sidebar → Click "Locations" → Location Management Page →
+  → List shows all public + own private locations →
+  → Search/filter by name →
+  → Click "+ Add Location" →
+    → Toggle: "Search by name" (geocoding autocomplete) or "Paste CSV" (lat,lon) →
+    → Fill name, lat/lon (auto or manual), toggle public/private →
+    → Save → Location appears in list → Success toast
+  → Click Edit on own location → Pre-filled form → Save →
+  → Click Delete on own location → Confirmation modal → Confirm → Removed from list → Success toast
+  → Paginate through results
+```
+
+### Flow 8: Select Location in Horoscope Form
+
+```
+Add/Edit Horoscope → Location field →
+  → LocationPicker dropdown loads saved locations from DB →
+  → Grouped: "Public Locations" section → "My Locations" section →
+  → Search within dropdown to filter →
+  → Select location → locationName, latitude, longitude auto-filled →
+  → User may override lat/lon (independent of saved location) →
+  → Submit horoscope → lat/lon/name cached on horoscope document →
+  → Future edits to saved location don't cascade to this horoscope
+```
 
 ### Flow 9: View Dasha Timeline
 
@@ -275,6 +307,16 @@ Horoscope Detail → Navigate to Dashas tab/section →
 | Chart render | Chart skeleton with outline |
 | Calculation | Progress bar with "Calculating..." |
 
+### Location Picker
+
+- Dropdown/searchable selector used in Horoscope Form and Location Picker component
+- Fetches from `GET /api/location` on mount (public + own private)
+- Grouped sections: "Public Locations" first, then "My Locations"
+- Search input within dropdown filters the list client-side
+- "Add new location..." action at bottom (opens quick-add modal or navigates to `/locations/new`)
+- Visual badges: globe icon for public, lock icon for private
+- States: loading (skeleton), empty (no saved locations + CTA), loaded, error (inline + retry)
+
 ### Empty States
 
 | Context | Message (EN) | Message (SI) | Action |
@@ -308,3 +350,5 @@ Horoscope Detail → Navigate to Dashas tab/section →
 |------|-------------|
 | `specs/ux/main-ux-spec.md` | This document — master UX reference |
 | `specs/ux/20260715-1230-full-app-ux-design.md` | Detailed page-by-page UX design |
+| `specs/ux/20260717-1400-mobile-table-layouts.md` | Mobile responsive table layouts |
+| `specs/ux/20260718-2145-location-management-ux.md` | Location management UX design |

@@ -167,14 +167,30 @@ const OWN_SIGNS: Record<number, number[]> = {
     7: [10, 11],
 };
 
-const MOOLATRIKONA: Record<number, number> = {
-    1: 5,
-    2: 4,
-    3: 1,
-    4: 6,
-    5: 9,
-    6: 7,
-    7: 11,
+const EXALTATION_DEGREE: Record<number, number> = {
+    1: 10,
+    2: 3,
+    3: 28,
+    4: 15,
+    5: 5,
+    6: 27,
+    7: 20,
+};
+
+interface MoolatrikonaRange {
+    sign: number;
+    start: number;
+    end: number;
+}
+
+const MOOLATRIKONA_RANGE: Record<number, MoolatrikonaRange | null> = {
+    1: { sign: 5, start: 0, end: 20 },
+    2: null,
+    3: { sign: 1, start: 0, end: 12 },
+    4: { sign: 6, start: 16, end: 20 },
+    5: { sign: 9, start: 0, end: 10 },
+    6: { sign: 7, start: 0, end: 15 },
+    7: { sign: 11, start: 0, end: 20 },
 };
 
 const NATURAL_FRIENDS: Record<number, number[]> = {
@@ -201,34 +217,57 @@ const NATURAL_ENEMIES: Record<number, number[]> = {
     9: [],
 };
 
-const STRENGTH_VALUES: Record<string, number> = {
-    exalted: 1,
-    debilitated: -1,
-    moolatrikona: 0.75,
-    ownSign: 0.5,
-    friendly: 0.1,
-    neutral: 0,
-    enemy: -0.1,
+const STRENGTH_VALUES: Record<PlanetaryStrength, number> = {
+    [PlanetaryStrength.ATHI_UCHCHA]: 1.25,
+    [PlanetaryStrength.UCHCHA]: 1,
+    [PlanetaryStrength.NEECHA]: -1,
+    [PlanetaryStrength.ATHI_NEECHA]: -1.25,
+    [PlanetaryStrength.MOOLATRIKONA]: 0.75,
+    [PlanetaryStrength.OWN_SIGN]: 0.5,
+    [PlanetaryStrength.MITRA]: 0.1,
+    [PlanetaryStrength.SHATRU]: -0.1,
+    [PlanetaryStrength.SAMA]: 0,
 };
 
-function computePlanetStrength(planet: number, sign: number): { strength: number; strengthLabel: string } {
-    if (EXALTATION[planet] === sign) return { strength: STRENGTH_VALUES.exalted, strengthLabel: "exalted" };
-    if (DEBILITATION[planet] === sign) return { strength: STRENGTH_VALUES.debilitated, strengthLabel: "debilitated" };
-    if (MOOLATRIKONA[planet] === sign) return { strength: STRENGTH_VALUES.moolatrikona, strengthLabel: "moolatrikona" };
-    if (OWN_SIGNS[planet]?.includes(sign)) return { strength: STRENGTH_VALUES.ownSign, strengthLabel: "ownSign" };
+function computePlanetStrength(planet: number, sign: number, degree: number): PlanetaryStrength {
+    const deepDeg = EXALTATION_DEGREE[planet];
+
+    if (EXALTATION[planet] === sign && deepDeg !== undefined && Math.abs(degree - deepDeg) < 1)
+        return PlanetaryStrength.ATHI_UCHCHA;
+    if (EXALTATION[planet] === sign) return PlanetaryStrength.UCHCHA;
+
+    if (DEBILITATION[planet] === sign && deepDeg !== undefined && Math.abs(degree - deepDeg) < 1)
+        return PlanetaryStrength.ATHI_NEECHA;
+    if (DEBILITATION[planet] === sign) return PlanetaryStrength.NEECHA;
+
+    const mRange = MOOLATRIKONA_RANGE[planet];
+    if (mRange && mRange.sign === sign && degree >= mRange.start && degree < mRange.end)
+        return PlanetaryStrength.MOOLATRIKONA;
+
+    if (OWN_SIGNS[planet]?.includes(sign)) return PlanetaryStrength.OWN_SIGN;
 
     const signLord = SIGN_LORD[sign];
-    if (NATURAL_FRIENDS[planet]?.includes(signLord))
-        return { strength: STRENGTH_VALUES.friendly, strengthLabel: "friendly" };
-    if (NATURAL_ENEMIES[planet]?.includes(signLord)) return { strength: STRENGTH_VALUES.enemy, strengthLabel: "enemy" };
-    return { strength: STRENGTH_VALUES.neutral, strengthLabel: "neutral" };
+    if (NATURAL_FRIENDS[planet]?.includes(signLord)) return PlanetaryStrength.MITRA;
+    if (NATURAL_ENEMIES[planet]?.includes(signLord)) return PlanetaryStrength.SHATRU;
+    return PlanetaryStrength.SAMA;
 }
 
 const DEFAULT_ORBS: Record<string, number> = {
-    "1": 15, "2": 12, "3": 8, "4": 7, "5": 9, "6": 7, "7": 9, "8": 0, "9": 0,
+    "1": 15,
+    "2": 12,
+    "3": 8,
+    "4": 7,
+    "5": 9,
+    "6": 7,
+    "7": 9,
+    "8": 0,
+    "9": 0,
 };
 
-export function calculateHoroscope(data: IHoroscope, planetaryOrbs: Record<string, number> = DEFAULT_ORBS): CalculationResult {
+export function calculateHoroscope(
+    data: IHoroscope,
+    planetaryOrbs: Record<string, number> = DEFAULT_ORBS,
+): CalculationResult {
     logger.info({ name: data.name, ayanamsha: data.ayanamsha }, "starting horoscope calculation");
 
     const birthDate = new Date(data.birthDate);
@@ -324,6 +363,9 @@ export function calculateHoroscope(data: IHoroscope, planetaryOrbs: Record<strin
         const house = ((sign - ascSign + 12) % 12) + 1;
         const nakshatraId = getNakshatraId(p.nakshatra.name);
 
+        const navamsaNum = Math.floor(degree / (30 / 9)) + 1;
+        const nSign = navamsaSign(sign, navamsaNum);
+
         return {
             name: name ?? 0,
             sign,
@@ -334,8 +376,9 @@ export function calculateHoroscope(data: IHoroscope, planetaryOrbs: Record<strin
             pada: p.nakshatra.pada,
             retrograde: !!p.isRetrograde,
             combustion: false,
-            strength: 0,
-            strengthLabel: "",
+            strength: PlanetaryStrength.SAMA,
+            navamsaSign: nSign,
+            navamsaStrength: computePlanetStrength(name ?? 0, nSign, 0),
             aspects: [],
         };
     });
@@ -349,8 +392,8 @@ export function calculateHoroscope(data: IHoroscope, planetaryOrbs: Record<strin
             i === 0
                 ? false
                 : Math.abs(planetDetails[i].absoluteDegree - sunLong) < sunOrb ||
-                Math.abs(planetDetails[i].absoluteDegree - sunLong + 360) < sunOrb ||
-                Math.abs(planetDetails[i].absoluteDegree - sunLong - 360) < sunOrb;
+                  Math.abs(planetDetails[i].absoluteDegree - sunLong + 360) < sunOrb ||
+                  Math.abs(planetDetails[i].absoluteDegree - sunLong - 360) < sunOrb;
 
         const aspects: Aspect[] = [];
         for (let j = 0; j < planetDetails.length; j++) {
@@ -376,9 +419,7 @@ export function calculateHoroscope(data: IHoroscope, planetaryOrbs: Record<strin
     }
 
     for (const p of planetDetails) {
-        const s = computePlanetStrength(p.name, p.sign);
-        p.strength = s.strength;
-        p.strengthLabel = s.strengthLabel;
+        p.strength = computePlanetStrength(p.name, p.sign, p.degree);
     }
 
     logger.info("calculation complete: %d planets, %d houses", planetDetails.length, houses.length);
@@ -426,12 +467,6 @@ function computeDrekkanaLord(ascSign: number, ascDegree: number): number {
     const drekkanaNum = ((targetAbs - 1) % 3) + 1;
     const mappedSign = drekkanaSign(sourceSign, drekkanaNum);
     return SIGN_LORD[mappedSign] || 1;
-}
-
-function navamsaSign(sourceSign: number, navamsaNum: number): number {
-    const NAVAMSA_OFFSET = [0, 8, 4];
-    const offset = NAVAMSA_OFFSET[(sourceSign - 1) % 3];
-    return ((sourceSign - 1 + offset + navamsaNum - 1) % 12) + 1;
 }
 
 function computeNavamsaLord(planets: Planet[]): number {

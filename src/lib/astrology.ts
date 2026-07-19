@@ -87,8 +87,9 @@ export interface Planet {
     pada: number;
     retrograde: boolean;
     combustion: boolean;
-    strength: number;
-    strengthLabel: string;
+    strength: PlanetaryStrength;
+    navamsaSign: number;
+    navamsaStrength: PlanetaryStrength;
     aspects: Aspect[];
 }
 

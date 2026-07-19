@@ -20,6 +20,7 @@ interface Horoscope {
     longitude?: number;
     isPublic: boolean;
     createdAt: string;
+    owner: { id: string };
 }
 
 const RECENT_COUNT = 3;
@@ -146,6 +147,7 @@ export default function DashboardPage() {
                                 <th className="text-center px-4 py-2 font-medium text-gray-600">
                                     {t("horoscope.public")}
                                 </th>
+                                <th className="px-4 py-2" />
                             </tr>
                         </thead>
                         <tbody>
@@ -169,19 +171,38 @@ export default function DashboardPage() {
                                             {h.isPublic ? t("horoscope.public") : t("horoscope.private")}
                                         </span>
                                     </td>
+                                    <td className="px-4 py-3 text-right" onClick={(e) => e.stopPropagation()}>
+                                        {isOwner(h) && (
+                                            <div className="flex gap-1 justify-end">
+                                                <button
+                                                    onClick={() => router.push(`/horoscopes/${h._id}/edit`)}
+                                                    aria-label={`${t("horoscope.edit")} ${h.name}`}
+                                                    className="p-1.5 text-gray-400 hover:text-indigo-600 transition-colors rounded hover:bg-indigo-50"
+                                                >
+                                                    ✏️
+                                                </button>
+                                                <button
+                                                    onClick={() => setConfirmDelete(h._id)}
+                                                    aria-label={`${t("common.delete")} ${h.name}`}
+                                                    className="p-1.5 text-gray-400 hover:text-red-600 transition-colors rounded hover:bg-red-50"
+                                                >
+                                                    🗑️
+                                                </button>
+                                            </div>
+                                        )}
+                                    </td>
                                 </tr>
                             ))}
                         </tbody>
                     </table>
                 </div>
-            )
-            }
+            )}
 
             <div className="mt-4 text-right">
                 <Link href="/horoscopes" className="text-indigo-600 hover:text-indigo-700 text-sm font-medium">
                     {t("dashboard.viewAll")}
                 </Link>
             </div>
-        </div >
+        </div>
     );
 }

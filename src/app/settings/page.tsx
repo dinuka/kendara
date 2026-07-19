@@ -10,7 +10,15 @@ interface OrbSettings {
 }
 
 const DEFAULT_ORBS: OrbSettings = {
-    "1": 15, "2": 12, "3": 8, "4": 7, "5": 9, "6": 7, "7": 9, "8": 0, "9": 0,
+    "1": 15,
+    "2": 12,
+    "3": 8,
+    "4": 7,
+    "5": 9,
+    "6": 7,
+    "7": 9,
+    "8": 0,
+    "9": 0,
 };
 
 export default function SettingsPage() {
@@ -57,7 +65,8 @@ export default function SettingsPage() {
         setOrbs(DEFAULT_ORBS);
     };
 
-    if (status === "loading" || loading) return <div className="text-center py-20 text-gray-500">{t("common.loading")}</div>;
+    if (status === "loading" || loading)
+        return <div className="text-center py-20 text-gray-500">{t("common.loading")}</div>;
     if (!session) return null;
 
     const planetPairs = [["1", "2"], ["3", "4"], ["5", "6"], ["7"], ["8", "9"]];

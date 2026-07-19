@@ -6,12 +6,12 @@ import { CalculatedDetails } from "@/models/CalculatedDetails";
 import { Chart } from "@/models/Chart";
 import { Horoscope } from "@/models/Horoscope";
 import { Metadata } from "@/models/Metadata";
+import { User } from "@/models/User";
 
 import { calculateHoroscope } from "@/lib/calculation";
 import { generateChartSvg } from "@/lib/chartRenderer";
 import { ALL_CHART_TYPES } from "@/lib/chartTypes";
 import { connectDB } from "@/lib/db";
-import { User } from "@/models/User";
 import logger from "@/lib/logger";
 
 const CALC_FIELDS = ["birthDate", "birthTime", "latitude", "longitude", "ayanamsha"];
@@ -50,6 +50,15 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 
     if (horoscope.owner.id !== session.user.id && session.user.role !== "super-admin") {
         return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
+    if (body.location !== undefined) {
+        if (body.location && typeof body.location === "object" && body.location.id) {
+            body.location = { id: body.location.id };
+        } else if (typeof body.location === "string") {
+            body.locationName = body.location;
+            body.location = null;
+        }
     }
 
     const needsRecalc = CALC_FIELDS.some(

@@ -1,6 +1,6 @@
 "use client";
 
-import { LocationInput } from "@/components/LocationInput";
+import LocationPicker from "@/components/LocationPicker";
 import { useI18n } from "@/hooks/useI18n";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
@@ -14,21 +14,28 @@ export default function NewHoroscopePage() {
     const [birthDate, setBirthDate] = useState("");
     const [lat, setLat] = useState("");
     const [lng, setLng] = useState("");
-    const [locationLabel, setLocationLabel] = useState("");
+    const [locationName, setLocationName] = useState("");
+    const [locationId, setLocationId] = useState<string | null>(null);
 
     if (status === "unauthenticated") {
         router.push("/signin");
         return null;
     }
 
-    const handleLocationSelect = (latitude: number, longitude: number, label: string) => {
-        setLat(latitude.toString());
-        setLng(longitude.toString());
-        setLocationLabel(label);
-    };
-
-    const handleLocationQuery = (value: string) => {
-        setLocationLabel(value);
+    const handleLocationChange = (
+        location: { id: string; name: string; latitude: number; longitude: number } | null,
+    ) => {
+        if (location) {
+            setLocationId(location.id);
+            setLocationName(location.name);
+            setLat(location.latitude.toString());
+            setLng(location.longitude.toString());
+        } else {
+            setLocationId(null);
+            setLocationName("");
+            setLat("");
+            setLng("");
+        }
     };
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -40,7 +47,8 @@ export default function NewHoroscopePage() {
             name: form.get("name"),
             birthDate,
             birthTime: form.get("birthTime"),
-            location: locationLabel,
+            location: locationId ? { id: locationId } : null,
+            locationName: locationName,
             latitude: parseFloat(lat) || 0,
             longitude: parseFloat(lng) || 0,
             gender: form.get("gender"),
@@ -101,15 +109,45 @@ export default function NewHoroscopePage() {
                 </div>
 
                 <div>
-                    <label className="block text-sm font-medium mb-1">{t("horoscope.location")}</label>
-                    <LocationInput
-                        onSelect={handleLocationSelect}
-                        lat={lat}
-                        lng={lng}
-                        onLatChange={setLat}
-                        onLngChange={setLng}
-                        onQueryChange={handleLocationQuery}
-                    />
+                    <LocationPicker selectedLocationId={locationId} onChange={handleLocationChange} />
+
+                    {locationId && (
+                        <div className="mt-3 space-y-2">
+                            <div>
+                                <label className="block text-sm font-medium mb-1">
+                                    {t("location_picker.cached_name")}
+                                </label>
+                                <input
+                                    value={locationName}
+                                    onChange={(e) => setLocationName(e.target.value)}
+                                    className="w-full border rounded px-3 py-2 text-sm"
+                                />
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-sm font-medium mb-1">{t("horoscope.latitude")}</label>
+                                    <input
+                                        type="number"
+                                        step="any"
+                                        value={lat}
+                                        onChange={(e) => setLat(e.target.value)}
+                                        className="w-full border rounded px-3 py-2 text-sm"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium mb-1">{t("horoscope.longitude")}</label>
+                                    <input
+                                        type="number"
+                                        step="any"
+                                        value={lng}
+                                        onChange={(e) => setLng(e.target.value)}
+                                        className="w-full border rounded px-3 py-2 text-sm"
+                                    />
+                                </div>
+                            </div>
+                            <p className="text-xs text-gray-400">{t("location_picker.override_hint")}</p>
+                        </div>
+                    )}
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
