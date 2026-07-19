@@ -3,12 +3,22 @@
         "title": "Kendara",
         "tagline": "Astrology Study Platform"
     },
+    "dashboard": {
+        "welcome": "Welcome back, {name}!",
+        "thisMonth": "This Month Added",
+        "recentHoroscopes": "Recent Horoscopes",
+        "viewAll": "View All Horoscopes →"
+    },
     "nav": {
         "dashboard": "Dashboard",
         "addHoroscope": "Add Horoscope",
+        "horoscopes": "Horoscopes",
+        "newHoroscope": "New Horoscope",
         "search": "Search",
         "settings": "Settings",
         "admin": "Admin",
+        "savedFilters": "Saved Filters",
+        "searchPlaceholder": "Search horoscopes...",
         "signOut": "Sign Out"
     },
     "auth": {
@@ -91,6 +101,13 @@
         "badhakaLabel": "Badhaka",
         "marakaBadhaka": "Maraka / Badhaka",
         "dashas": "Dashas",
+        "dashaLevels": {
+            "mahadasha": "Mahadasha",
+            "antardasha": "Antardasha",
+            "vidasa": "Vidasa",
+            "sukshama": "Sukshama",
+            "prana": "Prana"
+        },
         "sign": "Sign",
         "degree": "Degree",
         "lord": "Lord",
@@ -177,7 +194,80 @@
             "26": "Uttara Bhadrapada",
             "27": "Revati"
         },
+<<<<<<< Updated upstream
         "padaFormat": "{pada} Pada"
+=======
+        "padaFormat": "{pada} Pada",
+        "viewDetails": "View details",
+        "less": "Less"
+    },
+    "locations": {
+        "title": "Locations",
+        "add": "Add Location",
+        "edit": "Edit Location",
+        "search_placeholder": "Search locations...",
+        "empty": "No saved locations yet. Add your first one!",
+        "search_empty": "No locations match your search.",
+        "load_error": "Failed to load locations. Please try again.",
+        "save_error": "Failed to save location. Please try again.",
+        "duplicate": "A location with similar coordinates already exists.",
+        "saved": "Location saved!",
+        "updated": "Location updated!",
+        "deleted": "Location deleted.",
+        "delete_confirm": "Delete this location?",
+        "delete_warning": "This action cannot be undone. Horoscopes using this location will keep their current data.",
+        "badge_public": "Public",
+        "badge_private": "Private",
+        "coordinates": "Coordinates",
+        "added_date": "Added",
+        "title_pair": "Locations / ස්ථාන",
+        "section_search_add": "Search & Add",
+        "section_list": "Location List",
+        "edit_independence": "Editing this location won't affect existing horoscopes that use it. Each horoscope keeps its own copy of the name and coordinates."
+    },
+    "location_picker": {
+        "title": "Location",
+        "placeholder": "Select a saved location...",
+        "search": "Search locations...",
+        "change": "Change",
+        "add_new": "+ Add new location...",
+        "empty": "No saved locations yet.",
+        "group_public": "Public Locations",
+        "group_mine": "My Locations",
+        "loading": "Loading locations...",
+        "error": "Could not load locations.",
+        "retry": "Retry",
+        "cached_name": "Location Name (cached)",
+        "override_hint": "Coordinates overrides — editable"
+    },
+    "location_form": {
+        "mode_search": "Search by name",
+        "mode_csv": "Paste CSV",
+        "search_placeholder": "Type a location name...",
+        "csv_placeholder": "Enter latitude,longitude (e.g., 6.9271,79.8612)",
+        "csv_parse": "Parse & Preview",
+        "csv_parsed": "Parsed ✓",
+        "csv_invalid": "Invalid CSV format. Expected 'latitude,longitude'",
+        "latitude": "Latitude",
+        "longitude": "Longitude",
+        "lat_placeholder": "e.g. 6.9271",
+        "lat_hint": "Or paste lat,long here (e.g. 6.9271,79.8612)",
+        "lng_placeholder": "e.g. 79.8612",
+        "name": "Location Name",
+        "visibility": "Visibility",
+        "save": "Save Location",
+        "save_changes": "Save Changes",
+        "cancel": "Cancel",
+        "discard": "Discard changes?",
+        "saving": "Saving...",
+        "name_required": "Name is required",
+        "lat_invalid": "Invalid latitude",
+        "lon_invalid": "Invalid longitude"
+    },
+    "quick_add": {
+        "title": "Quick Add Location",
+        "add_and_select": "Add & Select"
+>>>>>>> Stashed changes
     },
     "common": {
         "loading": "Loading...",
@@ -186,6 +276,9 @@
         "cancel": "Cancel",
         "delete": "Delete",
         "confirm": "Confirm",
-        "back": "Back"
+        "back": "Back",
+        "previous": "Previous",
+        "next": "Next",
+        "page_of": "Page {page} of {total}"
     }
 }

@@ -32,6 +32,18 @@
 │  ┌─────────────────────┐  ┌──────────┴───────────────────┐  │
 │  │  Metadata Service   │  │  Share/Export Service        │  │
 │  └─────────────────────┘  └──────────────────────────────┘  │
+<<<<<<< Updated upstream
+=======
+│  ┌─────────────────────┐                                     │
+│  │  Location Service   │                                     │
+│  │  (Geocoding, CRUD,  │                                     │
+│  │   CSV Parsing)      │                                     │
+│  └─────────────────────┘                                     │
+│  ┌─────────────────────┐                                     │
+│  │  Dasha Calculation  │                                     │
+│  │  Engine             │                                     │
+│  └─────────────────────┘                                     │
+>>>>>>> Stashed changes
 └─────────────┼────────────────────────────────────────────────┘
               │
 ┌─────────────┼────────────────────────────────────────────────┐
@@ -113,6 +125,17 @@ User → Enter Natural Language Query (SI/EN) →
   → User configures visible sections → UI updates accordingly
 ```
 
+### View Dasha Timeline Flow
+```
+User → Open Horoscope Detail →
+  → Dasha section loads nested JSON from calculatedDetails.dashas →
+  → Client determines current date → Matches against period date ranges →
+  → Client identifies current MD, AD, Vidasa, Sukshama →
+  → Renders nested accordion with active periods auto-expanded →
+  → User expands/collapses periods to explore →
+  → Smooth animation on toggle
+```
+
 ### Authentication Flow
 ```
 User → Click "Login with Google" →
@@ -140,6 +163,7 @@ User → Click "Login with Google" →
 | PUT | /api/horoscope/:id | Update horoscope |
 | DELETE | /api/horoscope/:id | Delete horoscope (own) |
 | PATCH | /api/horoscope/:id/privacy | Toggle public/private |
+| GET | /api/horoscope/:id/dasha | Get dasha timeline data (returns dashas JSON from CalculatedDetails) — optional standalone endpoint; data also available via GET /api/horoscope/:id |
 
 ### Search
 | Method | Route | Description |
@@ -227,7 +251,46 @@ User → Click "Login with Google" →
   houses: [{ houseNumber, startDegree, middleDegree, endDegree, sign, lord }],
   planets: [{ name, sign, degree, house, nakshatra, pada, strength, aspects, ... }],
   nakshatra: { moonNakshatra: {}, ascendantNakshatra: {} },
-  dashas: { mahadasha: [...], currentPeriod: {} },
+  dashas: {
+    mahadasha: [{
+      planet: number,
+      startDate: string,
+      endDate: string,
+      durationYears: number,
+      remainingYearsAtBirth: number,
+      antardasha: [{
+        planet: number,
+        startDate: string,
+        endDate: string,
+        durationMonths: number,
+        vidasa: [{
+          planet: number,
+          startDate: string,
+          endDate: string,
+          durationDays: number,
+          sukshama: [{
+            planet: number,
+            startDate: string,
+            endDate: string,
+            durationDays: number,
+            prana: [{
+              planet: number,
+              startDate: string,
+              endDate: string,
+              durationHours: number
+            }]
+          }]
+        }]
+      }]
+    }],
+    currentPeriod: {
+      mahadashaLord: number,
+      antardashaLord: number,
+      vidasaLord?: number,
+      sukshamaLord?: number,
+      pranaLord?: number
+    }
+  },
   lord22ndDrekkana: number,
   lord64thNavamsa: number,
   badhakaPlanet: number[],
@@ -294,6 +357,11 @@ User → Click "Login with Google" →
 - charts: { "horoscope.id": 1 }
 - metadata: { "horoscope.id": 1 }, { key: 1 }
 - shareLinks: { token: 1 } (unique)
+<<<<<<< Updated upstream
+=======
+- locations: { "createdBy.id": 1 }, { isPublic: 1 }, { name: "text" }
+- calculatedDetails: { "dashas.currentPeriod.mahadashaLord": 1 } (for querying by current dasha lord)
+>>>>>>> Stashed changes
 
 ## Security Considerations
 - Google SSO only — no password authentication

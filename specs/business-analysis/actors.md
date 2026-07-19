@@ -13,6 +13,20 @@
   - Download horoscopes as PDF/image
   - Configure visible chart sections
   - Use system in Sinhala or English
+<<<<<<< Updated upstream
+=======
+  - View all public locations
+  - View own private locations
+  - Add new locations with name suggestion via API and auto-populated Lat/Lon
+  - Add locations by pasting CSV-formatted Lat/Lon values
+  - Toggle own locations as public or private
+  - Edit/delete own locations
+  - Select from saved locations when adding horoscopes
+  - Override Lat/Lon values on horoscope after location selection
+  - View full dasha timeline showing Mahadasha, Antardasha, Vidasa, Sukshama, and Prana periods
+  - Expand/collapse dasha hierarchy with nested accordion UI
+  - View automatically expanded current active period at all dasha levels
+>>>>>>> Stashed changes
 - **Authentication**: Google SSO (auto-assigned)
 
 ## 2. Super Admin

@@ -20,23 +20,19 @@ interface Horoscope {
     longitude?: number;
     isPublic: boolean;
     createdAt: string;
+    owner: { id: string };
 }
 
-const RECENT_COUNT = 3;
-
-export default function DashboardPage() {
+export default function HoroscopesPage() {
     const { data: session, status } = useSession();
     const router = useRouter();
     const { t } = useI18n();
     const [horoscopes, setHoroscopes] = useState<Horoscope[]>([]);
     const [loading, setLoading] = useState(true);
-<<<<<<< Updated upstream
-=======
     const [deletingId, setDeletingId] = useState<string | null>(null);
     const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
     const [deleteError, setDeleteError] = useState<string | null>(null);
     const [error, setError] = useState("");
->>>>>>> Stashed changes
 
     useEffect(() => {
         if (status === "unauthenticated") {
@@ -60,8 +56,6 @@ export default function DashboardPage() {
 
     if (!session) return null;
 
-<<<<<<< Updated upstream
-=======
     const handleDelete = async (id: string) => {
         setDeletingId(id);
         setDeleteError(null);
@@ -79,22 +73,14 @@ export default function DashboardPage() {
 
     const isOwner = (h: Horoscope) => h.owner?.id === session.user?.id;
 
->>>>>>> Stashed changes
     const total = horoscopes.length;
-    const now = new Date();
-    const thisMonthCount = horoscopes.filter((h) => {
-        const created = new Date(h.createdAt);
-        return created.getFullYear() === now.getFullYear() && created.getMonth() === now.getMonth();
-    }).length;
-
-    const recentHoroscopes = [...horoscopes]
-        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-        .slice(0, RECENT_COUNT);
+    const publicCount = horoscopes.filter((h) => h.isPublic).length;
+    const privateCount = total - publicCount;
 
     return (
         <div>
             <div className="flex justify-between items-center mb-8">
-                <h1 className="text-2xl font-bold">{t("dashboard.welcome", { name: session.user?.name ?? "" })}</h1>
+                <h1 className="text-2xl font-bold">{t("nav.horoscopes")}</h1>
                 <Link
                     href="/horoscopes/new"
                     className="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700 transition-colors text-sm"
@@ -103,20 +89,21 @@ export default function DashboardPage() {
                 </Link>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
                 <div className="bg-white p-6 rounded-lg shadow-sm border">
                     <div className="text-3xl font-bold text-indigo-600">{total}</div>
                     <div className="text-sm text-gray-500 mt-1">{t("horoscope.charts")}</div>
                 </div>
                 <div className="bg-white p-6 rounded-lg shadow-sm border">
-                    <div className="text-3xl font-bold text-indigo-600">{thisMonthCount}</div>
-                    <div className="text-sm text-gray-500 mt-1">{t("dashboard.thisMonth")}</div>
+                    <div className="text-3xl font-bold text-indigo-600">{publicCount}</div>
+                    <div className="text-sm text-gray-500 mt-1">{t("horoscope.public")}</div>
+                </div>
+                <div className="bg-white p-6 rounded-lg shadow-sm border">
+                    <div className="text-3xl font-bold text-indigo-600">{privateCount}</div>
+                    <div className="text-sm text-gray-500 mt-1">{t("horoscope.private")}</div>
                 </div>
             </div>
 
-<<<<<<< Updated upstream
-            {horoscopes.length === 0 ? (
-=======
             {error && (
                 <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4" role="alert">
                     <p className="text-red-700 text-sm">{error}</p>
@@ -136,10 +123,7 @@ export default function DashboardPage() {
                 error={deleteError}
             />
 
-            <h2 className="text-lg font-semibold mb-3">{t("dashboard.recentHoroscopes")}</h2>
-
-            {recentHoroscopes.length === 0 ? (
->>>>>>> Stashed changes
+            {horoscopes.length === 0 ? (
                 <div className="bg-white rounded-lg shadow-sm border p-8 text-center text-gray-400">
                     {t("search.noResults")}
                 </div>
@@ -158,10 +142,11 @@ export default function DashboardPage() {
                                 <th className="text-center px-4 py-2 font-medium text-gray-600">
                                     {t("horoscope.public")}
                                 </th>
+                                <th className="px-4 py-2" />
                             </tr>
                         </thead>
                         <tbody>
-                            {recentHoroscopes.map((h) => (
+                            {horoscopes.map((h) => (
                                 <tr
                                     key={h._id}
                                     className="border-t hover:bg-gray-50 cursor-pointer"
@@ -181,18 +166,32 @@ export default function DashboardPage() {
                                             {h.isPublic ? t("horoscope.public") : t("horoscope.private")}
                                         </span>
                                     </td>
+                                    <td className="px-4 py-3 text-right" onClick={(e) => e.stopPropagation()}>
+                                        {isOwner(h) && (
+                                            <div className="flex gap-1 justify-end">
+                                                <button
+                                                    onClick={() => router.push(`/horoscopes/${h._id}/edit`)}
+                                                    aria-label={`${t("horoscope.edit")} ${h.name}`}
+                                                    className="p-1.5 text-gray-400 hover:text-indigo-600 transition-colors rounded hover:bg-indigo-50"
+                                                >
+                                                    ✏️
+                                                </button>
+                                                <button
+                                                    onClick={() => setConfirmDelete(h._id)}
+                                                    aria-label={`${t("common.delete")} ${h.name}`}
+                                                    className="p-1.5 text-gray-400 hover:text-red-600 transition-colors rounded hover:bg-red-50"
+                                                >
+                                                    🗑️
+                                                </button>
+                                            </div>
+                                        )}
+                                    </td>
                                 </tr>
                             ))}
                         </tbody>
                     </table>
                 </div>
             )}
-
-            <div className="mt-4 text-right">
-                <Link href="/horoscopes" className="text-indigo-600 hover:text-indigo-700 text-sm font-medium">
-                    {t("dashboard.viewAll")}
-                </Link>
-            </div>
         </div>
     );
 }

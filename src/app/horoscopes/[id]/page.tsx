@@ -1,13 +1,27 @@
 "use client";
 
+<<<<<<< Updated upstream
+=======
+import { BirthChart } from "@/components/BirthChart";
+import ConfirmDeleteModal from "@/components/ConfirmDeleteModal";
+import DashaSection from "@/components/Dasha/DashaSection";
+import { HouseChart } from "@/components/HouseChart";
+>>>>>>> Stashed changes
 import { useI18n } from "@/hooks/useI18n";
 import { useSession } from "next-auth/react";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
+<<<<<<< Updated upstream
 import type { Ascendant, House, Planet } from "@/lib/astrology";
 import { formatDegree } from "@/lib/astrology";
+=======
+import type { Ascendant, Dashas, House, Planet } from "@/lib/astrology";
+import { formatDegree, navamsaSign } from "@/lib/astrology";
+import { PlanetaryStrength } from "@/lib/astrologyEnums";
+>>>>>>> Stashed changes
 import { ALL_CHART_TYPES, ChartType } from "@/lib/chartTypes";
+import { formatDate } from "@/lib/date";
 
 interface HoroscopeData {
     _id: string;
@@ -16,7 +30,8 @@ interface HoroscopeData {
     displayName?: boolean;
     birthDate: string;
     birthTime: string;
-    location?: string;
+    location?: { id: string } | null;
+    locationName?: string;
     latitude?: number;
     longitude?: number;
     gender?: string;
@@ -64,6 +79,16 @@ export default function HoroscopeDetailPage() {
         1: 15, 2: 12, 3: 8, 4: 7, 5: 9, 6: 7, 7: 9, 8: 0, 9: 0,
     });
 
+<<<<<<< Updated upstream
+=======
+    const [confirmDelete, setConfirmDelete] = useState(false);
+    const [deleting, setDeleting] = useState(false);
+    const [deleteError, setDeleteError] = useState<string | null>(null);
+
+    const [expandedHouses, setExpandedHouses] = useState<Set<number>>(new Set());
+    const [expandedPlanets, setExpandedPlanets] = useState<Set<number>>(new Set());
+
+>>>>>>> Stashed changes
     useEffect(() => {
         if (status === "unauthenticated") {
             router.push("/signin");
@@ -101,10 +126,24 @@ export default function HoroscopeDetailPage() {
 
     const { horoscope, calculatedDetails, charts } = data;
 
+    const handleDelete = async () => {
+        setDeleting(true);
+        setDeleteError(null);
+        try {
+            const res = await fetch(`/api/horoscope/${params.id}`, { method: "DELETE" });
+            if (!res.ok) throw new Error("Delete failed");
+            router.push("/");
+        } catch {
+            setDeleteError(t("common.error"));
+            setDeleting(false);
+        }
+    };
+
     const getPlanetName = (id: number): string => t(`astrology.planetNames.${id}`);
     const getSignName = (id: number): string => t(`astrology.signNames.${id}`);
     const getNakshatraName = (id: number): string => t(`astrology.nakshatraNames.${id}`);
     const getPadaFormat = (pada: number): string => t("astrology.padaFormat", { pada: String(pada) });
+    const getDashaLevelName = (level: string): string => t(`astrology.dashaLevels.${level}`);
 
     const SIGN_LORD_MAP: Record<number, number> = {
         1: 3, 2: 6, 3: 4, 4: 2, 5: 1, 6: 4,
@@ -169,9 +208,17 @@ export default function HoroscopeDetailPage() {
             <div className="flex justify-between items-start mb-6">
                 <div>
                     <h1 className="text-2xl font-bold">{horoscope.name}</h1>
+<<<<<<< Updated upstream
                     <p className="text-sm text-gray-500">
                         {new Date(horoscope.birthDate).toLocaleDateString()} {horoscope.birthTime} |{" "}
                         {horoscope.location || `${horoscope.latitude}, ${horoscope.longitude}`}
+=======
+                    <p className="text-sm text-gray-500 truncate" title={horoscope.locationName || undefined}>
+                        {formatDate(horoscope.birthDate)} {horoscope.birthTime} |{" "}
+                        {horoscope.locationName
+                            ? horoscope.locationName
+                            : `${horoscope.latitude}, ${horoscope.longitude}`}
+>>>>>>> Stashed changes
                     </p>
                 </div>
                 <div className="flex gap-2">
@@ -188,6 +235,29 @@ export default function HoroscopeDetailPage() {
                             >
                                 {horoscope.isPublic ? t("horoscope.public") : t("horoscope.private")}
                             </span>
+                            <button
+                                onClick={() => setConfirmDelete(true)}
+                                aria-label={t("common.delete")}
+                                title={t("common.delete")}
+                                className="w-8 h-8 flex items-center justify-center border rounded hover:bg-red-50 text-gray-600 hover:text-red-600 transition-colors"
+                            >
+                                <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    strokeWidth="2"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    className="w-4 h-4"
+                                >
+                                    <path d="M3 6h18" />
+                                    <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
+                                    <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
+                                    <line x1="10" y1="11" x2="10" y2="17" />
+                                    <line x1="14" y1="11" x2="14" y2="17" />
+                                </svg>
+                            </button>
                         </>
                     )}
                 </div>
@@ -423,10 +493,11 @@ export default function HoroscopeDetailPage() {
 
             {activeTab === "dashas" && calculatedDetails && (
                 <div className="bg-white rounded-lg border p-4">
-                    <h3 className="font-semibold text-sm mb-2">{t("astrology.dashas")}</h3>
-                    <pre className="text-xs text-gray-600 overflow-auto">
-                        {JSON.stringify(calculatedDetails.dashas, null, 2)}
-                    </pre>
+                    <DashaSection
+                        dashas={calculatedDetails.dashas as unknown as Dashas}
+                        getPlanetName={getPlanetName}
+                        getDashaLevelName={getDashaLevelName}
+                    />
                 </div>
             )}
 
@@ -435,6 +506,17 @@ export default function HoroscopeDetailPage() {
                     <p>{t("horoscope.metadata")}</p>
                 </div>
             )}
+
+            <ConfirmDeleteModal
+                open={confirmDelete}
+                onConfirm={handleDelete}
+                onCancel={() => {
+                    setConfirmDelete(false);
+                    setDeleteError(null);
+                }}
+                loading={deleting}
+                error={deleteError}
+            />
         </div>
     );
 }

@@ -3,7 +3,26 @@ import swisseph from "swisseph-v2";
 
 import { IHoroscope } from "@/models/Horoscope";
 
+<<<<<<< Updated upstream
 import { Ascendant, Aspect, CalculationResult, House, Planet } from "@/lib/astrology";
+=======
+import {
+    Antardasha,
+    Ascendant,
+    Aspect,
+    CalculationResult,
+    CurrentPeriod,
+    DashaInfo,
+    House,
+    Mahadasha,
+    Planet,
+    Prana,
+    Sukshama,
+    Vidasa,
+    navamsaSign,
+} from "@/lib/astrology";
+import { PlanetaryStrength } from "@/lib/astrologyEnums";
+>>>>>>> Stashed changes
 import logger from "@/lib/logger";
 
 const GRAHA_MAP: Record<string, number> = {
@@ -62,6 +81,32 @@ const NAKSHATRA_NAMES: string[] = [
     "Uttara Bhadrapada",
     "Revati",
 ];
+
+const VIMSHOTTARI_CYCLE: { planet: number; years: number }[] = [
+    { planet: 9, years: 7 },
+    { planet: 6, years: 20 },
+    { planet: 1, years: 6 },
+    { planet: 2, years: 10 },
+    { planet: 3, years: 7 },
+    { planet: 8, years: 18 },
+    { planet: 5, years: 16 },
+    { planet: 7, years: 19 },
+    { planet: 4, years: 17 },
+];
+
+const PLANET_TO_CYCLE_INDEX: Record<number, number> = {
+    9: 0,
+    6: 1,
+    1: 2,
+    2: 3,
+    3: 4,
+    8: 5,
+    5: 6,
+    7: 7,
+    4: 8,
+};
+
+const TOTAL_VIMSHOTTARI_YEARS = 120;
 
 const AYANAMSHA_MAP: Record<string, number> = {
     lahari: 1,
@@ -347,7 +392,12 @@ export function calculateHoroscope(data: IHoroscope, planetaryOrbs: Record<strin
     const ascNakshatra = getNakshatraId(positions.La.nakshatra.name);
     const ascPada = positions.La.nakshatra.pada;
 
-    const nakshatraLords = [9, 6, 7, 1, 2, 3, 4, 7, 5, 9, 6, 7, 1, 2, 3, 4, 7, 5, 9, 6, 7, 1, 2, 3, 4, 7, 5];
+    // Vimshottari Nakshatra lords follow the cycle: Ketu(9), Venus(6), Sun(1), Moon(2),
+    // Mars(3), Rahu(8), Jupiter(5), Saturn(7), Mercury(4) — repeating every 9 nakshatras.
+    // Derived from VIMSHOTTARI_CYCLE to stay in sync.
+    const nakshatraLords = Array.from({ length: 27 }, (_, i) => VIMSHOTTARI_CYCLE[i % 9].planet);
+
+    const dashas = calculateDashas(positions.Mo.longitude, moonNakshatra, nakshatraLords[moonNakshatra - 1], birthDate);
 
     return {
         ascendant,
@@ -357,18 +407,7 @@ export function calculateHoroscope(data: IHoroscope, planetaryOrbs: Record<strin
             moonNakshatra: { id: moonNakshatra, pada: moonPada, lord: nakshatraLords[moonNakshatra - 1] },
             ascendantNakshatra: { id: ascNakshatra, pada: ascPada, lord: nakshatraLords[ascNakshatra - 1] },
         },
-        dashas: {
-            mahadasha: [
-                {
-                    planet: 1,
-                    startDate: new Date(year - 6, 0, 1).toISOString().split("T")[0],
-                    endDate: new Date(year, 0, 1).toISOString().split("T")[0],
-                    durationYears: 6,
-                    antardasha: [],
-                },
-            ],
-            currentPeriod: { mahadashaLord: 5, antardashaLord: 6 },
-        },
+        dashas,
         lord22ndDrekkana: computeDrekkanaLord(ascSign, ascLong % 30),
         lord64thNavamsa: computeNavamsaLord(planetDetails),
         badhakaPlanet: computeBadhaka(ascSign),
@@ -466,4 +505,394 @@ function computeAtmakaraka(planets: Planet[]): number {
         }
     }
     return atmakaraka;
+}
+
+function addYearsToDate(date: Date, years: number): Date {
+    const d = new Date(date);
+    const y = Math.floor(years);
+    const rem = years - y;
+    const m = Math.floor(rem * 12);
+    const days = Math.round((rem * 12 - m) * 30);
+    d.setFullYear(d.getFullYear() + y);
+    if (m > 0) d.setMonth(d.getMonth() + m);
+    if (days > 0) d.setDate(d.getDate() + days);
+    return d;
+}
+
+function addMonthsToDate(date: Date, months: number): Date {
+    const d = new Date(date);
+    d.setMonth(d.getMonth() + Math.floor(months));
+    return d;
+}
+
+function addDaysToDate(date: Date, days: number): Date {
+    const d = new Date(date);
+    d.setDate(d.getDate() + days);
+    return d;
+}
+
+function addHoursToDate(date: Date, hours: number): Date {
+    const d = new Date(date);
+    d.setHours(d.getHours() + hours);
+    return d;
+}
+
+function toISODate(date: Date): string {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, "0");
+    const d = String(date.getDate()).padStart(2, "0");
+    return `${y}-${m}-${d}`;
+}
+
+function toISODatetime(date: Date): string {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, "0");
+    const d = String(date.getDate()).padStart(2, "0");
+    const h = String(date.getHours()).padStart(2, "0");
+    const min = String(date.getMinutes()).padStart(2, "0");
+    const s = String(date.getSeconds()).padStart(2, "0");
+    return `${y}-${m}-${d}T${h}:${min}:${s}`;
+}
+
+function yearsBetween(from: Date, to: Date): number {
+    const diffMs = to.getTime() - from.getTime();
+    return +(diffMs / (365.25 * 24 * 60 * 60 * 1000)).toFixed(4);
+}
+
+function getStartPlanetIndex(planet: number): number {
+    return PLANET_TO_CYCLE_INDEX[planet] ?? 0;
+}
+
+function getPlanetYears(planet: number): number {
+    const entry = VIMSHOTTARI_CYCLE.find((e) => e.planet === planet);
+    return entry?.years ?? 0;
+}
+
+function getCyclePlanets(startIndex: number, count: number): number[] {
+    const result: number[] = [];
+    for (let i = 0; i < count; i++) {
+        result.push(VIMSHOTTARI_CYCLE[(startIndex + i) % 9].planet);
+    }
+    return result;
+}
+
+function fractionToDays(fractionOfYear: number): number {
+    return Math.round(fractionOfYear * 365.25);
+}
+
+function fractionToMonths(fractionOfYear: number): number {
+    return Math.round(fractionOfYear * 12);
+}
+
+function yearsToDays(years: number): number {
+    return Math.round(years * 365.25);
+}
+
+function computeSubPeriods(
+    yearsTotal: number,
+    startDate: Date,
+    lordPlanet: number,
+    maxDepth: number,
+    birthDate: Date,
+    adStartOffset: number = 0,
+    fullYearsForProportion?: number,
+): { antardasha: Antardasha[]; vidasa: Vidasa[]; sukshama: Sukshama[]; prana: Prana[] } {
+    const proportionYears = fullYearsForProportion ?? yearsTotal;
+    const fullAdPlanets = getCyclePlanets(getStartPlanetIndex(lordPlanet), 9);
+    const adPlanets =
+        adStartOffset === 0
+            ? fullAdPlanets
+            : [...fullAdPlanets.slice(adStartOffset), ...fullAdPlanets.slice(0, adStartOffset)];
+    const endDate = addYearsToDate(new Date(startDate), yearsTotal);
+
+    // Pre-compute all 9 AD full-proportion durations
+    const fullAdDurations: number[] = [];
+    for (let ai = 0; ai < 9; ai++) {
+        const adLord = fullAdPlanets[ai];
+        fullAdDurations.push((proportionYears * getPlanetYears(adLord)) / TOTAL_VIMSHOTTARI_YEARS);
+    }
+
+    const adList: Antardasha[] = [];
+    let currentDate = new Date(startDate);
+
+    for (let ai = 0; ai < adPlanets.length; ai++) {
+        const adLord = adPlanets[ai];
+        const adFullDuration = fullAdDurations[(adStartOffset + ai) % 9];
+        const remainingFromStart = yearsBetween(currentDate, endDate);
+
+        if (remainingFromStart <= 0.0001) break;
+
+        if (ai === adPlanets.length - 1) {
+            // Last AD fills to parent end
+            const adStart = new Date(currentDate);
+            const adStartAge = yearsBetween(birthDate, adStart);
+            adList.push({
+                planet: adLord,
+                startDate: toISODate(adStart),
+                endDate: toISODate(endDate),
+                durationMonths: Math.round(yearsBetween(adStart, endDate) * 12),
+                vidasa: [],
+                startAge: adStartAge,
+            });
+            break;
+        }
+
+        // First AD (containing birth): start = birth, end = theoretical end or capped
+        let adEnd: Date;
+        if (ai === 0) {
+            const theoreticalEnd = addYearsToDate(new Date(startDate), adFullDuration);
+            adEnd = theoreticalEnd < endDate ? theoreticalEnd : new Date(endDate);
+        } else {
+            const actualDuration = Math.min(adFullDuration, remainingFromStart);
+            adEnd = addYearsToDate(new Date(currentDate), actualDuration);
+            if (adEnd > endDate) adEnd = new Date(endDate);
+        }
+
+        const adStart = new Date(currentDate);
+        const adDurationYears = yearsBetween(adStart, adEnd);
+        const adMonths = Math.round(adDurationYears * 12);
+
+        if (adMonths < 1) {
+            currentDate = new Date(adEnd);
+            continue;
+        }
+
+        const adStartAge = yearsBetween(birthDate, adStart);
+        const adYears = adFullDuration;
+
+        const vidasaList: Vidasa[] = [];
+        if (maxDepth >= 3) {
+            let vdDate = new Date(adStart);
+
+            for (let vi = 0; vi < 9; vi++) {
+                const vdLord = adPlanets[(ai + vi) % 9];
+                const vdYears = (adYears * getPlanetYears(vdLord)) / TOTAL_VIMSHOTTARI_YEARS;
+                const vdDays = fractionToDays(vdYears);
+
+                if (vdDays < 1 && vi < 8) continue;
+
+                const vdStart = new Date(vdDate);
+                let vdEnd: Date;
+
+                if (vi === 8) {
+                    vdEnd = new Date(adEnd);
+                } else {
+                    vdEnd = addDaysToDate(vdStart, vdDays);
+                }
+
+                const sukshamaList: Sukshama[] = [];
+                if (maxDepth >= 4) {
+                    let skDate = new Date(vdStart);
+
+                    for (let si = 0; si < 9; si++) {
+                        const skLord = adPlanets[(ai + vi + si) % 9];
+                        const skYears = (vdYears * getPlanetYears(skLord)) / TOTAL_VIMSHOTTARI_YEARS;
+                        const skDays = fractionToDays(skYears);
+
+                        if (skDays < 1 && si < 8) continue;
+
+                        const skStart = new Date(skDate);
+                        let skEnd: Date;
+
+                        if (si === 8) {
+                            skEnd = new Date(vdEnd);
+                        } else {
+                            skEnd = addDaysToDate(skStart, skDays);
+                        }
+
+                        const pranaList: Prana[] = [];
+                        if (maxDepth >= 5) {
+                            let prDate = new Date(skStart);
+
+                            for (let pi = 0; pi < 9; pi++) {
+                                const prLord = adPlanets[(ai + vi + si + pi) % 9];
+                                const prYears = (skYears * getPlanetYears(prLord)) / TOTAL_VIMSHOTTARI_YEARS;
+                                const prHours = Math.round(prYears * 365.25 * 24);
+
+                                if (prHours < 1 && pi < 8) continue;
+
+                                const prStart = new Date(prDate);
+                                let prEnd: Date;
+
+                                if (pi === 8) {
+                                    prEnd = new Date(skEnd);
+                                } else {
+                                    prEnd = addHoursToDate(prStart, prHours);
+                                }
+
+                                pranaList.push({
+                                    planet: prLord,
+                                    startDate: toISODatetime(prStart),
+                                    endDate: toISODatetime(prEnd),
+                                    durationHours: prHours,
+                                    startAge: yearsBetween(birthDate, prStart),
+                                });
+
+                                prDate = new Date(prEnd);
+                            }
+                        }
+
+                        sukshamaList.push({
+                            planet: skLord,
+                            startDate: toISODate(skStart),
+                            endDate: toISODate(skEnd),
+                            durationDays: skDays,
+                            prana: pranaList,
+                            startAge: yearsBetween(birthDate, skStart),
+                        });
+
+                        skDate = new Date(skEnd);
+                    }
+                }
+
+                vidasaList.push({
+                    planet: vdLord,
+                    startDate: toISODate(vdStart),
+                    endDate: toISODate(vdEnd),
+                    durationDays: vdDays,
+                    sukshama: sukshamaList,
+                    startAge: yearsBetween(birthDate, vdStart),
+                });
+
+                vdDate = new Date(vdEnd);
+            }
+        }
+
+        adList.push({
+            planet: adLord,
+            startDate: toISODate(adStart),
+            endDate: toISODate(adEnd),
+            durationMonths: adMonths,
+            vidasa: vidasaList,
+            startAge: yearsBetween(birthDate, adStart),
+        });
+
+        currentDate = new Date(adEnd);
+    }
+
+    return { antardasha: adList, vidasa: [], sukshama: [], prana: [] };
+}
+
+export function calculateDashas(
+    moonLongitude: number,
+    moonNakshatraId: number,
+    moonNakshatraLord: number,
+    birthDate: Date,
+): DashaInfo {
+    const nakshatraSpan = 360 / 27;
+    const nakshatraStartDeg = (moonNakshatraId - 1) * nakshatraSpan;
+    const degInNakshatra = moonLongitude - nakshatraStartDeg;
+    const remainingDeg = nakshatraSpan - degInNakshatra;
+    const balanceFraction = remainingDeg / nakshatraSpan;
+
+    const firstLordFullYears = getPlanetYears(moonNakshatraLord);
+    const remainingYearsAtBirth = +(firstLordFullYears * balanceFraction).toFixed(4);
+
+    const startIndex = getStartPlanetIndex(moonNakshatraLord);
+
+    const mahadashaList: Mahadasha[] = [];
+    let currentDate = new Date(birthDate);
+
+    for (let mi = 0; mi < 9; mi++) {
+        const planet = VIMSHOTTARI_CYCLE[(startIndex + mi) % 9].planet;
+        const fullYears = getPlanetYears(planet);
+
+        let currentYears: number;
+        if (mi === 0) {
+            currentYears = remainingYearsAtBirth;
+        } else {
+            currentYears = fullYears;
+        }
+
+        const mdStart = new Date(currentDate);
+        const mdEnd = addYearsToDate(mdStart, currentYears);
+
+        // For the first MD (remaining balance), find which AD is running at birth
+        // by computing where the elapsed portion falls in the full AD sequence
+        let adStartOffset = 0;
+        if (mi === 0 && remainingYearsAtBirth < fullYears) {
+            const elapsedBeforeBirth = fullYears - remainingYearsAtBirth;
+            let cum = 0;
+            for (let ai = 0; ai < 9; ai++) {
+                const adPlanet = VIMSHOTTARI_CYCLE[(getStartPlanetIndex(planet) + ai) % 9].planet;
+                const adFullYears = (fullYears * getPlanetYears(adPlanet)) / TOTAL_VIMSHOTTARI_YEARS;
+                cum += adFullYears;
+                if (cum > elapsedBeforeBirth) {
+                    adStartOffset = ai;
+                    break;
+                }
+            }
+        }
+
+        const result = computeSubPeriods(
+            currentYears,
+            mdStart,
+            planet,
+            4,
+            birthDate,
+            adStartOffset,
+            mi === 0 ? fullYears : undefined,
+        );
+
+        mahadashaList.push({
+            planet,
+            startDate: toISODate(mdStart),
+            endDate: toISODate(mdEnd),
+            durationYears: currentYears,
+            remainingYearsAtBirth: mi === 0 ? remainingYearsAtBirth : 0,
+            antardasha: result.antardasha,
+            startAge: yearsBetween(birthDate, mdStart),
+        });
+
+        currentDate = new Date(mdEnd);
+    }
+
+    const now = new Date();
+    const currentPeriod: CurrentPeriod = {
+        mahadashaLord: mahadashaList[0].planet,
+        antardashaLord: mahadashaList[0].antardasha[0]?.planet ?? mahadashaList[0].planet,
+        vidasaLord: null,
+        sukshamaLord: null,
+        pranaLord: null,
+    };
+
+    for (const md of mahadashaList) {
+        if (now >= new Date(md.startDate) && now < new Date(md.endDate)) {
+            currentPeriod.mahadashaLord = md.planet;
+
+            for (const ad of md.antardasha) {
+                if (now >= new Date(ad.startDate) && now < new Date(ad.endDate)) {
+                    currentPeriod.antardashaLord = ad.planet;
+
+                    for (const vd of ad.vidasa) {
+                        if (now >= new Date(vd.startDate) && now < new Date(vd.endDate)) {
+                            currentPeriod.vidasaLord = vd.planet;
+
+                            for (const sk of vd.sukshama) {
+                                if (now >= new Date(sk.startDate) && now < new Date(sk.endDate)) {
+                                    currentPeriod.sukshamaLord = sk.planet;
+
+                                    for (const pr of sk.prana) {
+                                        if (now >= new Date(pr.startDate) && now < new Date(pr.endDate)) {
+                                            currentPeriod.pranaLord = pr.planet;
+                                            break;
+                                        }
+                                    }
+                                    break;
+                                }
+                            }
+                            break;
+                        }
+                    }
+                    break;
+                }
+            }
+            break;
+        }
+    }
+
+    return {
+        mahadasha: mahadashaList,
+        currentPeriod,
+    };
 }

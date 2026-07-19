@@ -11,6 +11,7 @@ export default function NewHoroscopePage() {
     const router = useRouter();
     const { t } = useI18n();
     const [loading, setLoading] = useState(false);
+    const [birthDate, setBirthDate] = useState("");
     const [lat, setLat] = useState("");
     const [lng, setLng] = useState("");
     const [locationLabel, setLocationLabel] = useState("");
@@ -37,7 +38,7 @@ export default function NewHoroscopePage() {
         const form = new FormData(e.currentTarget);
         const data = {
             name: form.get("name"),
-            birthDate: form.get("birthDate"),
+            birthDate,
             birthTime: form.get("birthTime"),
             location: locationLabel,
             latitude: parseFloat(lat) || 0,
@@ -80,9 +81,11 @@ export default function NewHoroscopePage() {
                     <div>
                         <label className="block text-sm font-medium mb-1">{t("horoscope.birthDate")}</label>
                         <input
-                            name="birthDate"
                             type="date"
+                            value={birthDate}
+                            onChange={(e) => setBirthDate(e.target.value)}
                             required
+                            lang="sv"
                             className="w-full border rounded px-3 py-2 text-sm"
                         />
                     </div>

@@ -5,6 +5,8 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
+import { formatDate } from "@/lib/date";
+
 export default function SearchPage() {
     const { data: session, status } = useSession();
     const router = useRouter();
@@ -135,9 +137,7 @@ export default function SearchPage() {
                                             <h3 className="font-semibold">{(r.horoscope as { name: string }).name}</h3>
                                             <p className="text-sm text-gray-500">
                                                 {(r.horoscope as { birthDate?: string }).birthDate
-                                                    ? new Date(
-                                                          (r.horoscope as { birthDate: string }).birthDate,
-                                                      ).toLocaleDateString()
+                                                    ? formatDate((r.horoscope as { birthDate: string }).birthDate)
                                                     : ""}
                                             </p>
                                         </div>

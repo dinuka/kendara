@@ -190,6 +190,24 @@ Horoscope Detail → Click "Export" →
 
 ---
 
+### Flow 9: View Dasha Timeline
+
+```
+Horoscope Detail → Navigate to Dashas tab/section →
+  → Dasha timeline loads from calculatedDetails.dashas →
+  → Client detects current date → matches against period date ranges →
+  → Summary bar appears: "Current Period" badge chain →
+  → Mahadasha list renders as nested accordion →
+  → Currently active Mahadasha is auto-expanded → reveals Antardasha periods →
+  → Currently active Antardasha is auto-expanded → reveals Vidasa periods →
+  → Currently active Vidasa is auto-expanded → reveals Sukshama periods →
+  → Currently active Sukshama is auto-expanded → reveals Prana periods (if any) →
+  → Active periods highlighted with left-border accent + "Active" badge →
+  → User expands/collapses periods at any level to explore →
+  → User clicks Current Period badge → scrolls to that period in accordion →
+  → Smooth CSS animations on expand/collapse
+```
+
 ## Responsive Breakpoints
 
 | Breakpoint | Width | Layout |
@@ -233,6 +251,18 @@ Horoscope Detail → Click "Export" →
 - Close: Click outside, X button, Escape key
 - Focus trap: First focusable element receives focus
 
+### Nested Accordion (Dasha Timeline)
+
+- **Tab**: Move focus through accordion headers (tree items)
+- **Enter/Space**: Expand or collapse the focused period
+- **Up/Down arrows**: Navigate between periods at the same hierarchy level
+- **Left arrow**: Collapse the focused period (if expanded); move to parent (if collapsed)
+- **Right arrow**: Expand the focused period (if collapsed); move to first child (if expanded)
+- **Escape**: Collapse the deepest expanded level in the active chain
+- **Home**: Jump to the first period at the top level
+- **End**: Jump to the last period at the top level
+- ARIA: `role="tree"` on container, `role="treeitem"` on each period, `aria-expanded` on toggle, `aria-current="true"` on active period
+
 ### Loading States
 
 | State | Pattern |
@@ -251,6 +281,13 @@ Horoscope Detail → Click "Export" →
 | No search results | "No horoscopes match your query." | "ඔබේ සෙවුමට ගැළපෙන ලග්න නැත." | Adjust query suggestion |
 | No metadata | "No metadata added yet." | "තවම මෙටාඩේටා එකතු කර නැත." | "Add Metadata" button |
 | No saved filters | "No saved searches yet." | "තවම සුරැකුම් පෙරහන් නැත." | "Save a search" prompt |
+<<<<<<< Updated upstream
+=======
+| No saved locations | "No saved locations yet. Add your first one!" | "තවම සුරැකි ස්ථාන නැත. ඔබේ පළමු ස්ථානය එකතු කරන්න!" | "Add Location" button |
+| No locations match search | "No locations match your search." | "ඔබේ සෙවුමට ගැළපෙන ස්ථාන නැත." | Clear search suggestion |
+| Dasha data not available | "Dasha data not available." | "දශා දත්ත නොමැත." | (No action — inline message only) |
+| Birth details incomplete for dashas | "Complete birth details to calculate dashas." | "දශා ගණනය කිරීමට උපන් තොරතුරු සම්පූර්ණ කරන්න." | Link to edit horoscope |
+>>>>>>> Stashed changes
 
 ---
 
