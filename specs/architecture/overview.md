@@ -32,8 +32,6 @@
 │  ┌─────────────────────┐  ┌──────────┴───────────────────┐  │
 │  │  Metadata Service   │  │  Share/Export Service        │  │
 │  └─────────────────────┘  └──────────────────────────────┘  │
-<<<<<<< Updated upstream
-=======
 │  ┌─────────────────────┐                                     │
 │  │  Location Service   │                                     │
 │  │  (Geocoding, CRUD,  │                                     │
@@ -43,7 +41,6 @@
 │  │  Dasha Calculation  │                                     │
 │  │  Engine             │                                     │
 │  └─────────────────────┘                                     │
->>>>>>> Stashed changes
 └─────────────┼────────────────────────────────────────────────┘
               │
 ┌─────────────┼────────────────────────────────────────────────┐
@@ -79,18 +76,21 @@
 ## Key Architecture Decisions
 
 ### 1. Offline-First Astrology Calculations
+
 - All ephemeris and astrological calculations run locally using **jyotish-calculations** (built on Swiss Ephemeris via swisseph)
 - No external astrology API calls — ensures privacy, zero cost, offline capability
 - Calculations run on the server during horoscope creation (Node.js/Next.js API routes)
 - Embedding generation for RAG search runs asynchronously as a background job — horoscope creation returns immediately, embedding is queued and processed offline
 
 ### 2. RAG-Based Search Pipeline
+
 - Horoscope data is converted to text descriptions and embedded as vectors using **Transformers.js** (@xenova/transformers) — runs locally in Node.js
 - Search queries are parsed by a free online LLM (**Gemini API** — generous free tier, strong Sinhala support) into structured astrological conditions
 - Embeddings stored and searched in **Qdrant** via its JS client library
 - Hybrid approach: Qdrant vector similarity + MongoDB structured filter for precise astrological conditions
 
 ### 3. Bilingual Support (Sinhala/English)
+
 - Astrological terms stored as numeric enums — display names mapped per language
 - UI text via next-intl with ICU message format
 - Search queries handled in both languages via the RAG pipeline
@@ -98,6 +98,7 @@
 ## Data Flows
 
 ### Add Horoscope Flow
+
 ```
 User → Submit Birth Details → Server Validates →
   → Geocode Location (from location name → auto-populate Lat/Lon) →
@@ -113,6 +114,7 @@ User → Submit Birth Details → Server Validates →
 ```
 
 ### Search Flow
+
 ```
 User → Enter Natural Language Query (SI/EN) →
   → RAG Pipeline:
@@ -126,6 +128,7 @@ User → Enter Natural Language Query (SI/EN) →
 ```
 
 ### View Dasha Timeline Flow
+
 ```
 User → Open Horoscope Detail →
   → Dasha section loads nested JSON from calculatedDetails.dashas →
@@ -137,6 +140,7 @@ User → Open Horoscope Detail →
 ```
 
 ### Authentication Flow
+
 ```
 User → Click "Login with Google" →
   → Google OAuth → Callback →
@@ -148,6 +152,7 @@ User → Click "Login with Google" →
 ## API Route Design
 
 ### Authentication
+
 | Method | Route | Description |
 |--------|-------|-------------|
 | POST | /api/auth/signin | Google SSO sign-in |
@@ -155,6 +160,7 @@ User → Click "Login with Google" →
 | GET | /api/auth/session | Get current session |
 
 ### Horoscope
+
 | Method | Route | Description |
 |--------|-------|-------------|
 | GET | /api/horoscope | List user's + public horoscopes |
@@ -166,6 +172,7 @@ User → Click "Login with Google" →
 | GET | /api/horoscope/:id/dasha | Get dasha timeline data (returns dashas JSON from CalculatedDetails) — optional standalone endpoint; data also available via GET /api/horoscope/:id |
 
 ### Search
+
 | Method | Route | Description |
 |--------|-------|-------------|
 | POST | /api/search | Search horoscopes (RAG + structured) |
@@ -173,6 +180,7 @@ User → Click "Login with Google" →
 | POST | /api/search/filter | Save a filter configuration |
 
 ### Chart
+
 | Method | Route | Description |
 |--------|-------|-------------|
 | GET | /api/horoscope/:id/chart | Get all charts for horoscope |
@@ -181,6 +189,7 @@ User → Click "Login with Google" →
 | GET | /api/horoscope/:id/export/chart/:type | Export chart as image |
 
 ### Metadata
+
 | Method | Route | Description |
 |--------|-------|-------------|
 | GET | /api/horoscope/:id/metadata | Get metadata |
@@ -189,6 +198,7 @@ User → Click "Login with Google" →
 | DELETE | /api/horoscope/:id/metadata/:metaId | Delete metadata |
 
 ### Share
+
 | Method | Route | Description |
 |--------|-------|-------------|
 | POST | /api/horoscope/:id/share | Generate share link |
@@ -196,6 +206,7 @@ User → Click "Login with Google" →
 | GET | /api/share/:token | Access shared horoscope |
 
 ### Admin
+
 | Method | Route | Description |
 |--------|-------|-------------|
 | GET | /api/admin/horoscope | List all horoscopes |
@@ -209,6 +220,7 @@ User → Click "Login with Google" →
 ### MongoDB Collections
 
 **users**
+
 ```
 {
   id: UUID (string),
@@ -223,6 +235,7 @@ User → Click "Login with Google" →
 ```
 
 **horoscopes**
+
 ```
 {
   id: UUID (string),
@@ -243,6 +256,7 @@ User → Click "Login with Google" →
 ```
 
 **calculatedDetails**
+
 ```
 {
   id: UUID (string),
@@ -303,6 +317,7 @@ User → Click "Login with Google" →
 ```
 
 **charts**
+
 ```
 {
   id: UUID (string),
@@ -315,6 +330,7 @@ User → Click "Login with Google" →
 ```
 
 **metadata**
+
 ```
 {
   id: UUID (string),
@@ -329,6 +345,7 @@ User → Click "Login with Google" →
 ```
 
 **shareLinks**
+
 ```
 {
   id: UUID (string),
@@ -340,6 +357,7 @@ User → Click "Login with Google" →
 ```
 
 **savedFilters**
+
 ```
 {
   id: UUID (string),
@@ -351,19 +369,18 @@ User → Click "Login with Google" →
 ```
 
 ### Indexes
+
 - users: { googleId: 1 } (unique)
 - horoscopes: { "owner.id": 1 }, { isPublic: 1 }, { createdAt: -1 }
 - calculatedDetails: { "horoscope.id": 1 } (unique)
 - charts: { "horoscope.id": 1 }
 - metadata: { "horoscope.id": 1 }, { key: 1 }
 - shareLinks: { token: 1 } (unique)
-<<<<<<< Updated upstream
-=======
 - locations: { "createdBy.id": 1 }, { isPublic: 1 }, { name: "text" }
 - calculatedDetails: { "dashas.currentPeriod.mahadashaLord": 1 } (for querying by current dasha lord)
->>>>>>> Stashed changes
 
 ## Security Considerations
+
 - Google SSO only — no password authentication
 - JWT tokens with expiry for API authentication
 - MongoDB access control for data isolation
@@ -374,6 +391,7 @@ User → Click "Login with Google" →
 - CORS configured for frontend domain only
 
 ## Performance Considerations
+
 - Vector search index (HNSW in Qdrant) for fast similarity search
 - Chart data cached after initial calculation
 - Horoscope calculation runs asynchronously with progress indication

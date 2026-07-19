@@ -12,8 +12,8 @@
     "nav": {
         "dashboard": "මුල් පිටුව",
         "addHoroscope": "කේන්දරයක් එක් කරන්න",
-        "horoscopes": "ලග්න එකතු",
-        "newHoroscope": "නව ලග්න",
+        "horoscopes": "කේන්දර",
+        "newHoroscope": "නව කේන්දරයක්",
         "search": "සොයන්න",
         "settings": "සැකසුම්",
         "admin": "පරිපාලන",
@@ -194,9 +194,6 @@
             "26": "උත්‍රපුටුප",
             "27": "රේවතී"
         },
-<<<<<<< Updated upstream
-        "padaFormat": "{pada} වෙනි පාදය"
-=======
         "padaFormat": "{pada} වෙනි පාදය",
         "viewDetails": "විස්තර බලන්න",
         "less": "අඩුවෙන්"
@@ -267,7 +264,6 @@
     "quick_add": {
         "title": "ඉක්මන් ස්ථාන එකතු කිරීම",
         "add_and_select": "එකතු කර තෝරන්න"
->>>>>>> Stashed changes
     },
     "common": {
         "loading": "පූරණය වෙමින්...",

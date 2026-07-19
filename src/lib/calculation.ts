@@ -3,9 +3,6 @@ import swisseph from "swisseph-v2";
 
 import { IHoroscope } from "@/models/Horoscope";
 
-<<<<<<< Updated upstream
-import { Ascendant, Aspect, CalculationResult, House, Planet } from "@/lib/astrology";
-=======
 import {
     Antardasha,
     Ascendant,
@@ -22,7 +19,6 @@ import {
     navamsaSign,
 } from "@/lib/astrology";
 import { PlanetaryStrength } from "@/lib/astrologyEnums";
->>>>>>> Stashed changes
 import logger from "@/lib/logger";
 
 const GRAHA_MAP: Record<string, number> = {
@@ -353,8 +349,8 @@ export function calculateHoroscope(data: IHoroscope, planetaryOrbs: Record<strin
             i === 0
                 ? false
                 : Math.abs(planetDetails[i].absoluteDegree - sunLong) < sunOrb ||
-                  Math.abs(planetDetails[i].absoluteDegree - sunLong + 360) < sunOrb ||
-                  Math.abs(planetDetails[i].absoluteDegree - sunLong - 360) < sunOrb;
+                Math.abs(planetDetails[i].absoluteDegree - sunLong + 360) < sunOrb ||
+                Math.abs(planetDetails[i].absoluteDegree - sunLong - 360) < sunOrb;
 
         const aspects: Aspect[] = [];
         for (let j = 0; j < planetDetails.length; j++) {

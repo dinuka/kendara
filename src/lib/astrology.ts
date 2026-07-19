@@ -1,5 +1,3 @@
-<<<<<<< Updated upstream
-=======
 import { PlanetaryStrength } from "./astrologyEnums";
 
 export const PLANET_SYMBOLS: Record<number, string> = {
@@ -62,7 +60,6 @@ export function formatDayDuration(days: number): string {
     return formatDashaDuration(0, 0, d);
 }
 
->>>>>>> Stashed changes
 export function formatDegree(deg: number): string {
     const totalVikala = Math.round(deg * 3600);
     const anshaka = Math.floor(totalVikala / 3600);

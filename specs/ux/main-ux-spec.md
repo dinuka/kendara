@@ -218,6 +218,7 @@ Horoscope Detail → Navigate to Dashas tab/section →
 | Wide | > 1440px | Extended sidebar, max-width content |
 
 ### Mobile Considerations
+
 - Sidebar collapses to bottom tab bar or hamburger menu
 - Chart views stack vertically
 - Config panel becomes a slide-up sheet
@@ -225,6 +226,7 @@ Horoscope Detail → Navigate to Dashas tab/section →
 - Forms use full-width inputs
 
 ### Bilingual (Sinhala) Considerations
+
 - Sinhala text is typically 15-20% wider than English — use `min-width` on labels
 - Sinhala numerals not used — Western numerals for all data
 - Sinhala font loading: preload Noto Sans Sinhala weights 400, 600
@@ -281,13 +283,10 @@ Horoscope Detail → Navigate to Dashas tab/section →
 | No search results | "No horoscopes match your query." | "ඔබේ සෙවුමට ගැළපෙන ලග්න නැත." | Adjust query suggestion |
 | No metadata | "No metadata added yet." | "තවම මෙටාඩේටා එකතු කර නැත." | "Add Metadata" button |
 | No saved filters | "No saved searches yet." | "තවම සුරැකුම් පෙරහන් නැත." | "Save a search" prompt |
-<<<<<<< Updated upstream
-=======
 | No saved locations | "No saved locations yet. Add your first one!" | "තවම සුරැකි ස්ථාන නැත. ඔබේ පළමු ස්ථානය එකතු කරන්න!" | "Add Location" button |
 | No locations match search | "No locations match your search." | "ඔබේ සෙවුමට ගැළපෙන ස්ථාන නැත." | Clear search suggestion |
 | Dasha data not available | "Dasha data not available." | "දශා දත්ත නොමැත." | (No action — inline message only) |
 | Birth details incomplete for dashas | "Complete birth details to calculate dashas." | "දශා ගණනය කිරීමට උපන් තොරතුරු සම්පූර්ණ කරන්න." | Link to edit horoscope |
->>>>>>> Stashed changes
 
 ---
 

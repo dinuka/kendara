@@ -1,25 +1,17 @@
 "use client";
 
-<<<<<<< Updated upstream
-=======
 import { BirthChart } from "@/components/BirthChart";
 import ConfirmDeleteModal from "@/components/ConfirmDeleteModal";
 import DashaSection from "@/components/Dasha/DashaSection";
 import { HouseChart } from "@/components/HouseChart";
->>>>>>> Stashed changes
 import { useI18n } from "@/hooks/useI18n";
 import { useSession } from "next-auth/react";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
-<<<<<<< Updated upstream
-import type { Ascendant, House, Planet } from "@/lib/astrology";
-import { formatDegree } from "@/lib/astrology";
-=======
 import type { Ascendant, Dashas, House, Planet } from "@/lib/astrology";
 import { formatDegree, navamsaSign } from "@/lib/astrology";
 import { PlanetaryStrength } from "@/lib/astrologyEnums";
->>>>>>> Stashed changes
 import { ALL_CHART_TYPES, ChartType } from "@/lib/chartTypes";
 import { formatDate } from "@/lib/date";
 
@@ -79,8 +71,6 @@ export default function HoroscopeDetailPage() {
         1: 15, 2: 12, 3: 8, 4: 7, 5: 9, 6: 7, 7: 9, 8: 0, 9: 0,
     });
 
-<<<<<<< Updated upstream
-=======
     const [confirmDelete, setConfirmDelete] = useState(false);
     const [deleting, setDeleting] = useState(false);
     const [deleteError, setDeleteError] = useState<string | null>(null);
@@ -88,7 +78,6 @@ export default function HoroscopeDetailPage() {
     const [expandedHouses, setExpandedHouses] = useState<Set<number>>(new Set());
     const [expandedPlanets, setExpandedPlanets] = useState<Set<number>>(new Set());
 
->>>>>>> Stashed changes
     useEffect(() => {
         if (status === "unauthenticated") {
             router.push("/signin");
@@ -115,7 +104,7 @@ export default function HoroscopeDetailPage() {
                     setOrbMap(parsed);
                 }
             })
-            .catch(() => {});
+            .catch(() => { });
     }, [status, params.id, router]);
 
     if (loading || status === "loading") {
@@ -208,17 +197,11 @@ export default function HoroscopeDetailPage() {
             <div className="flex justify-between items-start mb-6">
                 <div>
                     <h1 className="text-2xl font-bold">{horoscope.name}</h1>
-<<<<<<< Updated upstream
-                    <p className="text-sm text-gray-500">
-                        {new Date(horoscope.birthDate).toLocaleDateString()} {horoscope.birthTime} |{" "}
-                        {horoscope.location || `${horoscope.latitude}, ${horoscope.longitude}`}
-=======
                     <p className="text-sm text-gray-500 truncate" title={horoscope.locationName || undefined}>
                         {formatDate(horoscope.birthDate)} {horoscope.birthTime} |{" "}
                         {horoscope.locationName
                             ? horoscope.locationName
                             : `${horoscope.latitude}, ${horoscope.longitude}`}
->>>>>>> Stashed changes
                     </p>
                 </div>
                 <div className="flex gap-2">
@@ -261,251 +244,257 @@ export default function HoroscopeDetailPage() {
                         </>
                     )}
                 </div>
-            </div>
+            </div >
 
             <div className="flex gap-1 mb-6 border-b">
                 {tabs.map((tab) => (
                     <button
                         key={tab.id}
                         onClick={() => setActiveTab(tab.id)}
-                        className={`px-4 py-2 text-sm border-b-2 transition-colors ${
-                            activeTab === tab.id
-                                ? "border-indigo-600 text-indigo-600"
-                                : "border-transparent text-gray-500 hover:text-gray-700"
-                        }`}
+                        className={`px-4 py-2 text-sm border-b-2 transition-colors ${activeTab === tab.id
+                            ? "border-indigo-600 text-indigo-600"
+                            : "border-transparent text-gray-500 hover:text-gray-700"
+                            }`}
                     >
                         {tab.label}
                     </button>
                 ))}
             </div>
 
-            {activeTab === "charts" && (
-                <div>
-                    <div className="flex gap-2 mb-4 flex-wrap">
-                        {chartTypes.map((type) => (
-                            <button
-                                key={type}
-                                onClick={() => setSelectedChart(type)}
-                                className={`text-xs px-3 py-1.5 border rounded capitalize transition-colors ${
-                                    selectedChart === type
+            {
+                activeTab === "charts" && (
+                    <div>
+                        <div className="flex gap-2 mb-4 flex-wrap">
+                            {chartTypes.map((type) => (
+                                <button
+                                    key={type}
+                                    onClick={() => setSelectedChart(type)}
+                                    className={`text-xs px-3 py-1.5 border rounded capitalize transition-colors ${selectedChart === type
                                         ? "bg-indigo-600 text-white border-indigo-600"
                                         : "hover:bg-gray-50"
-                                }`}
-                            >
-                                {type.replace(/-/g, " ")}
-                            </button>
-                        ))}
-                    </div>
-                    {(() => {
-                        const chart = charts.find((c) => c.type === selectedChart);
-                        if (!chart || !chart.svgData) {
+                                        }`}
+                                >
+                                    {type.replace(/-/g, " ")}
+                                </button>
+                            ))}
+                        </div>
+                        {(() => {
+                            const chart = charts.find((c) => c.type === selectedChart);
+                            if (!chart || !chart.svgData) {
+                                return (
+                                    <div className="bg-white rounded-lg border p-6 text-center text-gray-400 min-h-[300px] flex items-center justify-center">
+                                        <p className="text-sm">{t("astrology.noChartData")}</p>
+                                    </div>
+                                );
+                            }
                             return (
-                                <div className="bg-white rounded-lg border p-6 text-center text-gray-400 min-h-[300px] flex items-center justify-center">
-                                    <p className="text-sm">{t("astrology.noChartData")}</p>
-                                </div>
+                                <div
+                                    className="flex justify-center bg-white rounded-lg border p-4 overflow-auto"
+                                    dangerouslySetInnerHTML={{ __html: chart.svgData }}
+                                />
                             );
-                        }
-                        return (
-                            <div
-                                className="flex justify-center bg-white rounded-lg border p-4 overflow-auto"
-                                dangerouslySetInnerHTML={{ __html: chart.svgData }}
-                            />
-                        );
-                    })()}
-                </div>
-            )}
+                        })()}
+                    </div>
+                )
+            }
 
-            {activeTab === "calculations" && calculatedDetails && (
-                <div className="space-y-6">
-                    <section className="bg-white rounded-lg border p-4">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div className="bg-gray-50 rounded p-3">
-                                <h4 className="font-semibold text-sm text-indigo-700 uppercase tracking-wide mb-2">
-                                    {t("astrology.ascendant")}
-                                </h4>
-                                <p className="text-sm mb-1">
-                                    {getSignName(calculatedDetails.ascendant.sign)} (
-                                    {getPlanetName(calculatedDetails.ascendant.lord)}){" "}
-                                    {formatDegree(calculatedDetails.ascendant.degree)}
-                                </p>
-                                <p className="text-sm text-gray-600">
-                                    {getNakshatraName(calculatedDetails.nakshatra.ascendantNakshatra?.id ?? 0)} (
-                                    {getPlanetName(calculatedDetails.nakshatra.ascendantNakshatra?.lord ?? 0)}){" "}
-                                    {getPadaFormat(calculatedDetails.nakshatra.ascendantNakshatra?.pada ?? 1)}
-                                </p>
+            {
+                activeTab === "calculations" && calculatedDetails && (
+                    <div className="space-y-6">
+                        <section className="bg-white rounded-lg border p-4">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="bg-gray-50 rounded p-3">
+                                    <h4 className="font-semibold text-sm text-indigo-700 uppercase tracking-wide mb-2">
+                                        {t("astrology.ascendant")}
+                                    </h4>
+                                    <p className="text-sm mb-1">
+                                        {getSignName(calculatedDetails.ascendant.sign)} (
+                                        {getPlanetName(calculatedDetails.ascendant.lord)}){" "}
+                                        {formatDegree(calculatedDetails.ascendant.degree)}
+                                    </p>
+                                    <p className="text-sm text-gray-600">
+                                        {getNakshatraName(calculatedDetails.nakshatra.ascendantNakshatra?.id ?? 0)} (
+                                        {getPlanetName(calculatedDetails.nakshatra.ascendantNakshatra?.lord ?? 0)}){" "}
+                                        {getPadaFormat(calculatedDetails.nakshatra.ascendantNakshatra?.pada ?? 1)}
+                                    </p>
+                                </div>
+                                <div className="bg-gray-50 rounded p-3">
+                                    <h4 className="font-semibold text-sm text-indigo-700 uppercase tracking-wide mb-2">
+                                        {t("astrology.nakshatra")}
+                                    </h4>
+                                    <p className="text-sm">
+                                        {getNakshatraName(calculatedDetails.nakshatra.moonNakshatra?.id ?? 0)} (
+                                        {getPlanetName(calculatedDetails.nakshatra.moonNakshatra?.lord ?? 0)}){" "}
+                                        {getPadaFormat(calculatedDetails.nakshatra.moonNakshatra?.pada ?? 1)}
+                                    </p>
+                                </div>
                             </div>
-                            <div className="bg-gray-50 rounded p-3">
-                                <h4 className="font-semibold text-sm text-indigo-700 uppercase tracking-wide mb-2">
-                                    {t("astrology.nakshatra")}
-                                </h4>
-                                <p className="text-sm">
-                                    {getNakshatraName(calculatedDetails.nakshatra.moonNakshatra?.id ?? 0)} (
-                                    {getPlanetName(calculatedDetails.nakshatra.moonNakshatra?.lord ?? 0)}){" "}
-                                    {getPadaFormat(calculatedDetails.nakshatra.moonNakshatra?.pada ?? 1)}
-                                </p>
-                            </div>
-                        </div>
-                    </section>
+                        </section>
 
-                    <section className="bg-white rounded-lg border p-4">
-                        <h3 className="font-semibold text-sm mb-3 text-indigo-700 uppercase tracking-wide">
-                            {t("astrology.houses")}
-                        </h3>
-                        <div className="overflow-x-auto">
-                            <table className="w-full text-sm">
-                                <thead>
-                                    <tr className="text-left text-gray-500 border-b">
-                                        <th className="py-1 pr-3">#</th>
-                                        <th className="py-1 pr-3">{t("astrology.start")}</th>
-                                        <th className="py-1 pr-3">{t("astrology.mid")}</th>
-                                        <th className="py-1 pr-3">{t("astrology.end")}</th>
-                                        <th className="py-1 pr-3">{t("astrology.planets")}</th>
-                                        <th className="py-1 pr-3">{t("astrology.aspects")}</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {calculatedDetails.houses.map((h) => {
-                                        const planetsInHouse = getPlanetsInHouse(h.houseNumber);
-                                        const houseMidAbs = getHouseMidAbs(h);
-                                        const aspectsToHouse = getAspectsToHouse(h.houseNumber)
-                                            .map((a) => ({
-                                                ...a,
-                                                diff: getAspectDiff(a.planet.absoluteDegree, a.aspectType, houseMidAbs),
-                                            }))
-                                            .filter((a) => Math.abs(a.diff) <= (orbMap[a.planet.name] ?? 0) / 2)
-                                            .sort((a, b) => Math.abs(a.diff) - Math.abs(b.diff));
-                                        return (
-                                            <tr key={h.houseNumber} className="border-b border-gray-50">
-                                                <td className="py-1 pr-3 font-medium">{h.houseNumber}</td>
-                                                <td className="py-1 pr-3 text-gray-600">{formatSignLordDegree(h.startSign, h.startLord, h.startDegree, h.sign, h.lord)}</td>
-                                                <td className="py-1 pr-3 text-gray-600">{formatSignLordDegree(h.middleSign, h.middleLord, h.middleDegree, h.sign, h.lord)}</td>
-                                                <td className="py-1 pr-3 text-gray-600">{formatSignLordDegree(h.endSign, h.endLord, h.endDegree, h.sign, h.lord)}</td>
-                                                <td className="py-1 pr-3">
-                                                    {planetsInHouse.length > 0
-                                                        ? planetsInHouse.map((p) => `${getPlanetName(p.name)} (${formatDegree(p.degree)})`).join(", ")
-                                                        : "—"}
-                                                </td>
-                                                <td className="py-1 pr-3">
-                                                    {aspectsToHouse.length > 0
-                                                        ? aspectsToHouse.map((a) => {
-                                                            const sign = a.diff >= 0 ? "+" : "-";
-                                                            const absDiff = Math.abs(a.diff);
-                                                            const totalVikala = Math.round(absDiff * 3600);
-                                                            const anshaka = Math.floor(totalVikala / 3600);
-                                                            const kala = Math.floor((totalVikala % 3600) / 60);
-                                                            const vikala = totalVikala % 60;
-                                                            return `${getPlanetName(a.planet.name)} (${sign}${String(anshaka).padStart(2, "0")}:${String(kala).padStart(2, "0")}:${String(vikala).padStart(2, "0")})`;
-                                                        }).join(", ")
-                                                        : "—"}
-                                                </td>
-                                            </tr>
-                                        );
-                                    })}
-                                </tbody>
-                            </table>
-                        </div>
-                    </section>
-
-                    <section className="bg-white rounded-lg border p-4">
-                        <h3 className="font-semibold text-sm mb-3 text-indigo-700 uppercase tracking-wide">
-                            {t("astrology.planets")}
-                        </h3>
-                        <div className="overflow-x-auto">
-                            <table className="w-full text-sm">
-                                <thead>
-                                    <tr className="text-left text-gray-500 border-b">
-                                        <th className="py-1 pr-3">{t("astrology.planet")}</th>
-                                        <th className="py-1 pr-3">{t("astrology.sign")} ({t("astrology.degree")})</th>
-                                        <th className="py-1 pr-3">{t("astrology.house")}</th>
-                                        <th className="py-1 pr-3">{t("astrology.nakshatra")} ({t("astrology.pada")})</th>
-                                        <th className="py-1 pr-3">{t("astrology.conjunctions")}</th>
-                                        <th className="py-1 pr-3">{t("astrology.aspects")}</th>
-                                        <th className="py-1 pr-3">{t("astrology.other")}</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {calculatedDetails.planets.map((p) => {
-                                        const conjunct = calculatedDetails.planets
-                                            .filter((q) => q.name !== p.name)
-                                            .filter((q) => {
-                                                const dist = Math.abs(p.absoluteDegree - q.absoluteDegree);
-                                                const angularDist = Math.min(dist, 360 - dist);
-                                                return angularDist < (orbMap[p.name] ?? 0);
-                                            })
-                                            .map((q) => {
-                                                let diff = q.absoluteDegree - p.absoluteDegree;
-                                                if (diff > 180) diff -= 360;
-                                                if (diff < -180) diff += 360;
-                                                const sign = diff >= 0 ? "+" : "-";
-                                                const absDiff = Math.abs(diff);
-                                                const totalVikala = Math.round(absDiff * 3600);
-                                                const anshaka = Math.floor(totalVikala / 3600);
-                                                const kala = Math.floor((totalVikala % 3600) / 60);
-                                                const vikala = totalVikala % 60;
-                                                return `${getPlanetName(q.name)} (${sign}${String(anshaka).padStart(2, "0")}:${String(kala).padStart(2, "0")}:${String(vikala).padStart(2, "0")})`;
-                                            });
-                                        const aspects = p.aspects
-                                            .filter((a) => a.aspectType !== 0)
-                                            .map((a) => {
-                                                const q = calculatedDetails.planets.find((x) => x.name === a.planetName);
-                                                if (!q) return "";
-                                                const exactPoint = (p.absoluteDegree + a.aspectType) % 360;
-                                                let diff = exactPoint - q.absoluteDegree;
-                                                if (diff > 180) diff -= 360;
-                                                if (diff < -180) diff += 360;
-                                                if (Math.abs(diff) > (orbMap[p.name] ?? 0) / 2) return "";
-                                                const sign = diff >= 0 ? "+" : "-";
-                                                const absDiff = Math.abs(diff);
-                                                const totalVikala = Math.round(absDiff * 3600);
-                                                const anshaka = Math.floor(totalVikala / 3600);
-                                                const kala = Math.floor((totalVikala % 3600) / 60);
-                                                const vikala = totalVikala % 60;
-                                                return `${getPlanetName(a.planetName)} (${sign}${String(anshaka).padStart(2, "0")}:${String(kala).padStart(2, "0")}:${String(vikala).padStart(2, "0")})`;
-                                            })
-                                            .filter(Boolean);
-                                        const tags: string[] = [];
-                                        if (p.combustion) tags.push(t("astrology.combustLabel"));
-                                        if (calculatedDetails.lord22ndDrekkana === p.name) tags.push(t("astrology.drekkanaLordLabel"));
-                                        if (calculatedDetails.lord64thNavamsa === p.name) tags.push(t("astrology.navamsaLordLabel"));
-                                        if (calculatedDetails.atmakaraka === p.name) tags.push(t("astrology.atmakarakaLabel"));
-                                        if (calculatedDetails.marakaPlanets?.includes(p.name)) tags.push(t("astrology.marakaLabel"));
-                                        if (calculatedDetails.badhakaPlanet?.includes(p.name)) tags.push(t("astrology.badhakaLabel"));
-                                        return (
-                                        <tr key={p.name} className="border-b border-gray-50">
-                                            <td className="py-1 pr-3 font-medium">{p.retrograde && p.name !== 8 && p.name !== 9 ? `(${getPlanetName(p.name)})` : getPlanetName(p.name)}</td>
-                                            <td className="py-1 pr-3">{getSignName(p.sign)} ({formatDegree(p.degree)})</td>
-                                            <td className="py-1 pr-3">{p.house}</td>
-                                            <td className="py-1 pr-3 text-gray-600">
-                                                {getNakshatraName(p.nakshatra) || p.nakshatra} ({p.pada})
-                                            </td>
-                                            <td className="py-1 pr-3">{conjunct.length > 0 ? conjunct.join(", ") : "—"}</td>
-                                            <td className="py-1 pr-3">{aspects.length > 0 ? aspects.join(", ") : "—"}</td>
-                                            <td className="py-1 pr-3">{tags.length > 0 ? tags.join(", ") : "—"}</td>
+                        <section className="bg-white rounded-lg border p-4">
+                            <h3 className="font-semibold text-sm mb-3 text-indigo-700 uppercase tracking-wide">
+                                {t("astrology.houses")}
+                            </h3>
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-sm">
+                                    <thead>
+                                        <tr className="text-left text-gray-500 border-b">
+                                            <th className="py-1 pr-3">#</th>
+                                            <th className="py-1 pr-3">{t("astrology.start")}</th>
+                                            <th className="py-1 pr-3">{t("astrology.mid")}</th>
+                                            <th className="py-1 pr-3">{t("astrology.end")}</th>
+                                            <th className="py-1 pr-3">{t("astrology.planets")}</th>
+                                            <th className="py-1 pr-3">{t("astrology.aspects")}</th>
                                         </tr>
-                                        );
-                                    })}
-                                </tbody>
-                            </table>
-                        </div>
-                    </section>
-                </div>
-            )}
+                                    </thead>
+                                    <tbody>
+                                        {calculatedDetails.houses.map((h) => {
+                                            const planetsInHouse = getPlanetsInHouse(h.houseNumber);
+                                            const houseMidAbs = getHouseMidAbs(h);
+                                            const aspectsToHouse = getAspectsToHouse(h.houseNumber)
+                                                .map((a) => ({
+                                                    ...a,
+                                                    diff: getAspectDiff(a.planet.absoluteDegree, a.aspectType, houseMidAbs),
+                                                }))
+                                                .filter((a) => Math.abs(a.diff) <= (orbMap[a.planet.name] ?? 0) / 2)
+                                                .sort((a, b) => Math.abs(a.diff) - Math.abs(b.diff));
+                                            return (
+                                                <tr key={h.houseNumber} className="border-b border-gray-50">
+                                                    <td className="py-1 pr-3 font-medium">{h.houseNumber}</td>
+                                                    <td className="py-1 pr-3 text-gray-600">{formatSignLordDegree(h.startSign, h.startLord, h.startDegree, h.sign, h.lord)}</td>
+                                                    <td className="py-1 pr-3 text-gray-600">{formatSignLordDegree(h.middleSign, h.middleLord, h.middleDegree, h.sign, h.lord)}</td>
+                                                    <td className="py-1 pr-3 text-gray-600">{formatSignLordDegree(h.endSign, h.endLord, h.endDegree, h.sign, h.lord)}</td>
+                                                    <td className="py-1 pr-3">
+                                                        {planetsInHouse.length > 0
+                                                            ? planetsInHouse.map((p) => `${getPlanetName(p.name)} (${formatDegree(p.degree)})`).join(", ")
+                                                            : "—"}
+                                                    </td>
+                                                    <td className="py-1 pr-3">
+                                                        {aspectsToHouse.length > 0
+                                                            ? aspectsToHouse.map((a) => {
+                                                                const sign = a.diff >= 0 ? "+" : "-";
+                                                                const absDiff = Math.abs(a.diff);
+                                                                const totalVikala = Math.round(absDiff * 3600);
+                                                                const anshaka = Math.floor(totalVikala / 3600);
+                                                                const kala = Math.floor((totalVikala % 3600) / 60);
+                                                                const vikala = totalVikala % 60;
+                                                                return `${getPlanetName(a.planet.name)} (${sign}${String(anshaka).padStart(2, "0")}:${String(kala).padStart(2, "0")}:${String(vikala).padStart(2, "0")})`;
+                                                            }).join(", ")
+                                                            : "—"}
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </section>
 
-            {activeTab === "dashas" && calculatedDetails && (
-                <div className="bg-white rounded-lg border p-4">
-                    <DashaSection
-                        dashas={calculatedDetails.dashas as unknown as Dashas}
-                        getPlanetName={getPlanetName}
-                        getDashaLevelName={getDashaLevelName}
-                    />
-                </div>
-            )}
+                        <section className="bg-white rounded-lg border p-4">
+                            <h3 className="font-semibold text-sm mb-3 text-indigo-700 uppercase tracking-wide">
+                                {t("astrology.planets")}
+                            </h3>
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-sm">
+                                    <thead>
+                                        <tr className="text-left text-gray-500 border-b">
+                                            <th className="py-1 pr-3">{t("astrology.planet")}</th>
+                                            <th className="py-1 pr-3">{t("astrology.sign")} ({t("astrology.degree")})</th>
+                                            <th className="py-1 pr-3">{t("astrology.house")}</th>
+                                            <th className="py-1 pr-3">{t("astrology.nakshatra")} ({t("astrology.pada")})</th>
+                                            <th className="py-1 pr-3">{t("astrology.conjunctions")}</th>
+                                            <th className="py-1 pr-3">{t("astrology.aspects")}</th>
+                                            <th className="py-1 pr-3">{t("astrology.other")}</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {calculatedDetails.planets.map((p) => {
+                                            const conjunct = calculatedDetails.planets
+                                                .filter((q) => q.name !== p.name)
+                                                .filter((q) => {
+                                                    const dist = Math.abs(p.absoluteDegree - q.absoluteDegree);
+                                                    const angularDist = Math.min(dist, 360 - dist);
+                                                    return angularDist < (orbMap[p.name] ?? 0);
+                                                })
+                                                .map((q) => {
+                                                    let diff = q.absoluteDegree - p.absoluteDegree;
+                                                    if (diff > 180) diff -= 360;
+                                                    if (diff < -180) diff += 360;
+                                                    const sign = diff >= 0 ? "+" : "-";
+                                                    const absDiff = Math.abs(diff);
+                                                    const totalVikala = Math.round(absDiff * 3600);
+                                                    const anshaka = Math.floor(totalVikala / 3600);
+                                                    const kala = Math.floor((totalVikala % 3600) / 60);
+                                                    const vikala = totalVikala % 60;
+                                                    return `${getPlanetName(q.name)} (${sign}${String(anshaka).padStart(2, "0")}:${String(kala).padStart(2, "0")}:${String(vikala).padStart(2, "0")})`;
+                                                });
+                                            const aspects = p.aspects
+                                                .filter((a) => a.aspectType !== 0)
+                                                .map((a) => {
+                                                    const q = calculatedDetails.planets.find((x) => x.name === a.planetName);
+                                                    if (!q) return "";
+                                                    const exactPoint = (p.absoluteDegree + a.aspectType) % 360;
+                                                    let diff = exactPoint - q.absoluteDegree;
+                                                    if (diff > 180) diff -= 360;
+                                                    if (diff < -180) diff += 360;
+                                                    if (Math.abs(diff) > (orbMap[p.name] ?? 0) / 2) return "";
+                                                    const sign = diff >= 0 ? "+" : "-";
+                                                    const absDiff = Math.abs(diff);
+                                                    const totalVikala = Math.round(absDiff * 3600);
+                                                    const anshaka = Math.floor(totalVikala / 3600);
+                                                    const kala = Math.floor((totalVikala % 3600) / 60);
+                                                    const vikala = totalVikala % 60;
+                                                    return `${getPlanetName(a.planetName)} (${sign}${String(anshaka).padStart(2, "0")}:${String(kala).padStart(2, "0")}:${String(vikala).padStart(2, "0")})`;
+                                                })
+                                                .filter(Boolean);
+                                            const tags: string[] = [];
+                                            if (p.combustion) tags.push(t("astrology.combustLabel"));
+                                            if (calculatedDetails.lord22ndDrekkana === p.name) tags.push(t("astrology.drekkanaLordLabel"));
+                                            if (calculatedDetails.lord64thNavamsa === p.name) tags.push(t("astrology.navamsaLordLabel"));
+                                            if (calculatedDetails.atmakaraka === p.name) tags.push(t("astrology.atmakarakaLabel"));
+                                            if (calculatedDetails.marakaPlanets?.includes(p.name)) tags.push(t("astrology.marakaLabel"));
+                                            if (calculatedDetails.badhakaPlanet?.includes(p.name)) tags.push(t("astrology.badhakaLabel"));
+                                            return (
+                                                <tr key={p.name} className="border-b border-gray-50">
+                                                    <td className="py-1 pr-3 font-medium">{p.retrograde && p.name !== 8 && p.name !== 9 ? `(${getPlanetName(p.name)})` : getPlanetName(p.name)}</td>
+                                                    <td className="py-1 pr-3">{getSignName(p.sign)} ({formatDegree(p.degree)})</td>
+                                                    <td className="py-1 pr-3">{p.house}</td>
+                                                    <td className="py-1 pr-3 text-gray-600">
+                                                        {getNakshatraName(p.nakshatra) || p.nakshatra} ({p.pada})
+                                                    </td>
+                                                    <td className="py-1 pr-3">{conjunct.length > 0 ? conjunct.join(", ") : "—"}</td>
+                                                    <td className="py-1 pr-3">{aspects.length > 0 ? aspects.join(", ") : "—"}</td>
+                                                    <td className="py-1 pr-3">{tags.length > 0 ? tags.join(", ") : "—"}</td>
+                                                </tr>
+                                            );
+                                        })}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </section>
+                    </div>
+                )
+            }
 
-            {activeTab === "metadata" && (
-                <div className="bg-white rounded-lg border p-6 text-center text-gray-400">
-                    <p>{t("horoscope.metadata")}</p>
-                </div>
-            )}
+            {
+                activeTab === "dashas" && calculatedDetails && (
+                    <div className="bg-white rounded-lg border p-4">
+                        <DashaSection
+                            dashas={calculatedDetails.dashas as unknown as Dashas}
+                            getPlanetName={getPlanetName}
+                            getDashaLevelName={getDashaLevelName}
+                        />
+                    </div>
+                )
+            }
+
+            {
+                activeTab === "metadata" && (
+                    <div className="bg-white rounded-lg border p-6 text-center text-gray-400">
+                        <p>{t("horoscope.metadata")}</p>
+                    </div>
+                )
+            }
 
             <ConfirmDeleteModal
                 open={confirmDelete}
@@ -517,6 +506,6 @@ export default function HoroscopeDetailPage() {
                 loading={deleting}
                 error={deleteError}
             />
-        </div>
+        </div >
     );
 }

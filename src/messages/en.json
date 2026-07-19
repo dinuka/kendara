@@ -194,9 +194,6 @@
             "26": "Uttara Bhadrapada",
             "27": "Revati"
         },
-<<<<<<< Updated upstream
-        "padaFormat": "{pada} Pada"
-=======
         "padaFormat": "{pada} Pada",
         "viewDetails": "View details",
         "less": "Less"
@@ -267,7 +264,6 @@
     "quick_add": {
         "title": "Quick Add Location",
         "add_and_select": "Add & Select"
->>>>>>> Stashed changes
     },
     "common": {
         "loading": "Loading...",

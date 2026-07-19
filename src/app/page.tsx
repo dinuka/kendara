@@ -30,13 +30,10 @@ export default function DashboardPage() {
     const { t } = useI18n();
     const [horoscopes, setHoroscopes] = useState<Horoscope[]>([]);
     const [loading, setLoading] = useState(true);
-<<<<<<< Updated upstream
-=======
     const [deletingId, setDeletingId] = useState<string | null>(null);
     const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
     const [deleteError, setDeleteError] = useState<string | null>(null);
     const [error, setError] = useState("");
->>>>>>> Stashed changes
 
     useEffect(() => {
         if (status === "unauthenticated") {
@@ -60,8 +57,6 @@ export default function DashboardPage() {
 
     if (!session) return null;
 
-<<<<<<< Updated upstream
-=======
     const handleDelete = async (id: string) => {
         setDeletingId(id);
         setDeleteError(null);
@@ -77,9 +72,6 @@ export default function DashboardPage() {
         }
     };
 
-    const isOwner = (h: Horoscope) => h.owner?.id === session.user?.id;
-
->>>>>>> Stashed changes
     const total = horoscopes.length;
     const now = new Date();
     const thisMonthCount = horoscopes.filter((h) => {
@@ -114,9 +106,6 @@ export default function DashboardPage() {
                 </div>
             </div>
 
-<<<<<<< Updated upstream
-            {horoscopes.length === 0 ? (
-=======
             {error && (
                 <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4" role="alert">
                     <p className="text-red-700 text-sm">{error}</p>
@@ -139,7 +128,6 @@ export default function DashboardPage() {
             <h2 className="text-lg font-semibold mb-3">{t("dashboard.recentHoroscopes")}</h2>
 
             {recentHoroscopes.length === 0 ? (
->>>>>>> Stashed changes
                 <div className="bg-white rounded-lg shadow-sm border p-8 text-center text-gray-400">
                     {t("search.noResults")}
                 </div>
@@ -186,13 +174,14 @@ export default function DashboardPage() {
                         </tbody>
                     </table>
                 </div>
-            )}
+            )
+            }
 
             <div className="mt-4 text-right">
                 <Link href="/horoscopes" className="text-indigo-600 hover:text-indigo-700 text-sm font-medium">
                     {t("dashboard.viewAll")}
                 </Link>
             </div>
-        </div>
+        </div >
     );
 }
