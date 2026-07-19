@@ -13,6 +13,14 @@
   - Download horoscopes as PDF/image
   - Configure visible chart sections
   - Use system in Sinhala or English
+  - View all public locations
+  - View own private locations
+  - Add new locations with name suggestion via API and auto-populated Lat/Lon
+  - Add locations by pasting CSV-formatted Lat/Lon values
+  - Toggle own locations as public or private
+  - Edit/delete own locations
+  - Select from saved locations when adding horoscopes
+  - Override Lat/Lon values on horoscope after location selection
 - **Authentication**: Google SSO (auto-assigned)
 
 ## 2. Super Admin
@@ -22,6 +30,8 @@
   - View all horoscopes (public and private)
   - Update any horoscope
   - Delete public horoscopes
+  - View all locations (public and private)
+  - Delete any public location
   - Manage users (activate/deactivate, assign roles)
   - Full system access
 - **Authentication**: Google SSO (manually assigned)
@@ -34,4 +44,4 @@
   - Calculate Planetary Strength, Aspects, Lords, Badhaka, Maraka, Atmakaraka, Yoga, Dosha
   - Generate Birth Chart, House Chart, Navamsa (D9), Drekkana (D3), Dasamsa (D10), Shodasha Vargas, Chandra Lagna, Surya Lagna
   - Process RAG-based search queries
-  - Geocode location to Lat/Lon
+  - Geocode location name to Lat/Lon via external API for location suggestions

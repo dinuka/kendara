@@ -5,9 +5,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { Horoscope } from "@/models/Horoscope";
 import { SavedFilter } from "@/models/SavedFilter";
 
+import { PLANET_NAMES, ZODIAC_SIGN_NAMES } from "@/lib/astrologyEnums";
 import { connectDB } from "@/lib/db";
 import logger from "@/lib/logger";
-import { ZODIAC_SIGN_NAMES, PLANET_NAMES } from "@/lib/astrologyEnums";
 
 export async function POST(req: NextRequest) {
     const session = await getServerSession(authOptions);

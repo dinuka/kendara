@@ -17,6 +17,7 @@ interface Horoscope {
     longitude?: number;
     isPublic: boolean;
     createdAt: string;
+    owner: { id: string };
 }
 
 export default function DashboardPage() {
@@ -25,6 +26,9 @@ export default function DashboardPage() {
     const { t, locale } = useI18n();
     const [horoscopes, setHoroscopes] = useState<Horoscope[]>([]);
     const [loading, setLoading] = useState(true);
+    const [deletingId, setDeletingId] = useState<string | null>(null);
+    const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+    const [error, setError] = useState("");
 
     useEffect(() => {
         if (status === "unauthenticated") {
@@ -47,6 +51,22 @@ export default function DashboardPage() {
     }
 
     if (!session) return null;
+
+    const handleDelete = async (id: string) => {
+        setDeletingId(id);
+        try {
+            const res = await fetch(`/api/horoscope/${id}`, { method: "DELETE" });
+            if (!res.ok) throw new Error("Delete failed");
+            setHoroscopes((prev) => prev.filter((h) => h._id !== id));
+            setConfirmDelete(null);
+        } catch {
+            setError(t("common.error"));
+        } finally {
+            setDeletingId(null);
+        }
+    };
+
+    const isOwner = (h: Horoscope) => h.owner?.id === session.user?.id;
 
     const total = horoscopes.length;
     const publicCount = horoscopes.filter((h) => h.isPublic).length;
@@ -79,6 +99,42 @@ export default function DashboardPage() {
                 </div>
             </div>
 
+            {error && (
+                <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4" role="alert">
+                    <p className="text-red-700 text-sm">{error}</p>
+                </div>
+            )}
+
+            {confirmDelete && (
+                <div
+                    className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
+                    onClick={() => setConfirmDelete(null)}
+                >
+                    <div
+                        className="bg-white rounded-lg p-6 max-w-sm mx-4 shadow-xl"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <h3 className="text-lg font-semibold mb-2">{t("horoscope.deleteConfirm")}</h3>
+                        <p className="text-sm text-gray-600 mb-4">{t("horoscope.deleteWarning")}</p>
+                        <div className="flex gap-3 justify-end">
+                            <button
+                                onClick={() => setConfirmDelete(null)}
+                                className="px-4 py-2 border rounded text-sm hover:bg-gray-50 transition-colors"
+                            >
+                                {t("common.cancel")}
+                            </button>
+                            <button
+                                onClick={() => handleDelete(confirmDelete)}
+                                disabled={deletingId === confirmDelete}
+                                className="px-4 py-2 bg-red-600 text-white rounded text-sm hover:bg-red-700 disabled:opacity-50 transition-colors"
+                            >
+                                {deletingId === confirmDelete ? t("common.loading") : t("common.delete")}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {horoscopes.length === 0 ? (
                 <div className="bg-white rounded-lg shadow-sm border p-8 text-center text-gray-400">
                     {t("search.noResults")}
@@ -98,6 +154,7 @@ export default function DashboardPage() {
                                 <th className="text-center px-4 py-2 font-medium text-gray-600">
                                     {t("horoscope.public")}
                                 </th>
+                                <th className="px-4 py-2" />
                             </tr>
                         </thead>
                         <tbody>
@@ -121,6 +178,26 @@ export default function DashboardPage() {
                                         >
                                             {h.isPublic ? t("horoscope.public") : t("horoscope.private")}
                                         </span>
+                                    </td>
+                                    <td className="px-4 py-3 text-right" onClick={(e) => e.stopPropagation()}>
+                                        {isOwner(h) && (
+                                            <div className="flex gap-1 justify-end">
+                                                <button
+                                                    onClick={() => router.push(`/horoscopes/${h._id}/edit`)}
+                                                    aria-label={`${t("horoscope.edit")} ${h.name}`}
+                                                    className="p-1.5 text-gray-400 hover:text-indigo-600 transition-colors rounded hover:bg-indigo-50"
+                                                >
+                                                    ✏️
+                                                </button>
+                                                <button
+                                                    onClick={() => setConfirmDelete(h._id)}
+                                                    aria-label={`${t("common.delete")} ${h.name}`}
+                                                    className="p-1.5 text-gray-400 hover:text-red-600 transition-colors rounded hover:bg-red-50"
+                                                >
+                                                    🗑️
+                                                </button>
+                                            </div>
+                                        )}
                                     </td>
                                 </tr>
                             ))}

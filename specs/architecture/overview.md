@@ -10,7 +10,7 @@
 │  │  (React, Tailwind)  │  │   (html2canvas, jsPDF)       │  │
 │  └──────────┬──────────┘  └──────────────────────────────┘  │
 └─────────────┼────────────────────────────────────────────────┘
-              │ HTTPS / WebSocket
+               │ HTTPS / WebSocket
 ┌─────────────┼────────────────────────────────────────────────┐
 │             │            API Gateway Layer                    │
 │  ┌──────────┴──────────┐                                     │
@@ -18,7 +18,7 @@
 │  │   (REST + GraphQL)  │                                     │
 │  └──────────┬──────────┘                                     │
 └─────────────┼────────────────────────────────────────────────┘
-              │
+               │
 ┌─────────────┼────────────────────────────────────────────────┐
 │             │            Service Layer                        │
 │  ┌──────────┴──────────┐  ┌──────────────────────────────┐  │
@@ -32,6 +32,11 @@
 │  ┌─────────────────────┐  ┌──────────┴───────────────────┐  │
 │  │  Metadata Service   │  │  Share/Export Service        │  │
 │  └─────────────────────┘  └──────────────────────────────┘  │
+│  ┌─────────────────────┐                                     │
+│  │  Location Service   │                                     │
+│  │  (Geocoding, CRUD,  │                                     │
+│  │   CSV Parsing)      │                                     │
+│  └─────────────────────┘                                     │
 └─────────────┼────────────────────────────────────────────────┘
               │
 ┌─────────────┼────────────────────────────────────────────────┐
@@ -63,6 +68,7 @@
 | Object Storage | MinIO / S3-compatible | Chart images, PDF exports |
 | i18n | next-intl | Sinhala/English bilingual support with ICU message format |
 | PDF Export | jsPDF + html2canvas | Client-side PDF/image generation |
+| Geocoding | Nominatim (OpenStreetMap) | Free geocoding API for location name → Lat/Lon suggestions — no API key required |
 
 ## Key Architecture Decisions
 
@@ -87,14 +93,23 @@
 
 ### Add Horoscope Flow
 ```
-User → Submit Birth Details → Server Validates →
-  → Geocode Location (from location name → auto-populate Lat/Lon) →
-    → User can override Lat/Lon before final submission
+User → Open Horoscope Form →
+  → Select Location (dropdown of saved locations from DB — public + own private) →
+    → If no saved locations, prompt to add one first
+    → Can also search geocoding API for new places (creating on the fly)
+  → Location fields auto-populated from saved location (lat, lon, name)
+  → User can override Lat/Lon values after selection (horoscope-level overrides)
+    → Overrides do not modify the saved location
+  → Fill remaining birth details →
+  → Submit → Server Validates →
   → Calculate Horoscope (jyotish-calculations) →
     → Ascendant, Houses, Planets, Nakshatra, Dashas
     → Advanced: Strengths, Aspects, Lords, Yogas, Doshas
   → Generate Charts (D3.js server-side SVG) →
   → Store in MongoDB (horoscope + calculated details + charts) →
+    → horoscope.location = { id: <Location UUID> }
+    → horoscope.locationName = saved name (cached)
+    → horoscope.latitude / longitude = selected-or-overridden values
   → Queue embedding generation (async background job) →
   → Return to User immediately
   → [Background] Generate embedding text → Store in Qdrant
@@ -140,6 +155,16 @@ User → Click "Login with Google" →
 | PUT | /api/horoscope/:id | Update horoscope |
 | DELETE | /api/horoscope/:id | Delete horoscope (own) |
 | PATCH | /api/horoscope/:id/privacy | Toggle public/private |
+
+### Location
+| Method | Route | Description |
+|--------|-------|-------------|
+| GET | /api/location | List locations (public + user's own private), supports pagination |
+| POST | /api/location | Create location (name + geocoding suggestion OR CSV Lat/Lon) |
+| GET | /api/location/search | Geocoding autocomplete via Nominatim (existing) |
+| GET | /api/location/[id] | Get single location |
+| PUT | /api/location/[id] | Update location (name, lat, lon, visibility) |
+| DELETE | /api/location/[id] | Delete location (own locations only; admin can delete public) |
 
 ### Search
 | Method | Route | Description |
@@ -207,7 +232,8 @@ User → Click "Login with Google" →
   displayName: boolean,
   birthDate: Date,
   birthTime: string,
-  location: string,
+  location: { id: UUID },
+  locationName: string,
   latitude: number,
   longitude: number,
   gender: "male" | "female" | "other",
@@ -287,6 +313,20 @@ User → Click "Login with Google" →
 }
 ```
 
+**locations**
+```
+{
+  id: UUID (string),
+  name: string,
+  latitude: number,
+  longitude: number,
+  isPublic: boolean,
+  createdBy: { id: UUID },
+  createdAt: Date,
+  updatedAt: Date
+}
+```
+
 ### Indexes
 - users: { googleId: 1 } (unique)
 - horoscopes: { "owner.id": 1 }, { isPublic: 1 }, { createdAt: -1 }
@@ -294,6 +334,7 @@ User → Click "Login with Google" →
 - charts: { "horoscope.id": 1 }
 - metadata: { "horoscope.id": 1 }, { key: 1 }
 - shareLinks: { token: 1 } (unique)
+- locations: { "createdBy.id": 1 }, { isPublic: 1 }, { name: "text" }
 
 ## Security Considerations
 - Google SSO only — no password authentication
@@ -304,6 +345,10 @@ User → Click "Login with Google" →
 - Admin routes require SuperAdmin role middleware
 - Rate limiting on search and export endpoints
 - CORS configured for frontend domain only
+- Location endpoints enforce ownership checks: users can only edit/delete their own locations
+- Super Admin can view all locations and delete any public location (but not private)
+- Private locations are filtered out from query results unless the requesting user is the creator or a Super Admin
+- Location overrides on horoscope (latitude/longitude) do not propagate back to the saved Location record
 
 ## Performance Considerations
 - Vector search index (HNSW in Qdrant) for fast similarity search

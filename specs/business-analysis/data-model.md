@@ -19,6 +19,7 @@
 
 - User 1---* Horoscope (owner)
 - User 1---* Metadata (creator)
+- User 1---* Location (creator)
 
 ### Horoscope
 
@@ -30,9 +31,10 @@
 | displayName | Boolean | Show/hide name in public |
 | birthDate | Date | Date of birth |
 | birthTime | Time | Time of birth |
-| location | String | Location name (used for auto-geocoding) |
-| latitude | Float | Latitude (auto-populated from location, user can edit) |
-| longitude | Float | Longitude (auto-populated from location, user can edit) |
+| location | Object | `{ id: UUID }` — reference to Location (saved location selected by user) |
+| locationName | String | Human-readable location name (display/cache from selected location) |
+| latitude | Float | Latitude (auto-populated from saved location, user can override) |
+| longitude | Float | Longitude (auto-populated from saved location, user can override) |
 | gender | Enum(male, female, other) | Gender |
 | ayanamsha | Enum(lahiri, raman, krishnamurti, yukteshwar) | Ayanamsha system (default: lahiri) |
 | isPublic | Boolean | Visibility flag |
@@ -42,6 +44,7 @@
 **Relationships**:
 
 - Horoscope *---1 User (owner)
+- Horoscope *---1 Location
 - Horoscope 1---1 CalculatedDetails
 - Horoscope 1---* Metadata
 - Horoscope 1---* ShareLink
@@ -132,6 +135,24 @@
 
 - SavedFilter *---1 User
 
+### Location
+
+| Field | Type | Description |
+|-------|------|-------------|
+| id | UUID | Primary key |
+| name | String | Place name (e.g., "Colombo, Sri Lanka") |
+| latitude | Float | Latitude coordinate |
+| longitude | Float | Longitude coordinate |
+| isPublic | Boolean | Visibility flag — public locations visible to all, private only to creator |
+| createdBy | Object | `{ id: UUID }` — reference to User (creator) |
+| createdAt | DateTime | Record created |
+| updatedAt | DateTime | Last updated |
+
+**Relationships**:
+
+- Location *---1 User (creator)
+- Location 1---* Horoscope
+
 ### SearchEmbedding
 
 | Field | Type | Description |
@@ -217,8 +238,10 @@ All enums use numeric values for easy i18n. Display names are mapped separately 
 
 | Value | Name | Description |
 |-------|------|-------------|
+| 1.25  | Athi Uchcha | අති උච්ච |
 | 1 | Uchcha (Exaltation) | උච්ච |
 | -1 | Neecha (Debilitation) | නීච |
+| -1.25  | Athi Neecha (Debilitation) | අති නීච |
 | 0.75 | මූලත්‍රිකෝණ ‍| මූල ත්‍රිකෝණ |
 | 0.5 | Own Sign ‍| ස්වක්ෂේත්‍ර |
 | 0.1 | Mitra (Friend) | මිත්‍ර |
@@ -469,6 +492,9 @@ All enums use numeric values for easy i18n. Display names are mapped separately 
 User (1) ---< (N) Horoscope
 User (1) ---< (N) Metadata
 User (1) ---< (N) SavedFilter
+User (1) ---< (N) Location
+
+Location (1) ---< (N) Horoscope
 
 Horoscope (1) --- (1) CalculatedDetails
 Horoscope (1) ---< (N) Chart

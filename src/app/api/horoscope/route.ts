@@ -5,12 +5,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { CalculatedDetails } from "@/models/CalculatedDetails";
 import { Chart } from "@/models/Chart";
 import { Horoscope } from "@/models/Horoscope";
+import { User } from "@/models/User";
 
 import { calculateHoroscope } from "@/lib/calculation";
 import { generateChartSvg } from "@/lib/chartRenderer";
 import { ALL_CHART_TYPES } from "@/lib/chartTypes";
 import { connectDB } from "@/lib/db";
-import { User } from "@/models/User";
 import logger from "@/lib/logger";
 
 export async function GET(req: NextRequest) {
@@ -45,13 +45,21 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     logger.info("received birth data: name=%s date=%s time=%s", body.name, body.birthDate, body.birthTime);
 
+    const locationRef =
+        body.location && typeof body.location === "object" && body.location.id
+            ? { id: body.location.id }
+            : body.location && typeof body.location === "string"
+              ? null
+              : null;
+
     const horoscope = await Horoscope.create({
         owner: { id: session.user.id },
         name: body.name,
         displayName: body.displayName ?? true,
         birthDate: new Date(body.birthDate),
         birthTime: body.birthTime,
-        location: body.location || "",
+        location: locationRef,
+        locationName: body.locationName || (typeof body.location === "string" ? body.location : "") || "",
         latitude: body.latitude || 0,
         longitude: body.longitude || 0,
         gender: body.gender,
