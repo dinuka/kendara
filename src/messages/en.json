@@ -272,6 +272,14 @@
         "title": "Quick Add Location",
         "add_and_select": "Add & Select"
     },
+    "currentPlanets": {
+        "toggleLabel": "Show Current Planets",
+        "loading": "Loading current planets...",
+        "error": "Unable to load current planetary positions. Please try again.",
+        "retry": "Retry",
+        "legendBirth": "Birth Planets",
+        "legendCurrent": "Current Planets (transit)"
+    },
     "common": {
         "loading": "Loading...",
         "error": "An error occurred",

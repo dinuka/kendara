@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useI18n } from "@/hooks/useI18n";
+import { useCallback, useRef, useState } from "react";
 import type { ReactElement } from "react";
 
-import type { Ascendant, House, Planet } from "@/lib/astrology";
-import { PLANET_COLORS, navamsaSign } from "@/lib/astrology";
+import type { Ascendant, CurrentPlanetRecord, House, Planet } from "@/lib/astrology";
+import { PLANET_COLORS, PLANET_SYMBOLS, navamsaSign } from "@/lib/astrology";
 import { NAKSHATRA_SHORT_SI, PLANET_SHORT_SI, SIGN_SHORT_SI } from "@/lib/chartVisuals";
 
 const MIN_ZOOM = 0.5;
@@ -15,6 +16,7 @@ interface HouseChartProps {
     planets: Planet[];
     houses: House[];
     ascendant: Ascendant;
+    horoscopeId?: string;
 }
 
 type Point = [number, number];
@@ -41,6 +43,10 @@ const R_SIGN_INNER = 100;
 const R_HOUSE_OUTER = R_SIGN_INNER;
 const R_HOUSE_INNER = 76; // same 24px band thickness as the Nakshatra/Navamsa/Sign rings
 const R_LAGNA_LABEL = R_NAKSHATRA_OUTER + 14;
+
+const CURRENT_BORDER_COLOR = "#0EA5E9";
+const R_CURRENT_BASE = R_PLANET_BASE + 2 * R_PLANET_STEP;
+const MERGE_THRESHOLD_DEG = 2;
 
 const HIGHLIGHT_SIGN = "#fed7aa"; // ascendant's sign wedge (ring 4), orange-ish
 const HIGHLIGHT_HOUSE = "#fef08a"; // house-1 wedge (ring 5), yellow-ish
@@ -136,12 +142,99 @@ function ringLabel(
     );
 }
 
-export function HouseChart({ planets, houses, ascendant }: HouseChartProps) {
+export function HouseChart({ planets, houses, ascendant, horoscopeId }: HouseChartProps) {
+    const { t } = useI18n();
     const [zoom, setZoom] = useState(1);
     const [selectedAbsDeg, setSelectedAbsDeg] = useState<number | null>(null);
+    const [showCurrentPlanets, setShowCurrentPlanets] = useState(false);
+    const [currentPlanets, setCurrentPlanets] = useState<CurrentPlanetRecord[] | null>(null);
+    const [loadingCurrent, setLoadingCurrent] = useState(false);
+    const [errorCurrent, setErrorCurrent] = useState<string | null>(null);
+    const today = new Date();
+    const defaultDate = today.toISOString().slice(0, 10);
+    const defaultTime = today.toTimeString().slice(0, 5);
+    const [selectedDate, setSelectedDate] = useState(defaultDate);
+    const [selectedTime, setSelectedTime] = useState(defaultTime);
+    const [tooltipContent, setTooltipContent] = useState<{
+        lines: string[];
+        x: number;
+        y: number;
+    } | null>(null);
+    const chartRef = useRef<HTMLDivElement>(null);
     const ascAbsDeg = (ascendant.sign - 1) * 30 + ascendant.degree;
     const ascNavamsaNum = Math.floor(ascendant.degree / NAVAMSA_SPAN) + 1;
     const ascNavamsaSign = navamsaSign(ascendant.sign, ascNavamsaNum);
+
+    const fetchCurrentPlanets = useCallback(
+        async (date?: string, time?: string) => {
+            if (!horoscopeId) return;
+            setLoadingCurrent(true);
+            setErrorCurrent(null);
+            try {
+                const params = new URLSearchParams();
+                if (date) params.set("date", date);
+                if (time) params.set("time", time);
+                const qs = params.toString();
+                const url = `/api/horoscope/${horoscopeId}/current-planets${qs ? `?${qs}` : ""}`;
+                const res = await fetch(url);
+                if (!res.ok) throw new Error("Failed to load current planets");
+                const data = await res.json();
+                setCurrentPlanets(data.currentPlanets);
+            } catch {
+                setErrorCurrent(t("currentPlanets.error"));
+                setShowCurrentPlanets(false);
+            } finally {
+                setLoadingCurrent(false);
+            }
+        },
+        [horoscopeId, t],
+    );
+
+    const handleDateChange = (date: string, time: string) => {
+        setSelectedDate(date);
+        setSelectedTime(time);
+        if (showCurrentPlanets && horoscopeId) {
+            fetchCurrentPlanets(date, time);
+        }
+    };
+
+    const handleToggle = () => {
+        if (loadingCurrent) return;
+        if (!showCurrentPlanets) {
+            setShowCurrentPlanets(true);
+            if (!currentPlanets) {
+                fetchCurrentPlanets(selectedDate, selectedTime);
+            }
+        } else {
+            setShowCurrentPlanets(false);
+        }
+    };
+
+    const mergedPlanetNames = new Set<number>();
+    if (currentPlanets && showCurrentPlanets) {
+        currentPlanets.forEach((cp) => {
+            const birthPlanet = planets.find((p) => p.name === cp.name);
+            if (birthPlanet) {
+                const diff = Math.abs(birthPlanet.absoluteDegree - cp.absoluteDegree);
+                const wrappedDiff = Math.min(diff, 360 - diff);
+                if (wrappedDiff < MERGE_THRESHOLD_DEG && birthPlanet.house === cp.house) {
+                    mergedPlanetNames.add(cp.name);
+                }
+            }
+        });
+    }
+
+    const visibleBirthPlanets = showCurrentPlanets ? planets.filter((p) => !mergedPlanetNames.has(p.name)) : planets;
+
+    const visibleCurrentPlanets =
+        showCurrentPlanets && currentPlanets ? currentPlanets.filter((cp) => !mergedPlanetNames.has(cp.name)) : [];
+
+    const mergedBirthPlanets = showCurrentPlanets ? planets.filter((p) => mergedPlanetNames.has(p.name)) : [];
+
+    const currentPlanetLookup = new Map<number, CurrentPlanetRecord>();
+    if (currentPlanets) {
+        currentPlanets.forEach((cp) => currentPlanetLookup.set(cp.name, cp));
+    }
 
     // Ring 1: Nakshatra (27 wedges, 13°20' each).
     const nakshatraWedges = Array.from({ length: 27 }, (_, i) => {
@@ -218,10 +311,10 @@ export function HouseChart({ planets, houses, ascendant }: HouseChartProps) {
                             isSelected
                                 ? HIGHLIGHT_SELECTED
                                 : isAscNavamsa
-                                  ? HIGHLIGHT_NAVAMSA
-                                  : n % 2 === 0
-                                    ? "#f3f4f6"
-                                    : "#e5e7eb"
+                                    ? HIGHLIGHT_NAVAMSA
+                                    : n % 2 === 0
+                                        ? "#f3f4f6"
+                                        : "#e5e7eb"
                         }
                         stroke="#9ca3af"
                         strokeWidth={0.3}
@@ -267,8 +360,10 @@ export function HouseChart({ planets, houses, ascendant }: HouseChartProps) {
         if (end <= start) end += 360;
         const mid = start + (end - start) / 2;
         const isSelected = selectedAbsDeg !== null && degreeInWedge(selectedAbsDeg, start, end);
+        const [midX, midY] = polar(mid, ascAbsDeg, R_HOUSE_OUTER);
         return (
             <g key={h.houseNumber}>
+                <line x1={CX} y1={CY} x2={midX} y2={midY} stroke="#e5e7eb" strokeWidth={0.5} />
                 <path
                     d={ringWedgePath(R_HOUSE_INNER, R_HOUSE_OUTER, start, end, ascAbsDeg)}
                     fill={isSelected ? HIGHLIGHT_SELECTED : h.houseNumber === 1 ? HIGHLIGHT_HOUSE : "#ffffff"}
@@ -297,7 +392,10 @@ export function HouseChart({ planets, houses, ascendant }: HouseChartProps) {
     type MarkerEntry = { kind: "lagna" } | { kind: "planet"; planet: Planet };
     const markerEntries: { entry: MarkerEntry; absDeg: number }[] = [
         { entry: { kind: "lagna" }, absDeg: ascAbsDeg },
-        ...planets.map((planet) => ({ entry: { kind: "planet" as const, planet }, absDeg: planet.absoluteDegree })),
+        ...visibleBirthPlanets.map((planet) => ({
+            entry: { kind: "planet" as const, planet },
+            absDeg: planet.absoluteDegree,
+        })),
     ];
     const sortedEntries = [...markerEntries].sort((a, b) => a.absDeg - b.absDeg);
     const ANGLE_THRESHOLD_DEG = 6;
@@ -336,59 +434,137 @@ export function HouseChart({ planets, houses, ascendant }: HouseChartProps) {
     const [lagnaOuterX, lagnaOuterY] = polar(ascAbsDeg, ascAbsDeg, R_NAKSHATRA_OUTER);
     const [lagnaLabelX, lagnaLabelY] = polar(ascAbsDeg, ascAbsDeg, lagnaRadius);
 
-    // Crop the viewBox to what this chart actually draws (planet/lagna markers can stagger
-    // outward when clustered) instead of the full SIZE canvas, so there's no dead margin around
-    // charts where markers don't spread out.
-    const MARKER_DRAW_RADIUS = 15; // marker circle + direction-arrow badge extent
+    // Current planet collision avoidance (separate from birth planets).
+    type CurrentMarkerEntry = { kind: "current"; planet: CurrentPlanetRecord };
+    const currentMarkerEntries: { entry: CurrentMarkerEntry; absDeg: number }[] = visibleCurrentPlanets.map((cp) => ({
+        entry: { kind: "current" as const, planet: cp },
+        absDeg: cp.absoluteDegree,
+    }));
+    const sortedCurrentEntries = [...currentMarkerEntries].sort((a, b) => a.absDeg - b.absDeg);
+    const currentEntryPlacements: { entry: CurrentMarkerEntry; absDeg: number; radius: number }[] = [];
+    sortedCurrentEntries.forEach((e, idx) => {
+        let radius = R_CURRENT_BASE;
+        if (idx > 0) {
+            const prev = currentEntryPlacements[idx - 1];
+            const gap = e.absDeg - prev.absDeg;
+            if (gap < ANGLE_THRESHOLD_DEG) {
+                radius = prev.radius + R_PLANET_STEP;
+            }
+        }
+        currentEntryPlacements.push({ entry: e.entry, absDeg: e.absDeg, radius });
+    });
+    if (currentEntryPlacements.length > 1) {
+        const first = currentEntryPlacements[0];
+        const last = currentEntryPlacements[currentEntryPlacements.length - 1];
+        const wrapGap = first.absDeg + 360 - last.absDeg;
+        if (wrapGap < ANGLE_THRESHOLD_DEG && first.radius <= last.radius) {
+            first.radius = last.radius + R_PLANET_STEP;
+        }
+    }
+
+    const currentPlacements = currentEntryPlacements.map((e) => ({
+        planet: e.entry.planet,
+        radius: e.radius,
+    }));
+
+    // Crop the viewBox to what this chart actually draws.
+    const MARKER_DRAW_RADIUS = 15;
     const CONTENT_PAD = 20;
-    const maxMarkerRadius = Math.max(lagnaRadius, ...placements.map((p) => p.radius)) + MARKER_DRAW_RADIUS;
+    const allRadii = [lagnaRadius, ...placements.map((p) => p.radius), ...currentPlacements.map((p) => p.radius)];
+    const maxMarkerRadius = Math.max(...allRadii) + MARKER_DRAW_RADIUS;
     const contentRadius = Math.min(SIZE / 2, Math.max(R_NAKSHATRA_OUTER, maxMarkerRadius) + CONTENT_PAD);
     const viewSize = contentRadius * 2;
     const viewOrigin = CX - contentRadius;
+
+    // Helper to build a direction-arrow badge element.
+    const renderArrow = (absDeg: number, radius: number, isBackward: boolean, keySuffix: string) => {
+        const ARROW_STEP_DEG = 5;
+        const arrowAbsDeg = isBackward ? absDeg - ARROW_STEP_DEG : absDeg + ARROW_STEP_DEG;
+        const [ax, ay] = polar(arrowAbsDeg, ascAbsDeg, radius);
+        const tangentDeg = ascAbsDeg - absDeg - 180;
+        const arrowRotate = isBackward ? tangentDeg + 180 : tangentDeg;
+        const arrowColor = isBackward ? "#dc2626" : "#16a34a";
+        return (
+            <g key={`arrow-${keySuffix}`} transform={`translate(${ax} ${ay}) rotate(${arrowRotate})`}>
+                <path
+                    d="M -4 0 L 4 0 M 1 -3 L 4 0 L 1 3"
+                    fill="none"
+                    stroke={arrowColor}
+                    strokeWidth={1.5}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                />
+            </g>
+        );
+    };
+
+    const showTooltip = (
+        name: number,
+        degree: number,
+        sign: number,
+        houseNum: number | null,
+        nakshatra: number,
+        pada: number,
+        retrograde: boolean,
+        combustion: boolean,
+        isCurrent: boolean,
+        x: number,
+        y: number,
+    ) => {
+        const lines: string[] = [];
+        const planetName = t(`astrology.planetNames.${name}`);
+        const suffix = isCurrent ? " (Current)" : " (Birth)";
+        lines.push(`${planetName}${suffix}`);
+        const signName = t(`astrology.signNames.${sign}`);
+        const totalVikala = Math.round(degree * 3600);
+        const anshaka = Math.floor(totalVikala / 3600);
+        const kala = Math.floor((totalVikala % 3600) / 60);
+        lines.push(`${signName} ${String(anshaka).padStart(2, "0")}:${String(kala).padStart(2, "0")}`);
+        if (houseNum) lines.push(`House ${houseNum}`);
+        const nakshatraName = t(`astrology.nakshatraNames.${nakshatra}`);
+        lines.push(`Nakshatra: ${nakshatraName} (Pada ${pada})`);
+        if (combustion) {
+            lines.push("Combust");
+        } else {
+            lines.push(retrograde ? "Retrograde" : "Direct");
+        }
+        setTooltipContent({ lines, x, y });
+    };
+
+    const hideTooltip = () => setTooltipContent(null);
 
     const planetMarkers = placements.map(({ planet, radius }) => {
         const [mx, my] = polar(planet.absoluteDegree, ascAbsDeg, radius);
         const color = PLANET_COLORS[planet.name] || "#374151";
         const isSelected = selectedAbsDeg === planet.absoluteDegree;
-        // Rahu/Ketu (lunar nodes) always move backward (clockwise) through the zodiac — they
-        // have no direct motion, unlike the other 7 grahas which are direct unless flagged vakra
-        // (retrograde). Both cases render the same backward-pointing arrow.
         const isBackward = planet.retrograde || planet.name === 8 || planet.name === 9;
-        // Direction arrow sits ahead of the marker along the ring for direct planets (the
-        // anticlockwise direction they're actually travelling toward) or behind it for
-        // retrograde/nodes (the clockwise direction they travel toward) — a few degrees further
-        // around the same radius, not a fixed screen-space corner, so "front"/"back" always means
-        // relative to that planet's own motion regardless of where it sits on the wheel.
-        const ARROW_STEP_DEG = 5;
-        const arrowAbsDeg = isBackward
-            ? planet.absoluteDegree - ARROW_STEP_DEG
-            : planet.absoluteDegree + ARROW_STEP_DEG;
-        const [arrowBadgeX, arrowBadgeY] = polar(arrowAbsDeg, ascAbsDeg, radius);
-        const tangentDeg = ascAbsDeg - planet.absoluteDegree - 180; // CCW-increasing tangent direction
-        const arrowRotate = isBackward ? tangentDeg + 180 : tangentDeg;
-        const arrowColor = isBackward ? "#dc2626" : "#16a34a";
         return (
             <g
-                key={planet.name}
+                key={`birth-${planet.name}`}
                 onClick={() =>
                     setSelectedAbsDeg((prev) => (prev === planet.absoluteDegree ? null : planet.absoluteDegree))
                 }
+                onMouseEnter={() =>
+                    showTooltip(
+                        planet.name,
+                        planet.degree,
+                        planet.sign,
+                        planet.house,
+                        planet.nakshatra,
+                        planet.pada,
+                        planet.retrograde,
+                        planet.combustion,
+                        false,
+                        mx,
+                        my,
+                    )
+                }
+                onMouseLeave={hideTooltip}
                 className="cursor-pointer"
             >
                 <line x1={CX} y1={CY} x2={mx} y2={my} stroke={color} strokeWidth={1} opacity={0.6} />
                 <circle cx={mx} cy={my} r={11} fill={color} stroke={isSelected ? "#16a34a" : "none"} strokeWidth={2} />
-                <g transform={`translate(${arrowBadgeX} ${arrowBadgeY}) rotate(${arrowRotate})`}>
-                    {/* Small arrow drawn pointing along +x before rotation, centered at a fixed
-                        up-left offset from the marker so it never drifts far away. */}
-                    <path
-                        d="M -4 0 L 4 0 M 1 -3 L 4 0 L 1 3"
-                        fill="none"
-                        stroke={arrowColor}
-                        strokeWidth={1.5}
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                    />
-                </g>
+                {renderArrow(planet.absoluteDegree, radius, isBackward, `birth-${planet.name}`)}
                 <text
                     x={mx}
                     y={my}
@@ -404,39 +580,271 @@ export function HouseChart({ planets, houses, ascendant }: HouseChartProps) {
         );
     });
 
+    const currentPlanetMarkers = currentPlacements.map(({ planet, radius }) => {
+        const [mx, my] = polar(planet.absoluteDegree, ascAbsDeg, radius);
+        const color = PLANET_COLORS[planet.name] || "#374151";
+        const isSelected = selectedAbsDeg === planet.absoluteDegree;
+        const isBackward = planet.retrograde || planet.name === 8 || planet.name === 9;
+        const sinhalaLetter = PLANET_SHORT_SI[planet.name] || "";
+        return (
+            <g
+                key={`current-${planet.name}`}
+                onClick={() =>
+                    setSelectedAbsDeg((prev) => (prev === planet.absoluteDegree ? null : planet.absoluteDegree))
+                }
+                onMouseEnter={() =>
+                    showTooltip(
+                        planet.name,
+                        planet.degree,
+                        planet.sign,
+                        planet.house,
+                        planet.nakshatra,
+                        planet.pada,
+                        planet.retrograde,
+                        planet.combustion,
+                        true,
+                        mx,
+                        my,
+                    )
+                }
+                onMouseLeave={hideTooltip}
+                className="cursor-pointer"
+            >
+                <line
+                    x1={CX}
+                    y1={CY}
+                    x2={mx}
+                    y2={my}
+                    stroke={color}
+                    strokeWidth={1}
+                    opacity={0.4}
+                    strokeDasharray="3 2"
+                />
+                <circle
+                    cx={mx}
+                    cy={my}
+                    r={13}
+                    fill="#ffffff"
+                    stroke={isSelected ? "#16a34a" : CURRENT_BORDER_COLOR}
+                    strokeWidth={2.5}
+                    opacity={0.85}
+                />
+                <circle cx={mx} cy={my} r={10} fill={color} stroke="none" opacity={0.85} />
+                {renderArrow(planet.absoluteDegree, radius, isBackward, `current-${planet.name}`)}
+                <text
+                    x={mx}
+                    y={my}
+                    fontSize={11}
+                    fill="#ffffff"
+                    textAnchor="middle"
+                    dominantBaseline="central"
+                    fontWeight="bold"
+                >
+                    {sinhalaLetter}
+                </text>
+            </g>
+        );
+    });
+
+    const mergedSymbols = mergedBirthPlanets.map((birthPlanet) => {
+        const currentPlanet = currentPlanetLookup.get(birthPlanet.name);
+        // Find merged symbol's placement — reuse the birth planet's collision-avoidance radius.
+        const placement = placements.find((p) => p.planet.name === birthPlanet.name);
+        const radius = placement?.radius ?? R_PLANET_BASE;
+        const [mx, my] = polar(birthPlanet.absoluteDegree, ascAbsDeg, radius);
+        const color = PLANET_COLORS[birthPlanet.name] || "#374151";
+        const isSelected = selectedAbsDeg === birthPlanet.absoluteDegree;
+        const sinhalaLetter = currentPlanet ? PLANET_SHORT_SI[currentPlanet.name] || "" : "";
+        const glyph = PLANET_SYMBOLS[birthPlanet.name] || "";
+        return (
+            <g
+                key={`merged-${birthPlanet.name}`}
+                onClick={() =>
+                    setSelectedAbsDeg((prev) =>
+                        prev === birthPlanet.absoluteDegree ? null : birthPlanet.absoluteDegree,
+                    )
+                }
+                onMouseEnter={() => {
+                    if (currentPlanet) {
+                        showTooltip(
+                            birthPlanet.name,
+                            birthPlanet.degree,
+                            birthPlanet.sign,
+                            birthPlanet.house,
+                            birthPlanet.nakshatra,
+                            birthPlanet.pada,
+                            birthPlanet.retrograde,
+                            birthPlanet.combustion,
+                            false,
+                            mx,
+                            my,
+                        );
+                    }
+                }}
+                onMouseLeave={hideTooltip}
+                className="cursor-pointer"
+            >
+                <line x1={CX} y1={CY} x2={mx} y2={my} stroke={color} strokeWidth={1} opacity={0.6} />
+                <circle
+                    cx={mx}
+                    cy={my}
+                    r={16}
+                    fill="#ffffff"
+                    stroke={isSelected ? "#16a34a" : CURRENT_BORDER_COLOR}
+                    strokeWidth={2.5}
+                />
+                <circle cx={mx} cy={my} r={13} fill={color} stroke="none" />
+                <text
+                    x={mx - 6}
+                    y={my}
+                    fontSize={11}
+                    fill="#ffffff"
+                    textAnchor="middle"
+                    dominantBaseline="central"
+                    fontWeight="bold"
+                >
+                    {glyph}
+                </text>
+                <text
+                    x={mx + 6}
+                    y={my}
+                    fontSize={11}
+                    fill="#ffffff"
+                    textAnchor="middle"
+                    dominantBaseline="central"
+                    fontWeight="bold"
+                >
+                    {sinhalaLetter}
+                </text>
+            </g>
+        );
+    });
+
     const zoomIn = () => setZoom((z) => Math.min(MAX_ZOOM, +(z + ZOOM_STEP).toFixed(2)));
     const zoomOut = () => setZoom((z) => Math.max(MIN_ZOOM, +(z - ZOOM_STEP).toFixed(2)));
     const zoomReset = () => setZoom(1);
 
     return (
-        <div className="flex flex-col items-center gap-0.5">
-            <div className="flex items-center gap-1">
-                <button
-                    type="button"
-                    onClick={zoomOut}
-                    disabled={zoom <= MIN_ZOOM}
-                    aria-label="Zoom out"
-                    className="w-8 h-8 flex items-center justify-center border rounded hover:bg-gray-50 text-gray-600 disabled:opacity-40 disabled:hover:bg-white"
-                >
-                    −
-                </button>
-                <button
-                    type="button"
-                    onClick={zoomReset}
-                    aria-label="Reset zoom"
-                    className="px-2 h-8 flex items-center justify-center border rounded hover:bg-gray-50 text-gray-600 text-xs tabular-nums"
-                >
-                    {Math.round(zoom * 100)}%
-                </button>
-                <button
-                    type="button"
-                    onClick={zoomIn}
-                    disabled={zoom >= MAX_ZOOM}
-                    aria-label="Zoom in"
-                    className="w-8 h-8 flex items-center justify-center border rounded hover:bg-gray-50 text-gray-600 disabled:opacity-40 disabled:hover:bg-white"
-                >
-                    +
-                </button>
+        <div className="flex flex-col items-center gap-0.5" ref={chartRef}>
+            <div className="flex items-center justify-between w-full gap-6">
+                {horoscopeId && (
+                    <div className="flex items-center gap-2">
+                        <button
+                            type="button"
+                            role="switch"
+                            aria-checked={showCurrentPlanets}
+                            aria-label={t("currentPlanets.toggleLabel")}
+                            onClick={handleToggle}
+                            disabled={loadingCurrent}
+                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 ${showCurrentPlanets ? "bg-sky-500" : "bg-gray-300"
+                                } ${loadingCurrent ? "opacity-60 cursor-not-allowed" : "cursor-pointer"}`}
+                        >
+                            <span
+                                className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-sm ring-0 transition-transform duration-200 ${showCurrentPlanets ? "translate-x-[22px]" : "translate-x-[2px]"
+                                    }`}
+                            />
+                        </button>
+                        <span className="text-sm text-gray-700 select-none">{t("currentPlanets.toggleLabel")}</span>
+                        {errorCurrent && (
+                            <span className="text-xs text-red-600 ml-1">
+                                <button
+                                    type="button"
+                                    onClick={() => fetchCurrentPlanets(selectedDate, selectedTime)}
+                                    className="underline"
+                                >
+                                    {t("currentPlanets.retry")}
+                                </button>
+                            </span>
+                        )}
+                        {showCurrentPlanets && (
+                            <div className="flex items-center gap-1 text-xs ml-1">
+                                <input
+                                    type="date"
+                                    value={selectedDate}
+                                    onChange={(e) => handleDateChange(e.target.value, selectedTime)}
+                                    className="w-28 px-1 py-0.5 border rounded text-gray-700"
+                                />
+                                <input
+                                    type="time"
+                                    value={selectedTime}
+                                    onChange={(e) => handleDateChange(selectedDate, e.target.value)}
+                                    className="w-20 px-1 py-0.5 border rounded text-gray-700"
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        const d = new Date(`${selectedDate}T12:00:00`);
+                                        d.setDate(d.getDate() - 1);
+                                        const nd = d.toISOString().slice(0, 10);
+                                        setSelectedDate(nd);
+                                        fetchCurrentPlanets(nd, selectedTime);
+                                    }}
+                                    className="px-1.5 py-0.5 border rounded hover:bg-gray-50 text-gray-500"
+                                    title="Previous day"
+                                >
+                                    ◀
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        const d = new Date(`${selectedDate}T12:00:00`);
+                                        d.setDate(d.getDate() + 1);
+                                        const nd = d.toISOString().slice(0, 10);
+                                        setSelectedDate(nd);
+                                        fetchCurrentPlanets(nd, selectedTime);
+                                    }}
+                                    className="px-1.5 py-0.5 border rounded hover:bg-gray-50 text-gray-500"
+                                    title="Next day"
+                                >
+                                    ▶
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        const n = new Date();
+                                        const d = n.toISOString().slice(0, 10);
+                                        const t = n.toTimeString().slice(0, 5);
+                                        setSelectedDate(d);
+                                        setSelectedTime(t);
+                                        fetchCurrentPlanets(d, t);
+                                    }}
+                                    className="px-1.5 py-0.5 border rounded hover:bg-gray-50 text-gray-500"
+                                    title="Reset to now"
+                                >
+                                    ↻
+                                </button>
+                            </div>
+                        )}
+                    </div>
+                )}
+                <div className="flex items-center gap-1">
+                    <button
+                        type="button"
+                        onClick={zoomOut}
+                        disabled={zoom <= MIN_ZOOM}
+                        aria-label="Zoom out"
+                        className="w-8 h-8 flex items-center justify-center border rounded hover:bg-gray-50 text-gray-600 disabled:opacity-40 disabled:hover:bg-white"
+                    >
+                        −
+                    </button>
+                    <button
+                        type="button"
+                        onClick={zoomReset}
+                        aria-label="Reset zoom"
+                        className="px-2 h-8 flex items-center justify-center border rounded hover:bg-gray-50 text-gray-600 text-xs tabular-nums"
+                    >
+                        {Math.round(zoom * 100)}%
+                    </button>
+                    <button
+                        type="button"
+                        onClick={zoomIn}
+                        disabled={zoom >= MAX_ZOOM}
+                        aria-label="Zoom in"
+                        className="w-8 h-8 flex items-center justify-center border rounded hover:bg-gray-50 text-gray-600 disabled:opacity-40 disabled:hover:bg-white"
+                    >
+                        +
+                    </button>
+                </div>
             </div>
             <svg
                 width={viewSize * zoom}
@@ -452,6 +860,8 @@ export function HouseChart({ planets, houses, ascendant }: HouseChartProps) {
                 {houseWedges}
 
                 {planetMarkers}
+                {currentPlanetMarkers}
+                {mergedSymbols}
 
                 <g
                     onClick={() => setSelectedAbsDeg((prev) => (prev === ascAbsDeg ? null : ascAbsDeg))}
@@ -478,7 +888,50 @@ export function HouseChart({ planets, houses, ascendant }: HouseChartProps) {
                         ල
                     </text>
                 </g>
+                {loadingCurrent && (
+                    <g>
+                        <circle cx={CX} cy={CY} r={28} fill="rgba(255,255,255,0.9)" stroke="#d1d5db" strokeWidth={1} />
+                        <circle
+                            cx={CX}
+                            cy={CY}
+                            r={16}
+                            fill="none"
+                            stroke="#0EA5E9"
+                            strokeWidth={3}
+                            strokeLinecap="round"
+                            className="animate-spin"
+                            style={{ strokeDasharray: 75, strokeDashoffset: 25, transformOrigin: `${CX}px ${CY}px` }}
+                        />
+                        <text
+                            x={CX}
+                            y={CY + 18}
+                            fontSize={9}
+                            fill="#6b7280"
+                            textAnchor="middle"
+                            dominantBaseline="central"
+                        >
+                            loading
+                        </text>
+                    </g>
+                )}
             </svg>
+
+            {tooltipContent && (
+                <div
+                    className="fixed z-50 bg-gray-900 text-white text-xs rounded-lg shadow-lg px-3 py-2 pointer-events-none whitespace-nowrap"
+                    style={{
+                        left: tooltipContent.x + 12,
+                        top: tooltipContent.y + 12,
+                        maxWidth: 280,
+                    }}
+                >
+                    {tooltipContent.lines.map((line, i) => (
+                        <div key={i} className={i === 0 ? "font-semibold mb-0.5" : ""}>
+                            {line}
+                        </div>
+                    ))}
+                </div>
+            )}
         </div>
     );
 }

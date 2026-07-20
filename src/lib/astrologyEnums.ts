@@ -63,16 +63,13 @@ export enum PlanetaryStrength {
     SAMA = "Sama",
 }
 
-export const PLANETARY_STRENGTH_VALUES: Record<PlanetaryStrength, number> = {
-    [PlanetaryStrength.ATHI_UCHCHA]: 1.25,
-    [PlanetaryStrength.UCHCHA]: 1,
-    [PlanetaryStrength.NEECHA]: -1,
-    [PlanetaryStrength.ATHI_NEECHA]: -1.25,
-    [PlanetaryStrength.MOOLATRIKONA]: 0.75,
-    [PlanetaryStrength.OWN_SIGN]: 0.5,
-    [PlanetaryStrength.MITRA]: 0.1,
-    [PlanetaryStrength.SHATRU]: -0.1,
-    [PlanetaryStrength.SAMA]: 0,
+export const COMBUSTION_ORBS: Record<number, number> = {
+    [Planet.MOON]: 12,
+    [Planet.MARS]: 17,
+    [Planet.MERCURY]: 14,
+    [Planet.JUPITER]: 11,
+    [Planet.VENUS]: 10,
+    [Planet.SATURN]: 16,
 };
 
 export const ZODIAC_SIGN_NAMES: Record<string, ZodiacSign> = {

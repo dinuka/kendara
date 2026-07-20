@@ -1,5 +1,6 @@
 declare module "swisseph-v2" {
     export const SEFLG_SIDEREAL: number;
+    export const SEFLG_SPEED: number;
     export const SE_GREG_CAL: number;
 
     export function swe_utc_time_zone(
@@ -34,6 +35,14 @@ declare module "swisseph-v2" {
     };
 
     export function swe_set_sid_mode(ayanamsha: number, t0: number, ayan_t0: number): void;
+
+    export function swe_calc_ut(
+        julianDayUT: number,
+        planet: number,
+        flags: number,
+    ):
+        | { longitude: number; latitude: number; longitudeSpeed: number; error?: undefined }
+        | { error: string; longitude?: undefined; latitude?: undefined; longitudeSpeed?: undefined };
 
     export function swe_houses_ex(
         julianDayUT: number,

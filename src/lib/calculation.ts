@@ -392,8 +392,8 @@ export function calculateHoroscope(
             i === 0
                 ? false
                 : Math.abs(planetDetails[i].absoluteDegree - sunLong) < sunOrb ||
-                  Math.abs(planetDetails[i].absoluteDegree - sunLong + 360) < sunOrb ||
-                  Math.abs(planetDetails[i].absoluteDegree - sunLong - 360) < sunOrb;
+                Math.abs(planetDetails[i].absoluteDegree - sunLong + 360) < sunOrb ||
+                Math.abs(planetDetails[i].absoluteDegree - sunLong - 360) < sunOrb;
 
         const aspects: Aspect[] = [];
         for (let j = 0; j < planetDetails.length; j++) {
@@ -710,16 +710,12 @@ function computeSubPeriods(
                 }
                 const elapsedInAd = elapsedYears - preAdYears;
 
-                const fullVdSequence = getCyclePlanets(
-                    getStartPlanetIndex(adPlanets[0]),
-                    9,
-                );
+                const fullVdSequence = getCyclePlanets(getStartPlanetIndex(adPlanets[0]), 9);
 
                 const fullVdDurations: number[] = [];
                 for (let vi = 0; vi < 9; vi++) {
                     fullVdDurations.push(
-                        (adFullDuration * getPlanetYears(fullVdSequence[vi])) /
-                            TOTAL_VIMSHOTTARI_YEARS,
+                        (adFullDuration * getPlanetYears(fullVdSequence[vi])) / TOTAL_VIMSHOTTARI_YEARS,
                     );
                 }
 
@@ -733,9 +729,7 @@ function computeSubPeriods(
                             preVdYears += fullVdDurations[j];
                         }
                         const elapsedInVd = elapsedInAd - preVdYears;
-                        firstVdRemainingDays = fractionToDays(
-                            fullVdDurations[vi] - elapsedInVd,
-                        );
+                        firstVdRemainingDays = fractionToDays(fullVdDurations[vi] - elapsedInVd);
                         break;
                     }
                 }
@@ -750,13 +744,9 @@ function computeSubPeriods(
 
             for (let vi = 0; vi < remainingVdCount; vi++) {
                 const vdLord = vdPlanets[vi];
-                const vdYears =
-                    (adFullDuration * getPlanetYears(vdLord)) /
-                    TOTAL_VIMSHOTTARI_YEARS;
+                const vdYears = (adFullDuration * getPlanetYears(vdLord)) / TOTAL_VIMSHOTTARI_YEARS;
                 const vdDays =
-                    firstVdRemainingDays !== null && vi === 0
-                        ? firstVdRemainingDays
-                        : fractionToDays(vdYears);
+                    firstVdRemainingDays !== null && vi === 0 ? firstVdRemainingDays : fractionToDays(vdYears);
 
                 if (vdDays < 1 && vi < remainingVdCount - 1) continue;
 
@@ -788,29 +778,20 @@ function computeSubPeriods(
                         }
                         const elapsedInAd = elapsedYears - preAdYears;
 
-                        const fullVdSequence = getCyclePlanets(
-                            getStartPlanetIndex(adPlanets[0]),
-                            9,
-                        );
+                        const fullVdSequence = getCyclePlanets(getStartPlanetIndex(adPlanets[0]), 9);
                         let preVdYears = 0;
                         for (let j = 0; j < vdStartOffset; j++) {
                             preVdYears +=
-                                (adFullDuration *
-                                    getPlanetYears(fullVdSequence[j])) /
-                                TOTAL_VIMSHOTTARI_YEARS;
+                                (adFullDuration * getPlanetYears(fullVdSequence[j])) / TOTAL_VIMSHOTTARI_YEARS;
                         }
                         const elapsedInVd = elapsedInAd - preVdYears;
 
-                        const fullSkSequence = getCyclePlanets(
-                            getStartPlanetIndex(vdPlanets[0]),
-                            9,
-                        );
+                        const fullSkSequence = getCyclePlanets(getStartPlanetIndex(vdPlanets[0]), 9);
 
                         const fullSkDurations: number[] = [];
                         for (let si = 0; si < 9; si++) {
                             fullSkDurations.push(
-                                (vdYears * getPlanetYears(fullSkSequence[si])) /
-                                    TOTAL_VIMSHOTTARI_YEARS,
+                                (vdYears * getPlanetYears(fullSkSequence[si])) / TOTAL_VIMSHOTTARI_YEARS,
                             );
                         }
 
@@ -824,9 +805,7 @@ function computeSubPeriods(
                                     preSkYears += fullSkDurations[j];
                                 }
                                 const elapsedInSk = elapsedInVd - preSkYears;
-                                firstSkRemainingDays = fractionToDays(
-                                    fullSkDurations[si] - elapsedInSk,
-                                );
+                                firstSkRemainingDays = fractionToDays(fullSkDurations[si] - elapsedInSk);
                                 break;
                             }
                         }
@@ -841,13 +820,9 @@ function computeSubPeriods(
 
                     for (let si = 0; si < remainingSkCount; si++) {
                         const skLord = skPlanets[si];
-                        const skYears =
-                            (vdYears * getPlanetYears(skLord)) /
-                            TOTAL_VIMSHOTTARI_YEARS;
+                        const skYears = (vdYears * getPlanetYears(skLord)) / TOTAL_VIMSHOTTARI_YEARS;
                         const skDays =
-                            firstSkRemainingDays !== null && si === 0
-                                ? firstSkRemainingDays
-                                : fractionToDays(skYears);
+                            firstSkRemainingDays !== null && si === 0 ? firstSkRemainingDays : fractionToDays(skYears);
 
                         if (skDays < 1 && si < remainingSkCount - 1) continue;
 
@@ -865,16 +840,9 @@ function computeSubPeriods(
                             let prDate = new Date(skStart);
 
                             for (let pi = 0; pi < 9; pi++) {
-                                const prLord = adPlanets[
-                                    (ai + vi + si + pi) % 9
-                                ];
-                                const prYears =
-                                    (skYears *
-                                        getPlanetYears(prLord)) /
-                                    TOTAL_VIMSHOTTARI_YEARS;
-                                const prHours = Math.round(
-                                    prYears * 365.25 * 24,
-                                );
+                                const prLord = adPlanets[(ai + vi + si + pi) % 9];
+                                const prYears = (skYears * getPlanetYears(prLord)) / TOTAL_VIMSHOTTARI_YEARS;
+                                const prHours = Math.round(prYears * 365.25 * 24);
 
                                 if (prHours < 1 && pi < 8) continue;
 
@@ -892,10 +860,7 @@ function computeSubPeriods(
                                     startDate: toISODatetime(prStart),
                                     endDate: toISODatetime(prEnd),
                                     durationHours: prHours,
-                                    startAge: yearsBetween(
-                                        birthDate,
-                                        prStart,
-                                    ),
+                                    startAge: yearsBetween(birthDate, prStart),
                                 });
 
                                 prDate = new Date(prEnd);
