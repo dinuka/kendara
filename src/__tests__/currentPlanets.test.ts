@@ -1,5 +1,5 @@
 import { House } from "@/lib/astrology";
-import { COMBUSTION_ORBS, Planet, SINHALA_PLANET_LETTERS } from "@/lib/astrologyEnums";
+import { COMBUSTION_ORBS, Planet } from "@/lib/astrologyEnums";
 import { computeCurrentPlanets } from "@/lib/currentPlanets";
 
 const mockCalcResults: Record<number, { longitude: number; latitude: number; speed: number }> = {
@@ -260,27 +260,6 @@ describe("computeCurrentPlanets", () => {
     test("rejects invalid date gracefully", () => {
         const result = computeCurrentPlanets("lahiri", houses, new Date("invalid"));
         expect(result).toHaveLength(9);
-    });
-});
-
-describe("SINHALA_PLANET_LETTERS", () => {
-    test("contains all 9 planets", () => {
-        const expectedKeys = [
-            Planet.SUN,
-            Planet.MOON,
-            Planet.MARS,
-            Planet.MERCURY,
-            Planet.JUPITER,
-            Planet.VENUS,
-            Planet.SATURN,
-            Planet.RAHU,
-            Planet.KETU,
-        ];
-        for (const key of expectedKeys) {
-            expect(SINHALA_PLANET_LETTERS[key]).toBeDefined();
-            expect(typeof SINHALA_PLANET_LETTERS[key]).toBe("string");
-            expect(SINHALA_PLANET_LETTERS[key].length).toBe(1);
-        }
     });
 });
 
