@@ -84,6 +84,8 @@ export default function DashboardPage() {
         .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
         .slice(0, RECENT_COUNT);
 
+    const isOwner = (horoscope: Horoscope) => horoscope.owner.id === session?.user?.id;
+
     return (
         <div>
             <div className="flex justify-between items-center mb-8">

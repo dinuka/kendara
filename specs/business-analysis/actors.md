@@ -25,6 +25,9 @@
   - View full dasha timeline showing Mahadasha, Antardasha, Vidasa, Sukshama, and Prana periods
   - Expand/collapse dasha hierarchy with nested accordion UI
   - View automatically expanded current active period at all dasha levels
+  - Toggle between birth and current planetary positions on the House chart
+  - View current planetary positions overlaid on the House chart
+  - Visually distinguish birth planets from current planets on charts
 - **Authentication**: Google SSO (auto-assigned)
 
 ## 2. Super Admin
@@ -51,3 +54,5 @@
   - Generate Birth Chart, House Chart, Navamsa (D9), Drekkana (D3), Dasamsa (D10), Shodasha Vargas, Chandra Lagna, Surya Lagna
   - Process RAG-based search queries
   - Geocode location name to Lat/Lon via external API for location suggestions
+  - Calculate current planetary positions in real-time based on current date/time and ephemeris data
+  - Serve current planetary positions as overlay data for the House chart

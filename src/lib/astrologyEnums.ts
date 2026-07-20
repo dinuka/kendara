@@ -75,6 +75,27 @@ export const PLANETARY_STRENGTH_VALUES: Record<PlanetaryStrength, number> = {
     [PlanetaryStrength.SAMA]: 0,
 };
 
+export const SINHALA_PLANET_LETTERS: Record<number, string> = {
+    [Planet.SUN]: "\u0DBB",
+    [Planet.MOON]: "\u0DC3",
+    [Planet.MARS]: "\u0D9A",
+    [Planet.MERCURY]: "\u0DB6",
+    [Planet.JUPITER]: "\u0D9C",
+    [Planet.VENUS]: "\u0DC3",
+    [Planet.SATURN]: "\u0DC1",
+    [Planet.RAHU]: "\u0DBB",
+    [Planet.KETU]: "\u0D9A",
+};
+
+export const COMBUSTION_ORBS: Record<number, number> = {
+    [Planet.MOON]: 12,
+    [Planet.MARS]: 17,
+    [Planet.MERCURY]: 14,
+    [Planet.JUPITER]: 11,
+    [Planet.VENUS]: 10,
+    [Planet.SATURN]: 16,
+};
+
 export const ZODIAC_SIGN_NAMES: Record<string, ZodiacSign> = {
     මේෂ: ZodiacSign.ARIES,
     aries: ZodiacSign.ARIES,

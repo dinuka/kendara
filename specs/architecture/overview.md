@@ -41,6 +41,10 @@
 │  │  Dasha Calculation  │                                     │
 │  │  Engine             │                                     │
 │  └─────────────────────┘                                     │
+│  ┌─────────────────────┐                                     │
+│  │  Current Planet     │                                     │
+│  │  Calculation Engine │                                     │
+│  └─────────────────────┘                                     │
 └─────────────┼────────────────────────────────────────────────┘
               │
 ┌─────────────┼────────────────────────────────────────────────┐
@@ -96,6 +100,14 @@
 - UI text via next-intl with ICU message format
 - Search queries handled in both languages via the RAG pipeline
 
+### 4. Current Planets Computed in Real-Time (Not Stored)
+
+- Current planetary positions are computed on-the-fly from Swiss Ephemeris at API request time — never stored in MongoDB
+- The calculation uses the server's current system date/time, not a stored timestamp
+- Only birth chart data (planetary positions at time of birth) is persisted in calculatedDetails
+- Results are ephemeral overlay data returned alongside the chart response and discarded after serving
+- This avoids stale transit data and eliminates the need for a background refresh job
+
 ## Data Flows
 
 ### Add Horoscope Flow
@@ -147,6 +159,29 @@ User → Open Horoscope Detail →
   → Renders nested accordion with active periods auto-expanded →
   → User expands/collapses periods to explore →
   → Smooth animation on toggle
+```
+
+### Current Planet Overlay Flow
+
+```
+User → Open House Chart View →
+  → Toggle "Show Current Planets" ON (or loaded per saved preference) →
+  → Client appends ?includeCurrentPlanets=true to GET /api/horoscope/:id/chart/house →
+  → Server: getServerSession → connectDB → load birth chart data →
+  → Server: Calculate current planet positions (jyotish-calculations + swisseph) →
+    → For each of 9 planets (Sun–Ketu):
+      → Compute current ecliptic longitude, latitude, speed at server timestamp
+      → Determine sign, degree, absolute degree from longitude
+      → Map to birth house: find house cusp where current longitude falls
+      → Compute nakshatra, pada, retrograde, combustion, strength
+    → Apply same ayanamsha as horoscope's birth chart
+  → Return chart JSON with { ..., currentPlanets: [...] } appended →
+  → Client renders overlay: current planets as Sinhala first-letter symbols with sky-blue border →
+  → User toggles OFF → overlay hidden (no re-fetch needed)
+
+  Note: Current planets are computed in real-time per request —
+        never stored in the database. Toggling off preserves
+        the fetched data in memory for instant re-show.
 ```
 
 ### Authentication Flow
@@ -205,7 +240,7 @@ User → Click "Login with Google" →
 | Method | Route | Description |
 |--------|-------|-------------|
 | GET | /api/horoscope/:id/chart | Get all charts for horoscope |
-| GET | /api/horoscope/:id/chart/:type | Get specific chart type |
+| GET | /api/horoscope/:id/chart/:type | Get specific chart type (supports `?includeCurrentPlanets=true` for house chart overlay) |
 | GET | /api/horoscope/:id/export | Export horoscope as PDF |
 | GET | /api/horoscope/:id/export/chart/:type | Export chart as image |
 
@@ -430,6 +465,10 @@ User → Click "Login with Google" →
 - Super Admin can view all locations and delete any public location (but not private)
 - Private locations are filtered out from query results unless the requesting user is the creator or a Super Admin
 - Location overrides on horoscope (latitude/longitude) do not propagate back to the saved Location record
+- Ephemeris files (Swiss Ephemeris) are bundled with the application via `swisseph-v2` — no external API call is made for ephemeris data
+- Current planet computation uses the ephemeris library synchronously per request; rate limiting should be applied to prevent abuse since each calculation is CPU-intensive
+- The calculation function uses only the server's system clock — no user-controlled time input is accepted (avoids time-manipulation attacks)
+- Ephemeris data access is read-only and does not require authentication scoping beyond the standard session check
 
 ## Performance Considerations
 

@@ -77,6 +77,19 @@ export interface Aspect {
     isBeneficial: boolean;
 }
 
+export interface CurrentPlanetRecord {
+    name: number;
+    sign: number;
+    degree: number;
+    absoluteDegree: number;
+    house: number | null;
+    nakshatra: number;
+    pada: number;
+    retrograde: boolean;
+    combustion: boolean;
+    strength: string;
+}
+
 export interface Planet {
     name: number;
     sign: number;

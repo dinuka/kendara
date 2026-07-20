@@ -512,6 +512,32 @@ All enums use numeric values for easy i18n. Display names are mapped separately 
       "lord": 3
     }
   ],
+  "currentPlanets": [
+    {
+      "name": 1,
+      "sign": 4,
+      "degree": 95.0,
+      "absoluteDegree": 95.0,
+      "house": 4,
+      "nakshatra": 8,
+      "pada": 1,
+      "retrograde": false,
+      "combustion": false,
+      "strength": 0
+    },
+    {
+      "name": 7,
+      "sign": 9,
+      "degree": 200.0,
+      "absoluteDegree": 200.0,
+      "house": 7,
+      "nakshatra": 19,
+      "pada": 3,
+      "retrograde": true,
+      "combustion": false,
+      "strength": -1
+    }
+  ],
   "ascendant": {
     "sign": 1,
     "degree": 5.0,
@@ -522,6 +548,13 @@ All enums use numeric values for easy i18n. Display names are mapped separately 
   "chartType": "Rasi"
 }
 ```
+
+**Notes:**
+- `currentPlanets` is an optional array at the top level, present only when the chart supports (and the user has toggled) current planetary position overlay
+- Each current planet object uses the same numeric enum fields as birth planets (Planet enum for `name`, Zodiac Sign enum for `sign`, Planetary Strength enum for `strength`, Nakshatra enum for `nakshatra`)
+- `house` is determined by which house the current planet falls into based on the birth chart's house cusps
+- `currentPlanets` is computed server-side in real-time via ephemeris calculations — it is NOT stored in the database
+- The House chart is the primary chart that supports this overlay; other chart types may be extended in the future
 
 ### FilterConfig (SavedFilter)
 
@@ -539,10 +572,15 @@ All enums use numeric values for easy i18n. Display names are mapped separately 
     "planetaryStrengths": true,
     "aspects": false,
     "yogas": true,
-    "doshas": false
+    "doshas": false,
+    "currentPlanetPositions": false
   }
 }
 ```
+
+**Notes:**
+- `currentPlanetPositions` controls whether current planetary positions are shown on the House chart when toggled on
+- This preference is persisted per user in the SavedFilter config
 
 ## Entity Relationship Diagram
 

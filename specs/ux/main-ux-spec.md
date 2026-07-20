@@ -240,6 +240,24 @@ Horoscope Detail → Navigate to Dashas tab/section →
   → Smooth CSS animations on expand/collapse
 ```
 
+### Flow 10: Toggle Current Planetary Positions on House Chart
+
+```
+Horoscope Detail → Navigate to Charts tab → Select House chart →
+  → Current Planet Toggle visible below chart (default: OFF) →
+  → User clicks toggle to ON →
+    → Loading spinner appears next to toggle →
+    → API call: GET /api/horoscope/:id/chart/house?includeCurrentPlanets=true →
+    → Server computes current planet positions via Swiss Ephemeris →
+    → Response includes currentPlanets[] array →
+    → Chart re-renders: birth planets (solid) + current planets (outline/stroke, sky blue) →
+    → Legend updates to show "Birth Planets" and "Current Planets (transit)" sections →
+  → User hovers/taps current planet → tooltip shows detailed info (sign, degree, nakshatra, etc.) →
+  → User clicks/taps current planet → expanded info panel →
+  → User toggles OFF → overlay hidden instantly (data kept in memory) →
+  → Toggle preference persisted to FilterConfig for next session
+```
+
 ## Responsive Breakpoints
 
 | Breakpoint | Width | Layout |
@@ -285,6 +303,32 @@ Horoscope Detail → Navigate to Dashas tab/section →
 - Close: Click outside, X button, Escape key
 - Focus trap: First focusable element receives focus
 
+ Updated upstream
+
+### Current Planetary Positions Toggle
+
+- **Placement**: Below the House chart, above the chart legend
+- **Toggle type**: Pill-style on/off switch with label text
+- **Label (EN)**: "Show Current Planets"
+- **Label (SI)**: "වත්මන් ග්‍රහ පිහිටීම් පෙන්වන්න"
+- **Toggle ON**: Triggers API call to fetch current planet positions (`?includeCurrentPlanets=true`); loading spinner appears; current planets rendered with Sinhala first-letter symbols and sky-blue border
+- **Toggle OFF**: Hides overlay instantly (data kept in memory for instant re-show)
+- **Visual differentiation**: Birth planets = Unicode glyphs (☉, ☽, ♂...) with solid fill; Current planets = first letter of Sinhala name (ර, ස, ක...) with same fill color + 2px sky-blue border (`#0EA5E9`, 85% opacity)
+- **Merged positions**: When current + birth planet at same house within < 2°, render split symbol (left half: birth glyph, right half: current Sinhala letter)
+- **Legend update**: When overlay ON, legend shows "Birth Planets" and "Current Planets (transit)" sections
+- **Hover tooltip**: Shows planet name (localized), sign + degree, house, nakshatra + pada, retrograde/combustion status, strength — header includes "(Birth)" or "(Current)" suffix
+- **Preference persistence**: Toggle state saved to `FilterConfig.currentPlanetPositions` (debounced 300ms)
+- **Scope**: House chart only in v1; other chart types may be extended in the future (per-chart toggle, not global)
+- **Loading state**: Spinner next to toggle label + "(loading...)" suffix; birth chart remains visible
+- **Error state**: Inline error banner below toggle with "Retry" button; toggle reverts to OFF
+- **Accessibility**: `role="switch"` with `aria-checked`, `aria-busy` during loading, `aria-live` announcements for state changes; visual differentiation uses fill vs outline + color + opacity (not color alone)
+- **Keyboard**: Tab to toggle, Enter/Space to activate; Tab into chart for planet navigation
+- **Touch targets**: Toggle minimum 44x44px tap area on mobile
+
+>>>>>>>
+=======
+>>>>>>> Stashed changes
+>>>>>>>
 ### Nested Accordion (Dasha Timeline)
 
 - **Tab**: Move focus through accordion headers (tree items)
@@ -329,6 +373,7 @@ Horoscope Detail → Navigate to Dashas tab/section →
 | No locations match search | "No locations match your search." | "ඔබේ සෙවුමට ගැළපෙන ස්ථාන නැත." | Clear search suggestion |
 | Dasha data not available | "Dasha data not available." | "දශා දත්ත නොමැත." | (No action — inline message only) |
 | Birth details incomplete for dashas | "Complete birth details to calculate dashas." | "දශා ගණනය කිරීමට උපන් තොරතුරු සම්පූර්ණ කරන්න." | Link to edit horoscope |
+| Current planets calculation failed | "Unable to load current planetary positions. Please try again." | "වත්මන් ග්‍රහ පිහිටීම් පූරණය කළ නොහැක. නැවත උත්සාහ කරන්න." | "Retry" button |
 
 ---
 
@@ -352,3 +397,5 @@ Horoscope Detail → Navigate to Dashas tab/section →
 | `specs/ux/20260715-1230-full-app-ux-design.md` | Detailed page-by-page UX design |
 | `specs/ux/20260717-1400-mobile-table-layouts.md` | Mobile responsive table layouts |
 | `specs/ux/20260718-2145-location-management-ux.md` | Location management UX design |
+| `specs/ux/20260719-1500-dasha-ux.md` | Dasha periods UX specification |
+| `specs/ux/20260720-0730-current-planetary-positions.md` | Current planetary positions overlay UX specification |
