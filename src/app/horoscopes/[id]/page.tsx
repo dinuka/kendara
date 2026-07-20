@@ -133,7 +133,7 @@ export default function HoroscopeDetailPage() {
 
     if (!data) return <div className="text-center py-20 text-gray-400">{t("common.error")}</div>;
 
-    const { horoscope, calculatedDetails, charts } = data;
+    const { horoscope, calculatedDetails } = data;
 
     const handleDelete = async () => {
         setDeleting(true);
@@ -459,19 +459,63 @@ export default function HoroscopeDetailPage() {
                         ))}
                     </div>
                     {(() => {
-                        const chart = charts.find((c) => c.type === selectedChart);
-                        if (!chart || !chart.svgData) {
+                        if (!calculatedDetails) {
                             return (
                                 <div className="bg-white rounded-lg border p-6 text-center text-gray-400 min-h-[300px] flex items-center justify-center">
                                     <p className="text-sm">{t("astrology.noChartData")}</p>
                                 </div>
                             );
                         }
+
+                        if (selectedChart === ChartType.BIRTH) {
+                            return (
+                                <div className="flex justify-center bg-white rounded-lg border p-4 overflow-auto">
+                                    <BirthChart
+                                        planets={calculatedDetails.planets}
+                                        houses={calculatedDetails.houses}
+                                        ascendant={calculatedDetails.ascendant}
+                                    />
+                                </div>
+                            );
+                        }
+
+                        if (selectedChart === ChartType.HOUSE) {
+                            return (
+                                <div className="flex justify-center bg-white rounded-lg border p-4 overflow-auto">
+                                    <HouseChart
+                                        planets={calculatedDetails.planets}
+                                        houses={calculatedDetails.houses}
+                                        ascendant={calculatedDetails.ascendant}
+                                    />
+                                </div>
+                            );
+                        }
+
+                        if (selectedChart === ChartType.NAVAMSA_D9) {
+                            const navamsaData = getNavamsaChartData();
+                            if (!navamsaData) {
+                                return (
+                                    <div className="bg-white rounded-lg border p-6 text-center text-gray-400 min-h-[300px] flex items-center justify-center">
+                                        <p className="text-sm">{t("astrology.noChartData")}</p>
+                                    </div>
+                                );
+                            }
+                            return (
+                                <div className="flex justify-center bg-white rounded-lg border p-4 overflow-auto">
+                                    <BirthChart
+                                        planets={navamsaData.planets}
+                                        houses={navamsaData.houses}
+                                        ascendant={navamsaData.ascendant}
+                                        showAscendantDegree={false}
+                                    />
+                                </div>
+                            );
+                        }
+
                         return (
-                            <div
-                                className="flex justify-center bg-white rounded-lg border p-4 overflow-auto"
-                                dangerouslySetInnerHTML={{ __html: chart.svgData }}
-                            />
+                            <div className="bg-white rounded-lg border p-6 text-center text-gray-400 min-h-[300px] flex items-center justify-center">
+                                <p className="text-sm">{t("astrology.noChartData")}</p>
+                            </div>
                         );
                     })()}
                 </div>
