@@ -727,125 +727,123 @@ export function HouseChart({ planets, houses, ascendant, horoscopeId }: HouseCha
 
     return (
         <div className="flex flex-col items-center gap-0.5" ref={chartRef}>
-            <div className="flex items-center justify-between w-full gap-6">
-                {horoscopeId && (
-                    <div className="flex items-center gap-2">
-                        <button
-                            type="button"
-                            role="switch"
-                            aria-checked={showCurrentPlanets}
-                            aria-label={t("currentPlanets.toggleLabel")}
-                            onClick={handleToggle}
-                            disabled={loadingCurrent}
-                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 ${showCurrentPlanets ? "bg-sky-500" : "bg-gray-300"
-                                } ${loadingCurrent ? "opacity-60 cursor-not-allowed" : "cursor-pointer"}`}
-                        >
-                            <span
-                                className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-sm ring-0 transition-transform duration-200 ${showCurrentPlanets ? "translate-x-[22px]" : "translate-x-[2px]"
-                                    }`}
+            {horoscopeId && (
+                <div className="flex items-center justify-center gap-2">
+                    <button
+                        type="button"
+                        role="switch"
+                        aria-checked={showCurrentPlanets}
+                        aria-label={t("currentPlanets.toggleLabel")}
+                        onClick={handleToggle}
+                        disabled={loadingCurrent}
+                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 ${showCurrentPlanets ? "bg-sky-500" : "bg-gray-300"
+                            } ${loadingCurrent ? "opacity-60 cursor-not-allowed" : "cursor-pointer"}`}
+                    >
+                        <span
+                            className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-sm ring-0 transition-transform duration-200 ${showCurrentPlanets ? "translate-x-[22px]" : "translate-x-[2px]"
+                                }`}
+                        />
+                    </button>
+                    <span className="text-sm text-gray-700 select-none">{t("currentPlanets.toggleLabel")}</span>
+                    {errorCurrent && (
+                        <span className="text-xs text-red-600 ml-1">
+                            <button
+                                type="button"
+                                onClick={() => fetchCurrentPlanets(selectedDate, selectedTime)}
+                                className="underline"
+                            >
+                                {t("currentPlanets.retry")}
+                            </button>
+                        </span>
+                    )}
+                    {showCurrentPlanets && (
+                        <div className="flex items-center gap-1 text-xs ml-1">
+                            <input
+                                type="date"
+                                value={selectedDate}
+                                onChange={(e) => handleDateChange(e.target.value, selectedTime)}
+                                className="w-28 px-1 py-0.5 border rounded text-gray-700"
                             />
-                        </button>
-                        <span className="text-sm text-gray-700 select-none">{t("currentPlanets.toggleLabel")}</span>
-                        {errorCurrent && (
-                            <span className="text-xs text-red-600 ml-1">
-                                <button
-                                    type="button"
-                                    onClick={() => fetchCurrentPlanets(selectedDate, selectedTime)}
-                                    className="underline"
-                                >
-                                    {t("currentPlanets.retry")}
-                                </button>
-                            </span>
-                        )}
-                        {showCurrentPlanets && (
-                            <div className="flex items-center gap-1 text-xs ml-1">
-                                <input
-                                    type="date"
-                                    value={selectedDate}
-                                    onChange={(e) => handleDateChange(e.target.value, selectedTime)}
-                                    className="w-28 px-1 py-0.5 border rounded text-gray-700"
-                                />
-                                <input
-                                    type="time"
-                                    value={selectedTime}
-                                    onChange={(e) => handleDateChange(selectedDate, e.target.value)}
-                                    className="w-20 px-1 py-0.5 border rounded text-gray-700"
-                                />
-                                <button
-                                    type="button"
-                                    onClick={() => {
-                                        const d = new Date(`${selectedDate}T12:00:00`);
-                                        d.setDate(d.getDate() - 1);
-                                        const nd = d.toISOString().slice(0, 10);
-                                        setSelectedDate(nd);
-                                        fetchCurrentPlanets(nd, selectedTime);
-                                    }}
-                                    className="px-1.5 py-0.5 border rounded hover:bg-gray-50 text-gray-500"
-                                    title="Previous day"
-                                >
-                                    ◀
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => {
-                                        const d = new Date(`${selectedDate}T12:00:00`);
-                                        d.setDate(d.getDate() + 1);
-                                        const nd = d.toISOString().slice(0, 10);
-                                        setSelectedDate(nd);
-                                        fetchCurrentPlanets(nd, selectedTime);
-                                    }}
-                                    className="px-1.5 py-0.5 border rounded hover:bg-gray-50 text-gray-500"
-                                    title="Next day"
-                                >
-                                    ▶
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => {
-                                        const n = new Date();
-                                        const d = n.toISOString().slice(0, 10);
-                                        const t = n.toTimeString().slice(0, 5);
-                                        setSelectedDate(d);
-                                        setSelectedTime(t);
-                                        fetchCurrentPlanets(d, t);
-                                    }}
-                                    className="px-1.5 py-0.5 border rounded hover:bg-gray-50 text-gray-500"
-                                    title="Reset to now"
-                                >
-                                    ↻
-                                </button>
-                            </div>
-                        )}
-                    </div>
-                )}
-                <div className="flex items-center gap-1">
-                    <button
-                        type="button"
-                        onClick={zoomOut}
-                        disabled={zoom <= MIN_ZOOM}
-                        aria-label="Zoom out"
-                        className="w-8 h-8 flex items-center justify-center border rounded hover:bg-gray-50 text-gray-600 disabled:opacity-40 disabled:hover:bg-white"
-                    >
-                        −
-                    </button>
-                    <button
-                        type="button"
-                        onClick={zoomReset}
-                        aria-label="Reset zoom"
-                        className="px-2 h-8 flex items-center justify-center border rounded hover:bg-gray-50 text-gray-600 text-xs tabular-nums"
-                    >
-                        {Math.round(zoom * 100)}%
-                    </button>
-                    <button
-                        type="button"
-                        onClick={zoomIn}
-                        disabled={zoom >= MAX_ZOOM}
-                        aria-label="Zoom in"
-                        className="w-8 h-8 flex items-center justify-center border rounded hover:bg-gray-50 text-gray-600 disabled:opacity-40 disabled:hover:bg-white"
-                    >
-                        +
-                    </button>
+                            <input
+                                type="time"
+                                value={selectedTime}
+                                onChange={(e) => handleDateChange(selectedDate, e.target.value)}
+                                className="w-20 px-1 py-0.5 border rounded text-gray-700"
+                            />
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    const d = new Date(`${selectedDate}T12:00:00`);
+                                    d.setDate(d.getDate() - 1);
+                                    const nd = d.toISOString().slice(0, 10);
+                                    setSelectedDate(nd);
+                                    fetchCurrentPlanets(nd, selectedTime);
+                                }}
+                                className="px-1.5 py-0.5 border rounded hover:bg-gray-50 text-gray-500"
+                                title="Previous day"
+                            >
+                                ◀
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    const d = new Date(`${selectedDate}T12:00:00`);
+                                    d.setDate(d.getDate() + 1);
+                                    const nd = d.toISOString().slice(0, 10);
+                                    setSelectedDate(nd);
+                                    fetchCurrentPlanets(nd, selectedTime);
+                                }}
+                                className="px-1.5 py-0.5 border rounded hover:bg-gray-50 text-gray-500"
+                                title="Next day"
+                            >
+                                ▶
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    const n = new Date();
+                                    const d = n.toISOString().slice(0, 10);
+                                    const t = n.toTimeString().slice(0, 5);
+                                    setSelectedDate(d);
+                                    setSelectedTime(t);
+                                    fetchCurrentPlanets(d, t);
+                                }}
+                                className="px-1.5 py-0.5 border rounded hover:bg-gray-50 text-gray-500"
+                                title="Reset to now"
+                            >
+                                ↻
+                            </button>
+                        </div>
+                    )}
                 </div>
+            )}
+            <div className="flex items-center justify-center gap-1">
+                <button
+                    type="button"
+                    onClick={zoomOut}
+                    disabled={zoom <= MIN_ZOOM}
+                    aria-label="Zoom out"
+                    className="w-8 h-8 flex items-center justify-center border rounded hover:bg-gray-50 text-gray-600 disabled:opacity-40 disabled:hover:bg-white"
+                >
+                    −
+                </button>
+                <button
+                    type="button"
+                    onClick={zoomReset}
+                    aria-label="Reset zoom"
+                    className="px-2 h-8 flex items-center justify-center border rounded hover:bg-gray-50 text-gray-600 text-xs tabular-nums"
+                >
+                    {Math.round(zoom * 100)}%
+                </button>
+                <button
+                    type="button"
+                    onClick={zoomIn}
+                    disabled={zoom >= MAX_ZOOM}
+                    aria-label="Zoom in"
+                    className="w-8 h-8 flex items-center justify-center border rounded hover:bg-gray-50 text-gray-600 disabled:opacity-40 disabled:hover:bg-white"
+                >
+                    +
+                </button>
             </div>
             <svg
                 width={viewSize * zoom}
