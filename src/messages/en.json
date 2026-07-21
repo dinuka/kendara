@@ -201,6 +201,16 @@
             "26": "Uttara Bhadrapada",
             "27": "Revati"
         },
+        "chartTypes": {
+            "birth": "Birth",
+            "navamsa-d9": "Navamsa",
+            "house": "House",
+            "chandra-lagna": "Chandra Lagna",
+            "surya-lagna": "Surya Lagna",
+            "drekkana-d3": "Drekkana",
+            "dasamsa-d10": "Dasamsa",
+            "shodasha-vargas": "Shodasha Vargas"
+        },
         "padaFormat": "{pada} Pada",
         "viewDetails": "View details",
         "less": "Less"

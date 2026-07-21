@@ -457,7 +457,7 @@ export default function HoroscopeDetailPage() {
                                     : "hover:bg-gray-50"
                                     }`}
                             >
-                                {type.replace(/-/g, " ")}
+                                {t(`astrology.chartTypes.${type}`)}
                             </button>
                         ))}
                     </div>

@@ -201,6 +201,16 @@
             "26": "උත්‍රපුටුප",
             "27": "රේවතී"
         },
+        "chartTypes": {
+            "birth": "ජන්ම",
+            "navamsa-d9": "නවාංශක",
+            "house": "භාව",
+            "chandra-lagna": "චන්ද්‍ර ලග්න",
+            "surya-lagna": "සූර්ය ලග්න",
+            "drekkana-d3": "ද්‍රේක්කාණ",
+            "dasamsa-d10": "දසාංශ",
+            "shodasha-vargas": "ෂෝඩශ වර්ග"
+        },
         "padaFormat": "{pada} වෙනි පාදය",
         "viewDetails": "විස්තර බලන්න",
         "less": "අඩුවෙන්"

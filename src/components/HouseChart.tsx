@@ -358,18 +358,19 @@ export function HouseChart({ planets, houses, ascendant, horoscopeId }: HouseCha
         let start = (h.startSign - 1) * 30 + h.startDegree;
         let end = (h.endSign - 1) * 30 + h.endDegree;
         if (end <= start) end += 360;
-        const mid = start + (end - start) / 2;
+        const mid = (h.middleSign - 1) * 30 + h.middleDegree;
         const isSelected = selectedAbsDeg !== null && degreeInWedge(selectedAbsDeg, start, end);
-        const [midX, midY] = polar(mid, ascAbsDeg, R_HOUSE_OUTER);
+        const [midInnerX, midInnerY] = polar(mid, ascAbsDeg, R_HOUSE_INNER);
+        const [midOuterX, midOuterY] = polar(mid, ascAbsDeg, R_HOUSE_OUTER);
         return (
             <g key={h.houseNumber}>
-                <line x1={CX} y1={CY} x2={midX} y2={midY} stroke="#e5e7eb" strokeWidth={0.5} />
                 <path
                     d={ringWedgePath(R_HOUSE_INNER, R_HOUSE_OUTER, start, end, ascAbsDeg)}
                     fill={isSelected ? HIGHLIGHT_SELECTED : h.houseNumber === 1 ? HIGHLIGHT_HOUSE : "#ffffff"}
                     stroke="#9ca3af"
                     strokeWidth={0.5}
                 />
+                <line x1={midInnerX} y1={midInnerY} x2={midOuterX} y2={midOuterY} stroke="#6b7280" strokeWidth={1} />
                 {ringLabel(
                     String(h.houseNumber),
                     mid,
