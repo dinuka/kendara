@@ -196,7 +196,7 @@ export function generateChartSvg(data: ChartInput, type: ChartType): string {
 
         svg += `
     <text x="${aLabelX}" y="${aLabelY}" class="hnum" text-anchor="${adjacent1[0] === x ? "start" : "end"}">${houseA}</text>
-    <text x="${aCenterX}" y="${aCenterY - 8}" class="sign-glyph" font-size="14">${signA ? SIGN_GLYPHS[signA] : ""}</text>`;
+    <text x="${aCenterX}" y="${aCenterY - 8}" class="sign-glyph" font-size="16">${signA ? SIGN_GLYPHS[signA] : ""}</text>`;
         if (isAscA) {
             svg += `
     <text x="${aCenterX}" y="${aCenterY + 8}" class="hnum" text-anchor="middle" font-size="9">ASC</text>`;
@@ -205,7 +205,7 @@ export function generateChartSvg(data: ChartInput, type: ChartType): string {
         if (planetsA.length > 0) {
             const { label, overflow } = planetLines(planetsA, 2);
             svg += `
-    <text x="${aCenterX}" y="${aCenterY + (isAscA ? 20 : 10)}" class="planet" font-size="10">${escapeXml(label)}${overflow > 0 ? ` +${overflow}` : ""}</text>`;
+    <text x="${aCenterX}" y="${aCenterY + (isAscA ? 20 : 10)}" class="planet" font-size="12">${escapeXml(label)}${overflow > 0 ? ` +${overflow}` : ""}</text>`;
         }
 
         // Triangle B: the half containing `adjacent2`, bounded by the near<->far diagonal
@@ -216,7 +216,7 @@ export function generateChartSvg(data: ChartInput, type: ChartType): string {
 
         svg += `
     <text x="${bLabelX}" y="${bLabelY}" class="hnum" text-anchor="${adjacent2[0] === x ? "start" : "end"}">${houseB}</text>
-    <text x="${bCenterX}" y="${bCenterY - 8}" class="sign-glyph" font-size="14">${signB ? SIGN_GLYPHS[signB] : ""}</text>`;
+    <text x="${bCenterX}" y="${bCenterY - 8}" class="sign-glyph" font-size="16">${signB ? SIGN_GLYPHS[signB] : ""}</text>`;
         if (isAscB) {
             svg += `
     <text x="${bCenterX}" y="${bCenterY + 8}" class="hnum" text-anchor="middle" font-size="9">ASC</text>`;
@@ -225,7 +225,7 @@ export function generateChartSvg(data: ChartInput, type: ChartType): string {
         if (planetsB.length > 0) {
             const { label, overflow } = planetLines(planetsB, 2);
             svg += `
-    <text x="${bCenterX}" y="${bCenterY + (isAscB ? 20 : 10)}" class="planet" font-size="10">${escapeXml(label)}${overflow > 0 ? ` +${overflow}` : ""}</text>`;
+    <text x="${bCenterX}" y="${bCenterY + (isAscB ? 20 : 10)}" class="planet" font-size="12">${escapeXml(label)}${overflow > 0 ? ` +${overflow}` : ""}</text>`;
         }
     }
 

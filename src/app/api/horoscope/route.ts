@@ -8,6 +8,7 @@ import { Horoscope } from "@/models/Horoscope";
 import { User } from "@/models/User";
 
 import { calculateHoroscope } from "@/lib/calculation";
+import { getChartData } from "@/lib/chartDataTransform";
 import { generateChartSvg } from "@/lib/chartRenderer";
 import { ALL_CHART_TYPES } from "@/lib/chartTypes";
 import { connectDB } from "@/lib/db";
@@ -82,22 +83,16 @@ export async function POST(req: NextRequest) {
 
     logger.info("saving %d chart records...", ALL_CHART_TYPES.length);
 
-    const chartInput = {
-        houses: calculated.houses,
-        planets: calculated.planets,
-        ascendant: calculated.ascendant,
-    };
-
-    const chartDocs = ALL_CHART_TYPES.map((type) => ({
-        horoscope: { id: horoscope.id },
-        type,
-        data: chartInput,
-        imageKey: "",
-        svgData: generateChartSvg(
-            { planets: calculated.planets, houses: calculated.houses, ascendant: calculated.ascendant },
+    const chartDocs = ALL_CHART_TYPES.map((type) => {
+        const chartData = getChartData(calculated, type);
+        return {
+            horoscope: { id: horoscope.id },
             type,
-        ),
-    }));
+            data: chartData,
+            imageKey: "",
+            svgData: generateChartSvg(chartData, type),
+        };
+    });
 
     await Chart.insertMany(chartDocs);
     logger.info("horoscope creation complete: id=%s", horoscope.id);

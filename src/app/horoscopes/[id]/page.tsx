@@ -45,6 +45,11 @@ interface HoroscopeData {
 
 interface ChartData {
     type: ChartType;
+    data: {
+        planets: Planet[];
+        houses: House[];
+        ascendant: Ascendant;
+    };
     svgData: string;
     _id: string;
 }
@@ -506,6 +511,26 @@ export default function HoroscopeDetailPage() {
                                         houses={navamsaData.houses}
                                         ascendant={navamsaData.ascendant}
                                         showAscendantDegree={false}
+                                    />
+                                </div>
+                            );
+                        }
+
+                        if (selectedChart === ChartType.CHANDRA_LAGNA || selectedChart === ChartType.SURYA_LAGNA) {
+                            const chartData = data.charts.find((c) => c.type === selectedChart);
+                            if (!chartData?.data) {
+                                return (
+                                    <div className="bg-white rounded-lg border p-6 text-center text-gray-400 min-h-[300px] flex items-center justify-center">
+                                        <p className="text-sm">{t("astrology.noChartData")}</p>
+                                    </div>
+                                );
+                            }
+                            return (
+                                <div className="flex justify-center bg-white rounded-lg border p-4 overflow-auto">
+                                    <BirthChart
+                                        planets={chartData.data.planets}
+                                        houses={chartData.data.houses}
+                                        ascendant={chartData.data.ascendant}
                                     />
                                 </div>
                             );
