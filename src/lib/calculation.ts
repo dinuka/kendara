@@ -392,8 +392,8 @@ export function calculateHoroscope(
             i === 0
                 ? false
                 : Math.abs(planetDetails[i].absoluteDegree - sunLong) < sunOrb ||
-                Math.abs(planetDetails[i].absoluteDegree - sunLong + 360) < sunOrb ||
-                Math.abs(planetDetails[i].absoluteDegree - sunLong - 360) < sunOrb;
+                  Math.abs(planetDetails[i].absoluteDegree - sunLong + 360) < sunOrb ||
+                  Math.abs(planetDetails[i].absoluteDegree - sunLong - 360) < sunOrb;
 
         const aspects: Aspect[] = [];
         for (let j = 0; j < planetDetails.length; j++) {

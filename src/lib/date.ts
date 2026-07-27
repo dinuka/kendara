@@ -8,5 +8,3 @@ export function formatDate(date: Date | string | null | undefined): string {
     if (isNaN(d.getTime())) return "";
     return format(d, DISPLAY_DATE_FORMAT);
 }
-
-

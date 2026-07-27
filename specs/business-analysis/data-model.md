@@ -37,9 +37,18 @@
 | longitude | Float | Longitude (auto-populated from saved location, user can override) |
 | gender | Enum(male, female, other) | Gender |
 | ayanamsha | Enum(lahiri, raman, krishnamurti, yukteshwar) | Ayanamsha system (default: lahiri) |
-| isPublic | Boolean | Visibility flag |
+| isPublic | Boolean | Visibility flag — `true` = visible to all students in search; `false` = visible only to owner and Super Admin (and via share link) |
+| displayName | Boolean | Show/hide actual name on public-facing surfaces (search cards, public detail view) — only meaningful when `isPublic=true`; owner and Super Admin always see the name |
 | createdAt | DateTime | Record created |
 | updatedAt | DateTime | Last updated |
+
+**Privacy rules**:
+- **Owner**: Always sees the horoscope and the actual name, regardless of `isPublic` or `displayName`
+- **Other students**: See the horoscope in search only if `isPublic=true`; see the name only if `isPublic=true AND displayName=true`
+- **Share link recipients**: See full horoscope (including name) regardless of `isPublic`/`displayName` — share links imply intentional sharing
+- **Super Admin**: Sees all horoscopes and actual names, regardless of privacy settings (see US-013)
+- When `isPublic` changes from `true` → `false`, search embeddings must be removed from the shared search index (or filtered at query time)
+- When `isPublic` changes from `false` → `true`, search embeddings must be generated and made available in the shared search index
 
 **Relationships**:
 
@@ -162,6 +171,8 @@
 | embedding | Vector | Vector embedding for RAG search |
 | textContent | Text | Full text content for search |
 | createdAt | DateTime | Record created |
+
+**Privacy note**: Search queries MUST filter out embeddings for private horoscopes (`isPublic=false`) when serving results to non-owners. This can be done either by deleting/marking embeddings when privacy changes, or by joining with the Horoscope table at query time to check `isPublic`.
 
 **Relationships**:
 

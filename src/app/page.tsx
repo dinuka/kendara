@@ -1,6 +1,7 @@
 "use client";
 
 import ConfirmDeleteModal from "@/components/ConfirmDeleteModal";
+import PrivacyBadge from "@/components/PrivacyBadge";
 import { useI18n } from "@/hooks/useI18n";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
@@ -19,6 +20,7 @@ interface Horoscope {
     latitude?: number;
     longitude?: number;
     isPublic: boolean;
+    displayName: boolean;
     createdAt: string;
     owner: { id: string };
 }
@@ -167,11 +169,12 @@ export default function DashboardPage() {
                                         {h.locationName || (h.latitude ? `${h.latitude}, ${h.longitude}` : "")}
                                     </td>
                                     <td className="px-4 py-3 text-center">
-                                        <span
-                                            className={`text-xs px-1.5 py-0.5 rounded ${h.isPublic ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"}`}
-                                        >
-                                            {h.isPublic ? t("horoscope.public") : t("horoscope.private")}
-                                        </span>
+                                        <PrivacyBadge
+                                            isPublic={h.isPublic}
+                                            displayName={h.displayName}
+                                            isOwner={true}
+                                            size="sm"
+                                        />
                                     </td>
                                     <td className="px-4 py-3 text-right" onClick={(e) => e.stopPropagation()}>
                                         {isOwner(h) && (

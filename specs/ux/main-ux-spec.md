@@ -258,6 +258,39 @@ Horoscope Detail → Navigate to Charts tab → Select House chart →
   → Toggle preference persisted to FilterConfig for next session
 ```
 
+### Flow 11: Toggle Privacy Settings
+
+```
+Dashboard / Horoscope Detail → Open privacy settings →
+  → Locate PrivacyToggle component →
+  → Toggle isPublic (Public/Private) →
+    → If Public: displayName toggle slides into view → Toggle show/hide name →
+  → Changes saved instantly via PATCH /api/horoscope/:id/privacy →
+  → Success toast → UI updates with new privacy badge →
+  → If Public→Private: info toast "Removed from search results" →
+  → Owner always sees full horoscope and name regardless of settings →
+  → Share links remain valid through public→private transitions →
+  → Super Admin sees all horoscopes with actual names →
+  → Non-owner, non-admin accessing private horoscope detail → 404
+```
+
+### Flow 12: Anonymous Name Display
+
+```
+Search → Results load →
+  → For each result, system checks viewer→horoscope relationship:
+    → Viewer is owner? → Show actual name
+    → Viewer is not owner AND displayName=true? → Show actual name
+    → Viewer is not owner AND displayName=false? → Show anonymous placeholder
+  → Placeholder format: "Anonymous Horoscope #A3F2" (from last 4 UUID chars) →
+  → Placeholder is stable across sessions for same horoscope →
+  → Placeholder is different for each horoscope → distinguishable →
+  → Placeholder reveals no PII →
+  → Click result → Horoscope Detail →
+    → If displayName=false (non-owner): header shows anonymous placeholder →
+    → Owner/Admin/Share link recipient: see actual name in detail view
+```
+
 ## Responsive Breakpoints
 
 | Breakpoint | Width | Layout |
@@ -303,8 +336,6 @@ Horoscope Detail → Navigate to Charts tab → Select House chart →
 - Close: Click outside, X button, Escape key
 - Focus trap: First focusable element receives focus
 
- Updated upstream
-
 ### Current Planetary Positions Toggle
 
 - **Placement**: Below the House chart, above the chart legend
@@ -325,10 +356,29 @@ Horoscope Detail → Navigate to Charts tab → Select House chart →
 - **Keyboard**: Tab to toggle, Enter/Space to activate; Tab into chart for planet navigation
 - **Touch targets**: Toggle minimum 44x44px tap area on mobile
 
->>>>>>>
-=======
->>>>>>> Stashed changes
->>>>>>>
+### PrivacyToggle
+
+- **Placement**: Horoscope creation form (below birth details, above submit) AND horoscope detail page settings section
+- **Structure**: Card with two toggle switches:
+  - Toggle 1: Privacy (Public/Private) — always visible
+  - Toggle 2: Show Name (displayName) — conditionally visible when Public selected
+- **Label (EN)**: "Privacy" / "Show person's name on public horoscope"
+- **Label (SI)**: "රහස්‍යතාව" / "පොදු ලග්නයේ පුද්ගලයාගේ නම පෙන්වන්න"
+- **Save behavior**: Immediate save via PATCH on every toggle (no separate Save button)
+- **Debounce**: 300ms to prevent rapid-fire API calls
+- **displayName conditional rules**:
+  - Only rendered when isPublic=true (smooth slide-down animation on toggling Public ON)
+  - When isPublic toggles OFF while displayName visible → toggle disappears, value preserved in DB
+  - When isPublic toggles back ON → toggle reappears with preserved value
+  - displayName=false while isPublic=false is valid but has no visible effect
+- **Loading state**: Both toggles disabled + small spinner during save
+- **Error state**: Inline error below card with "Retry" link
+- **Anonymous placeholder**: "Anonymous Horoscope #A3F2" / "නිර්නාමික ලග්නය #A3F2" — generated from last 4 chars of UUID, uppercase
+- **Privacy badge**: Badge in detail header showing "Public" / "Private" / "Name Hidden"
+- **Accessibility**: `role="switch"` with `aria-checked` on each toggle; `aria-live="polite"` announcements; `aria-disabled` during loading
+- **Keyboard**: Tab to toggle, Enter/Space to activate
+- **Touch targets**: Minimum 44x44px per toggle
+
 ### Nested Accordion (Dasha Timeline)
 
 - **Tab**: Move focus through accordion headers (tree items)
@@ -374,6 +424,19 @@ Horoscope Detail → Navigate to Charts tab → Select House chart →
 | Dasha data not available | "Dasha data not available." | "දශා දත්ත නොමැත." | (No action — inline message only) |
 | Birth details incomplete for dashas | "Complete birth details to calculate dashas." | "දශා ගණනය කිරීමට උපන් තොරතුරු සම්පූර්ණ කරන්න." | Link to edit horoscope |
 | Current planets calculation failed | "Unable to load current planetary positions. Please try again." | "වත්මන් ග්‍රහ පිහිටීම් පූරණය කළ නොහැක. නැවත උත්සාහ කරන්න." | "Retry" button |
+| Private horoscope page (non-owner) | "Horoscope not found" | "ලග්නය හමු නොවීය" | (404 — no action; prevents existence probing) |
+| Privacy toggle save error | "Failed to update privacy settings. Please try again." | "රහස්‍යතා සැකසුම් යාවත්කාලීන කිරීම අසාර්ථකයි. නැවත උත්සාහ කරන්න." | "Retry" link |
+
+### Privacy-Related Toast Extensions
+
+| Type | Duration | Message (EN) | Message (SI) | Trigger |
+|------|----------|-------------|--------------|---------|
+| Success | 3s | "Privacy updated" | "රහස්‍යතාව යාවත්කාලීන කළා" | Any privacy toggle change |
+| Info | 4s | "Horoscope is now private. Removed from search results." | "ලග්නය දැන් පුද්ගලිකයි. සෙවුම් ප්‍රතිඵලවලින් ඉවත් කරන ලදී." | Public → Private transition |
+| Success | 3s | "Horoscope is now public. Visible to other students." | "ලග්නය දැන් පොදුයි. අනෙකුත් සිසුන්ට දෘශ්‍යමානයි." | Private → Public transition |
+| Success | 3s | "Name hidden on public horoscope" | "පොදු ලග්නයේ නම සඟවන ලදී" | displayName set to false |
+| Success | 3s | "Name shown on public horoscope" | "පොදු ලග්නයේ නම පෙන්වයි" | displayName set to true |
+| Warning | 4s | "Public horoscope: Name hidden. Toggle 'Show Name' to display it." | "පොදු ලග්නය: නම සඟවා ඇත. එය පෙන්වීමට 'නම පෙන්වන්න' සක්‍රිය කරන්න." | displayName=false while isPublic=true (initial flow) |
 
 ---
 
@@ -399,3 +462,6 @@ Horoscope Detail → Navigate to Charts tab → Select House chart →
 | `specs/ux/20260718-2145-location-management-ux.md` | Location management UX design |
 | `specs/ux/20260719-1500-dasha-ux.md` | Dasha periods UX specification |
 | `specs/ux/20260720-0730-current-planetary-positions.md` | Current planetary positions overlay UX specification |
+| `specs/ux/20260727-1926-privacy-settings.md` | Horoscope privacy settings UX specification |
+| `src/components/PrivacyToggle.tsx` | PrivacyToggle component (isPublic + displayName toggles) |
+| `src/components/PrivacyBadge.tsx` | Privacy status badge (Public / Private / Name Hidden) |

@@ -14,6 +14,7 @@ import { generateChartSvg } from "@/lib/chartRenderer";
 import { ALL_CHART_TYPES } from "@/lib/chartTypes";
 import { connectDB } from "@/lib/db";
 import logger from "@/lib/logger";
+import { getAnonymousPlaceholder } from "@/lib/privacy";
 
 const CALC_FIELDS = ["birthDate", "birthTime", "latitude", "longitude", "ayanamsha"];
 
@@ -27,8 +28,12 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     const horoscope = await Horoscope.findById(id).lean();
     if (!horoscope) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-    if (horoscope.owner.id !== session.user.id && !horoscope.isPublic) {
-        return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    if (horoscope.owner.id !== session.user.id && !horoscope.isPublic && session.user.role !== "super-admin") {
+        return NextResponse.json({ error: "Not found" }, { status: 404 });
+    }
+
+    if (horoscope.owner.id !== session.user.id && session.user.role !== "super-admin" && !horoscope.displayName) {
+        horoscope.name = getAnonymousPlaceholder(horoscope._id.toString());
     }
 
     const calculatedDetails = await CalculatedDetails.findOne({ "horoscope.id": id }).lean();
@@ -71,7 +76,9 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 
     if (needsRecalc) {
         logger.info("calculation fields changed, recalculating horoscope id=%s", id);
-        const user = await User.findOne({ googleId: session.user.id }).lean();
+        const user = await User.findOne({
+            googleId: session.user.id,
+        }).lean();
         const planetaryOrbs = (user?.planetaryOrbs ?? {}) as Record<string, number>;
         const calculated = calculateHoroscope(horoscope, planetaryOrbs);
 

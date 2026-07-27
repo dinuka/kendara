@@ -59,7 +59,42 @@
         "dashas": "Dashas",
         "metadata": "Metadata",
         "download": "Download",
-        "share": "Share"
+        "share": "Share",
+        "privacy": {
+            "title": "Privacy Settings",
+            "private_label": "Private",
+            "public_label": "Public",
+            "private_description": "Private horoscopes are visible only to you, Super Admin, and anyone with a share link.",
+            "public_description": "Public horoscopes are visible to all students in search results.",
+            "display_name_title": "Name Display",
+            "display_name_show": "Show name",
+            "display_name_hide": "Hide name",
+            "display_name_show_description": "The person's name appears in search results, detail pages, and public listings.",
+            "display_name_hide_description": "The name is replaced with \"Anonymous Horoscope #XXXX\" in all public surfaces.",
+            "share_link_note": "Share links remain valid even if you switch to private."
+        },
+        "badge": {
+            "private": "Private",
+            "public": "Public",
+            "name_hidden": "Name Hidden"
+        },
+        "anonymous": {
+            "label": "Anonymous Horoscope #{id}"
+        },
+        "toast": {
+            "privacy": {
+                "now_private": "This horoscope is now private",
+                "now_public": "This horoscope is now public",
+                "name_hidden": "Name hidden from other viewers",
+                "name_shown": "Name visible to other viewers"
+            }
+        },
+        "error": {
+            "privacy": {
+                "save_failed": "Failed to save privacy settings",
+                "not_owner": "Only the owner can change privacy settings"
+            }
+        }
     },
     "search": {
         "title": "Search Horoscopes",
@@ -292,6 +327,7 @@
     },
     "common": {
         "loading": "Loading...",
+        "saving": "Saving...",
         "error": "An error occurred",
         "save": "Save",
         "cancel": "Cancel",

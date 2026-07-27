@@ -108,6 +108,37 @@
 - Results are ephemeral overlay data returned alongside the chart response and discarded after serving
 - This avoids stale transit data and eliminates the need for a background refresh job
 
+### Toggle Privacy Setting Flow
+
+```
+User → Horoscope Detail/Settings Page →
+  → Toggle "Public/Private" or "Show/Hide Name" →
+  → PATCH /api/horoscope/:id/privacy { isPublic: boolean, displayName?: boolean } →
+  → Server validates session (owner check) →
+  → Server updates fields in MongoDB →
+  → Update takes effect immediately →
+  → [If isPublic changed false→true] Queue search embedding generation (async) →
+  → [If isPublic changed true→false] Queue search embedding removal (async) →
+  → Return updated horoscope →
+  → Client updates UI:
+    → If isPublic=false: hide from other students' search
+    → If displayName=false: show anonymous placeholder in public surfaces
+    → Owner always sees name regardless of displayName
+    → Share links remain functional through public→private transition
+```
+
+Note: Search embedding lifecycle is handled asynchronously so the privacy toggle remains instant. The existing search layer (MongoDB $or filtering with `{ "owner.id": session.user.id }, { isPublic: true }`) already provides correct query-level privacy enforcement — a horoscope made private becomes invisible to other students on the next search query, even before the embedding job completes. The async embedding sync is only needed when the Qdrant vector search pipeline is enabled (see architecture spec on search embedding lifecycle).
+
+### Super Admin Access Flow
+
+```
+Super Admin → Admin Dashboard or Admin API →
+  → GET /api/admin/horoscope (bypasses isPublic filter) →
+  → GET /api/admin/horoscope/:id (returns full name regardless of displayName) →
+  → Each admin view of a private horoscope is logged to auditLogs collection →
+  → Super Admin CANNOT modify isPublic or displayName (read-only privacy access)
+```
+
 ## Data Flows
 
 ### Add Horoscope Flow
@@ -213,7 +244,7 @@ User → Click "Login with Google" →
 | GET | /api/horoscope/:id | Get horoscope with all details |
 | PUT | /api/horoscope/:id | Update horoscope |
 | DELETE | /api/horoscope/:id | Delete horoscope (own) |
-| PATCH | /api/horoscope/:id/privacy | Toggle public/private |
+| PATCH | /api/horoscope/:id/privacy | Toggle public/private and/or show/hide name — body: `{ isPublic?: boolean, displayName?: boolean }` |
 | GET | /api/horoscope/:id/dasha | Get dasha timeline data (returns dashas JSON from CalculatedDetails) — optional standalone endpoint; data also available via GET /api/horoscope/:id |
 
 ### Location
@@ -413,6 +444,25 @@ User → Click "Login with Google" →
 }
 ```
 
+**auditLogs**
+
+```
+{
+  id: UUID (string),
+  action: "privacy_change" | "admin_view_private" | "admin_action",
+  actor: { id: UUID },          // User who performed the action
+  target: { id: UUID, type: "horoscope" | "user" },  // Affected resource
+  details: {
+    field?: string,              // e.g. "isPublic", "displayName"
+    oldValue?: any,
+    newValue?: any
+  },
+  timestamp: Date,
+  ip?: string,
+  userAgent?: string
+}
+```
+
 **savedFilters**
 
 ```
@@ -450,6 +500,8 @@ User → Click "Login with Google" →
 - shareLinks: { token: 1 } (unique)
 - locations: { "createdBy.id": 1 }, { isPublic: 1 }, { name: "text" }
 - calculatedDetails: { "dashas.currentPeriod.mahadashaLord": 1 } (for querying by current dasha lord)
+- auditLogs: { timestamp: -1 }, { "actor.id": 1 }, { action: 1 }
+- horoscopes: { "owner.id": 1, isPublic: 1, displayName: 1 } (compound index for search filtering)
 
 ## Security Considerations
 
@@ -469,6 +521,17 @@ User → Click "Login with Google" →
 - Current planet computation uses the ephemeris library synchronously per request; rate limiting should be applied to prevent abuse since each calculation is CPU-intensive
 - The calculation function uses only the server's system clock — no user-controlled time input is accepted (avoids time-manipulation attacks)
 - Ephemeris data access is read-only and does not require authentication scoping beyond the standard session check
+
+### Privacy & Access Control
+
+- **Privacy enforcement at query level**: The search endpoint (`POST /api/search`) filters horoscopes at the MongoDB query level using `$or: [{ "owner.id": session.user.id }, { isPublic: true }]` — this ensures private horoscopes are never loaded into application memory for unauthorized users, providing defense-in-depth
+- **Ownership enforcement**: `PATCH /api/horoscope/:id/privacy` checks `horoscope.owner.id === session.user.id` — only the owner can change privacy settings
+- **Super Admin read-only access**: Admin routes can view all horoscopes and actual names, but MUST NOT modify `isPublic` or `displayName` fields except as part of approved support actions
+- **Share link survival**: When a horoscope transitions from public to private, existing share links remain valid — the share link endpoint (`GET /api/share/:token`) bypasses the `isPublic` check because share links imply intentional sharing
+- **Audit trail**: All Super Admin views of private horoscopes are logged to the `auditLogs` collection with `action: "admin_view_private"` for compliance and transparency
+- **Privacy change audit**: Every toggle of `isPublic` or `displayName` is logged to `auditLogs` with `action: "privacy_change"` capturing old and new values
+- **No data leakage via search**: The search endpoint returns anonymous placeholder text (not the actual name) when `isPublic=true` and `displayName=false`. The placeholder format is TBD by UX but must not leak identifiable information
+- **Search embedding isolation**: When the Qdrant vector search pipeline is operational, Qdrant point payloads include an `isPublic` field, and search queries filter on it. The embedding lifecycle (create/delete on privacy toggle) is asynchronous to keep the toggle responsive
 
 ## Performance Considerations
 

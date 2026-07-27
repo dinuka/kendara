@@ -191,3 +191,37 @@
 | Visual differentiation | Verify 3 independent channels differentiate birth vs current: (1) symbol type — glyph vs Sinhala letter, (2) border — none vs sky-blue 2px, (3) opacity — 100% vs 85%. This satisfies WCAG 2.1 Success Criterion 1.4.1 (Use of Color) since information is not conveyed by color alone. |
 | Color contrast | Verify sky-blue border (`#0EA5E9` light / `#38BDF8` dark) against chart background meets WCAG AA (3:1 for non-text). Verify planet fill colors maintain contrast over all backgrounds. |
 | Sinhala font rendering | Verify Noto Sans Sinhala loads correctly. Verify Sinhala letters are not replaced with fallback fonts that change meaning. |
+
+## Horoscope Privacy — Testing Considerations
+
+### API Testing
+
+| Consideration | Strategy |
+|---------------|----------|
+| PATCH /privacy — valid updates | Test with both fields, partial updates, empty body. Verify 200, audit log written. |
+| PATCH /privacy — auth errors | Test without session (401), non-owner (403), Super Admin (403). |
+| GET /search — privacy filtering | Test own private visible, other's private hidden, public visible. |
+| GET /horoscope/:id — privacy | Test owner sees all, non-owner sees public only (404 for private), Super Admin sees all. |
+| GET /share/:token — bypass | Test share link works for private horoscope, shows actual name. |
+| Audit logging | Verify all 7 action types created correctly. Test async fire-and-forget for admin reads. |
+
+### Component Testing
+
+| Consideration | Strategy |
+|---------------|----------|
+| PrivacyToggle states | Verify all 6 states (private, public+show, public+hide, loading, error, read-only) render correctly. |
+| PrivacyBadge variants | Verify 3 badge variants (Private, Public, Name Hidden) with correct icons, colors, labels. |
+| Conditional displayName | Verify displayName toggle slides in/out when isPublic toggles. Verify value preserved across states. |
+| Save feedback | Verify toast messages for each transition. Verify error state with retry. |
+| Anonymous placeholder | Verify placeholder generated from last 4 UUID chars. Verify deterministic per horoscope. |
+
+### Edge Cases
+
+| Consideration | Strategy |
+|---------------|----------|
+| displayName=false while isPublic=false | Verify setting saved but has no visible effect. Verify preserved when public enabled. |
+| Public→Private → Share link | Verify share link still works. Verify search immediately hides horoscope. |
+| Concurrent privacy edits | Two tabs editing same horoscope. Last write wins. No data corruption. |
+| Horoscope deletion with privacy | Verify cascade delete removes all related data. Verify audit log entry created. |
+| UUID probing | Verify 404 returned for private horoscope (not 403). Verify 404 for non-existent UUID. |
+| Rapid toggling | Verify each toggle creates audit entry. Verify debounce prevents API flood. 30 req/min rate limit enforced. |

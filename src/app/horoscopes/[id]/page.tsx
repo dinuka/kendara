@@ -4,10 +4,12 @@ import { BirthChart } from "@/components/BirthChart";
 import ConfirmDeleteModal from "@/components/ConfirmDeleteModal";
 import DashaSection from "@/components/Dasha/DashaSection";
 import { HouseChart } from "@/components/HouseChart";
+import PrivacyBadge from "@/components/PrivacyBadge";
+import PrivacyToggle from "@/components/PrivacyToggle";
 import { useI18n } from "@/hooks/useI18n";
 import { useSession } from "next-auth/react";
 import { useParams, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import type { Ascendant, Dashas, House, Planet } from "@/lib/astrology";
 import { formatDegree, navamsaSign } from "@/lib/astrology";
@@ -103,6 +105,72 @@ export default function HoroscopeDetailPage() {
     const [expandedHouses, setExpandedHouses] = useState<Set<number>>(new Set());
     const [expandedPlanets, setExpandedPlanets] = useState<Set<number>>(new Set());
 
+    const [privacyPanelOpen, setPrivacyPanelOpen] = useState(false);
+    const [savingPrivacy, setSavingPrivacy] = useState(false);
+    const [privacyError, setPrivacyError] = useState<string | null>(null);
+    const [isPublicState, setIsPublicState] = useState(false);
+    const [displayNameState, setDisplayNameState] = useState(true);
+    const [toast, setToast] = useState<{ message: string; type: 'success' | 'info' | 'error' } | null>(null);
+
+    const debounceRef = useRef<NodeJS.Timeout | null>(null);
+
+    useEffect(() => {
+        if (data) {
+            setIsPublicState(data.horoscope.isPublic);
+            setDisplayNameState(data.horoscope.displayName ?? true);
+        }
+    }, [data]);
+
+    useEffect(() => {
+        if (toast) {
+            const timer = setTimeout(() => setToast(null), 3000);
+            return () => clearTimeout(timer);
+        }
+    }, [toast]);
+
+    const handlePrivacyChange = async (settings: { isPublic?: boolean; displayName?: boolean }) => {
+        if (settings.isPublic !== undefined) setIsPublicState(settings.isPublic);
+        if (settings.displayName !== undefined) setDisplayNameState(settings.displayName);
+
+        if (debounceRef.current) clearTimeout(debounceRef.current);
+        setSavingPrivacy(true);
+        setPrivacyError(null);
+
+        debounceRef.current = setTimeout(async () => {
+            try {
+                const res = await fetch(`/api/horoscope/${params.id}/privacy`, {
+                    method: "PATCH",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(settings),
+                });
+                if (!res.ok) throw new Error("Failed to save");
+                const updated = await res.json();
+                setIsPublicState(updated.isPublic);
+                setDisplayNameState(updated.displayName ?? true);
+
+                if (settings.isPublic === true) {
+                    setToast({ message: t("horoscope.toast.privacy.now_public"), type: "success" });
+                } else if (settings.isPublic === false) {
+                    setToast({ message: t("horoscope.toast.privacy.now_private"), type: "info" });
+                } else if (settings.displayName === false) {
+                    setToast({ message: t("horoscope.toast.privacy.name_hidden"), type: "success" });
+                } else if (settings.displayName === true) {
+                    setToast({ message: t("horoscope.toast.privacy.name_shown"), type: "success" });
+                }
+            } catch {
+                if (settings.isPublic !== undefined) {
+                    setIsPublicState(data?.horoscope.isPublic ?? false);
+                }
+                if (settings.displayName !== undefined) {
+                    setDisplayNameState(data?.horoscope.displayName ?? true);
+                }
+                setPrivacyError(t("horoscope.error.privacy.save_failed"));
+            } finally {
+                setSavingPrivacy(false);
+            }
+        }, 300);
+    };
+
     useEffect(() => {
         if (status === "unauthenticated") {
             router.push("/signin");
@@ -129,7 +197,7 @@ export default function HoroscopeDetailPage() {
                     setOrbMap(parsed);
                 }
             })
-            .catch(() => { });
+            .catch(() => {});
     }, [status, params.id, router]);
 
     if (loading || status === "loading") {
@@ -294,16 +362,16 @@ export default function HoroscopeDetailPage() {
                         diff === 4
                             ? 120
                             : diff === 8
-                                ? 240
-                                : diff === 3
-                                    ? 90
-                                    : diff === 7
-                                        ? 210
-                                        : diff === 2
-                                            ? 60
-                                            : diff === 9
-                                                ? 270
-                                                : 0,
+                              ? 240
+                              : diff === 3
+                                ? 90
+                                : diff === 7
+                                  ? 210
+                                  : diff === 2
+                                    ? 60
+                                    : diff === 9
+                                      ? 270
+                                      : 0,
                 });
             }
         });
@@ -334,9 +402,29 @@ export default function HoroscopeDetailPage() {
 
     return (
         <div>
-            <div className="flex justify-between items-start mb-6 gap-3">
+            {toast && (
+                <div
+                    className={`fixed top-4 right-4 z-50 px-4 py-3 rounded-lg shadow-lg text-sm transition-all ${
+                        toast.type === 'success' ? 'bg-green-600 text-white' :
+                        toast.type === 'info' ? 'bg-indigo-600 text-white' :
+                        'bg-red-600 text-white'
+                    }`}
+                >
+                    {toast.message}
+                </div>
+            )}
+
+            <div className="flex justify-between items-start mb-2 gap-3">
                 <div className="min-w-0">
-                    <h1 className="text-2xl font-bold">{horoscope.name}</h1>
+                    <div className="flex items-center gap-2 mb-1">
+                        <h1 className="text-2xl font-bold">{horoscope.name}</h1>
+                        <PrivacyBadge
+                            isPublic={isPublicState}
+                            displayName={displayNameState}
+                            isOwner={horoscope.owner?.id === session?.user?.id}
+                            size="md"
+                        />
+                    </div>
                     <p className="text-sm text-gray-500 truncate" title={horoscope.locationName || undefined}>
                         {formatDate(horoscope.birthDate)} {horoscope.birthTime} |{" "}
                         {horoscope.locationName
@@ -367,41 +455,30 @@ export default function HoroscopeDetailPage() {
                                     <path d="m15 5 4 4" />
                                 </svg>
                             </button>
-                            <span
-                                aria-label={horoscope.isPublic ? t("horoscope.public") : t("horoscope.private")}
-                                title={horoscope.isPublic ? t("horoscope.public") : t("horoscope.private")}
-                                className={`w-8 h-8 flex items-center justify-center rounded ${horoscope.isPublic ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-600"}`}
+                            <button
+                                onClick={() => setPrivacyPanelOpen(!privacyPanelOpen)}
+                                aria-label={t("horoscope.privacy.title")}
+                                title={t("horoscope.privacy.title")}
+                                className={`w-8 h-8 flex items-center justify-center border rounded transition-colors ${
+                                    privacyPanelOpen
+                                        ? 'bg-indigo-100 text-indigo-600 border-indigo-200'
+                                        : 'hover:bg-gray-50 text-gray-600'
+                                }`}
                             >
-                                {horoscope.isPublic ? (
-                                    <svg
-                                        xmlns="http://www.w3.org/2000/svg"
-                                        viewBox="0 0 24 24"
-                                        fill="none"
-                                        stroke="currentColor"
-                                        strokeWidth="2"
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                        className="w-4 h-4"
-                                    >
-                                        <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10Z" />
-                                        <path d="M2 12h20" />
-                                    </svg>
-                                ) : (
-                                    <svg
-                                        xmlns="http://www.w3.org/2000/svg"
-                                        viewBox="0 0 24 24"
-                                        fill="none"
-                                        stroke="currentColor"
-                                        strokeWidth="2"
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                        className="w-4 h-4"
-                                    >
-                                        <rect x="3" y="11" width="18" height="10" rx="2" />
-                                        <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-                                    </svg>
-                                )}
-                            </span>
+                                <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    strokeWidth="2"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    className="w-4 h-4"
+                                >
+                                    <circle cx="12" cy="12" r="3" />
+                                    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+                                </svg>
+                            </button>
                             <button
                                 onClick={() => setConfirmDelete(true)}
                                 aria-label={t("common.delete")}
@@ -430,15 +507,29 @@ export default function HoroscopeDetailPage() {
                 </div>
             </div>
 
+            {privacyPanelOpen && (
+                <div className="mb-6">
+                    <PrivacyToggle
+                        isPublic={isPublicState}
+                        displayName={displayNameState}
+                        onChange={handlePrivacyChange}
+                        saving={savingPrivacy}
+                        error={privacyError}
+                        context="detail"
+                    />
+                </div>
+            )}
+
             <div className="flex gap-1 mb-6 border-b">
                 {tabs.map((tab) => (
                     <button
                         key={tab.id}
                         onClick={() => setActiveTab(tab.id)}
-                        className={`px-4 py-2 text-sm border-b-2 transition-colors ${activeTab === tab.id
-                            ? "border-indigo-600 text-indigo-600"
-                            : "border-transparent text-gray-500 hover:text-gray-700"
-                            }`}
+                        className={`px-4 py-2 text-sm border-b-2 transition-colors ${
+                            activeTab === tab.id
+                                ? "border-indigo-600 text-indigo-600"
+                                : "border-transparent text-gray-500 hover:text-gray-700"
+                        }`}
                     >
                         {tab.label}
                     </button>
@@ -452,10 +543,11 @@ export default function HoroscopeDetailPage() {
                             <button
                                 key={type}
                                 onClick={() => setSelectedChart(type)}
-                                className={`text-xs px-3 py-1.5 border rounded capitalize transition-colors ${selectedChart === type
-                                    ? "bg-indigo-600 text-white border-indigo-600"
-                                    : "hover:bg-gray-50"
-                                    }`}
+                                className={`text-xs px-3 py-1.5 border rounded capitalize transition-colors ${
+                                    selectedChart === type
+                                        ? "bg-indigo-600 text-white border-indigo-600"
+                                        : "hover:bg-gray-50"
+                                }`}
                             >
                                 {t(`astrology.chartTypes.${type}`)}
                             </button>
@@ -637,26 +729,26 @@ export default function HoroscopeDetailPage() {
                                                 <td className="py-1 pr-3">
                                                     {planetsInHouse.length > 0
                                                         ? planetsInHouse
-                                                            .map(
-                                                                (p) =>
-                                                                    `${getPlanetName(p.name)} (${formatDegree(p.degree)})`,
-                                                            )
-                                                            .join(", ")
+                                                              .map(
+                                                                  (p) =>
+                                                                      `${getPlanetName(p.name)} (${formatDegree(p.degree)})`,
+                                                              )
+                                                              .join(", ")
                                                         : "—"}
                                                 </td>
                                                 <td className="py-1 pr-3">
                                                     {aspectsToHouse.length > 0
                                                         ? aspectsToHouse
-                                                            .map((a) => {
-                                                                const sign = a.diff >= 0 ? "+" : "-";
-                                                                const absDiff = Math.abs(a.diff);
-                                                                const totalVikala = Math.round(absDiff * 3600);
-                                                                const anshaka = Math.floor(totalVikala / 3600);
-                                                                const kala = Math.floor((totalVikala % 3600) / 60);
-                                                                const vikala = totalVikala % 60;
-                                                                return `${getPlanetName(a.planet.name)} (${sign}${String(anshaka).padStart(2, "0")}:${String(kala).padStart(2, "0")}:${String(vikala).padStart(2, "0")})`;
-                                                            })
-                                                            .join(", ")
+                                                              .map((a) => {
+                                                                  const sign = a.diff >= 0 ? "+" : "-";
+                                                                  const absDiff = Math.abs(a.diff);
+                                                                  const totalVikala = Math.round(absDiff * 3600);
+                                                                  const anshaka = Math.floor(totalVikala / 3600);
+                                                                  const kala = Math.floor((totalVikala % 3600) / 60);
+                                                                  const vikala = totalVikala % 60;
+                                                                  return `${getPlanetName(a.planet.name)} (${sign}${String(anshaka).padStart(2, "0")}:${String(kala).padStart(2, "0")}:${String(vikala).padStart(2, "0")})`;
+                                                              })
+                                                              .join(", ")
                                                         : "—"}
                                                 </td>
                                             </tr>

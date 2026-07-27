@@ -1,5 +1,6 @@
 "use client";
 
+import PrivacyBadge from "@/components/PrivacyBadge";
 import { useI18n } from "@/hooks/useI18n";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
@@ -133,15 +134,23 @@ export default function SearchPage() {
                                     className="bg-white rounded-lg border p-4 hover:shadow-md transition-shadow cursor-pointer"
                                 >
                                     <div className="flex justify-between items-start">
-                                        <div>
-                                            <h3 className="font-semibold">{(r.horoscope as { name: string }).name}</h3>
+                                        <div className="min-w-0">
+                                            <div className="flex items-center gap-2">
+                                                <h3 className="font-semibold truncate">{(r.horoscope as { name: string }).name}</h3>
+                                                <PrivacyBadge
+                                                    isPublic={(r.horoscope as { isPublic: boolean }).isPublic}
+                                                    displayName={(r.horoscope as { displayName?: boolean }).displayName ?? true}
+                                                    isOwner={(r.horoscope as { owner: { id: string } }).owner?.id === session?.user?.id}
+                                                    size="sm"
+                                                />
+                                            </div>
                                             <p className="text-sm text-gray-500">
                                                 {(r.horoscope as { birthDate?: string }).birthDate
                                                     ? formatDate((r.horoscope as { birthDate: string }).birthDate)
                                                     : ""}
                                             </p>
                                         </div>
-                                        <span className="text-xs px-2 py-1 rounded bg-indigo-50 text-indigo-700">
+                                        <span className="text-xs px-2 py-1 rounded bg-indigo-50 text-indigo-700 shrink-0">
                                             {t("search.relevance")}: {r.score}%
                                         </span>
                                     </div>

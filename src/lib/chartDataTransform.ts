@@ -29,7 +29,7 @@ function rotateToLagna(
     targetSign: number,
     targetDegree: number,
 ): ChartInput {
-    const signOffset = ((targetSign - currentAsc.sign + 12) % 12);
+    const signOffset = (targetSign - currentAsc.sign + 12) % 12;
 
     const newHouses = houses.map((_, i) => {
         const oldIndex = (signOffset + i) % 12;
