@@ -1,162 +1,1772 @@
 "use client";
 
-import PrivacyBadge from "@/components/PrivacyBadge";
+import { BirthChart } from "@/components/BirthChart";
+import { HouseChart } from "@/components/HouseChart";
 import { useI18n } from "@/hooks/useI18n";
+import type { Ascendant, House, Planet } from "@/lib/astrology";
+import { navamsaSign } from "@/lib/astrology";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import { formatDate } from "@/lib/date";
+import { detectLanguage } from "@/lib/search/utils";
 
-export default function SearchPage() {
-    const { data: session, status } = useSession();
-    const router = useRouter();
-    const { t } = useI18n();
-    const [query, setQuery] = useState("");
-    const [results, setResults] = useState<Array<{ horoscope: Record<string, unknown>; score: number }>>([]);
-    const [searched, setSearched] = useState(false);
-    const [loading, setLoading] = useState(false);
-    const [configOpen, setConfigOpen] = useState(false);
-    const [config, setConfig] = useState<Record<string, boolean>>({
-        birthChart: true,
-        houseChart: true,
-        navamsaD9: true,
-        yogas: true,
-        doshas: true,
-        dashas: true,
-    });
+const SIGN_LORD_MAP: Record<number, number> = {
+    1: 3, 2: 6, 3: 4, 4: 2, 5: 1, 6: 4, 7: 6, 8: 3, 9: 5, 10: 7, 11: 7, 12: 5,
+};
 
-    if (status === "unauthenticated") {
-        router.push("/signin");
-        return null;
+const DEFAULT_CONFIG: Record<string, boolean> = {
+    birthChart: true,
+    navamsaD9: true,
+    houseChart: true,
+    drekkanaD3: true,
+    dasamsaD10: true,
+    shodashaVargas: true,
+    chandraLagna: true,
+    suryaLagna: true,
+    ascendant: true,
+    houseDetails: false,
+    planetPositions: true,
+    nakshatra: false,
+    dashas: true,
+    planetaryStrengths: false,
+    aspects: false,
+    yogas: false,
+    doshas: false,
+    currentPlanetPositions: false,
+    metadata: false,
+};
+
+const CONFIG_CATEGORIES: Array<{
+    key: string;
+    label: string;
+    sections: Array<{ key: string; label: string }>;
+}> = [
+    {
+        key: "charts",
+        label: "Charts",
+        sections: [
+            { key: "birthChart", label: "Birth Chart (Rasi)" },
+            { key: "navamsaD9", label: "Navamsa (D9)" },
+            { key: "houseChart", label: "House Chart (Bhava)" },
+            { key: "drekkanaD3", label: "Drekkana (D3)" },
+            { key: "dasamsaD10", label: "Dasamsa (D10)" },
+            { key: "shodashaVargas", label: "Shodasha Vargas (16)" },
+            { key: "chandraLagna", label: "Chandra Lagna" },
+            { key: "suryaLagna", label: "Surya Lagna" },
+        ],
+    },
+    {
+        key: "calculations",
+        label: "Calculations",
+        sections: [
+            { key: "ascendant", label: "Ascendant / Lagna" },
+            { key: "houseDetails", label: "House Details" },
+            { key: "planetPositions", label: "Planet Positions" },
+            { key: "nakshatra", label: "Nakshatra / Pada" },
+            { key: "dashas", label: "Dashas" },
+        ],
+    },
+    {
+        key: "strengths",
+        label: "Strengths & Aspects",
+        sections: [
+            { key: "planetaryStrengths", label: "Planetary Strengths" },
+            { key: "aspects", label: "Aspects" },
+        ],
+    },
+    {
+        key: "yogasDoshas",
+        label: "Yogas & Doshas",
+        sections: [
+            { key: "yogas", label: "Yogas" },
+            { key: "doshas", label: "Doshas" },
+        ],
+    },
+    {
+        key: "other",
+        label: "Other",
+        sections: [
+            { key: "currentPlanetPositions", label: "Current Planetary Positions" },
+            { key: "metadata", label: "Metadata / Tags" },
+        ],
+    },
+];
+
+interface HistoryEntry {
+    id: string;
+    query: string;
+    resultCount: number;
+    language: string;
+    source: string;
+    createdAt: string;
+}
+
+interface SavedFilterEntry {
+    id: string;
+    name: string;
+    query: string;
+    filterConfig: Record<string, boolean>;
+    lastRunAt: string | null;
+    resultCount: number;
+}
+
+interface BookmarkEntry {
+    id: string;
+    user: { id: string };
+    horoscope: { id: string };
+    notes?: string;
+    queryContext?: string;
+    createdAt: string;
+    horoscopeDetail?: {
+        _id: string;
+        name: string;
+        displayName: boolean;
+        birthDate: string;
+    } | null;
+    isAvailable: boolean;
+}
+
+interface SearchResult {
+    horoscope: Record<string, unknown>;
+    score: number;
+    matchedConditions: string[];
+}
+
+const ScoreBadge = ({ score }: { score: number }) => {
+    const pct = Math.round(score * 100);
+    let colorClass = "bg-gray-100 text-gray-600";
+    let label = "Weak match";
+
+    if (score >= 0.8) {
+        colorClass = "bg-green-100 text-green-800";
+        label = "Excellent match";
+    } else if (score >= 0.6) {
+        colorClass = "bg-indigo-100 text-indigo-800";
+        label = "Strong match";
+    } else if (score >= 0.4) {
+        colorClass = "bg-amber-100 text-amber-800";
+        label = "Moderate match";
     }
 
-    const handleSearch = async () => {
-        if (!query.trim()) return;
-        setLoading(true);
-        setSearched(true);
+    return (
+        <span
+            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${colorClass}`}
+            aria-label={`Match score: ${pct} percent`}
+            title={label}
+        >
+            {pct}%
+        </span>
+    );
+};
 
-        try {
-            const res = await fetch("/api/search", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ query }),
-            });
-            const data = await res.json();
-            setResults(data.results || []);
-        } catch {
-            setResults([]);
-        } finally {
-            setLoading(false);
-        }
-    };
+const PLANET_SYMBOLS: Record<number, string> = {
+    1: "\u2609", 2: "\u263D", 3: "\u2642", 4: "\u263F",
+    5: "\u2643", 6: "\u2640", 7: "\u2644", 8: "\u260A", 9: "\u260B",
+};
+
+const SIGN_SYMBOLS: Record<number, string> = {
+    1: "\u2648", 2: "\u2649", 3: "\u264A", 4: "\u264B",
+    5: "\u264C", 6: "\u264D", 7: "\u264E", 8: "\u264F",
+    9: "\u2650", 10: "\u2651", 11: "\u2652", 12: "\u2653",
+};
+
+const STRENGTH_RECORDS: Array<{ value: number; label: string; color: string }> = [
+    { value: 1.25, label: "Athi Uchcha", color: "text-green-700 bg-green-50" },
+    { value: 1, label: "Exalted", color: "text-green-600 bg-green-50" },
+    { value: 0.75, label: "Moolatrikona", color: "text-teal-600 bg-teal-50" },
+    { value: 0.5, label: "Own Sign", color: "text-blue-600 bg-blue-50" },
+    { value: 0.1, label: "Friend", color: "text-indigo-600 bg-indigo-50" },
+    { value: 0, label: "Neutral", color: "text-gray-500 bg-gray-50" },
+    { value: -0.1, label: "Enemy", color: "text-orange-600 bg-orange-50" },
+    { value: -1, label: "Debilitated", color: "text-red-600 bg-red-50" },
+    { value: -1.25, label: "Athi Neecha", color: "text-red-700 bg-red-50" },
+];
+
+const getStrengthInfo = (val: number) =>
+    STRENGTH_RECORDS.find((r) => r.value === val) || { label: "", color: "text-gray-500" };
+
+const PlanetPositionsTable = ({ planets }: { planets: Array<Record<string, unknown>> }) => (
+    <div className="overflow-x-auto">
+        <table className="w-full text-xs">
+            <thead>
+                <tr className="border-b text-gray-500">
+                    <th className="text-left py-1 pr-2 font-medium">Planet</th>
+                    <th className="text-left py-1 pr-2 font-medium">Sign</th>
+                    <th className="text-center py-1 pr-2 font-medium">House</th>
+                    <th className="text-center py-1 pr-2 font-medium">Degree</th>
+                    <th className="text-right py-1 font-medium">Strength</th>
+                </tr>
+            </thead>
+            <tbody>
+                {planets.map((p, i) => {
+                    const pName = p.name as number;
+                    const pSign = p.sign as number;
+                    const strengthVal = p.strength as number;
+                    const strengthInfo = getStrengthInfo(strengthVal);
+                    return (
+                        <tr key={i} className="border-b border-gray-50 hover:bg-gray-50/50">
+                            <td className="py-1.5 pr-2">
+                                <span className="font-medium">
+                                    {PLANET_SYMBOLS[pName] || ""} Planet {pName}
+                                </span>
+                                {p.retrograde && (
+                                    <span className="text-red-400 text-[10px] ml-1" title="Retrograde">R</span>
+                                )}
+                            </td>
+                            <td className="py-1.5 pr-2 text-gray-600">
+                                {SIGN_SYMBOLS[pSign] || ""} Sign {pSign}
+                            </td>
+                            <td className="py-1.5 pr-2 text-center font-mono">{p.house as string}</td>
+                            <td className="py-1.5 pr-2 text-center font-mono">{(p.degree as number)?.toFixed(1)}°</td>
+                            <td className="py-1.5 text-right">
+                                {strengthInfo.label && (
+                                    <span className={`inline-block px-1.5 py-0.5 rounded text-[10px] leading-tight ${strengthInfo.color}`}>
+                                        {strengthInfo.label}
+                                    </span>
+                                )}
+                            </td>
+                        </tr>
+                    );
+                })}
+            </tbody>
+        </table>
+    </div>
+);
+
+const DASHA_COLORS = [
+    "bg-indigo-50 border-indigo-200 text-indigo-700",
+    "bg-amber-50 border-amber-200 text-amber-700",
+    "bg-emerald-50 border-emerald-200 text-emerald-700",
+    "bg-rose-50 border-rose-200 text-rose-700",
+    "bg-cyan-50 border-cyan-200 text-cyan-700",
+    "bg-violet-50 border-violet-200 text-violet-700",
+    "bg-orange-50 border-orange-200 text-orange-700",
+    "bg-teal-50 border-teal-200 text-teal-700",
+    "bg-pink-50 border-pink-200 text-pink-700",
+];
+
+const DashaTimeline = ({ dashas }: { dashas: Record<string, unknown> }) => {
+    const mahadasha = dashas.mahadasha as Array<Record<string, unknown>> | undefined;
+    const currentPeriod = dashas.currentPeriod as Record<string, unknown> | undefined;
+
+    if (!mahadasha || mahadasha.length === 0) return <span className="text-sm text-gray-400">No data available</span>;
 
     return (
-        <div>
-            <h1 className="text-2xl font-bold mb-6">{t("search.title")}</h1>
-
-            <div className="bg-white rounded-lg shadow-sm border p-4 mb-6">
-                <div className="flex gap-2">
-                    <input
-                        value={query}
-                        onChange={(e) => setQuery(e.target.value)}
-                        onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-                        placeholder={t("search.placeholder")}
-                        className="flex-1 border rounded px-3 py-2 text-sm"
-                    />
-                    <button
-                        onClick={handleSearch}
-                        disabled={loading}
-                        className="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700 disabled:opacity-50 text-sm"
-                    >
-                        {loading ? t("common.loading") : t("search.search")}
-                    </button>
-                    <button
-                        onClick={() => setConfigOpen(!configOpen)}
-                        className="border px-3 py-2 rounded hover:bg-gray-50 text-sm"
-                    >
-                        {t("search.configPanel")}
-                    </button>
-                </div>
-                <p className="text-xs text-gray-400 mt-2">{t("search.basicSearch")}</p>
-                <p className="text-xs text-gray-400">{t("search.complexSearch")}</p>
-            </div>
-
-            {configOpen && (
-                <div className="bg-white rounded-lg border p-4 mb-6">
-                    <h3 className="font-semibold text-sm mb-3">{t("search.configPanel")}</h3>
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                        {Object.entries(config).map(([key, val]) => (
-                            <label key={key} className="flex items-center gap-2 text-sm">
-                                <input
-                                    type="checkbox"
-                                    checked={val}
-                                    onChange={() => setConfig({ ...config, [key]: !val })}
-                                />
-                                {key.replace(/([A-Z])/g, " $1")}
-                            </label>
-                        ))}
-                    </div>
-                    <button
-                        onClick={() =>
-                            setConfig({
-                                birthChart: true,
-                                houseChart: true,
-                                navamsaD9: true,
-                                yogas: true,
-                                doshas: true,
-                                dashas: true,
-                            })
-                        }
-                        className="text-xs text-indigo-600 mt-2 hover:underline"
-                    >
-                        {t("search.resetConfig")}
-                    </button>
+        <div className="space-y-1.5">
+            {currentPeriod && (
+                <div className="flex items-center gap-2 mb-2 px-2 py-1.5 bg-indigo-50 rounded text-xs font-medium text-indigo-700">
+                    <span className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse" />
+                    Current: MD Lord {currentPeriod.mahadashaLord as string}
+                    {currentPeriod.antardashaLord && (
+                        <> &middot; AD Lord {currentPeriod.antardashaLord as string}</>
+                    )}
+                    {currentPeriod.vidasaLord && (
+                        <> &middot; Vidasa Lord {currentPeriod.vidasaLord as string}</>
+                    )}
                 </div>
             )}
-
-            {searched && (
-                <div>
-                    <p className="text-sm text-gray-500 mb-4">
-                        {results.length} {t("search.results").toLowerCase()}
-                    </p>
-
-                    {results.length === 0 ? (
-                        <div className="bg-white rounded-lg border p-8 text-center text-gray-400">
-                            {t("search.noResults")}
+            <div className="space-y-1">
+                {mahadasha.map((md, i) => {
+                    const colorClass = DASHA_COLORS[i % DASHA_COLORS.length];
+                    const isActive = currentPeriod?.mahadashaLord === md.planet;
+                    return (
+                        <div
+                            key={i}
+                            className={`rounded border px-2.5 py-1.5 text-xs ${colorClass} ${isActive ? "ring-1 ring-indigo-300" : ""}`}
+                        >
+                            <div className="flex items-center justify-between">
+                                <span className="font-semibold">
+                                    Planet {md.planet as string}
+                                    {isActive && (
+                                        <span className="ml-1.5 text-[10px] px-1 rounded bg-white/60">Active</span>
+                                    )}
+                                </span>
+                                <span className="opacity-70">
+                                    {md.startDate as string} &mdash; {md.endDate as string}
+                                </span>
+                            </div>
+                            {(md.antardasha as Array<Record<string, unknown>> | undefined)?.length > 0 && (
+                                <div className="mt-1 flex flex-wrap gap-1">
+                                    {(md.antardasha as Array<Record<string, unknown>>).map((ad, j) => {
+                                        const isAdActive = isActive && currentPeriod?.antardashaLord === ad.planet;
+                                        return (
+                                            <span
+                                                key={j}
+                                                className={`inline-block px-1.5 py-0.5 rounded text-[10px] bg-white/60 ${isAdActive ? "ring-1 ring-indigo-400 font-semibold" : ""}`}
+                                            >
+                                                Planet {ad.planet as string} {(ad.startDate as string)?.slice(0, 4)}-{(ad.endDate as string)?.slice(0, 4)}
+                                                {isAdActive && " \u25C9"}
+                                            </span>
+                                        );
+                                    })}
+                                </div>
+                            )}
                         </div>
+                    );
+                })}
+            </div>
+        </div>
+    );
+};
+const CHART_TABS = [
+    { key: "birth", label: "Birth", configKey: "birthChart" },
+    { key: "navamsa-d9", label: "Navamsa", configKey: "navamsaD9" },
+    { key: "house", label: "House", configKey: "houseChart" },
+    { key: "chandra-lagna", label: "Chandra", configKey: "chandraLagna" },
+    { key: "surya-lagna", label: "Surya", configKey: "suryaLagna" },
+    { key: "drekkana-d3", label: "D3", configKey: "drekkanaD3" },
+    { key: "dasamsa-d10", label: "D10", configKey: "dasamsaD10" },
+    { key: "shodasha-vargas", label: "Vargas", configKey: "shodashaVargas" },
+];
+
+const SearchResultCard = ({
+    result,
+    config,
+    isExpanded,
+    onToggleExpand,
+    onBookmark,
+    isBookmarked,
+}: {
+    result: SearchResult;
+    config: Record<string, boolean>;
+    isExpanded: boolean;
+    onToggleExpand: () => void;
+    onBookmark: () => void;
+    isBookmarked: boolean;
+}) => {
+    const h = result.horoscope;
+    const cd = h.calculatedDetails as Record<string, unknown> | undefined;
+    const charts = h.charts as Record<string, unknown> | undefined;
+    const ascData = cd?.ascendant as Record<string, unknown> | undefined;
+    const ascSign = ascData?.sign as number | undefined;
+    const ascDegree = ascData?.degree as number | undefined;
+    const navamsaChartData = useMemo(() => {
+        if (!cd?.planets || !cd?.ascendant) return null;
+        const planets = cd.planets as Planet[];
+        const asc = cd.ascendant as Ascendant;
+        const navamsaPlanets: Planet[] = planets.map((p) => {
+            const navSign = p.navamsaSign ?? navamsaSign(p.sign, Math.floor(p.degree / (30 / 9)) + 1);
+            const ascNavSign = asc.sign; // computed below
+            return { ...p, sign: navSign };
+        });
+        const ascNavSign = navamsaPlanets.length > 0
+            ? navamsaSign(asc.sign, Math.floor(asc.degree / (30 / 9)) + 1)
+            : asc.sign;
+        const navHouses: House[] = Array.from({ length: 12 }, (_, i) => {
+            const hn = i + 1;
+            const s = ((ascNavSign - 1 + i) % 12) + 1;
+            return {
+                houseNumber: hn, startDegree: 0, startSign: s, startLord: SIGN_LORD_MAP[s] ?? 1,
+                middleDegree: 0, middleSign: s, middleLord: SIGN_LORD_MAP[s] ?? 1,
+                endDegree: 0, endSign: s, endLord: SIGN_LORD_MAP[s] ?? 1,
+                sign: s, lord: SIGN_LORD_MAP[s] ?? 1,
+            };
+        });
+        const navPlanets: Planet[] = navamsaPlanets.map((p) => ({
+            ...p,
+            house: ((p.sign - ascNavSign + 12) % 12) + 1,
+        }));
+        return {
+            planets: navPlanets,
+            houses: navHouses,
+            ascendant: { sign: ascNavSign, degree: 0, lord: SIGN_LORD_MAP[ascNavSign] ?? 1 },
+        };
+    }, [cd]);
+
+    const availableChartTabs = CHART_TABS.filter((tab) => {
+        if (tab.key === "navamsa-d9") return config[tab.configKey] && navamsaChartData !== null;
+        return config[tab.configKey] && charts?.[tab.key];
+    });
+
+    const initialTab = availableChartTabs.length > 0 ? availableChartTabs[0].key : CHART_TABS[0].key;
+    const [activeChart, setActiveChart] = useState(initialTab);
+
+    return (
+        <div className="bg-white rounded-lg border hover:shadow-md transition-shadow flex flex-col">
+            {/* Header — always visible */}
+            <div
+                className="p-3 cursor-pointer flex items-start justify-between"
+                onClick={onToggleExpand}
+                role="button"
+                aria-expanded={isExpanded}
+                tabIndex={0}
+                onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        onToggleExpand();
+                    }
+                }}
+            >
+                <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                        <h3 className="font-semibold text-sm truncate">{h.name as string}</h3>
+                        <ScoreBadge score={result.score} />
+                    </div>
+                    {ascSign !== undefined ? (
+                        <p className="text-xs text-gray-500 mt-0.5">
+                            {SIGN_SYMBOLS[ascSign] || ""} Asc. Sign {ascSign} {ascDegree !== undefined && `(${ascDegree.toFixed(1)}°)`}
+                        </p>
                     ) : (
-                        <div className="space-y-3">
-                            {results.map((r, i) => (
-                                <div
+                        <p className="text-xs text-gray-400 mt-0.5">No ascendant data</p>
+                    )}
+                    {result.matchedConditions.length > 0 && (
+                        <div className="flex flex-wrap gap-1 mt-1">
+                            {result.matchedConditions.slice(0, 3).map((mc, i) => (
+                                <span
                                     key={i}
-                                    onClick={() => router.push(`/horoscopes/${(r.horoscope as { _id: string })._id}`)}
-                                    className="bg-white rounded-lg border p-4 hover:shadow-md transition-shadow cursor-pointer"
+                                    className="text-[10px] px-1 py-0.5 rounded bg-indigo-50 text-indigo-600 leading-tight"
                                 >
-                                    <div className="flex justify-between items-start">
-                                        <div className="min-w-0">
-                                            <div className="flex items-center gap-2">
-                                                <h3 className="font-semibold truncate">{(r.horoscope as { name: string }).name}</h3>
-                                                <PrivacyBadge
-                                                    isPublic={(r.horoscope as { isPublic: boolean }).isPublic}
-                                                    displayName={(r.horoscope as { displayName?: boolean }).displayName ?? true}
-                                                    isOwner={(r.horoscope as { owner: { id: string } }).owner?.id === session?.user?.id}
-                                                    size="sm"
-                                                />
-                                            </div>
-                                            <p className="text-sm text-gray-500">
-                                                {(r.horoscope as { birthDate?: string }).birthDate
-                                                    ? formatDate((r.horoscope as { birthDate: string }).birthDate)
-                                                    : ""}
-                                            </p>
+                                    {mc}
+                                </span>
+                            ))}
+                            {result.matchedConditions.length > 3 && (
+                                <span className="text-[10px] text-gray-400">+{result.matchedConditions.length - 3}</span>
+                            )}
+                        </div>
+                    )}
+                </div>
+                <div className="flex items-center gap-1.5 shrink-0 ml-2">
+                    <button
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            onBookmark();
+                        }}
+                        className={`text-base ${isBookmarked ? "text-yellow-500" : "text-gray-400 hover:text-yellow-500"}`}
+                        aria-label={isBookmarked ? "Remove bookmark" : "Bookmark"}
+                    >
+                        {isBookmarked ? "\u2605" : "\u2606"}
+                    </button>
+                    <span
+                        className={`text-gray-400 text-xs transition-transform duration-200 ${
+                            isExpanded ? "rotate-0" : "-rotate-90"
+                        }`}
+                    >
+                        \u25BC
+                    </span>
+                </div>
+            </div>
+
+            {isExpanded && (
+                <div className="border-t flex-1 flex flex-col">
+                    {/* Chart tabs */}
+                    {availableChartTabs.length > 0 && (
+                        <div className="border-b">
+                            <div className="flex" role="tablist">
+                                {availableChartTabs.map((tab) => (
+                                    <button
+                                        key={tab.key}
+                                        role="tab"
+                                        aria-selected={activeChart === tab.key}
+                                        onClick={() => setActiveChart(tab.key)}
+                                        className={`flex-1 text-xs py-2 px-2 font-medium transition-colors ${
+                                            activeChart === tab.key
+                                                ? "text-indigo-600 border-b-2 border-indigo-600 bg-indigo-50/30"
+                                                : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"
+                                        }`}
+                                    >
+                                        {tab.label}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Active chart */}
+                    {availableChartTabs.length > 0 && (
+                        <div className="bg-gray-50 border-b flex items-center justify-center p-2">
+                            {(() => {
+                                if (activeChart === "navamsa-d9") {
+                                    if (!navamsaChartData) {
+                                        return <div className="text-sm text-gray-400 p-8">No chart data available</div>;
+                                    }
+                                    return (
+                                        <BirthChart
+                                            planets={navamsaChartData.planets}
+                                            houses={navamsaChartData.houses}
+                                            ascendant={navamsaChartData.ascendant}
+                                            showAscendantDegree={false}
+                                        />
+                                    );
+                                }
+                                const chartData = charts?.[activeChart] as Record<string, unknown> | undefined;
+                                const data = chartData?.data as Record<string, unknown> | undefined;
+                                const planets = data?.planets as Planet[] | undefined;
+                                const houses = data?.houses as House[] | undefined;
+                                const ascendant = data?.ascendant as Ascendant | undefined;
+                                if (!planets || !houses || !ascendant) {
+                                    return (
+                                        <div className="text-sm text-gray-400 p-8">
+                                            No chart data available
                                         </div>
-                                        <span className="text-xs px-2 py-1 rounded bg-indigo-50 text-indigo-700 shrink-0">
-                                            {t("search.relevance")}: {r.score}%
+                                    );
+                                }
+                                if (activeChart === "house") {
+                                    return (
+                                        <HouseChart
+                                            planets={planets}
+                                            houses={houses}
+                                            ascendant={ascendant}
+                                            horoscopeId={h._id as string || h.id as string}
+                                        />
+                                    );
+                                }
+                                return (
+                                    <BirthChart
+                                        planets={planets}
+                                        houses={houses}
+                                        ascendant={ascendant}
+                                        showAscendantDegree={false}
+                                    />
+                                );
+                            })()}
+                        </div>
+                    )}
+
+                    {/* Calculations */}
+                    <div className="p-3 space-y-3 flex-1 overflow-y-auto">
+                        {config.ascendant && ascData && (
+                            <div className="flex items-center gap-2 px-2.5 py-2 bg-gradient-to-r from-amber-50 to-orange-50 rounded-lg border border-amber-200">
+                                <span className="text-lg">
+                                    {SIGN_SYMBOLS[ascSign || 0] || ""}
+                                </span>
+                                <div>
+                                    <span className="text-xs font-semibold text-amber-800">Ascendant</span>
+                                    <p className="text-xs text-amber-700">
+                                        Sign {ascSign} at {ascDegree?.toFixed(1)}° &middot; Lord: Planet {(ascData.lord as number) || "?"}
+                                    </p>
+                                </div>
+                            </div>
+                        )}
+
+                        {config.planetPositions && cd?.planets && (
+                            <div>
+                                <h5 className="text-xs font-semibold text-gray-600 mb-1.5 uppercase tracking-wider">
+                                    Planets
+                                </h5>
+                                <PlanetPositionsTable
+                                    planets={cd.planets as Array<Record<string, unknown>>}
+                                />
+                            </div>
+                        )}
+
+                        {config.nakshatra && cd?.nakshatra && (
+                            <div>
+                                <h5 className="text-xs font-semibold text-gray-600 mb-1 uppercase tracking-wider">
+                                    Nakshatra
+                                </h5>
+                                <div className="text-xs text-gray-600 space-y-0.5">
+                                    <p>Moon: Nakshatra {(cd.nakshatra as Record<string, unknown>).moonNakshatra ? ((cd.nakshatra as Record<string, unknown>).moonNakshatra as Record<string, unknown>).id as string : "?"}</p>
+                                    <p>Asc: Nakshatra {(cd.nakshatra as Record<string, unknown>).ascendantNakshatra ? ((cd.nakshatra as Record<string, unknown>).ascendantNakshatra as Record<string, unknown>).id as string : "?"}</p>
+                                </div>
+                            </div>
+                        )}
+
+                        {config.dashas && cd?.dashas && (
+                            <div>
+                                <h5 className="text-xs font-semibold text-gray-600 mb-1.5 uppercase tracking-wider">
+                                    Dashas
+                                </h5>
+                                <DashaTimeline dashas={cd.dashas as Record<string, unknown>} />
+                            </div>
+                        )}
+
+                        {config.yogas && cd?.yogas && (
+                            <div>
+                                <h5 className="text-xs font-semibold text-gray-600 mb-1.5 uppercase tracking-wider">
+                                    Yogas
+                                </h5>
+                                {(cd.yogas as Array<Record<string, unknown>>).length > 0 ? (
+                                    <div className="space-y-1">
+                                        {(cd.yogas as Array<Record<string, unknown>>).map((y, i) => (
+                                            <div key={i} className="flex items-center gap-1.5 text-xs">
+                                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0" />
+                                                <span className="font-medium text-gray-700">{y.name as string}</span>
+                                                {y.isBeneficial === false && (
+                                                    <span className="text-[10px] px-1 rounded bg-red-50 text-red-600">Malefic</span>
+                                                )}
+                                            </div>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <span className="text-xs text-gray-400">No yogas detected</span>
+                                )}
+                            </div>
+                        )}
+
+                        {config.doshas && cd?.doshas && (
+                            <div>
+                                <h5 className="text-xs font-semibold text-gray-600 mb-1.5 uppercase tracking-wider">
+                                    Doshas
+                                </h5>
+                                {((cd.doshas as Record<string, unknown>).doshas as Array<Record<string, unknown>> | undefined)?.filter((d) => d.isPresent).length ? (
+                                    <div className="space-y-1">
+                                        {((cd.doshas as Record<string, unknown>).doshas as Array<Record<string, unknown>>).filter((d) => d.isPresent).map((d, i) => (
+                                            <div key={i} className="flex items-center gap-1.5 text-xs">
+                                                <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${(d.severity as string || "").toLowerCase() === "high" ? "bg-red-400" : "bg-amber-400"}`} />
+                                                <span className="font-medium text-gray-700">{d.name as string}</span>
+                                                <span className="text-gray-400">{(d.severity as string) || ""}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <span className="text-xs text-gray-400">No doshas detected</span>
+                                )}
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+};
+
+const PaginationControls = ({
+    page,
+    totalPages,
+    total,
+    onPageChange,
+}: {
+    page: number;
+    totalPages: number;
+    total: number;
+    onPageChange: (p: number) => void;
+}) => {
+    if (total === 0) return null;
+
+    const pages: number[] = [];
+    const startPage = Math.max(1, page - 2);
+    const endPage = Math.min(totalPages, page + 2);
+
+    for (let i = startPage; i <= endPage; i++) {
+        pages.push(i);
+    }
+
+    return (
+        <div className="flex items-center justify-center gap-2 mt-6">
+            <button
+                onClick={() => onPageChange(page - 1)}
+                disabled={page <= 1}
+                className="px-3 py-1.5 text-sm border rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+                ← Previous
+            </button>
+
+            {startPage > 1 && (
+                <>
+                    <button
+                        onClick={() => onPageChange(1)}
+                        className="px-3 py-1.5 text-sm border rounded hover:bg-gray-50"
+                    >
+                        1
+                    </button>
+                    {startPage > 2 && (
+                        <span className="px-2 text-gray-400">...</span>
+                    )}
+                </>
+            )}
+
+            {pages.map((p) => (
+                <button
+                    key={p}
+                    onClick={() => onPageChange(p)}
+                    className={`px-3 py-1.5 text-sm border rounded ${
+                        p === page
+                            ? "bg-indigo-600 text-white border-indigo-600"
+                            : "hover:bg-gray-50"
+                    }`}
+                >
+                    {p}
+                </button>
+            ))}
+
+            {endPage < totalPages && (
+                <>
+                    {endPage < totalPages - 1 && (
+                        <span className="px-2 text-gray-400">...</span>
+                    )}
+                    <button
+                        onClick={() => onPageChange(totalPages)}
+                        className="px-3 py-1.5 text-sm border rounded hover:bg-gray-50"
+                    >
+                        {totalPages}
+                    </button>
+                </>
+            )}
+
+            <button
+                onClick={() => onPageChange(page + 1)}
+                disabled={page >= totalPages}
+                className="px-3 py-1.5 text-sm border rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+                Next →
+            </button>
+
+            <span className="text-sm text-gray-500 ml-2">
+                Page {page} of {totalPages} ({total} total)
+            </span>
+        </div>
+    );
+};
+
+const ConfigPanel = ({
+    config,
+    onToggle,
+    onReset,
+    isOpen,
+    onClose,
+}: {
+    config: Record<string, boolean>;
+    onToggle: (key: string) => void;
+    onReset: () => void;
+    isOpen: boolean;
+    onClose: () => void;
+}) => {
+    if (!isOpen) return null;
+
+    return (
+        <div
+            className="fixed inset-0 z-50 flex justify-end"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Result configuration"
+        >
+            <div className="absolute inset-0 bg-black/20" onClick={onClose} />
+            <div className="relative w-full max-w-sm bg-white shadow-xl overflow-y-auto">
+                <div className="sticky top-0 bg-white border-b px-4 py-3 flex items-center justify-between">
+                    <h3 className="font-semibold text-sm">
+                        Result Configuration
+                    </h3>
+                    <div className="flex items-center gap-2">
+                        <button
+                            onClick={onReset}
+                            className="text-xs text-indigo-600 hover:underline"
+                        >
+                            Reset
+                        </button>
+                        <button
+                            onClick={onClose}
+                            className="text-gray-400 hover:text-gray-600 text-lg"
+                            aria-label="Close config panel"
+                        >
+                            ✕
+                        </button>
+                    </div>
+                </div>
+
+                <div className="p-4 space-y-4">
+                    {CONFIG_CATEGORIES.map((cat) => (
+                        <div key={cat.key}>
+                            <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
+                                {cat.label}
+                            </h4>
+                            <div className="space-y-1">
+                                {cat.sections.map((sec) => (
+                                    <label
+                                        key={sec.key}
+                                        className="flex items-center gap-2 text-sm cursor-pointer hover:bg-gray-50 rounded px-1 py-0.5"
+                                    >
+                                        <input
+                                            type="checkbox"
+                                            checked={config[sec.key] ?? false}
+                                            onChange={() => onToggle(sec.key)}
+                                            className="rounded border-gray-300"
+                                        />
+                                        {sec.label}
+                                    </label>
+                                ))}
+                            </div>
+                        </div>
+                    ))}
+
+                    <div className="pt-3 border-t flex gap-2">
+                        <button
+                            onClick={() => {
+                                Object.keys(config).forEach((k) => {
+                                    if (!config[k]) onToggle(k);
+                                });
+                            }}
+                            className="text-xs px-3 py-1.5 border rounded hover:bg-gray-50"
+                        >
+                            Select All
+                        </button>
+                        <button
+                            onClick={() => {
+                                Object.keys(config).forEach((k) => {
+                                    if (config[k]) onToggle(k);
+                                });
+                            }}
+                            className="text-xs px-3 py-1.5 border rounded hover:bg-gray-50"
+                        >
+                            Deselect All
+                        </button>
+                        <button
+                            onClick={onReset}
+                            className="text-xs px-3 py-1.5 border rounded hover:bg-gray-50 text-indigo-600"
+                        >
+                            Reset to Defaults
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+const SearchHistoryPanel = ({
+    entries,
+    onReRun,
+    onClearAll,
+    onDeleteEntry,
+    onClose,
+    isOpen,
+}: {
+    entries: HistoryEntry[];
+    onReRun: (query: string) => void;
+    onClearAll: () => void;
+    onDeleteEntry: (id: string) => void;
+    onClose: () => void;
+    isOpen: boolean;
+}) => {
+    if (!isOpen) return null;
+
+    return (
+        <div
+            className="fixed inset-0 z-50 flex justify-end"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Search history"
+        >
+            <div className="absolute inset-0 bg-black/20" onClick={onClose} />
+            <div className="relative w-full max-w-sm bg-white shadow-xl overflow-y-auto">
+                <div className="sticky top-0 bg-white border-b px-4 py-3 flex items-center justify-between">
+                    <h3 className="font-semibold text-sm">Recent Searches</h3>
+                    <div className="flex items-center gap-2">
+                        {entries.length > 0 && (
+                            <button
+                                onClick={onClearAll}
+                                className="text-xs text-red-600 hover:underline"
+                            >
+                                Clear All
+                            </button>
+                        )}
+                        <button
+                            onClick={onClose}
+                            className="text-gray-400 hover:text-gray-600 text-lg"
+                        >
+                            ✕
+                        </button>
+                    </div>
+                </div>
+
+                <div className="p-4">
+                    {entries.length === 0 ? (
+                        <p className="text-sm text-gray-400 text-center py-8">
+                            No search history yet.
+                        </p>
+                    ) : (
+                        <div className="space-y-2">
+                            {entries.map((entry) => (
+                                <div
+                                    key={entry.id}
+                                    className="p-3 rounded border hover:bg-gray-50 cursor-pointer"
+                                    onClick={() => onReRun(entry.query)}
+                                    role="button"
+                                    tabIndex={0}
+                                >
+                                    <div className="flex items-start justify-between">
+                                        <p className="text-sm font-medium truncate flex-1">
+                                            {entry.query}
+                                        </p>
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                onDeleteEntry(entry.id);
+                                            }}
+                                            className="text-gray-400 hover:text-red-500 text-xs shrink-0 ml-2"
+                                        >
+                                            🗑
+                                        </button>
+                                    </div>
+                                    <div className="flex items-center gap-2 mt-1 text-xs text-gray-500">
+                                        <span>
+                                            {entry.resultCount} results
+                                        </span>
+                                        <span>
+                                            {entry.language === "si"
+                                                ? "🇱🇰 Sinhala"
+                                                : "🇬🇧 English"}
+                                        </span>
+                                        <span className="px-1 rounded bg-gray-100">
+                                            {entry.source}
+                                        </span>
+                                        <span>
+                                            {new Date(
+                                                entry.createdAt,
+                                            ).toLocaleDateString()}
                                         </span>
                                     </div>
                                 </div>
                             ))}
                         </div>
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+};
+
+const SavedSearchesPanel = ({
+    filters,
+    onRun,
+    onEditName,
+    onDelete,
+    onClose,
+    isOpen,
+}: {
+    filters: SavedFilterEntry[];
+    onRun: (f: SavedFilterEntry) => void;
+    onEditName: (id: string, name: string) => void;
+    onDelete: (id: string) => void;
+    onClose: () => void;
+    isOpen: boolean;
+}) => {
+    const [editingId, setEditingId] = useState<string | null>(null);
+    const [editName, setEditName] = useState("");
+
+    if (!isOpen) return null;
+
+    return (
+        <div
+            className="fixed inset-0 z-50 flex justify-end"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Saved searches"
+        >
+            <div className="absolute inset-0 bg-black/20" onClick={onClose} />
+            <div className="relative w-full max-w-sm bg-white shadow-xl overflow-y-auto">
+                <div className="sticky top-0 bg-white border-b px-4 py-3 flex items-center justify-between">
+                    <h3 className="font-semibold text-sm">Saved Searches</h3>
+                    <button
+                        onClick={onClose}
+                        className="text-gray-400 hover:text-gray-600 text-lg"
+                    >
+                        ✕
+                    </button>
+                </div>
+
+                <div className="p-4">
+                    {filters.length === 0 ? (
+                        <p className="text-sm text-gray-400 text-center py-8">
+                            No saved searches yet.
+                        </p>
+                    ) : (
+                        <div className="space-y-3">
+                            {filters.map((f) => (
+                                <div
+                                    key={f.id}
+                                    className="p-3 rounded border"
+                                >
+                                    {editingId === f.id ? (
+                                        <div className="flex gap-2 mb-2">
+                                            <input
+                                                type="text"
+                                                value={editName}
+                                                onChange={(e) =>
+                                                    setEditName(e.target.value)
+                                                }
+                                                className="flex-1 border rounded px-2 py-1 text-sm"
+                                                onKeyDown={(e) => {
+                                                    if (
+                                                        e.key === "Enter" &&
+                                                        editName.trim()
+                                                    ) {
+                                                        onEditName(
+                                                            f.id,
+                                                            editName,
+                                                        );
+                                                        setEditingId(null);
+                                                    }
+                                                    if (e.key === "Escape") {
+                                                        setEditingId(null);
+                                                    }
+                                                }}
+                                                autoFocus
+                                            />
+                                            <button
+                                                onClick={() => {
+                                                    if (editName.trim()) {
+                                                        onEditName(
+                                                            f.id,
+                                                            editName,
+                                                        );
+                                                        setEditingId(null);
+                                                    }
+                                                }}
+                                                className="text-xs text-indigo-600"
+                                            >
+                                                Save
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        <h4
+                                            className="font-medium text-sm cursor-pointer hover:text-indigo-600"
+                                            onClick={() => {
+                                                setEditingId(f.id);
+                                                setEditName(f.name);
+                                            }}
+                                        >
+                                            {f.name}
+                                        </h4>
+                                    )}
+                                    <p className="text-xs text-gray-500 mt-1 truncate">
+                                        {f.query}
+                                    </p>
+                                    {f.lastRunAt && (
+                                        <p className="text-xs text-gray-400 mt-1">
+                                            Last run:{" "}
+                                            {new Date(
+                                                f.lastRunAt,
+                                            ).toLocaleDateString()}{" "}
+                                            ({f.resultCount} results)
+                                        </p>
+                                    )}
+                                    <div className="flex gap-2 mt-2">
+                                        <button
+                                            onClick={() => onRun(f)}
+                                            className="text-xs px-2 py-1 bg-indigo-50 text-indigo-700 rounded hover:bg-indigo-100"
+                                        >
+                                            Run
+                                        </button>
+                                        <button
+                                            onClick={() => {
+                                                setEditingId(f.id);
+                                                setEditName(f.name);
+                                            }}
+                                            className="text-xs px-2 py-1 border rounded hover:bg-gray-50"
+                                        >
+                                            Edit Name
+                                        </button>
+                                        <button
+                                            onClick={() => onDelete(f.id)}
+                                            className="text-xs px-2 py-1 text-red-600 hover:bg-red-50 rounded"
+                                        >
+                                            Delete
+                                        </button>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+
+                    <p className="text-xs text-gray-400 text-center mt-4">
+                        Maximum 50 saved searches.
+                    </p>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+const BookmarksPanel = ({
+    bookmarks,
+    onRemove,
+    onOpen,
+    onClose,
+    isOpen,
+}: {
+    bookmarks: BookmarkEntry[];
+    onRemove: (horoscopeId: string) => void;
+    onOpen: (horoscopeId: string) => void;
+    onClose: () => void;
+    isOpen: boolean;
+}) => {
+    if (!isOpen) return null;
+
+    return (
+        <div
+            className="fixed inset-0 z-50 flex justify-end"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Bookmarks"
+        >
+            <div className="absolute inset-0 bg-black/20" onClick={onClose} />
+            <div className="relative w-full max-w-sm bg-white shadow-xl overflow-y-auto">
+                <div className="sticky top-0 bg-white border-b px-4 py-3 flex items-center justify-between">
+                    <h3 className="font-semibold text-sm">Bookmarks</h3>
+                    <button
+                        onClick={onClose}
+                        className="text-gray-400 hover:text-gray-600 text-lg"
+                    >
+                        ✕
+                    </button>
+                </div>
+
+                <div className="p-4">
+                    {bookmarks.length === 0 ? (
+                        <p className="text-sm text-gray-400 text-center py-8">
+                            No bookmarks yet. Bookmark horoscopes from search
+                            results to save them here.
+                        </p>
+                    ) : (
+                        <div className="space-y-3">
+                            {bookmarks.map((b) => (
+                                <div
+                                    key={b.id}
+                                    className="p-3 rounded border"
+                                >
+                                    <div className="flex items-start justify-between">
+                                        <div>
+                                            <h4 className="font-medium text-sm">
+                                                {b.isAvailable
+                                                    ? b.horoscopeDetail?.name ||
+                                                      "Unknown"
+                                                    : "Horoscope no longer available"}
+                                            </h4>
+                                            {b.queryContext && (
+                                                <p className="text-xs text-gray-500 mt-1">
+                                                    Query: {b.queryContext}
+                                                </p>
+                                            )}
+                                            {b.notes && (
+                                                <p className="text-xs text-gray-500 mt-1">
+                                                    Note: {b.notes}
+                                                </p>
+                                            )}
+                                            <p className="text-xs text-gray-400 mt-1">
+                                                Saved:{" "}
+                                                {new Date(
+                                                    b.createdAt,
+                                                ).toLocaleDateString()}
+                                            </p>
+                                        </div>
+                                        <button
+                                            onClick={() =>
+                                                onRemove(b.horoscope.id)
+                                            }
+                                            className="text-gray-400 hover:text-red-500 text-xs shrink-0 ml-2"
+                                        >
+                                            Remove
+                                        </button>
+                                    </div>
+                                    {b.isAvailable && (
+                                        <button
+                                            onClick={() =>
+                                                onOpen(b.horoscope.id)
+                                            }
+                                            className="text-xs text-indigo-600 hover:underline mt-2"
+                                        >
+                                            Open
+                                        </button>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+                    )}
+
+                    <p className="text-xs text-gray-400 text-center mt-4">
+                        Maximum 100 bookmarks.
+                    </p>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+export default function SearchPage() {
+    const { data: session, status } = useSession();
+    const router = useRouter();
+    const { t } = useI18n();
+
+    const [query, setQuery] = useState("");
+    const [results, setResults] = useState<SearchResult[]>([]);
+    const [searched, setSearched] = useState(false);
+    const [loading, setLoading] = useState(false);
+    const [page, setPage] = useState(1);
+    const [totalResults, setTotalResults] = useState(0);
+    const [totalPages, setTotalPages] = useState(0);
+    const [expandedCards, setExpandedCards] = useState<Set<number>>(new Set());
+    const [bookmarkedIds, setBookmarkedIds] = useState<Set<string>>(new Set());
+
+    const [config, setConfig] = useState<Record<string, boolean>>(DEFAULT_CONFIG);
+    const [configOpen, setConfigOpen] = useState(false);
+    const [historyOpen, setHistoryOpen] = useState(false);
+    const [savedFilterOpen, setSavedFilterOpen] = useState(false);
+    const [bookmarksOpen, setBookmarksOpen] = useState(false);
+
+    const [historyEntries, setHistoryEntries] = useState<HistoryEntry[]>([]);
+    const [savedFilters, setSavedFilters] = useState<SavedFilterEntry[]>([]);
+    const [bookmarks, setBookmarks] = useState<BookmarkEntry[]>([]);
+
+    const [debouncedQuery, setDebouncedQuery] = useState(query);
+    const debounceTimer = useRef<ReturnType<typeof setTimeout>>();
+
+    const detectedLanguage = detectLanguage(query);
+
+    const fetchHistory = useCallback(async () => {
+        try {
+            const res = await fetch("/api/search/history");
+            const data = await res.json();
+            setHistoryEntries(data.entries || []);
+        } catch {
+            // ignore
+        }
+    }, []);
+
+    const fetchSavedFilters = useCallback(async () => {
+        try {
+            const res = await fetch("/api/search/filter");
+            const data = await res.json();
+            setSavedFilters(data.filters || []);
+
+            if (data.defaultFilter?.filterConfig) {
+                setConfig((prev) => ({
+                    ...prev,
+                    ...data.defaultFilter.filterConfig,
+                }));
+            }
+        } catch {
+            // ignore
+        }
+    }, []);
+
+    const fetchBookmarks = useCallback(async () => {
+        try {
+            const res = await fetch("/api/search/bookmark");
+            const data = await res.json();
+            setBookmarks(data.bookmarks || []);
+
+            const ids = new Set<string>();
+            (data.bookmarks || []).forEach(
+                (b: BookmarkEntry) => ids.add(b.horoscope.id),
+            );
+            setBookmarkedIds(ids);
+        } catch {
+            // ignore
+        }
+    }, []);
+
+    useEffect(() => {
+        if (status === "unauthenticated") {
+            router.push("/signin");
+            return;
+        }
+
+        if (status === "authenticated") {
+            fetchSavedFilters();
+            fetchBookmarks();
+        }
+    }, [status, router, fetchSavedFilters, fetchBookmarks]);
+
+    useEffect(() => {
+        if (debounceTimer.current) clearTimeout(debounceTimer.current);
+
+        debounceTimer.current = setTimeout(() => {
+            setDebouncedQuery(query);
+        }, 300);
+
+        return () => {
+            if (debounceTimer.current) clearTimeout(debounceTimer.current);
+        };
+    }, [query]);
+
+    const handleSearch = useCallback(
+        async (searchQuery?: string, searchPage?: number) => {
+            const q = searchQuery ?? query;
+            const p = searchPage ?? 1;
+
+            if (!q.trim()) return;
+
+            setLoading(true);
+            setSearched(true);
+            setPage(p);
+
+            try {
+                const res = await fetch("/api/search", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        query: q,
+                        page: p,
+                        pageSize: 5,
+                    }),
+                });
+
+                const data = await res.json();
+                setResults(data.results || []);
+                setTotalResults(data.total || 0);
+                setTotalPages(data.totalPages || 0);
+
+                setExpandedCards(
+                    new Set(
+                        (data.results || []).map(
+                            (_: unknown, i: number) => i,
+                        ),
+                    ),
+                );
+
+                fetchHistory();
+            } catch {
+                setResults([]);
+                setTotalResults(0);
+                setTotalPages(0);
+            } finally {
+                setLoading(false);
+            }
+        },
+        [query, fetchHistory],
+    );
+
+    const handlePageChange = (newPage: number) => {
+        handleSearch(undefined, newPage);
+    };
+
+    const toggleExpanded = (index: number) => {
+        setExpandedCards((prev) => {
+            const next = new Set(prev);
+            if (next.has(index)) {
+                next.delete(index);
+            } else {
+                next.add(index);
+            }
+            return next;
+        });
+    };
+
+    const expandAll = () => {
+        setExpandedCards(new Set(results.map((_, i) => i)));
+    };
+
+    const collapseAll = () => {
+        setExpandedCards(new Set());
+    };
+
+    const isAllExpanded =
+        results.length > 0 && expandedCards.size === results.length;
+
+    const handleBookmark = async (horoscopeId: string) => {
+        if (bookmarkedIds.has(horoscopeId)) {
+            try {
+                await fetch(`/api/search/bookmark/${horoscopeId}`, {
+                    method: "DELETE",
+                });
+                setBookmarkedIds((prev) => {
+                    const next = new Set(prev);
+                    next.delete(horoscopeId);
+                    return next;
+                });
+                fetchBookmarks();
+            } catch {
+                // ignore
+            }
+        } else {
+            try {
+                await fetch("/api/search/bookmark", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        horoscopeId,
+                        queryContext: query,
+                    }),
+                });
+                setBookmarkedIds((prev) => new Set(prev).add(horoscopeId));
+                fetchBookmarks();
+            } catch {
+                // ignore
+            }
+        }
+    };
+
+    const handleConfigToggle = (key: string) => {
+        setConfig((prev) => {
+            const next = { ...prev, [key]: !prev[key] };
+            const timeoutId = setTimeout(async () => {
+                try {
+                    await fetch("/api/search/filter", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                            name: "__default__",
+                            filterConfig: next,
+                        }),
+                    });
+                } catch {
+                    // ignore
+                }
+            }, 500);
+            return next;
+        });
+    };
+
+    const handleConfigReset = () => {
+        setConfig(DEFAULT_CONFIG);
+        fetch("/api/search/filter", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                name: "__default__",
+                filterConfig: DEFAULT_CONFIG,
+            }),
+        }).catch(() => {});
+    };
+
+    const handleReRunHistory = (q: string) => {
+        setQuery(q);
+        setHistoryOpen(false);
+        handleSearch(q, 1);
+    };
+
+    const handleClearHistory = async () => {
+        if (
+            !confirm(
+                "Clear all search history? This cannot be undone.",
+            )
+        ) return;
+
+        try {
+            await fetch("/api/search/history", { method: "DELETE" });
+            setHistoryEntries([]);
+        } catch {
+            // ignore
+        }
+    };
+
+    const handleDeleteHistoryEntry = async (id: string) => {
+        try {
+            await fetch(`/api/search/history/${id}`, { method: "DELETE" });
+            fetchHistory();
+        } catch {
+            // ignore
+        }
+    };
+
+    const handleRunSavedFilter = (f: SavedFilterEntry) => {
+        setQuery(f.query);
+        if (f.filterConfig) {
+            setConfig((prev) => ({ ...prev, ...f.filterConfig }));
+        }
+        setSavedFilterOpen(false);
+        handleSearch(f.query, 1);
+    };
+
+    const handleEditSavedFilterName = async (id: string, name: string) => {
+        try {
+            await fetch(`/api/search/filter/${id}`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ name }),
+            });
+            fetchSavedFilters();
+        } catch {
+            // ignore
+        }
+    };
+
+    const handleDeleteSavedFilter = async (id: string) => {
+        try {
+            await fetch(`/api/search/filter/${id}`, { method: "DELETE" });
+            fetchSavedFilters();
+        } catch {
+            // ignore
+        }
+    };
+
+    const handleSaveSearch = async () => {
+        const name = prompt("Name this search:");
+        if (!name?.trim()) return;
+
+        try {
+            const res = await fetch("/api/search/filter", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    name: name.trim(),
+                    query,
+                    filterConfig: config,
+                }),
+            });
+
+            if (res.ok) {
+                fetchSavedFilters();
+            } else {
+                const data = await res.json();
+                alert(data.error || "Failed to save search");
+            }
+        } catch {
+            // ignore
+        }
+    };
+
+    const handleRemoveBookmark = async (horoscopeId: string) => {
+        try {
+            await fetch(`/api/search/bookmark/${horoscopeId}`, {
+                method: "DELETE",
+            });
+            setBookmarkedIds((prev) => {
+                const next = new Set(prev);
+                next.delete(horoscopeId);
+                return next;
+            });
+            fetchBookmarks();
+        } catch {
+            // ignore
+        }
+    };
+
+    const handleOpenBookmark = (horoscopeId: string) => {
+        router.push(`/horoscopes/${horoscopeId}`);
+    };
+
+    const handleExport = async (format: string) => {
+        const params = new URLSearchParams({
+            format,
+            query,
+            page: String(page),
+        });
+
+        try {
+            const res = await fetch(
+                `/api/search/export?${params.toString()}`,
+            );
+
+            if (!res.ok) {
+                const data = await res.json();
+                alert(data.error || "Export failed");
+                return;
+            }
+
+            if (format === "csv") {
+                const blob = await res.blob();
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = "search-results.csv";
+                a.click();
+                URL.revokeObjectURL(url);
+            } else {
+                const data = await res.json();
+                const blob = new Blob([JSON.stringify(data, null, 2)], {
+                    type: "application/json",
+                });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = "search-results.json";
+                a.click();
+                URL.revokeObjectURL(url);
+            }
+        } catch {
+            // ignore
+        }
+    };
+
+    if (status === "unauthenticated") {
+        return null;
+    }
+
+    return (
+        <div className="relative">
+            <h1 className="text-2xl font-bold mb-6">
+                {t("search.title")}
+            </h1>
+
+            <div className="bg-white rounded-lg shadow-sm border p-4 mb-6" suppressHydrationWarning>
+                <div className="flex gap-2">
+                    <div className="flex-1 relative">
+                        <input
+                            type="text"
+                            value={query}
+                            onChange={(e) => setQuery(e.target.value)}
+                            onKeyDown={(e) => {
+                                if (
+                                    e.key === "Enter" &&
+                                    !e.shiftKey
+                                ) {
+                                    e.preventDefault();
+                                    handleSearch();
+                                }
+                            }}
+                            placeholder={t("search.placeholder")}
+                            className="w-full border rounded px-3 py-2 text-sm pr-12"
+                            role="searchbox"
+                            aria-label="Search horoscopes"
+                            maxLength={500}
+                        />
+                        {query && (
+                            <button
+                                onClick={() => setQuery("")}
+                                className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-sm"
+                            >
+                                ✕
+                            </button>
+                        )}
+                    </div>
+                    <button
+                        onClick={() => handleSearch()}
+                        disabled={loading || !query.trim()}
+                        className="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700 disabled:opacity-50 text-sm"
+                    >
+                        {loading ? "Searching..." : t("search.search")}
+                    </button>
+                    <button
+                        onClick={() => setConfigOpen(true)}
+                        className="border px-3 py-2 rounded hover:bg-gray-50 text-sm relative"
+                        title="Configure display"
+                    >
+                        ⚙️
+                    </button>
+                    <button
+                        onClick={handleSaveSearch}
+                        disabled={!query.trim() || !searched}
+                        className="border px-3 py-2 rounded hover:bg-gray-50 text-sm disabled:opacity-50"
+                        title="Save search"
+                    >
+                        💾
+                    </button>
+                    <button
+                        onClick={() => {
+                            fetchHistory();
+                            setHistoryOpen(true);
+                        }}
+                        className="border px-3 py-2 rounded hover:bg-gray-50 text-sm"
+                        title="Search history"
+                    >
+                        📋
+                    </button>
+                    <button
+                        onClick={handleExport}
+                        className="border px-3 py-2 rounded hover:bg-gray-50 text-sm"
+                        title="Export"
+                    >
+                        📊
+                    </button>
+                </div>
+
+                <div className="flex gap-2 mt-2">
+                    <span className="text-xs text-gray-500">
+                        {detectedLanguage === "si"
+                            ? "🇱🇰 Sinhala detected"
+                            : query
+                              ? "🇬🇧 English detected"
+                              : ""}
+                    </span>
+                </div>
+
+                <p className="text-xs text-gray-400 mt-2">
+                    {t("search.basicSearch")}
+                </p>
+                <p className="text-xs text-gray-400">
+                    {t("search.complexSearch")}
+                </p>
+            </div>
+
+            <div className="flex items-center justify-between mb-4">
+                {searched && (
+                    <>
+                        <div className="flex items-center gap-2">
+                            <p className="text-sm text-gray-500">
+                                Found {totalResults} horoscopes
+                            </p>
+                            <div className="flex gap-1">
+                                {isAllExpanded ? (
+                                    <button
+                                        onClick={collapseAll}
+                                        className="text-xs text-indigo-600 hover:underline"
+                                    >
+                                        Collapse All
+                                    </button>
+                                ) : (
+                                    <button
+                                        onClick={expandAll}
+                                        className="text-xs text-indigo-600 hover:underline"
+                                    >
+                                        Expand All
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+                        <div className="flex gap-1">
+                            <button
+                                onClick={() => handleExport("csv")}
+                                disabled={results.length === 0}
+                                className="text-xs px-2 py-1 border rounded hover:bg-gray-50 disabled:opacity-50"
+                            >
+                                Export CSV
+                            </button>
+                            <button
+                                onClick={() => handleExport("json")}
+                                disabled={results.length === 0}
+                                className="text-xs px-2 py-1 border rounded hover:bg-gray-50 disabled:opacity-50"
+                            >
+                                Export JSON
+                            </button>
+                        </div>
+                    </>
+                )}
+            </div>
+
+            {searched && (
+                <div>
+                    {loading ? (
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            {[1, 2, 3].map((i) => (
+                                <div
+                                    key={i}
+                                    className="bg-white rounded-lg border animate-pulse"
+                                >
+                                    <div className="p-3">
+                                        <div className="h-4 bg-gray-200 rounded w-2/3 mb-2" />
+                                        <div className="h-3 bg-gray-200 rounded w-1/3 mb-3" />
+                                        <div className="h-3 bg-gray-200 rounded w-1/2" />
+                                    </div>
+                                    <div className="border-t">
+                                        <div className="flex">
+                                            {[1, 2, 3].map((j) => (
+                                                <div key={j} className="flex-1 h-8 bg-gray-100 border-r last:border-r-0" />
+                                            ))}
+                                        </div>
+                                        <div className="aspect-square bg-gray-50" />
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    ) : results.length === 0 ? (
+                        <div className="bg-white rounded-lg border p-8 text-center text-gray-400">
+                            {t("search.noResults")}
+                        </div>
+                    ) : (
+                        <>
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" role="region" aria-label="Search results">
+                                {results.map((r, i) => (
+                                    <SearchResultCard
+                                        key={i}
+                                        result={r}
+                                        config={config}
+                                        isExpanded={expandedCards.has(i)}
+                                        onToggleExpand={() => toggleExpanded(i)}
+                                        onBookmark={() =>
+                                            handleBookmark(
+                                                (r.horoscope._id as string) ||
+                                                    (r.horoscope.id as string),
+                                            )
+                                        }
+                                        isBookmarked={bookmarkedIds.has(
+                                            (r.horoscope._id as string) ||
+                                                (r.horoscope.id as string),
+                                        )}
+                                    />
+                                ))}
+                            </div>
+
+                            <div className="mt-6">
+                                <PaginationControls
+                                    page={page}
+                                    totalPages={totalPages}
+                                    total={totalResults}
+                                    onPageChange={handlePageChange}
+                                />
+                            </div>
+                        </>
                     )}
                 </div>
             )}
@@ -179,6 +1789,42 @@ export default function SearchPage() {
                     <p className="text-sm">{t("search.placeholder")}</p>
                 </div>
             )}
+
+            <ConfigPanel
+                config={config}
+                onToggle={handleConfigToggle}
+                onReset={handleConfigReset}
+                isOpen={configOpen}
+                onClose={() => setConfigOpen(false)}
+            />
+
+            <SearchHistoryPanel
+                entries={historyEntries}
+                onReRun={handleReRunHistory}
+                onClearAll={handleClearHistory}
+                onDeleteEntry={handleDeleteHistoryEntry}
+                onClose={() => setHistoryOpen(false)}
+                isOpen={historyOpen}
+            />
+
+            <SavedSearchesPanel
+                filters={savedFilters.filter(
+                    (f) => f.name !== "__default__",
+                )}
+                onRun={handleRunSavedFilter}
+                onEditName={handleEditSavedFilterName}
+                onDelete={handleDeleteSavedFilter}
+                onClose={() => setSavedFilterOpen(false)}
+                isOpen={savedFilterOpen}
+            />
+
+            <BookmarksPanel
+                bookmarks={bookmarks}
+                onRemove={handleRemoveBookmark}
+                onOpen={handleOpenBookmark}
+                onClose={() => setBookmarksOpen(false)}
+                isOpen={bookmarksOpen}
+            />
         </div>
     );
 }
