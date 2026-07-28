@@ -4,7 +4,13 @@ import { BirthChart } from "@/components/BirthChart";
 import { HouseChart } from "@/components/HouseChart";
 import { useI18n } from "@/hooks/useI18n";
 import type { Ascendant, House, Planet } from "@/lib/astrology";
-import { navamsaSign } from "@/lib/astrology";
+import {
+    PLANET_COLORS,
+    PLANET_SYMBOLS,
+    formatDegree,
+    formatYearDuration,
+    navamsaSign,
+} from "@/lib/astrology";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -25,12 +31,12 @@ const DEFAULT_CONFIG: Record<string, boolean> = {
     chandraLagna: true,
     suryaLagna: true,
     ascendant: true,
-    houseDetails: false,
+    houseDetails: true,
     planetPositions: true,
-    nakshatra: false,
+    nakshatra: true,
     dashas: true,
     planetaryStrengths: false,
-    aspects: false,
+    aspects: true,
     yogas: false,
     doshas: false,
     currentPlanetPositions: false,
@@ -134,35 +140,31 @@ interface SearchResult {
 }
 
 const ScoreBadge = ({ score }: { score: number }) => {
+    const { t } = useI18n();
     const pct = Math.round(score * 100);
     let colorClass = "bg-gray-100 text-gray-600";
-    let label = "Weak match";
+    let label = t("search.score.weak");
 
     if (score >= 0.8) {
         colorClass = "bg-green-100 text-green-800";
-        label = "Excellent match";
+        label = t("search.score.excellent");
     } else if (score >= 0.6) {
         colorClass = "bg-indigo-100 text-indigo-800";
-        label = "Strong match";
+        label = t("search.score.strong");
     } else if (score >= 0.4) {
         colorClass = "bg-amber-100 text-amber-800";
-        label = "Moderate match";
+        label = t("search.score.moderate");
     }
 
     return (
         <span
             className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${colorClass}`}
-            aria-label={`Match score: ${pct} percent`}
+            aria-label={t("search.score.ariaLabel", { pct })}
             title={label}
         >
             {pct}%
         </span>
     );
-};
-
-const PLANET_SYMBOLS: Record<number, string> = {
-    1: "\u2609", 2: "\u263D", 3: "\u2642", 4: "\u263F",
-    5: "\u2643", 6: "\u2640", 7: "\u2644", 8: "\u260A", 9: "\u260B",
 };
 
 const SIGN_SYMBOLS: Record<number, string> = {
@@ -186,126 +188,188 @@ const STRENGTH_RECORDS: Array<{ value: number; label: string; color: string }> =
 const getStrengthInfo = (val: number) =>
     STRENGTH_RECORDS.find((r) => r.value === val) || { label: "", color: "text-gray-500" };
 
-const PlanetPositionsTable = ({ planets }: { planets: Array<Record<string, unknown>> }) => (
-    <div className="overflow-x-auto">
-        <table className="w-full text-xs">
-            <thead>
-                <tr className="border-b text-gray-500">
-                    <th className="text-left py-1 pr-2 font-medium">Planet</th>
-                    <th className="text-left py-1 pr-2 font-medium">Sign</th>
-                    <th className="text-center py-1 pr-2 font-medium">House</th>
-                    <th className="text-center py-1 pr-2 font-medium">Degree</th>
-                    <th className="text-right py-1 font-medium">Strength</th>
-                </tr>
-            </thead>
-            <tbody>
-                {planets.map((p, i) => {
-                    const pName = p.name as number;
-                    const pSign = p.sign as number;
-                    const strengthVal = p.strength as number;
-                    const strengthInfo = getStrengthInfo(strengthVal);
-                    return (
-                        <tr key={i} className="border-b border-gray-50 hover:bg-gray-50/50">
-                            <td className="py-1.5 pr-2">
-                                <span className="font-medium">
-                                    {PLANET_SYMBOLS[pName] || ""} Planet {pName}
-                                </span>
-                                {p.retrograde && (
-                                    <span className="text-red-400 text-[10px] ml-1" title="Retrograde">R</span>
-                                )}
-                            </td>
-                            <td className="py-1.5 pr-2 text-gray-600">
-                                {SIGN_SYMBOLS[pSign] || ""} Sign {pSign}
-                            </td>
-                            <td className="py-1.5 pr-2 text-center font-mono">{p.house as string}</td>
-                            <td className="py-1.5 pr-2 text-center font-mono">{(p.degree as number)?.toFixed(1)}°</td>
-                            <td className="py-1.5 text-right">
-                                {strengthInfo.label && (
-                                    <span className={`inline-block px-1.5 py-0.5 rounded text-[10px] leading-tight ${strengthInfo.color}`}>
-                                        {strengthInfo.label}
+const PlanetPositionsTable = ({ planets }: { planets: Array<Record<string, unknown>> }) => {
+    const { t } = useI18n();
+    return (
+        <div className="overflow-x-auto">
+            <table className="w-full text-xs">
+                <thead>
+                    <tr className="border-b text-gray-500">
+                        <th className="text-left py-1 pr-2 font-medium">{t("astrology.planet")}</th>
+                        <th className="text-left py-1 pr-2 font-medium">{t("astrology.sign")}</th>
+                        <th className="text-center py-1 pr-2 font-medium">{t("astrology.house")}</th>
+                        <th className="text-center py-1 pr-2 font-medium">{t("astrology.degree")}</th>
+                        <th className="text-right py-1 font-medium">{t("astrology.strength")}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {planets.map((p, i) => {
+                        const pName = p.name as number;
+                        const pSign = p.sign as number;
+                        const strengthVal = p.strength as number;
+                        const strengthInfo = getStrengthInfo(strengthVal);
+                        return (
+                            <tr key={i} className="border-b border-gray-50 hover:bg-gray-50/50">
+                                <td className="py-1.5 pr-2">
+                                    <span className="font-medium">
+                                        {PLANET_SYMBOLS[pName] || ""} {t("search.table.planetName", { id: pName })}
                                     </span>
-                                )}
-                            </td>
-                        </tr>
-                    );
-                })}
-            </tbody>
-        </table>
-    </div>
-);
+                                    {(p.retrograde as boolean) && (
+                                        <span className="text-red-400 text-[10px] ml-1" title={t("astrology.retrograde")}>R</span>
+                                    )}
+                                </td>
+                                <td className="py-1.5 pr-2 text-gray-600">
+                                    {SIGN_SYMBOLS[pSign] || ""} {t("search.table.signName", { id: pSign })}
+                                </td>
+                                <td className="py-1.5 pr-2 text-center font-mono">{p.house as string}</td>
+                                <td className="py-1.5 pr-2 text-center font-mono">{(p.degree as number)?.toFixed(1)}°</td>
+                                <td className="py-1.5 text-right">
+                                    {strengthInfo.label && (
+                                        <span className={`inline-block px-1.5 py-0.5 rounded text-[10px] leading-tight ${strengthInfo.color}`}>
+                                            {strengthInfo.label}
+                                        </span>
+                                    )}
+                                </td>
+                            </tr>
+                        );
+                    })}
+                </tbody>
+            </table>
+        </div>
+    );
+};
 
-const DASHA_COLORS = [
-    "bg-indigo-50 border-indigo-200 text-indigo-700",
-    "bg-amber-50 border-amber-200 text-amber-700",
-    "bg-emerald-50 border-emerald-200 text-emerald-700",
-    "bg-rose-50 border-rose-200 text-rose-700",
-    "bg-cyan-50 border-cyan-200 text-cyan-700",
-    "bg-violet-50 border-violet-200 text-violet-700",
-    "bg-orange-50 border-orange-200 text-orange-700",
-    "bg-teal-50 border-teal-200 text-teal-700",
-    "bg-pink-50 border-pink-200 text-pink-700",
-];
+const ORB_MAP: Record<number, number> = {
+    1: 15, 2: 12, 3: 8, 4: 7, 5: 9, 6: 7, 7: 9, 8: 0, 9: 0,
+};
 
+const formatDegDiff = (diff: number): string => {
+    const sign = diff >= 0 ? "+" : "-";
+    const absDiff = Math.abs(diff);
+    const totalVikala = Math.round(absDiff * 3600);
+    const anshaka = Math.floor(totalVikala / 3600);
+    const kala = Math.floor((totalVikala % 3600) / 60);
+    const vikala = totalVikala % 60;
+    return `${sign}${String(anshaka).padStart(2, "0")}:${String(kala).padStart(2, "0")}:${String(vikala).padStart(2, "0")}`;
+};
 const DashaTimeline = ({ dashas }: { dashas: Record<string, unknown> }) => {
+    const { t } = useI18n();
     const mahadasha = dashas.mahadasha as Array<Record<string, unknown>> | undefined;
     const currentPeriod = dashas.currentPeriod as Record<string, unknown> | undefined;
+    const [expandedMds, setExpandedMds] = useState<Set<number>>(new Set());
 
-    if (!mahadasha || mahadasha.length === 0) return <span className="text-sm text-gray-400">No data available</span>;
+    useEffect(() => {
+        if (currentPeriod && mahadasha) {
+            const activeMdPlanet = currentPeriod.mahadashaLord;
+            const idx = mahadasha.findIndex((md) => md.planet === activeMdPlanet);
+            if (idx >= 0) {
+                setExpandedMds((prev) => new Set(prev).add(idx));
+            }
+        }
+    }, [currentPeriod, mahadasha]);
+
+    if (!mahadasha || mahadasha.length === 0) return <span className="text-sm text-gray-400">{t("search.dashas.noData")}</span>;
+
+    const getPlanetName = (id: number) => t("astrology.planetNames." + id);
+
+    const toggleMd = (idx: number) => {
+        setExpandedMds((prev) => {
+            const next = new Set(prev);
+            if (next.has(idx)) next.delete(idx);
+            else next.add(idx);
+            return next;
+        });
+    };
 
     return (
-        <div className="space-y-1.5">
+        <div className="space-y-1">
             {currentPeriod && (
-                <div className="flex items-center gap-2 mb-2 px-2 py-1.5 bg-indigo-50 rounded text-xs font-medium text-indigo-700">
+                <div className="flex items-center gap-2 px-3 py-2 bg-indigo-50 border border-indigo-200 rounded-lg mb-3">
                     <span className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse" />
-                    Current: MD Lord {currentPeriod.mahadashaLord as string}
-                    {currentPeriod.antardashaLord && (
-                        <> &middot; AD Lord {currentPeriod.antardashaLord as string}</>
-                    )}
-                    {currentPeriod.vidasaLord && (
-                        <> &middot; Vidasa Lord {currentPeriod.vidasaLord as string}</>
-                    )}
+                    <span className="text-xs font-medium text-indigo-800">
+                        {getPlanetName(currentPeriod.mahadashaLord as number)} Mahadasha
+                        {(currentPeriod.antardashaLord as boolean) ? (
+                            <> &mdash; {getPlanetName(currentPeriod.antardashaLord as number)} Antardasha</>
+                        ) : null}
+                    </span>
                 </div>
             )}
-            <div className="space-y-1">
-                {mahadasha.map((md, i) => {
-                    const colorClass = DASHA_COLORS[i % DASHA_COLORS.length];
-                    const isActive = currentPeriod?.mahadashaLord === md.planet;
-                    return (
+            {mahadasha.map((md, mdIdx) => {
+                const isActive = currentPeriod?.mahadashaLord === md.planet;
+                const isExpanded = expandedMds.has(mdIdx);
+                const antardasha = md.antardasha as Array<Record<string, unknown>> | undefined;
+                const planetId = md.planet as number;
+                return (
+                    <div
+                        key={mdIdx}
+                        className={`border rounded-lg overflow-hidden transition-colors ${isActive ? "border-indigo-300 bg-indigo-50/30" : "border-gray-200"}`}
+                    >
                         <div
-                            key={i}
-                            className={`rounded border px-2.5 py-1.5 text-xs ${colorClass} ${isActive ? "ring-1 ring-indigo-300" : ""}`}
+                            role="button"
+                            tabIndex={0}
+                            onClick={() => toggleMd(mdIdx)}
+                            onKeyDown={(e) => {
+                                if (e.key === "Enter" || e.key === " ") {
+                                    e.preventDefault();
+                                    toggleMd(mdIdx);
+                                }
+                            }}
+                            className={`flex items-center gap-3 px-4 py-3 cursor-pointer select-none transition-colors ${isActive ? "bg-indigo-100" : "hover:bg-gray-50"}`}
                         >
-                            <div className="flex items-center justify-between">
-                                <span className="font-semibold">
-                                    Planet {md.planet as string}
-                                    {isActive && (
-                                        <span className="ml-1.5 text-[10px] px-1 rounded bg-white/60">Active</span>
-                                    )}
-                                </span>
-                                <span className="opacity-70">
-                                    {md.startDate as string} &mdash; {md.endDate as string}
-                                </span>
-                            </div>
-                            {(md.antardasha as Array<Record<string, unknown>> | undefined)?.length > 0 && (
-                                <div className="mt-1 flex flex-wrap gap-1">
-                                    {(md.antardasha as Array<Record<string, unknown>>).map((ad, j) => {
+                            <span className={`inline-block transition-transform duration-200 text-gray-400 text-sm ${isExpanded ? "rotate-90" : ""}`}>
+                                {'\u25B8'}
+                            </span>
+                            <span
+                                className="inline-flex items-center justify-center w-5 h-5 text-sm"
+                                style={{ color: PLANET_COLORS[planetId] ?? "#374151" }}
+                            >
+                                {PLANET_SYMBOLS[planetId] ?? ""}
+                            </span>
+                            <span className="font-semibold text-gray-800 text-sm">{getPlanetName(planetId)}</span>
+                            <span className="text-xs text-gray-400">Mahadasha</span>
+                            <span className="text-xs text-gray-400 ml-auto">
+                                {md.startDate as string} &mdash; {md.endDate as string}
+                            </span>
+                            {isActive && (
+                                <span className="text-[10px] font-semibold bg-indigo-600 text-white px-2 py-0.5 rounded-full">Active</span>
+                            )}
+                        </div>
+                        {antardasha && antardasha.length > 0 && (
+                            <div className={`overflow-hidden transition-all duration-300 ease-in-out ${isExpanded ? "max-h-[30000px]" : "max-h-0"}`}>
+                                <div className="border-t border-gray-100">
+                                    {antardasha.map((ad, adIdx) => {
                                         const isAdActive = isActive && currentPeriod?.antardashaLord === ad.planet;
+                                        const adPlanetId = ad.planet as number;
                                         return (
-                                            <span
-                                                key={j}
-                                                className={`inline-block px-1.5 py-0.5 rounded text-[10px] bg-white/60 ${isAdActive ? "ring-1 ring-indigo-400 font-semibold" : ""}`}
+                                            <div
+                                                key={adIdx}
+                                                className={`flex items-center gap-2 py-2 px-2 ml-4 text-sm ${isAdActive ? "bg-indigo-100 rounded" : ""}`}
                                             >
-                                                Planet {ad.planet as string} {(ad.startDate as string)?.slice(0, 4)}-{(ad.endDate as string)?.slice(0, 4)}
-                                                {isAdActive && " \u25C9"}
-                                            </span>
+                                                <span
+                                                    className="inline-flex items-center justify-center w-4 h-4 text-xs"
+                                                    style={{ color: PLANET_COLORS[adPlanetId] ?? "#374151" }}
+                                                >
+                                                    {PLANET_SYMBOLS[adPlanetId] ?? ""}
+                                                </span>
+                                                <span className="text-gray-700 font-medium">{getPlanetName(adPlanetId)}</span>
+                                                <span className="text-xs text-gray-400 ml-1">Antardasha</span>
+                                                <span className="text-gray-400 ml-auto text-xs">
+                                                    {ad.startDate as string} &mdash; {ad.endDate as string}
+                                                </span>
+                                                {isAdActive && (
+                                                    <span className="text-[10px] font-semibold bg-indigo-600 text-white px-1.5 py-0.5 rounded-full">
+                                                        Active
+                                                    </span>
+                                                )}
+                                            </div>
                                         );
                                     })}
                                 </div>
-                            )}
-                        </div>
-                    );
-                })}
-            </div>
+                            </div>
+                        )}
+                    </div>
+                );
+            })}
         </div>
     );
 };
@@ -320,9 +384,40 @@ const CHART_TABS = [
     { key: "shodasha-vargas", label: "Vargas", configKey: "shodashaVargas" },
 ];
 
+const formatCondition = (t: (key: string, params?: Record<string, string | number | Date>) => string, mc: string): string => {
+    if (mc.startsWith("ascendant=")) {
+        return t("search.conditions.ascendant", { sign: mc.slice("ascendant=".length) });
+    }
+    if (mc.startsWith("planet_in_sign=")) {
+        const rest = mc.slice("planet_in_sign=".length);
+        const parts = rest.split("_");
+        return t("search.conditions.planetInSign", { planet: parts[0], sign: parts.slice(1).join("_") });
+    }
+    if (mc.endsWith("=Exaltation")) {
+        return t("search.conditions.exaltation", { planet: mc.slice(0, -"=Exaltation".length) });
+    }
+    if (mc.endsWith("=Debilitation")) {
+        return t("search.conditions.debilitation", { planet: mc.slice(0, -"=Debilitation".length) });
+    }
+    if (mc.startsWith("yoga_present=")) {
+        return t("search.conditions.yogaPresent", { count: mc.slice("yoga_present=".length).split("_")[0] });
+    }
+    if (mc.startsWith("dosha=")) {
+        return t("search.conditions.dosha", { name: mc.slice("dosha=".length) });
+    }
+    if (mc.includes("_in_sign=")) {
+        const [planet, rest] = mc.split("_in_sign=");
+        const [sign, housePart] = rest.split("_house=");
+        return t("search.conditions.planetInSignHouse", { planet, sign, house: housePart });
+    }
+    return mc;
+};
+
 const SearchResultCard = ({
     result,
     config,
+    activeChart,
+    onChartTabChange,
     isExpanded,
     onToggleExpand,
     onBookmark,
@@ -330,11 +425,14 @@ const SearchResultCard = ({
 }: {
     result: SearchResult;
     config: Record<string, boolean>;
+    activeChart: string;
+    onChartTabChange: (tab: string) => void;
     isExpanded: boolean;
     onToggleExpand: () => void;
     onBookmark: () => void;
     isBookmarked: boolean;
 }) => {
+    const { t } = useI18n();
     const h = result.horoscope;
     const cd = h.calculatedDetails as Record<string, unknown> | undefined;
     const charts = h.charts as Record<string, unknown> | undefined;
@@ -379,8 +477,11 @@ const SearchResultCard = ({
         return config[tab.configKey] && charts?.[tab.key];
     });
 
-    const initialTab = availableChartTabs.length > 0 ? availableChartTabs[0].key : CHART_TABS[0].key;
-    const [activeChart, setActiveChart] = useState(initialTab);
+    const resolvedChart = availableChartTabs.some((t) => t.key === activeChart)
+        ? activeChart
+        : availableChartTabs.length > 0
+            ? availableChartTabs[0].key
+            : CHART_TABS[0].key;
 
     return (
         <div className="bg-white rounded-lg border hover:shadow-md transition-shadow flex flex-col">
@@ -405,10 +506,10 @@ const SearchResultCard = ({
                     </div>
                     {ascSign !== undefined ? (
                         <p className="text-xs text-gray-500 mt-0.5">
-                            {SIGN_SYMBOLS[ascSign] || ""} Asc. Sign {ascSign} {ascDegree !== undefined && `(${ascDegree.toFixed(1)}°)`}
+                            {SIGN_SYMBOLS[ascSign] || ""} {t(`astrology.signNames.${ascSign}`)} {ascDegree !== undefined && `(${ascDegree.toFixed(1)}°)`}
                         </p>
                     ) : (
-                        <p className="text-xs text-gray-400 mt-0.5">No ascendant data</p>
+                        <p className="text-xs text-gray-400 mt-0.5">{t("search.card.noAscendant")}</p>
                     )}
                     {result.matchedConditions.length > 0 && (
                         <div className="flex flex-wrap gap-1 mt-1">
@@ -417,7 +518,7 @@ const SearchResultCard = ({
                                     key={i}
                                     className="text-[10px] px-1 py-0.5 rounded bg-indigo-50 text-indigo-600 leading-tight"
                                 >
-                                    {mc}
+                                    {formatCondition(t, mc)}
                                 </span>
                             ))}
                             {result.matchedConditions.length > 3 && (
@@ -433,7 +534,7 @@ const SearchResultCard = ({
                             onBookmark();
                         }}
                         className={`text-base ${isBookmarked ? "text-yellow-500" : "text-gray-400 hover:text-yellow-500"}`}
-                        aria-label={isBookmarked ? "Remove bookmark" : "Bookmark"}
+                        aria-label={isBookmarked ? t("search.card.bookmarkRemove") : t("search.card.bookmarkAdd")}
                     >
                         {isBookmarked ? "\u2605" : "\u2606"}
                     </button>
@@ -442,7 +543,7 @@ const SearchResultCard = ({
                             isExpanded ? "rotate-0" : "-rotate-90"
                         }`}
                     >
-                        \u25BC
+                        {'\u25BC'}
                     </span>
                 </div>
             </div>
@@ -453,19 +554,19 @@ const SearchResultCard = ({
                     {availableChartTabs.length > 0 && (
                         <div className="border-b">
                             <div className="flex" role="tablist">
-                                {availableChartTabs.map((tab) => (
-                                    <button
-                                        key={tab.key}
-                                        role="tab"
-                                        aria-selected={activeChart === tab.key}
-                                        onClick={() => setActiveChart(tab.key)}
-                                        className={`flex-1 text-xs py-2 px-2 font-medium transition-colors ${
-                                            activeChart === tab.key
+                                    {availableChartTabs.map((tab) => (
+                                        <button
+                                            key={tab.key}
+                                            role="tab"
+                                            aria-selected={resolvedChart === tab.key}
+                                            onClick={() => onChartTabChange(tab.key)}
+                                            className={`flex-1 text-xs py-2 px-2 font-medium transition-colors ${
+                                                resolvedChart === tab.key
                                                 ? "text-indigo-600 border-b-2 border-indigo-600 bg-indigo-50/30"
                                                 : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"
                                         }`}
                                     >
-                                        {tab.label}
+                                        {t(`search.tabs.${tab.key}`)}
                                     </button>
                                 ))}
                             </div>
@@ -476,9 +577,9 @@ const SearchResultCard = ({
                     {availableChartTabs.length > 0 && (
                         <div className="bg-gray-50 border-b flex items-center justify-center p-2">
                             {(() => {
-                                if (activeChart === "navamsa-d9") {
+                                if (resolvedChart === "navamsa-d9") {
                                     if (!navamsaChartData) {
-                                        return <div className="text-sm text-gray-400 p-8">No chart data available</div>;
+                                        return <div className="text-sm text-gray-400 p-8">{t("search.card.noChartData")}</div>;
                                     }
                                     return (
                                         <BirthChart
@@ -489,7 +590,7 @@ const SearchResultCard = ({
                                         />
                                     );
                                 }
-                                const chartData = charts?.[activeChart] as Record<string, unknown> | undefined;
+                                const chartData = charts?.[resolvedChart] as Record<string, unknown> | undefined;
                                 const data = chartData?.data as Record<string, unknown> | undefined;
                                 const planets = data?.planets as Planet[] | undefined;
                                 const houses = data?.houses as House[] | undefined;
@@ -497,11 +598,11 @@ const SearchResultCard = ({
                                 if (!planets || !houses || !ascendant) {
                                     return (
                                         <div className="text-sm text-gray-400 p-8">
-                                            No chart data available
+                                            {t("search.card.noChartData")}
                                         </div>
                                     );
                                 }
-                                if (activeChart === "house") {
+                                if (resolvedChart === "house") {
                                     return (
                                         <HouseChart
                                             planets={planets}
@@ -525,83 +626,244 @@ const SearchResultCard = ({
 
                     {/* Calculations */}
                     <div className="p-3 space-y-3 flex-1 overflow-y-auto">
-                        {config.ascendant && ascData && (
-                            <div className="flex items-center gap-2 px-2.5 py-2 bg-gradient-to-r from-amber-50 to-orange-50 rounded-lg border border-amber-200">
-                                <span className="text-lg">
-                                    {SIGN_SYMBOLS[ascSign || 0] || ""}
-                                </span>
-                                <div>
-                                    <span className="text-xs font-semibold text-amber-800">Ascendant</span>
-                                    <p className="text-xs text-amber-700">
-                                        Sign {ascSign} at {ascDegree?.toFixed(1)}° &middot; Lord: Planet {(ascData.lord as number) || "?"}
-                                    </p>
-                                </div>
-                            </div>
-                        )}
-
-                        {config.planetPositions && cd?.planets && (
+                        {config.ascendant && ascData && ascSign && (
                             <div>
                                 <h5 className="text-xs font-semibold text-gray-600 mb-1.5 uppercase tracking-wider">
-                                    Planets
+                                    {t("astrology.ascendant")}
                                 </h5>
-                                <PlanetPositionsTable
-                                    planets={cd.planets as Array<Record<string, unknown>>}
-                                />
+                                <div className="text-xs text-gray-700 mb-1">
+                                    {t(`astrology.signNames.${ascSign}`)} ({t(`astrology.planetNames.${(ascData.lord as number) || 1}`)}) {ascDegree ? formatDegree(ascDegree) : ""}
+                                </div>
+                                {config.nakshatra && (cd?.nakshatra as boolean) && (
+                                    <div className="text-xs text-gray-600">
+                                        {(() => {
+                                            const nk = cd!.nakshatra as Record<string, unknown>;
+                                            const an = nk.ascendantNakshatra as Record<string, unknown> | undefined;
+                                            if (!an) return null;
+                                            return <p>{t(`astrology.nakshatraNames.${an.id as number}`)} ({t(`astrology.planetNames.${(an.lord as number) || 1}`)}) {an.pada as number} {t("astrology.pada")}</p>;
+                                        })()}
+                                    </div>
+                                )}
                             </div>
                         )}
 
-                        {config.nakshatra && cd?.nakshatra && (
+                        {config.nakshatra && (cd?.nakshatra as boolean) && (
                             <div>
                                 <h5 className="text-xs font-semibold text-gray-600 mb-1 uppercase tracking-wider">
-                                    Nakshatra
+                                    {t("astrology.nakshatra")}
                                 </h5>
                                 <div className="text-xs text-gray-600 space-y-0.5">
-                                    <p>Moon: Nakshatra {(cd.nakshatra as Record<string, unknown>).moonNakshatra ? ((cd.nakshatra as Record<string, unknown>).moonNakshatra as Record<string, unknown>).id as string : "?"}</p>
-                                    <p>Asc: Nakshatra {(cd.nakshatra as Record<string, unknown>).ascendantNakshatra ? ((cd.nakshatra as Record<string, unknown>).ascendantNakshatra as Record<string, unknown>).id as string : "?"}</p>
+                                    {(() => {
+                                        const nk = cd!.nakshatra as Record<string, unknown>;
+                                        const mn = nk.moonNakshatra as Record<string, unknown> | undefined;
+                                        if (!mn) return null;
+                                        return <p>{t(`astrology.nakshatraNames.${mn.id as number}`)} ({t(`astrology.planetNames.${(mn.lord as number) || 1}`)}) {mn.pada as number} {t("astrology.pada")}</p>;
+                                    })()}
                                 </div>
                             </div>
                         )}
 
-                        {config.dashas && cd?.dashas && (
+                        {config.houseDetails && (cd?.houses as boolean) && (
                             <div>
                                 <h5 className="text-xs font-semibold text-gray-600 mb-1.5 uppercase tracking-wider">
-                                    Dashas
+                                    {t("astrology.houses")}
                                 </h5>
-                                <DashaTimeline dashas={cd.dashas as Record<string, unknown>} />
+                                <div className="overflow-x-auto">
+                                    <table className="w-full text-xs">
+                                        <thead>
+                                            <tr className="border-b text-gray-500">
+                                                <th className="text-left py-1 pr-2 font-medium">#</th>
+                                                <th className="text-left py-1 pr-2 font-medium">{t("astrology.start")}</th>
+                                                <th className="text-left py-1 pr-2 font-medium">{t("astrology.mid")}</th>
+                                                <th className="text-left py-1 pr-2 font-medium">{t("astrology.end")}</th>
+                                                <th className="text-left py-1 pr-2 font-medium">{t("astrology.planets")}</th>
+                                                <th className="text-left py-1 pr-2 font-medium">{t("astrology.aspects")}</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {(() => {
+                                                const allPlanets = (cd!.planets as Array<Record<string, unknown>> || []);
+                                                const houseAspects: Record<number, string[]> = {};
+                                                for (const p of allPlanets) {
+                                                    const pHouse = p.house as number;
+                                                    const pName = t(`astrology.planetNames.${(p.name as number) || 1}`);
+                                                    const aspectedHouses = [((pHouse + 6 - 1) % 12) + 1];
+                                                    if ((p.name as number) === 3) {
+                                                        aspectedHouses.push(((pHouse + 3 - 1) % 12) + 1, ((pHouse + 7 - 1) % 12) + 1);
+                                                    } else if ((p.name as number) === 5) {
+                                                        aspectedHouses.push(((pHouse + 4 - 1) % 12) + 1, ((pHouse + 8 - 1) % 12) + 1);
+                                                    } else if ((p.name as number) === 7) {
+                                                        aspectedHouses.push(((pHouse + 2 - 1) % 12) + 1, ((pHouse + 9 - 1) % 12) + 1);
+                                                    }
+                                                    for (const h of aspectedHouses) {
+                                                        (houseAspects[h] ??= []).push(pName);
+                                                    }
+                                                }
+                                                return (cd!.houses as Array<Record<string, unknown>>).map((h, i) => {
+                                                    const hNum = h.houseNumber as number;
+                                                    const planetsInHouse = allPlanets.filter((p) => (p.house as number) === hNum);
+                                                    const aspectsForHouse = houseAspects[hNum] || [];
+                                                    return (
+                                                        <tr key={i} className="border-b border-gray-50 hover:bg-gray-100/50 even:bg-gray-100">
+                                                            <td className="py-1.5 pr-2 font-mono">{hNum}</td>
+                                                            <td className="py-1.5 pr-2 text-gray-600">
+                                                                {SIGN_SYMBOLS[(h.startSign as number) || 0] || ""} {formatDegree(h.startDegree as number)}
+                                                            </td>
+                                                            <td className="py-1.5 pr-2 text-gray-600">
+                                                                {SIGN_SYMBOLS[(h.middleSign as number) || 0] || ""} {t(`astrology.signNames.${h.middleSign as number}`)} {formatDegree(h.middleDegree as number)}
+                                                            </td>
+                                                            <td className="py-1.5 pr-2 text-gray-600">
+                                                                {SIGN_SYMBOLS[(h.endSign as number) || 0] || ""} {formatDegree(h.endDegree as number)}
+                                                            </td>
+                                                            <td className="py-1.5 text-gray-600">
+                                                                {planetsInHouse.length > 0
+                                                                    ? planetsInHouse.map((p) => t(`astrology.planetNames.${(p.name as number) || 1}`)).join(", ")
+                                                                    : "\u2014"}
+                                                            </td>
+                                                            <td className="py-1.5 text-gray-600">
+                                                                {aspectsForHouse.length > 0
+                                                                    ? aspectsForHouse.join(", ")
+                                                                    : "\u2014"}
+                                                            </td>
+                                                        </tr>
+                                                    );
+                                                });
+                                            })()}
+                                        </tbody>
+                                    </table>
+                                </div>
                             </div>
                         )}
 
-                        {config.yogas && cd?.yogas && (
+                        {config.planetPositions && (cd?.planets as boolean) && (
                             <div>
                                 <h5 className="text-xs font-semibold text-gray-600 mb-1.5 uppercase tracking-wider">
-                                    Yogas
+                                    {t("astrology.planets")}
                                 </h5>
-                                {(cd.yogas as Array<Record<string, unknown>>).length > 0 ? (
+                                <div className="overflow-x-auto">
+                                    <table className="w-full text-xs">
+                                        <thead>
+                                            <tr className="border-b text-gray-500">
+                                                <th className="text-left py-1 pr-2 font-medium">{t("astrology.planet")}</th>
+                                                <th className="text-left py-1 pr-2 font-medium">{t("astrology.sign")} ({t("astrology.degree")})</th>
+                                                <th className="text-center py-1 pr-2 font-medium">{t("astrology.house")}</th>
+                                                <th className="text-left py-1 pr-2 font-medium">{t("astrology.nakshatra")} ({t("astrology.pada")})</th>
+                                                <th className="text-left py-1 pr-2 font-medium">{t("astrology.conjunctions")}</th>
+                                                <th className="text-left py-1 pr-2 font-medium">{t("astrology.aspects")}</th>
+                                                <th className="text-left py-1 font-medium">{t("astrology.other")}</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {(cd!.planets as Array<Record<string, unknown>>).map((p, i) => {
+                                                const pName = p.name as number;
+                                                const pSign = p.sign as number;
+                                                const aspects = (p.aspects as Array<Record<string, unknown>> || [])
+                                                    .filter((a) => (a.aspectType as number) !== 0)
+                                                    .map((a) => {
+                                                        const q = (cd!.planets as Array<Record<string, unknown>>).find((x) => (x.name as number) === (a.planetName as number));
+                                                        if (!q) return "";
+                                                        const exactPoint = ((p.absoluteDegree as number) + (a.aspectType as number)) % 360;
+                                                        let diff = exactPoint - (q.absoluteDegree as number);
+                                                        if (diff > 180) diff -= 360;
+                                                        if (diff < -180) diff += 360;
+                                                        if (Math.abs(diff) > (ORB_MAP[pName] ?? 0) / 2) return "";
+                                                        return `${t(`astrology.planetNames.${a.planetName as number}`)} (${formatDegDiff(diff)})`;
+                                                    })
+                                                    .filter(Boolean) as string[];
+                                                const conjunctions = (cd!.planets as Array<Record<string, unknown>>)
+                                                    .filter((q) => (q.name as number) !== pName)
+                                                    .filter((q) => {
+                                                        const dist = Math.abs((p.absoluteDegree as number) - (q.absoluteDegree as number));
+                                                        return Math.min(dist, 360 - dist) < (ORB_MAP[pName] ?? 0);
+                                                    })
+                                                    .map((q) => {
+                                                        let diff = (q.absoluteDegree as number) - (p.absoluteDegree as number);
+                                                        if (diff > 180) diff -= 360;
+                                                        if (diff < -180) diff += 360;
+                                                        return `${t(`astrology.planetNames.${q.name as number}`)} (${formatDegDiff(diff)})`;
+                                                    });
+                                                const otherTags: string[] = [];
+                                                if (p.combustion as boolean) otherTags.push(t("astrology.combustLabel"));
+                                                if (p.retrograde as boolean) otherTags.push(t("astrology.retrograde"));
+                                                if ((cd!.lord22ndDrekkana as number) === pName) otherTags.push(t("astrology.drekkanaLordLabel"));
+                                                if ((cd!.lord64thNavamsa as number) === pName) otherTags.push(t("astrology.navamsaLordLabel"));
+                                                if ((cd!.atmakaraka as number) === pName) otherTags.push(t("astrology.atmakarakaLabel"));
+                                                if ((cd!.marakaPlanets as number[] || []).includes(pName)) otherTags.push(t("astrology.marakaLabel"));
+                                                if ((cd!.badhakaPlanet as number[] || []).includes(pName)) otherTags.push(t("astrology.badhakaLabel"));
+                                                return (
+                                                    <tr key={i} className="border-b border-gray-50 hover:bg-gray-100/50 even:bg-gray-100">
+                                                        <td className="py-1.5 pr-2 font-medium">
+                                                            {PLANET_SYMBOLS[pName] || ""} {t(`astrology.planetNames.${pName}`)}
+                                                        </td>
+                                                        <td className="py-1.5 pr-2">
+                                                            {t(`astrology.signNames.${pSign}`)} ({formatDegree(p.degree as number)})
+                                                        </td>
+                                                        <td className="py-1.5 pr-2 text-center font-mono">{p.house as number}</td>
+                                                        <td className="py-1.5 pr-2 text-gray-600">
+                                                            {t(`astrology.nakshatraNames.${(p.nakshatra as number) || 1}`)} ({(p.pada as number) || 1})
+                                                        </td>
+                                                        <td className="py-1.5 pr-2">
+                                                            {conjunctions.length > 0
+                                                                ? conjunctions.join(", ")
+                                                                : "\u2014"}
+                                                        </td>
+                                                        <td className="py-1.5 pr-2">
+                                                            {aspects.length > 0
+                                                                ? aspects.join(", ")
+                                                                : "\u2014"}
+                                                        </td>
+                                                        <td className="py-1.5">
+                                                            {otherTags.length > 0 ? otherTags.join(", ") : "\u2014"}
+                                                        </td>
+                                                    </tr>
+                                                );
+                                            })}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        )}
+
+                        {config.dashas && (cd?.dashas as boolean) && (
+                            <div>
+                                <h5 className="text-xs font-semibold text-gray-600 mb-1.5 uppercase tracking-wider">
+                                    {t("astrology.dashas")}
+                                </h5>
+                                <DashaTimeline dashas={cd!.dashas as Record<string, unknown>} />
+                            </div>
+                        )}
+
+                        {config.yogas && (cd?.yogas as boolean) && (
+                            <div>
+                                <h5 className="text-xs font-semibold text-gray-600 mb-1.5 uppercase tracking-wider">
+                                    {t("search.card.yogas")}
+                                </h5>
+                                {(cd!.yogas as Array<Record<string, unknown>>).length > 0 ? (
                                     <div className="space-y-1">
-                                        {(cd.yogas as Array<Record<string, unknown>>).map((y, i) => (
+                                        {(cd!.yogas as Array<Record<string, unknown>>).map((y, i) => (
                                             <div key={i} className="flex items-center gap-1.5 text-xs">
                                                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0" />
                                                 <span className="font-medium text-gray-700">{y.name as string}</span>
                                                 {y.isBeneficial === false && (
-                                                    <span className="text-[10px] px-1 rounded bg-red-50 text-red-600">Malefic</span>
+                                                    <span className="text-[10px] px-1 rounded bg-red-50 text-red-600">{t("search.card.malefic")}</span>
                                                 )}
                                             </div>
                                         ))}
                                     </div>
                                 ) : (
-                                    <span className="text-xs text-gray-400">No yogas detected</span>
+                                    <span className="text-xs text-gray-400">{t("search.card.noYogas")}</span>
                                 )}
                             </div>
                         )}
 
-                        {config.doshas && cd?.doshas && (
+                        {config.doshas && (cd?.doshas as boolean) && (
                             <div>
                                 <h5 className="text-xs font-semibold text-gray-600 mb-1.5 uppercase tracking-wider">
-                                    Doshas
+                                    {t("search.card.doshas")}
                                 </h5>
-                                {((cd.doshas as Record<string, unknown>).doshas as Array<Record<string, unknown>> | undefined)?.filter((d) => d.isPresent).length ? (
+                                {((cd!.doshas as Record<string, unknown>).doshas as Array<Record<string, unknown>> | undefined)?.filter((d) => d.isPresent).length ? (
                                     <div className="space-y-1">
-                                        {((cd.doshas as Record<string, unknown>).doshas as Array<Record<string, unknown>>).filter((d) => d.isPresent).map((d, i) => (
+                                        {((cd!.doshas as Record<string, unknown>).doshas as Array<Record<string, unknown>>).filter((d) => d.isPresent).map((d, i) => (
                                             <div key={i} className="flex items-center gap-1.5 text-xs">
                                                 <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${(d.severity as string || "").toLowerCase() === "high" ? "bg-red-400" : "bg-amber-400"}`} />
                                                 <span className="font-medium text-gray-700">{d.name as string}</span>
@@ -610,7 +872,7 @@ const SearchResultCard = ({
                                         ))}
                                     </div>
                                 ) : (
-                                    <span className="text-xs text-gray-400">No doshas detected</span>
+                                    <span className="text-xs text-gray-400">{t("search.card.noDoshas")}</span>
                                 )}
                             </div>
                         )}
@@ -632,6 +894,7 @@ const PaginationControls = ({
     total: number;
     onPageChange: (p: number) => void;
 }) => {
+    const { t } = useI18n();
     if (total === 0) return null;
 
     const pages: number[] = [];
@@ -649,7 +912,7 @@ const PaginationControls = ({
                 disabled={page <= 1}
                 className="px-3 py-1.5 text-sm border rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-                ← Previous
+                {t("search.pagination.previous")}
             </button>
 
             {startPage > 1 && (
@@ -699,11 +962,11 @@ const PaginationControls = ({
                 disabled={page >= totalPages}
                 className="px-3 py-1.5 text-sm border rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-                Next →
+                {t("search.pagination.next")}
             </button>
 
             <span className="text-sm text-gray-500 ml-2">
-                Page {page} of {totalPages} ({total} total)
+                {t("search.pagination.pageOf", { page, totalPages, total })}
             </span>
         </div>
     );
@@ -1189,6 +1452,7 @@ export default function SearchPage() {
     const [bookmarkedIds, setBookmarkedIds] = useState<Set<string>>(new Set());
 
     const [config, setConfig] = useState<Record<string, boolean>>(DEFAULT_CONFIG);
+    const [activeChart, setActiveChart] = useState(CHART_TABS[0].key);
     const [configOpen, setConfigOpen] = useState(false);
     const [historyOpen, setHistoryOpen] = useState(false);
     const [savedFilterOpen, setSavedFilterOpen] = useState(false);
@@ -1199,7 +1463,7 @@ export default function SearchPage() {
     const [bookmarks, setBookmarks] = useState<BookmarkEntry[]>([]);
 
     const [debouncedQuery, setDebouncedQuery] = useState(query);
-    const debounceTimer = useRef<ReturnType<typeof setTimeout>>();
+    const debounceTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
     const detectedLanguage = detectLanguage(query);
 
@@ -1634,7 +1898,7 @@ export default function SearchPage() {
                         📋
                     </button>
                     <button
-                        onClick={handleExport}
+                        onClick={() => handleExport("csv")}
                         className="border px-3 py-2 rounded hover:bg-gray-50 text-sm"
                         title="Export"
                     >
@@ -1742,6 +2006,8 @@ export default function SearchPage() {
                                         key={i}
                                         result={r}
                                         config={config}
+                                        activeChart={activeChart}
+                                        onChartTabChange={setActiveChart}
                                         isExpanded={expandedCards.has(i)}
                                         onToggleExpand={() => toggleExpanded(i)}
                                         onBookmark={() =>

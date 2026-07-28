@@ -136,13 +136,65 @@
 |-------|------|-------------|
 | id | UUID | Primary key |
 | user | Object | `{ id: UUID }` — reference to User |
+| name | String | User-defined label for the saved search (e.g., "Career study: Jupiter in 10th") |
 | query | String | Search query text |
-| filterConfig | JSON | Configured visible sections |
+| filterConfig | JSON | Configured visible sections — see [FilterConfig (SavedFilter)](#filterconfig-savedfilter) structure |
+| lastRunAt | DateTime | Timestamp of the last time this saved filter was executed |
+| resultCount | Integer | Number of results returned on last run (for display in list) |
 | createdAt | DateTime | Record created |
+| updatedAt | DateTime | Last updated |
 
 **Relationships**:
 
 - SavedFilter *---1 User
+
+### SearchHistory
+
+| Field | Type | Description |
+|-------|------|-------------|
+| id | UUID | Primary key |
+| user | Object | `{ id: UUID }` — reference to User |
+| query | String | Original search query text entered by the user |
+| parsedConditions | JSON | Structured conditions extracted from the query by the RAG pipeline (debugging & analytics) |
+| resultCount | Integer | Number of results returned |
+| language | Enum(si, en) | Detected language of the query |
+| source | Enum(manual, saved-filter, bookmark) | How the search was initiated |
+| savedFilter | Object | `{ id: UUID }` — reference to SavedFilter if the search originated from a saved filter (optional) |
+| createdAt | DateTime | Record created |
+
+**Business rules**:
+- Search history is kept per-user for the most recent N entries (configurable, default 50)
+- Duplicate consecutive queries (same query text within 5 minutes) should NOT create a new history entry — update the timestamp of the existing entry instead
+- Users can clear their own search history
+- Search history is NEVER visible to other users
+- `parsedConditions` is for debugging/analytics only — not displayed to the user
+
+**Relationships**:
+
+- SearchHistory *---1 User
+- SearchHistory *---1 SavedFilter (optional)
+
+### SearchBookmark
+
+| Field | Type | Description |
+|-------|------|-------------|
+| id | UUID | Primary key |
+| user | Object | `{ id: UUID }` — reference to User |
+| horoscope | Object | `{ id: UUID }` — reference to Horoscope |
+| queryContext | String | The search query that led to this bookmark (optional, for context) |
+| notes | String | User's personal note about why this bookmark was saved (optional) |
+| createdAt | DateTime | Record created |
+
+**Business rules**:
+- A user can bookmark a horoscope only once (unique constraint on `user` + `horoscope`)
+- Bookmarking a horoscope does NOT grant any additional access — the same privacy rules apply when viewing
+- If the bookmarked horoscope is deleted, the bookmark is cascade-deleted
+- Bookmarks are visible only to the user who created them
+
+**Relationships**:
+
+- SearchBookmark *---1 User
+- SearchBookmark *---1 Horoscope
 
 ### Location
 
@@ -168,11 +220,20 @@
 |-------|------|-------------|
 | id | UUID | Primary key |
 | horoscope | Object | `{ id: UUID }` — reference to Horoscope |
-| embedding | Vector | Vector embedding for RAG search |
-| textContent | Text | Full text content for search |
+| embedding | Vector | Vector embedding for RAG search (dimensions depend on model, typically 384 or 768) |
+| textContent | Text | Full text content for search (the text from which the embedding was generated) |
+| language | Enum(si, en) | Language of the textContent (single embedding per language per horoscope) |
+| chunkIndex | Integer | Index of this chunk when a horoscope's text content is split into multiple chunks (0-based) |
+| embeddingModel | String | Identifier of the embedding model used (e.g., `"Xenova/all-MiniLM-L6-v2"`) |
+| isActive | Boolean | Soft-deactivation flag — `false` when horoscope is made private without deleting the row; embedding is excluded from search queries |
 | createdAt | DateTime | Record created |
+| updatedAt | DateTime | Last updated |
 
-**Privacy note**: Search queries MUST filter out embeddings for private horoscopes (`isPublic=false`) when serving results to non-owners. This can be done either by deleting/marking embeddings when privacy changes, or by joining with the Horoscope table at query time to check `isPublic`.
+**Privacy note**: Search queries MUST filter out embeddings for private horoscopes (`isPublic=false`) when serving results to non-owners. This can be done either by:
+1. Setting `isActive=false` on the embedding when privacy changes (async, queued)
+2. Joining with the Horoscope collection at query time to check `isPublic` on every search (slower but always consistent)
+
+The recommended approach is a hybrid: set `isActive=false` immediately (synchronous) on privacy toggle for consistency, then clean up inactive embeddings via a background job.
 
 **Relationships**:
 
@@ -599,6 +660,8 @@ All enums use numeric values for easy i18n. Display names are mapped separately 
 User (1) ---< (N) Horoscope
 User (1) ---< (N) Metadata
 User (1) ---< (N) SavedFilter
+User (1) ---< (N) SearchHistory
+User (1) ---< (N) SearchBookmark
 User (1) ---< (N) Location
 
 Location (1) ---< (N) Horoscope
@@ -608,4 +671,7 @@ Horoscope (1) ---< (N) Chart
 Horoscope (1) ---< (N) Metadata
 Horoscope (1) ---< (N) ShareLink
 Horoscope (1) ---< (N) SearchEmbedding
+Horoscope (1) ---< (N) SearchBookmark
+
+SavedFilter (1) ---< (N) SearchHistory
 ```

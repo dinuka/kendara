@@ -17,11 +17,15 @@ jest.mock("@/models/AuditLog", () => ({
 }));
 
 jest.mock("@/models/CalculatedDetails", () => ({
-    CalculatedDetails: { findOne: jest.fn() },
+    CalculatedDetails: {
+        findOne: jest.fn().mockReturnValue({ lean: jest.fn().mockResolvedValue(null) }),
+    },
 }));
 
 jest.mock("@/models/Chart", () => ({
-    Chart: { find: jest.fn() },
+    Chart: {
+        find: jest.fn().mockReturnValue({ lean: jest.fn().mockResolvedValue([]) }),
+    },
 }));
 
 jest.mock("@/models/Metadata", () => ({
@@ -459,6 +463,14 @@ describe("Search anonymization", () => {
         (Horoscope.find as jest.Mock).mockReturnValue({
             lean: jest.fn().mockResolvedValue(horoscopes),
         });
+        (CalculatedDetails.findOne as jest.Mock).mockReturnValue({
+            lean: jest.fn().mockResolvedValue({
+                planets: [{ name: 7, strength: "Uchcha" }],
+            }),
+        });
+        (Chart.find as jest.Mock).mockReturnValue({
+            lean: jest.fn().mockResolvedValue([]),
+        });
 
         const response = await search("exaltation", { user: { id: "other-user", role: "student" } });
 
@@ -481,6 +493,14 @@ describe("Search anonymization", () => {
         (Horoscope.find as jest.Mock).mockReturnValue({
             lean: jest.fn().mockResolvedValue(horoscopes),
         });
+        (CalculatedDetails.findOne as jest.Mock).mockReturnValue({
+            lean: jest.fn().mockResolvedValue({
+                planets: [{ name: 7, strength: "Uchcha" }],
+            }),
+        });
+        (Chart.find as jest.Mock).mockReturnValue({
+            lean: jest.fn().mockResolvedValue([]),
+        });
 
         const response = await search("exaltation", { user: { id: "owner-1", role: "student" } });
 
@@ -502,6 +522,14 @@ describe("Search anonymization", () => {
         ];
         (Horoscope.find as jest.Mock).mockReturnValue({
             lean: jest.fn().mockResolvedValue(horoscopes),
+        });
+        (CalculatedDetails.findOne as jest.Mock).mockReturnValue({
+            lean: jest.fn().mockResolvedValue({
+                planets: [{ name: 7, strength: "Uchcha" }],
+            }),
+        });
+        (Chart.find as jest.Mock).mockReturnValue({
+            lean: jest.fn().mockResolvedValue([]),
         });
 
         const response = await search("exaltation", { user: { id: "other-user", role: "student" } });

@@ -225,3 +225,72 @@
 | Horoscope deletion with privacy | Verify cascade delete removes all related data. Verify audit log entry created. |
 | UUID probing | Verify 404 returned for private horoscope (not 403). Verify 404 for non-existent UUID. |
 | Rapid toggling | Verify each toggle creates audit entry. Verify debounce prevents API flood. 30 req/min rate limit enforced. |
+
+## Search Horoscope (RAG-Based) — Testing Considerations
+
+### RAG/LLM-Based Search Testing
+
+| Consideration | Strategy |
+|---------------|----------|
+| LLM query parsing accuracy | Build a test corpus of 20+ query→expected-conditions mappings covering all query types (ascendant, planet-in-house, yoga, career, compound). Run each query through the parser and compare parsed conditions against expected. Accept parsing when conditions match ≥ 90% of expected fields. Store corpus as JSON fixture in `src/__tests__/fixtures/search-queries.json`. |
+| LLM parsing fallback | Mock Gemini API to throw/timeout/return low-confidence. Verify keyword parser is invoked. Verify endpoint still returns results. Verify `queryUnderstanding.mode` reflects fallback. |
+| LLM rate limit | Mock Gemini 429 response. Verify automatic fallback to keyword parser. Verify no crash. Verify incident logged. |
+| LLM wrong output schema | Mock Gemini to return malformed JSON / missing fields. Verify parser handles gracefully, falls back to keyword parsing, logs error. |
+| Embedding generation | Mock Transformers.js pipeline. Verify embedding service generates 384-dim vector. Verify text content includes both SI/EN versions. Verify chunking when content > 512 tokens. |
+| Embedding storage failure | Mock Qdrant upsert to fail. Verify error logged. Verify horoscope still indexed in MongoDB for keyword search. |
+| Vector search accuracy | Seed Qdrant with known embedding vectors for 10 horoscopes. Query with known embedding. Verify top-K results include expected horoscopes. Verify cosine similarity scores are correct. |
+| Hybrid ranking | Verify hybrid score formula: `0.7 * vectorSimilarity + 0.3 * structuredMatchScore`. Verify results sorted by hybrid score descending. Verify min score threshold (0.3 basic, 0.4 complex) applied. |
+| Relevance threshold filtering | Verify results below threshold are excluded entirely. Verify threshold is configurable. Verify changing threshold re-filters results. |
+| Query language detection | Test with pure Sinhala (U+0D80–U+0DFF), pure English, mixed (e.g., "ගුරු in 3rd house"), empty/whitespace-only. Verify detection matches majority character set. |
+| Background embedding lifecycle | Test embed queue on horoscope create, recalculate, privacy toggle. Verify async job completes. Verify DB state after job. Verify searchability before and after. |
+
+### Bilingual (SI/EN) Search Testing
+
+| Consideration | Strategy |
+|---------------|----------|
+| Query parity | For each query type, create equivalent SI and EN queries. Run both through the full pipeline. Verify result sets are equivalent (same horoscope IDs, similar scores). |
+| Mixed-language queries | "ගුරු in 3rd house", "Saturn උච්ච". Verify language detection picks majority. Verify query is parsed correctly regardless of detected language. |
+| Sinhala-specific terms | Test all 12 zodiac signs, 9 planets, 27 nakshatras, strength types in Sinhala. Verify maps (ZODIAC_SIGN_NAMES, PLANET_NAMES) resolve correctly. |
+| English astrological terms | Test all equivalent English terms. Verify same numeric enum values resolved as Sinhala counterparts. |
+| Language indicator in UI | Verify language detection badge updates in real-time as user types. Verify badge shows correct flag and language name. |
+| Sinhala font rendering | Verify Noto Sans Sinhala loads for all search UI components. Verify no tofu boxes for Sinhala astrological terms. Verify 30% extra width accommodation. |
+| i18n key coverage | Walk all UI strings in search feature. Verify both `en.json` and `si.json` have corresponding entries. Verify no hardcoded English strings in JSX. |
+
+### Graceful Degradation Testing
+
+| Consideration | Strategy |
+|---------------|----------|
+| Full chain: Gemini → Keyword → MongoDB-only | Test all six degradation combinations independently: (1) Gemini fails → keyword works, (2) Gemini fails + no keyword match → date-sorted results, (3) Transformers.js fails → skip vector search, (4) Qdrant unreachable → MongoDB-only, (5) Gemini + Qdrant both down → keyword + MongoDB, (6) everything fails → graceful error response. |
+| Partial chain recovery | Mock intermittent failures. Verify system recovers when service comes back. Verify no cascading failures. |
+| Degradation logging | Each fallback event must be logged with: component failed, reason, timestamp. Verify no PII in logs. Verify log level (warn for fallback, error for total failure). |
+| Degradation UX indicators | Verify queryUnderstanding banner reflects parsing mode (complex vs basic). Verify no technical error messages shown to user. Verify "Search failed" banner only when all paths fail. |
+| Embedding job failure | Mock Transformers.js to hang/timeout. Verify queue retry logic (3 retries with backoff). Verify horoscope remains in keyword search index. Verify admin notification of persistent failure. |
+
+### Performance Testing for Full-Detail Result Cards with Charts
+
+| Consideration | Strategy |
+|---------------|----------|
+| Search response payload size | Measure POST /api/search response size for 1, 5, 20 results per page. Target: <15KB per result, <100KB per page at default 5. Verify chart data (SVG JSON) is the largest contributor. |
+| Search endpoint latency | Time POST /api/search p95: basic query <3s, complex query <5s with all pipeline stages (LLM + embedding + Qdrant + MongoDB + enrichment). Measure each stage independently. |
+| Chart SVG rendering per card | Measure time to render 3 charts (birth, navamsa, house) per result card. Target: <500ms for 3 charts on desktop. Test with 5 cards visible (15 charts total). Verify lazy rendering via IntersectionObserver doesn't cause jank. |
+| IntersectionObserver lazy loading | Verify charts only render when card is within 200px of viewport. Verify scrolling down triggers chart rendering with no visible delay. Verify scrolling up reuses rendered charts (no re-render). |
+| Horizontal scroll performance | Verify CSS `overflow-x: auto` per card doesn't cause layout thrashing. Verify 3+ charts per card scroll at 60fps. Test with 10 results (30 charts visible). |
+| Collapse/expand animation | Verify 300ms expand / 200ms collapse animation doesn't drop frames. Verify max-height transition doesn't cause layout shift. |
+| Concurrent search requests | 10 simultaneous POST /api/search requests. Measure p99 latency. Target: no timeout, no 5xx, p99 <10s. |
+| Memory usage with large result sets | Load 50 results across 10 pages. Measure browser memory. Target: <50MB additional heap. Verify collapsed cards use significantly less memory than expanded. |
+
+### Privacy/Security Testing for Search
+
+| Consideration | Strategy |
+|---------------|----------|
+| Privacy filtering at query level | Verify MongoDB `$or: [{ "owner.id": userId }, { isPublic: true }]` is always applied. Verify private horoscopes never loaded into app memory for non-owners. Bypass frontend and send raw API requests with modified userIds. |
+| Anonymous name enforcement | Verify `displayName=false` horoscopes show anonymous placeholder for non-owners. Verify owner and Super Admin always see real name. Verify placeholder is deterministic per horoscope ID. |
+| Qdrant payload filtering | Verify Qdrant search includes `isPublic: true OR ownerId: userId` filter. Verify private horoscope points are not returned for non-owners. |
+| Embedding lifecycle on privacy toggle | Verify public→private: synchronous `isActive=false` set. Verify private→public: embedding generation queued. Verify race condition: search while embedding job is in progress. |
+| Search history isolation | Verify user A cannot access user B's search history. Verify API returns 403 or empty for cross-user access. Verify history not exposed in any other API response. |
+| Bookmark isolation | Verify bookmarks are user-scoped. Verify bookmarking does not grant additional access. Verify deleted horoscope shows placeholder, not data leak. |
+| Export data limits | Verify export limited to current page (max 20 results). Verify rate limit 10 req/min/user. Verify export respects anonymous names. |
+| Rate limiting (all endpoints) | Verify 429 with `Retry-After` header for each endpoint at its limit. Verify rate limit resets after window. Verify rate limit per-user, not per-IP or global. |
+| IDOR / UUID guessing | Verify non-owner accessing private horoscope returns 404 (not 403). Verify non-existent UUID returns 404. Verify no timing side-channel on UUID existence. |
+| XSS in query input | Test `<script>`, `onerror=`, `javascript:` payloads in search query. Verify stored safely in search history. Verify no XSS in any rendered output (result cards, history list, etc.). |
+| LLM prompt injection | Test query containing "Ignore previous instructions" / "System prompt: ...". Verify no prompt leakage. Verify query is parsed as astrological search, not executed as instructions. |

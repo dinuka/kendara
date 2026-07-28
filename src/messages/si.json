@@ -106,7 +106,65 @@
         "configPanel": "සංදර්ශකය වින්‍යාස කරන්න",
         "resetConfig": "පෙරනිමියට යළි සකසන්න",
         "basicSearch": "උදා: මේෂ ලග්නය, ශනි උච්ච, ගුරු 3",
-        "complexSearch": "උදා: මේෂ ලග්නයේ ශනි උච්චව ගුරු 3 භාවයේ"
+        "complexSearch": "උදා: මේෂ ලග්නයේ ශනි උච්චව ගුරු 3 භාවයේ",
+        "card": {
+            "ascSign": "ලග්නය {sign}",
+            "noAscendant": "ලග්න දත්ත නොමැත",
+            "bookmarkRemove": "පොත්යොමුව ඉවත් කරන්න",
+            "bookmarkAdd": "පොත්යොමුව",
+            "noChartData": "සටහන් දත්ත නොමැත",
+            "signAtDegree": "රාශිය {sign}, {degree}° \u00B7 අධිපති: ග්‍රහයා {lord}",
+            "moonNakshatra": "චන්ද්‍ර: නැකත {id}",
+            "ascNakshatra": "ලග්න: නැකත {id}",
+            "malefic": "පාප",
+            "yogas": "යෝග",
+            "noYogas": "යෝග හමු නොවීය",
+            "doshas": "දෝෂ",
+            "noDoshas": "දෝෂ හමු නොවීය"
+        },
+        "score": {
+            "weak": "දුර්වල",
+            "excellent": "ඉතා හොඳ",
+            "strong": "ශක්තිමත්",
+            "moderate": "මධ්‍යස්ථ",
+            "ariaLabel": "ගැළපුම් ලකුණු: {pct} ප්\u200Dරතිශතය"
+        },
+        "conditions": {
+            "ascendant": "ලග්නය {sign}",
+            "planetInSign": "ග්‍ර. {planet} රාශි {sign}",
+            "planetInSignHouse": "{planet} රාශි {sign}, භාව {house}",
+            "exaltation": "{planet} උච්ච",
+            "debilitation": "{planet} නීච",
+            "yogaPresent": "යෝග {count}",
+            "dosha": "දෝෂය: {name}"
+        },
+        "table": {
+            "planetName": "ග්‍රහයා {id}",
+            "signName": "රාශිය {id}"
+        },
+        "dashas": {
+            "noData": "දත්ත නොමැත",
+            "currentMD": "වත්මන්: මහා දශා අධිපති {lord}",
+            "currentAD": "\u00B7 අන්තර් දශා අධිපති {lord}",
+            "currentVidasa": "\u00B7 විදශා අධිපති {lord}",
+            "planet": "ග්‍රහයා {id}",
+            "active": "සක්‍රීය"
+        },
+        "tabs": {
+            "birth": "උත්පත්ති",
+            "navamsa-d9": "නවාංශ",
+            "house": "භාව",
+            "chandra-lagna": "චන්ද්‍ර",
+            "surya-lagna": "සූර්ය",
+            "drekkana-d3": "D3",
+            "dasamsa-d10": "D10",
+            "shodasha-vargas": "වර්ග"
+        },
+        "pagination": {
+            "previous": "\u2190 පෙර",
+            "next": "ඊළඟ \u2192",
+            "pageOf": "පිටුව {page} / {totalPages} (මුළු {total})"
+        }
     },
     "admin": {
         "title": "පරිපාලන",

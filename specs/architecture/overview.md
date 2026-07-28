@@ -90,9 +90,14 @@
 ### 2. RAG-Based Search Pipeline
 
 - Horoscope data is converted to text descriptions and embedded as vectors using **Transformers.js** (@xenova/transformers) — runs locally in Node.js
+- Embeddings are generated per language (Sinhala AND English), stored as separate SearchEmbedding records with `language` and `embeddingModel` fields
 - Search queries are parsed by a free online LLM (**Gemini API** — generous free tier, strong Sinhala support) into structured astrological conditions
-- Embeddings stored and searched in **Qdrant** via its JS client library
+- Embeddings stored and searched in **Qdrant** via its JS client library with HNSW index
 - Hybrid approach: Qdrant vector similarity + MongoDB structured filter for precise astrological conditions
+- Graceful degradation chain: Gemini API → keyword parsing → MongoDB-only search if Qdrant is unreachable
+- Embedding generation runs asynchronously via background job queue (in-process microtask for MVP, BullMQ for production)
+- Search results are full-detail horoscope cards (not summaries) — all data pre-calculated and returned in search response
+- Configurable results display: user can toggle individual sections (charts, calculations, strengths) on/off per result card, persisted in SavedFilter
 
 ### 3. Bilingual Support (Sinhala/English)
 
@@ -171,13 +176,20 @@ User → Open Horoscope Form →
 ```
 User → Enter Natural Language Query (SI/EN) →
   → RAG Pipeline:
-    → Parse query with Local LLM → Extract astrological conditions
-    → Generate query embedding
-    → Vector similarity search in Qdrant
-    → Structured filter on parsed conditions (MongoDB)
-  → Merge & Rank Results →
-  → Return matching horoscopes with relevance scores
-  → User configures visible sections → UI updates accordingly
+    → Parse query with Gemini API → Extract structured astrological conditions
+    → Generate query embedding via Transformers.js
+    → Vector similarity search in Qdrant (HNSW index, top-K=100)
+    → Structured filter on parsed conditions (MongoDB $match)
+    → Filter privacy: $or: [{ "owner.id": session.user.id }, { isPublic: true }]
+  → Merge & Rank Results (hybrid score: 0.7 * vectorSimilarity + 0.3 * structuredMatchScore) →
+  → Return matching horoscopes with full calculated data (charts, planets, dashas) →
+  → Client renders vertical list of full-detail result cards →
+    → Each card: Name → Birth Chart (horizontal scroll) → Navamsa → House Chart → Calculations → Dashas
+    → Charts displayed inline with horizontal scroll per card
+    → Sections togglable via US-009 Config Panel
+    → Results paginated (default 5/page, max 20)
+    → Collapse/expand per result item
+  → User configures visible sections → UI hides/shows sections immediately (no re-fetch)
 ```
 
 ### View Dasha Timeline Flow
@@ -262,9 +274,19 @@ User → Click "Login with Google" →
 
 | Method | Route | Description |
 |--------|-------|-------------|
-| POST | /api/search | Search horoscopes (RAG + structured) |
+| POST | /api/search | Search horoscopes (RAG + structured) — returns full-detail result cards |
 | GET | /api/search/filter | Get saved filters for user |
 | POST | /api/search/filter | Save a filter configuration |
+| PUT | /api/search/filter/:id | Update a saved filter name/config |
+| DELETE | /api/search/filter/:id | Delete a saved filter |
+| GET | /api/search/history | Get search history for current user |
+| DELETE | /api/search/history | Clear all search history for current user |
+| DELETE | /api/search/history/:id | Delete single search history entry |
+| GET | /api/search/bookmark | Get bookmarked horoscopes for current user |
+| POST | /api/search/bookmark | Bookmark a horoscope — body: `{ horoscopeId: string, notes?: string }` |
+| DELETE | /api/search/bookmark/:horoscopeId | Remove a bookmark |
+| PUT | /api/search/bookmark/:horoscopeId | Update bookmark notes |
+| GET | /api/search/export | Export current search results as CSV or JSON — query params: `?format=csv|json&query=...&filterConfig=...&page=...` |
 
 ### Chart
 
@@ -469,8 +491,56 @@ User → Click "Login with Google" →
 {
   id: UUID (string),
   user: { id: UUID },
+  name: string,                   // User-defined label for the saved search
   query: string,
-  filterConfig: object,
+  filterConfig: object,           // Visible sections configuration
+  lastRunAt: Date,                // Last execution timestamp
+  resultCount: number,            // Cached result count for display
+  createdAt: Date
+}
+```
+
+**searchEmbeddings**
+
+```
+{
+  id: UUID (string),
+  horoscope: { id: UUID },
+  embedding: number[],            // Vector embedding array
+  textContent: string,            // Structured text representation for embedding
+  language: "si" | "en",          // Bilingual support — separate embeddings per language
+  chunkIndex: number,             // For chunked large horoscopes (0-based)
+  embeddingModel: string,         // Model version tracking (e.g. "all-MiniLM-L6-v2")
+  isActive: boolean,              // Soft-deactivation on privacy change
+  createdAt: Date,
+  updatedAt: Date
+}
+```
+
+**searchHistory**
+
+```
+{
+  id: UUID (string),
+  user: { id: UUID },
+  query: string,                  // Raw query text
+  parsedConditions: object,       // Parsed structured conditions (for debug/improvement)
+  resultCount: number,            // Number of results returned
+  language: "si" | "en",         // Detected query language
+  source: "basic" | "complex",   // Which search mode was used
+  createdAt: Date
+}
+```
+
+**searchBookmarks**
+
+```
+{
+  id: UUID (string),
+  user: { id: UUID },
+  horoscope: { id: UUID },
+  notes: string,                  // Optional user notes
+  queryContext: string,           // Optional query that led to bookmarking
   createdAt: Date
 }
 ```
@@ -502,6 +572,13 @@ User → Click "Login with Google" →
 - calculatedDetails: { "dashas.currentPeriod.mahadashaLord": 1 } (for querying by current dasha lord)
 - auditLogs: { timestamp: -1 }, { "actor.id": 1 }, { action: 1 }
 - horoscopes: { "owner.id": 1, isPublic: 1, displayName: 1 } (compound index for search filtering)
+- savedFilters: { "user.id": 1, lastRunAt: -1 } (for listing user's saved searches by recency)
+- searchHistory: { "user.id": 1, createdAt: -1 } (for fetching recent query history)
+- searchHistory: { "user.id": 1, query: 1, createdAt: -1 } (for dedup consecutive same queries)
+- searchBookmarks: { "user.id": 1, createdAt: -1 } (for listing user's bookmarks)
+- searchBookmarks: { "user.id": 1, "horoscope.id": 1 } (unique compound — prevent duplicate bookmarks)
+- searchEmbeddings: { "horoscope.id": 1, language: 1, isActive: 1 } (for managing embedding lifecycle)
+- searchEmbeddings: { isActive: 1, language: 1 } (for filtering active embeddings by language during search)
 
 ## Security Considerations
 
@@ -532,6 +609,10 @@ User → Click "Login with Google" →
 - **Privacy change audit**: Every toggle of `isPublic` or `displayName` is logged to `auditLogs` with `action: "privacy_change"` capturing old and new values
 - **No data leakage via search**: The search endpoint returns anonymous placeholder text (not the actual name) when `isPublic=true` and `displayName=false`. The placeholder format is TBD by UX but must not leak identifiable information
 - **Search embedding isolation**: When the Qdrant vector search pipeline is operational, Qdrant point payloads include an `isPublic` field, and search queries filter on it. The embedding lifecycle (create/delete on privacy toggle) is asynchronous to keep the toggle responsive
+- **Search history privacy**: SearchHistory entries are user-scoped — only the owning user can read/clear their history. No cross-user search history access
+- **Bookmark privacy**: SearchBookmark is user-scoped. Bookmarking a public horoscope does NOT expose it — the bookmark merely stores a reference. Accessing bookmarked content still requires the same privacy checks as direct horoscope access
+- **Export data limits**: Search export endpoint is rate-limited to 10 req/min/user and restricted to the current page (max 20 results) to prevent bulk data extraction
+- **Graceful degradation fallback logging**: All RAG pipeline fallbacks (LLM unavailable, Qdrant down, Transformers.js failure) are logged with the failure reason but the endpoint must never expose internal error details to the client
 
 ## Performance Considerations
 
@@ -541,3 +622,8 @@ User → Click "Login with Google" →
 - Search results paginated
 - Image/CDN caching for chart images
 - Lazy loading for chart rendering in UI
+- **Search result cards**: Charts within each result card are lazy-rendered via IntersectionObserver — only rendered when the result item is near the viewport, preventing layout thrashing from 5+ chart SVGs per card
+- **Horizontal scroll**: Each result card's chart section uses CSS `overflow-x: auto` with horizontal scrolling — no JS carousel, native browser scroll performance
+- **Default page size**: 5 results per page (reduced from 20) because each result is a full-detail card with multiple charts
+- **Search response payload**: Returns full calculated data (charts, planets, dashas) inline — no separate fetch per result. Data size per result is ~10-20KB JSON, ~50-100KB per page at default 5 results
+- **Collapse/expand**: Collapsed result cards render as compact summary (name + ascendant + score) with zero chart rendering — improves perceived performance when scanning many results

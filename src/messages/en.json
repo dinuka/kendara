@@ -106,7 +106,65 @@
         "configPanel": "Configure Display",
         "resetConfig": "Reset to defaults",
         "basicSearch": "e.g. මේෂ ලග්නය, ශනි උච්ච, ගුරු 3",
-        "complexSearch": "e.g. මේෂ ලග්නයේ ශනි උච්චව ගුරු 3 භාවයේ"
+        "complexSearch": "e.g. මේෂ ලග්නයේ ශනි උච්චව ගුරු 3 භාවයේ",
+        "card": {
+            "ascSign": "Asc. Sign {sign}",
+            "noAscendant": "No ascendant data",
+            "bookmarkRemove": "Remove bookmark",
+            "bookmarkAdd": "Bookmark",
+            "noChartData": "No chart data available",
+            "signAtDegree": "Sign {sign} at {degree}° \u00B7 Lord: Planet {lord}",
+            "moonNakshatra": "Moon: Nakshatra {id}",
+            "ascNakshatra": "Asc: Nakshatra {id}",
+            "malefic": "Malefic",
+            "yogas": "Yogas",
+            "noYogas": "No yogas detected",
+            "doshas": "Doshas",
+            "noDoshas": "No doshas detected"
+        },
+        "score": {
+            "weak": "Weak match",
+            "excellent": "Excellent match",
+            "strong": "Strong match",
+            "moderate": "Moderate match",
+            "ariaLabel": "Match score: {pct} percent"
+        },
+        "conditions": {
+            "ascendant": "Asc. {sign}",
+            "planetInSign": "P{planet} in {sign}",
+            "planetInSignHouse": "{planet} in {sign} H{house}",
+            "exaltation": "{planet} Exalted",
+            "debilitation": "{planet} Debil.",
+            "yogaPresent": "{count} Yogas",
+            "dosha": "Dosha: {name}"
+        },
+        "table": {
+            "planetName": "Planet {id}",
+            "signName": "Sign {id}"
+        },
+        "dashas": {
+            "noData": "No data available",
+            "currentMD": "Current: MD Lord {lord}",
+            "currentAD": "\u00B7 AD Lord {lord}",
+            "currentVidasa": "\u00B7 Vidasa Lord {lord}",
+            "planet": "Planet {id}",
+            "active": "Active"
+        },
+        "tabs": {
+            "birth": "Birth",
+            "navamsa-d9": "Navamsa",
+            "house": "House",
+            "chandra-lagna": "Chandra",
+            "surya-lagna": "Surya",
+            "drekkana-d3": "D3",
+            "dasamsa-d10": "D10",
+            "shodasha-vargas": "Vargas"
+        },
+        "pagination": {
+            "previous": "\u2190 Previous",
+            "next": "Next \u2192",
+            "pageOf": "Page {page} of {totalPages} ({total} total)"
+        }
     },
     "admin": {
         "title": "Admin Dashboard",

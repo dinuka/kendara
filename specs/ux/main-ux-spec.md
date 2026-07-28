@@ -1,6 +1,7 @@
 # Kendara — Main UX Specification
 
 **Date:** 2026-07-15 12:30
+**Last Updated:** 2026-07-27 21:15
 **Author:** UX (BMAD)
 **Based on:** specs/business-analysis/actors.md, specs/business-analysis/data-model.md, specs/business-analysis/20260714-1255-user-stories.md, specs/architecture/overview.md, specs/architecture/20260715-0746-architecture-spec.md, docs/spec.md
 
@@ -14,6 +15,8 @@ Kendara is a bilingual (Sinhala/English) astrology study web app for students to
 - **Bilingual parity** — every element works in both Sinhala and English
 - **Progressive disclosure** — complex astrological data shown in layers
 - **Study-first design** — metadata, labels, filtering, and export for research workflows
+
+> **Search UX:** The Search Horoscope feature has a dedicated UX spec at `specs/ux/20260727-2100-search-horoscope.md` covering RAG-based natural language search, config panel, result cards, history, saved searches, bookmarks, export, and all associated states/accessibility/responsive behavior. The summary below references that spec for full details.
 
 ---
 
@@ -158,14 +161,43 @@ Dashboard → Click "Add Horoscope" →
 
 ### Flow 3: Search Horoscopes
 
+> Full spec: `specs/ux/20260727-2100-search-horoscope.md`
+
 ```
-Search Page → Type natural language query (SI/EN) →
-  → System parses (RAG pipeline) →
-  → Results displayed as cards →
-  → User configures visible sections via Config Panel →
-  → Results update in real-time →
-  → Click result → Horoscope Detail View
+Search Page → Empty state: suggestions + recent history shown →
+  → User types natural language query (SI/EN) →
+  → Language detected (Unicode U+0D80–U+0DFF) → indicator updates →
+  → Debounce 300ms → search fires →
+  → Loading skeleton cards appear →
+  → Query Understanding Banner shows parsed conditions + confidence →
+  → Results render as vertical full-detail cards (all expanded by default) →
+  → Each card: Name → Score Badge → Charts (horizontal scroll) → Calculations → Dashas → Yogas → Doshas →
+  → User configures visible sections via Config Panel (slide-out desktop / bottom sheet mobile) →
+  → Sections toggle ON/OFF instantly across all cards (no re-fetch) →
+  → Config persisted to server (POST /api/search/filter, debounced 500ms) →
+  → User expands/collapses individual cards (any number simultaneously) →
+  → User bookmarks results (🔖 toggle on card) →
+  → User saves the search query with name →
+  → User paginates (5 per page) →
+  → User exports current page as CSV/JSON →
+  → Click "Open Full Detail" → Horoscope Detail View
 ```
+
+**Key search patterns:**
+
+| Pattern | Details |
+|---------|---------|
+| Search input | Auto-resize textarea, max 500 chars, suggestions on focus when empty |
+| Config panel | 19 toggleable sections across Charts, Calculations, Strengths, Yogas, Doshas, Other |
+| Result cards | Full-detail vertical cards with lazy-loaded charts (IntersectionObserver) |
+| Score badge | Color-tiered: green (80-100%), indigo (60-79%), amber (40-59%), gray (0-39%) |
+| Collapse/expand | All cards expanded by default; any number can be expanded; toggle-all button |
+| Pagination | 5 results per page, URL-synced (`?page=1&query=...`) |
+| History | Last 50 queries, auto-recorded, deduplicated within 5-minute window |
+| Saved searches | Max 50, user-named, includes query + config snapshot |
+| Bookmarks | Max 100, with optional notes, query context preserved |
+| Export | Current page only, CSV or JSON, respects config visibility |
+| Query understanding | Banner shows parsed conditions + confidence %; auto-dismiss 8s |
 
 ### Flow 4: Edit Metadata
 
@@ -308,6 +340,23 @@ Search → Results load →
 - Search bar moves to top with prominent placement
 - Forms use full-width inputs
 
+### Search-Specific Responsive Behavior
+
+> Full spec: `specs/ux/20260727-2100-search-horoscope.md` §15
+
+| Breakpoint | Search Input | Config Panel | Result Cards | Actions Bar | Pagination | Panels |
+|------------|-------------|-------------|-------------|-------------|------------|--------|
+| Desktop (> 1024px) | Full width within main content | Slide-out from right (320px) | Full width, horizontal chart scroll | Horizontal row with all buttons | Full with page numbers | Dropdown panels |
+| Tablet (640-1024px) | Full width | Slide-out (280px) or modal | Full width, horizontal chart scroll | Icons only (labels hidden) | Prev/Next + page numbers | Dropdown panels |
+| Mobile (< 640px) | Full width, sticky at top | Slide-up bottom sheet (full width) | Full width, horizontal chart scroll | Horizontal scrollable row, icons only | Prev/Next only (no page numbers) | Slide-up bottom sheets |
+
+**Mobile search-specific adaptations:**
+- Charts: min-width 280px, horizontal scroll within card
+- Score badge: Compact — just percentage, no label text
+- Bookmark icon: 44x44px touch target
+- Collapse/expand icon: 44x44px touch target
+- Export dropdown: Full-width bottom sheet options
+
 ### Bilingual (Sinhala) Considerations
 
 - Sinhala text is typically 15-20% wider than English — use `min-width` on labels
@@ -391,6 +440,68 @@ Search → Results load →
 - **End**: Jump to the last period at the top level
 - ARIA: `role="tree"` on container, `role="treeitem"` on each period, `aria-expanded` on toggle, `aria-current="true"` on active period
 
+### Search Input
+
+> Full spec: `specs/ux/20260727-2100-search-horoscope.md` §4
+
+- **Type**: Auto-resize textarea (min-height 48px, max-height 120px, 3 lines max)
+- **Debounce**: Search fires 300ms after user stops typing; also fires on Enter key or Search button click
+- **Language detection**: Unicode range U+0D80–U+0DFF for Sinhala; indicator updates in real-time
+- **Suggestions**: Shown when input is focused AND empty; hidden when user types
+- **Recent searches**: Shown when input is focused AND empty; hidden when user types
+- **Max length**: 500 characters; beyond that, inline warning shown
+- **Placeholder (EN)**: "Search horoscopes using natural language..."
+- **Placeholder (SI)**: "ස්වාභාවික භාෂාවෙන් ලග්න සොයන්න..."
+- **Accessibility**: `role="searchbox"`, `aria-label`, `aria-autocomplete="list"` when suggestions visible, `aria-busy` during search
+- **Keyboard**: Tab to focus, Enter to search, Escape to close suggestions, `/` global shortcut to focus
+
+### Search Config Panel
+
+> Full spec: `specs/ux/20260727-2100-search-horoscope.md` §5
+
+- **Purpose**: Toggle which sections appear in search result cards
+- **Desktop**: Slide-out panel from right (320px wide)
+- **Mobile**: Slide-up bottom sheet (full width)
+- **Sections**: 19 toggleable sections across Charts (8), Calculations (4), Strengths & Aspects (2), Yogas & Doshas (2), Other (3)
+- **Persistence**: POST /api/search/filter, debounced 500ms
+- **Immediate effect**: Toggling hides/shows sections in all visible cards instantly (no re-fetch)
+- **Reset**: "Reset to Defaults" button restores all toggles
+- **Badge**: Small dot on ⚙️ icon when non-default config is active
+- **Accessibility**: `role="dialog"`, `aria-modal`, focus trap, Escape to close
+
+### Search Result Card
+
+> Full spec: `specs/ux/20260727-2100-search-horoscope.md` §6
+
+- **Type**: Vertical full-detail card (not summary card)
+- **Default state**: All cards expanded on fresh search
+- **Collapse/expand**: Any number of cards can be expanded simultaneously (no accordion constraint)
+- **Toggle-all**: "Collapse All" / "Expand All" button at top of results list
+- **Score badge**: Color-tiered percentage badge (green 80-100%, indigo 60-79%, amber 40-59%, gray 0-39%)
+- **Charts**: Horizontal scroll container, min-width 280px per chart, aspect-ratio 1:1, lazy-rendered via IntersectionObserver
+- **Bookmark**: 🔖 toggle on card header, filled when bookmarked
+- **Animation**: Height transition 300ms ease-out (expand), 200ms ease-in (collapse), chevron rotation 200ms
+
+### Search Pagination
+
+> Full spec: `specs/ux/20260727-2100-search-horoscope.md` §13
+
+- **Page size**: Default 5 results per page
+- **URL sync**: Page number in URL query params (`?page=1&query=...`)
+- **Mobile**: Prev/Next only (no page numbers)
+- **Desktop**: Full with page numbers
+- **Filter change**: Resets to page 1 when filters/query change
+
+### Query Understanding Banner
+
+> Full spec: `specs/ux/20260727-2100-search-horoscope.md` §14
+
+- **Purpose**: Shows which conditions were understood by the RAG pipeline
+- **Confidence levels**: High (≥80%) green, Medium (50-79%) amber, Low (<50%) red
+- **Partial parsing**: Lists understood and unrecognized conditions separately
+- **Auto-dismiss**: 8 seconds or manual close (X)
+- **Accessibility**: `role="status"`, `aria-live="polite"`
+
 ### Loading States
 
 | State | Pattern |
@@ -426,6 +537,16 @@ Search → Results load →
 | Current planets calculation failed | "Unable to load current planetary positions. Please try again." | "වත්මන් ග්‍රහ පිහිටීම් පූරණය කළ නොහැක. නැවත උත්සාහ කරන්න." | "Retry" button |
 | Private horoscope page (non-owner) | "Horoscope not found" | "ලග්නය හමු නොවීය" | (404 — no action; prevents existence probing) |
 | Privacy toggle save error | "Failed to update privacy settings. Please try again." | "රහස්‍යතා සැකසුම් යාවත්කාලීන කිරීම අසාර්ථකයි. නැවත උත්සාහ කරන්න." | "Retry" link |
+| **Search: No query entered** | "Type a natural language query to search horoscopes." | "ලග්න සොයන්න ස්වාභාවික භාෂා වාක්‍යයක් ටයිප් කරන්න." | Show suggestions + recent history |
+| **Search: No results found** | "No horoscopes match your query. Try broadening your search or using different terms." | "ඔබේ සෙවුමට ගැළපෙන ලග්න නැත. සෙවුම පුළුල් කරන්න හෝ වෙනත් පද භාවිතා කරන්න." | Suggest common terms or recent searches |
+| **Search: Search failed** | "Search failed. Please try again." | "සෙවුම අසාර්ථකයි. නැවත උත්සාහ කරන්න." | Retry button |
+| **Search: Rate limited** | "Too many searches. Please wait {seconds} seconds." | "සෙවුම් වැඩියි. තත්පර {seconds} ක් රැඳී සිටින්න." | Auto-retry countdown |
+| **Search: No saved searches** | "No saved searches yet." | "තවම සුරැකුම් සෙවුම් නැත." | "Save a search" prompt |
+| **Search: No bookmarks** | "No bookmarks yet. Bookmark horoscopes from search results to save them here." | "තවම සුරැකුම් නැත. සෙවුම් ප්‍රතිඵලවලින් ලග්න සුරැකින්න." | Navigate to search |
+| **Search: No search history** | "No search history yet." | "තවම සෙවුම් ඉතිහාසය නැත." | (No action) |
+| **Search: Partial query understanding** | "We understood {n} of {m} conditions. Results are based on the understood conditions." | "අපි කොන්දේසි {m} න් {n} ක් තේරුම් ගත්තෙමු. ප්‍රතිඵල තේරුම් ගත් කොන්දේසි මත පදනම් වේ." | Info banner (not blocking) |
+| **Search: Contradictory conditions** | "Your search conditions appear contradictory. No results found." | "ඔබේ සෙවුම් කොන්දේසි පරස්පර විරෝධී බව පෙනේ. ප්‍රතිඵල නැත." | Suggest simplifying query |
+| **Search: Career query disclaimer** | "These results are suggestions based on astrological principles and should not be considered as professional advice." | "මේවා ජ්‍යොතිෂ මූලධර්ම මත පදනම් වූ යෝජනා වන අතර වෘත්තීය උපදේශයක් ලෙස සැලකිය යුතු නැත." | Info banner below results |
 
 ### Privacy-Related Toast Extensions
 
@@ -450,6 +571,55 @@ Search → Results load →
 - **Form labels**: Every input has a visible or associated label
 - **Error announcements**: Errors announced via `aria-live="polite"`
 
+### Search-Specific Accessibility
+
+> Full spec: `specs/ux/20260727-2100-search-horoscope.md` §17
+
+| Element | ARIA |
+|---------|------|
+| Search input | `role="searchbox"`, `aria-label="Search horoscopes"` |
+| Results region | `role="region"`, `aria-label="Search results"`, `aria-live="polite"` |
+| Results count | "Found 42 horoscopes, showing 1 to 5" announced on load |
+| Result card | `role="article"`, `aria-label="{name} horoscope, {score}% match"` |
+| Collapse/expand | `aria-expanded="true/false"` on toggle button |
+| Config panel | `role="dialog"`, `aria-modal="true"`, `aria-label="Result configuration"` |
+| Config toggles | `role="checkbox"`, `aria-checked`, `aria-label="{section name}"` |
+| Bookmark toggle | `role="button"`, `aria-pressed="true/false"`, `aria-label="Bookmark {name}"` |
+| Score badge | `aria-label="Match score: 87 percent"` |
+| Pagination | `role="navigation"`, `aria-label="Search results pagination"`, `aria-current="page"` |
+| History panel | `role="dialog"`, `aria-label="Search history"` |
+| Saved searches panel | `role="dialog"`, `aria-label="Saved searches"` |
+| Bookmarks panel | `role="dialog"`, `aria-label="Bookmarks"` |
+| Empty state | `role="status"`, `aria-live="polite"` |
+| Error state | `role="alert"`, `aria-live="assertive"` |
+| Query understanding | `role="status"`, `aria-live="polite"` |
+
+**Keyboard shortcuts:**
+
+| Key | Action |
+|-----|--------|
+| `/` (forward slash) | Focus search input (global shortcut) |
+| `Tab` | Navigate through: search input → actions bar → config button → results → pagination |
+| `Enter` | Submit search, activate buttons, expand/collapse cards |
+| `Escape` | Close config panel, close history dropdown, close suggestions |
+| `Arrow keys` | Navigate within pagination, navigate suggestion list |
+| `Space` | Toggle checkboxes in config panel, bookmark toggle |
+
+**Focus management:**
+
+| Event | Focus Behavior |
+|-------|----------------|
+| Page load | Focus on search input |
+| Search submitted | Focus stays on search input; results announced via `aria-live` |
+| Config panel opens | Focus moves to first toggle in panel |
+| Config panel closes | Focus returns to ⚙️ button |
+| History panel opens | Focus moves to first history entry |
+| History entry selected | Panel closes, focus returns to search input (query prefilled) |
+| Card collapsed/expanded | Focus stays on collapse/expand button |
+| Bookmark toggled | Focus stays on bookmark button |
+| Page changed | Focus moves to results region top |
+| Error occurs | Focus moves to error banner |
+
 ---
 
 ## File Index
@@ -463,5 +633,6 @@ Search → Results load →
 | `specs/ux/20260719-1500-dasha-ux.md` | Dasha periods UX specification |
 | `specs/ux/20260720-0730-current-planetary-positions.md` | Current planetary positions overlay UX specification |
 | `specs/ux/20260727-1926-privacy-settings.md` | Horoscope privacy settings UX specification |
+| `specs/ux/20260727-2100-search-horoscope.md` | Search Horoscope (RAG-based) UX specification |
 | `src/components/PrivacyToggle.tsx` | PrivacyToggle component (isPublic + displayName toggles) |
 | `src/components/PrivacyBadge.tsx` | Privacy status badge (Public / Private / Name Hidden) |

@@ -12,7 +12,9 @@
   - Mark own horoscopes as public or private
   - Generate share links for private horoscopes
   - Download horoscopes as PDF/image
-  - Configure visible chart sections
+  - Configure visible chart sections on search result items
+  - Configure which sections (charts, calculations, dashas) appear vertically within each search result card
+  - Collapse/expand individual search result items to compact or full detail view
   - Use system in Sinhala or English
   - View all public locations
   - View own private locations
@@ -28,6 +30,22 @@
   - Toggle between birth and current planetary positions on the House chart
   - View current planetary positions overlaid on the House chart
   - Visually distinguish birth planets from current planets on charts
+  - Search horoscopes using natural language queries in Sinhala or English (RAG-based)
+  - Search by simple astrological phrases (ascendant, planetary condition, planet-in-house)
+  - Search by complex multi-condition queries in natural language
+  - Search by yoga-based queries (e.g., "පරිවර්තන යෝග තිබෙන")
+  - Search by career/life-domain queries (e.g., "රැකියාව ගුරු වෘත්තිය විය හැකි")
+  - View search results sorted by relevance score
+  - Paginate through search results
+  - Configure visible result sections (charts, calculations, strengths, aspects, etc.)
+  - Persist result configuration preferences per user account
+  - Save and name search queries for reuse
+  - View recent search history
+  - Bookmark individual search results for later reference
+  - Remove own bookmarks
+  - View own bookmarked horoscopes from a dedicated list
+  - Export search results (as CSV/JSON for off-platform analysis)
+  - Open horoscope detail from search result
 - **Authentication**: Google SSO (auto-assigned)
 
 ## 2. Super Admin
@@ -56,3 +74,14 @@
   - Geocode location name to Lat/Lon via external API for location suggestions
   - Calculate current planetary positions in real-time based on current date/time and ephemeris data
   - Serve current planetary positions as overlay data for the House chart
+  - Generate and maintain vector embeddings for horoscope search indexing
+  - Parse natural language search queries into structured astrological conditions (via LLM)
+  - Convert parsed queries to vector embeddings for similarity search (via Transformers.js)
+  - Execute vector similarity search against Qdrant embedding index using HNSW
+  - Merge vector similarity results with MongoDB structured filters
+  - Rank and score search results by semantic relevance
+  - Rebuild/re-index search embeddings when horoscope data is updated
+  - Remove search embeddings when horoscope is set to private
+  - Generate embeddings when horoscope is set to public
+  - Manage embedding lifecycle asynchronously (queue-based background processing)
+  - Log search queries for analytics and system monitoring
