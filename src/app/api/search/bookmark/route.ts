@@ -18,9 +18,7 @@ export async function GET() {
 
     await connectDB();
 
-    const bookmarks = await SearchBookmark.find({ "user.id": session.user.id })
-        .sort({ createdAt: -1 })
-        .lean();
+    const bookmarks = await SearchBookmark.find({ "user.id": session.user.id }).sort({ createdAt: -1 }).lean();
 
     const enrichedBookmarks = [];
 
@@ -38,11 +36,7 @@ export async function GET() {
         });
     }
 
-    logger.debug(
-        "found %d bookmarks for user=%s",
-        bookmarks.length,
-        session.user.id,
-    );
+    logger.debug("found %d bookmarks for user=%s", bookmarks.length, session.user.id);
 
     return NextResponse.json({ bookmarks: enrichedBookmarks, total: bookmarks.length });
 }
@@ -58,10 +52,7 @@ export async function POST(req: NextRequest) {
     const { horoscopeId, notes, queryContext } = body;
 
     if (!horoscopeId) {
-        return NextResponse.json(
-            { error: "horoscopeId is required" },
-            { status: 400 },
-        );
+        return NextResponse.json({ error: "horoscopeId is required" }, { status: 400 });
     }
 
     const bookmarkCount = await SearchBookmark.countDocuments({
@@ -69,15 +60,8 @@ export async function POST(req: NextRequest) {
     });
 
     if (bookmarkCount >= MAX_BOOKMARKS) {
-        logger.warn(
-            "max bookmarks reached for user=%s count=%d",
-            session.user.id,
-            bookmarkCount,
-        );
-        return NextResponse.json(
-            { error: `Maximum ${MAX_BOOKMARKS} bookmarks reached.` },
-            { status: 400 },
-        );
+        logger.warn("max bookmarks reached for user=%s count=%d", session.user.id, bookmarkCount);
+        return NextResponse.json({ error: `Maximum ${MAX_BOOKMARKS} bookmarks reached.` }, { status: 400 });
     }
 
     const existing = await SearchBookmark.findOne({
@@ -86,10 +70,7 @@ export async function POST(req: NextRequest) {
     });
 
     if (existing) {
-        return NextResponse.json(
-            { error: "Horoscope already bookmarked." },
-            { status: 409 },
-        );
+        return NextResponse.json({ error: "Horoscope already bookmarked." }, { status: 409 });
     }
 
     const bookmark = await SearchBookmark.create({
@@ -99,11 +80,7 @@ export async function POST(req: NextRequest) {
         queryContext: queryContext || "",
     });
 
-    logger.info(
-        "bookmark created horoscopeId=%s user=%s",
-        horoscopeId,
-        session.user.id,
-    );
+    logger.info("bookmark created horoscopeId=%s user=%s", horoscopeId, session.user.id);
 
     return NextResponse.json(bookmark, { status: 201 });
 }

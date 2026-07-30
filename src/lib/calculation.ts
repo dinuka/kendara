@@ -337,6 +337,11 @@ export function calculateHoroscope(
         const startSign = Math.floor(start / 30) + 1;
         const endSign = Math.floor(end / 30) + 1;
         const midSign = Math.floor(mid / 30) + 1;
+        // Rasi houses are whole-sign: house N is always the Nth sign from the
+        // ascendant, sequentially. Placidus cusp midpoints (midSign) can skip or
+        // repeat a sign for unequal houses, so they must not be used as the house's
+        // sign/lord — only as cusp-boundary display data (start/middle/endSign).
+        const houseSign = ((ascSign - 1 + i) % 12) + 1;
         return {
             houseNumber: i + 1,
             startDegree: +(start % 30).toFixed(4),
@@ -348,8 +353,8 @@ export function calculateHoroscope(
             endDegree: +(end % 30).toFixed(4),
             endSign,
             endLord: SIGN_LORD[endSign] || 1,
-            sign: midSign,
-            lord: SIGN_LORD[midSign] || 1,
+            sign: houseSign,
+            lord: SIGN_LORD[houseSign] || 1,
         };
     });
 

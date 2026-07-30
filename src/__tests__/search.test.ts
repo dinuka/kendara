@@ -35,9 +35,7 @@ describe("detectLanguage", () => {
 
 describe("generateAnonymousPlaceholder", () => {
     test("uses last 4 characters of UUID uppercased", () => {
-        const result = generateAnonymousPlaceholder(
-            "550e8400-e29b-41d4-a716-446655440000",
-        );
+        const result = generateAnonymousPlaceholder("550e8400-e29b-41d4-a716-446655440000");
         expect(result).toBe("Anonymous Horoscope #0000");
     });
 
@@ -195,11 +193,8 @@ describe("SavedFilter CRUD logic", () => {
             { name: "My Study", query: "මංගල දෝෂය", filterConfig: {} },
         ];
 
-        const publicFilters = savedFilters.filter(
-            (f) => f.name !== "__default__",
-        );
-        const defaultFilter =
-            savedFilters.find((f) => f.name === "__default__") || null;
+        const publicFilters = savedFilters.filter((f) => f.name !== "__default__");
+        const defaultFilter = savedFilters.find((f) => f.name === "__default__") || null;
 
         expect(publicFilters).toHaveLength(1);
         expect(publicFilters[0].name).toBe("My Study");
@@ -241,9 +236,7 @@ describe("SearchHistory dedup logic", () => {
         const now = new Date("2026-07-27T20:56:30Z");
 
         const recent = entries.filter(
-            (e) =>
-                e.query === newQuery &&
-                now.getTime() - e.createdAt.getTime() < DEDUP_WINDOW_MS,
+            (e) => e.query === newQuery && now.getTime() - e.createdAt.getTime() < DEDUP_WINDOW_MS,
         );
 
         expect(recent).toHaveLength(1);
@@ -263,9 +256,7 @@ describe("SearchHistory dedup logic", () => {
         const now = new Date("2026-07-27T20:56:00Z");
 
         const recent = entries.filter(
-            (e) =>
-                e.query === newQuery &&
-                now.getTime() - e.createdAt.getTime() < DEDUP_WINDOW_MS,
+            (e) => e.query === newQuery && now.getTime() - e.createdAt.getTime() < DEDUP_WINDOW_MS,
         );
 
         expect(recent).toHaveLength(0);
@@ -281,9 +272,7 @@ describe("SearchHistory dedup logic", () => {
         ];
 
         const recent = entries.filter(
-            (e) =>
-                e.query === "Aries ascendant" &&
-                Date.now() - e.createdAt.getTime() < DEDUP_WINDOW_MS,
+            (e) => e.query === "Aries ascendant" && Date.now() - e.createdAt.getTime() < DEDUP_WINDOW_MS,
         );
 
         expect(recent).toHaveLength(0);
@@ -296,16 +285,12 @@ describe("SearchHistory dedup logic", () => {
             createdAt: new Date(2026, 6, 27, 20, i),
         }));
 
-        const sortedByOldest = [...entries].sort(
-            (a, b) => a.createdAt.getTime() - b.createdAt.getTime(),
-        );
+        const sortedByOldest = [...entries].sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
 
         const totalAfterAdd = entries.length + 1;
         if (totalAfterAdd > maxEntries) {
             const toRemove = totalAfterAdd - maxEntries;
-            const oldestIds = sortedByOldest
-                .slice(0, toRemove)
-                .map((e) => e.id);
+            const oldestIds = sortedByOldest.slice(0, toRemove).map((e) => e.id);
             expect(oldestIds).toHaveLength(1);
             expect(oldestIds[0]).toBe("entry-0");
         }

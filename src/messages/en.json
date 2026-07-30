@@ -6,6 +6,9 @@
     "dashboard": {
         "welcome": "Welcome back, {name}!",
         "thisMonth": "This Month Added",
+        "bySign": "Horoscopes by Sign",
+        "byNakshatra": "Horoscopes by Nakshatra",
+        "noData": "No data yet",
         "recentHoroscopes": "Recent Horoscopes",
         "viewAll": "View All Horoscopes →"
     },
@@ -107,6 +110,9 @@
         "resetConfig": "Reset to defaults",
         "basicSearch": "e.g. මේෂ ලග්නය, ශනි උච්ච, ගුරු 3",
         "complexSearch": "e.g. මේෂ ලග්නයේ ශනි උච්චව ගුරු 3 භාවයේ",
+        "suggestions": {
+            "ariaLabel": "Search word suggestions"
+        },
         "card": {
             "ascSign": "Asc. Sign {sign}",
             "noAscendant": "No ascendant data",

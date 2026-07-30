@@ -116,13 +116,13 @@ function computeHighlights(
     const selected = houseByNumber[selectedHouse];
     if (!selected) return { houseTiers: new Map(), lordPlanet: null };
 
-    const lordPlanet = selected.middleLord;
+    const lordPlanet = selected.lord;
     const fifth = ((selectedHouse - 1 + 4) % 12) + 1;
     const ninth = ((selectedHouse - 1 + 8) % 12) + 1;
 
     const houseTiers = new Map<number, HighlightTier>();
     for (const h of houses) {
-        if (h.middleLord === lordPlanet) houseTiers.set(h.houseNumber, "lordHouse");
+        if (h.lord === lordPlanet) houseTiers.set(h.houseNumber, "lordHouse");
     }
     houseTiers.set(fifth, "trine");
     houseTiers.set(ninth, "trine");
@@ -337,7 +337,7 @@ export function BirthChart({ planets, houses, ascendant, showAscendantDegree = t
                                 </text>
                                 {renderPlanetRow((planetsByHouse[houseNum] || []).slice(0, 3), cx, cy - 6, 13)}
                                 {renderPlanetRow((planetsByHouse[houseNum] || []).slice(3, 6), cx, cy + 18, 13)}
-                                {renderSignGlyph(sign, isVertical ? cx : innerPos, isVertical ? innerPos : cy + 34, 24)}
+                                {renderSignGlyph(sign, isVertical ? cx : innerPos, isVertical ? innerPos : cy, 24)}
                             </>
                         ) : (
                             <>
@@ -388,13 +388,14 @@ export function BirthChart({ planets, houses, ascendant, showAscendantDegree = t
                 const bLabelX = adjacent2[0] + (adjacent2[0] === x ? 6 : -6);
                 const bLabelY = adjacent2[1] + (adjacent2[1] === y ? 16 : -8);
 
-                // Houses 2, 5, 6, 9 left-align their selected label at the triangle centroid
-                // (guaranteed inside the triangle) instead of centering it. House 5 instead pins
-                // to the same "6px from its own cell's left edge" rule used by the default
-                // (non-selected) number labels, since its centroid sits too close to the board
-                // border. House 11's sign name is long enough that left-aligning from its centroid
-                // runs past the board's right edge, so it right-aligns instead.
-                const LEFT_ALIGN_HOUSES = new Set([2, 5, 6, 9]);
+                // Houses 2, 3, 5, 6, 8, 9, 12 left-align their selected label at the triangle
+                // centroid (guaranteed inside the triangle) instead of centering it. Houses 3, 5, 8,
+                // 12 instead pin to the same "6px from its own cell's left edge" rule used by the
+                // default (non-selected) number labels, since their centroid sits too close to (or
+                // past) the board border for a long sign name. House 11's sign name is long enough
+                // that left-aligning from its centroid runs past the board's right edge, so it
+                // right-aligns instead.
+                const LEFT_ALIGN_HOUSES = new Set([2, 3, 5, 6, 8, 9, 12]);
                 const RIGHT_ALIGN_HOUSES = new Set([11]);
                 // Corner-cell triangles tuck planets into their two acute corners (the diagonal's
                 // endpoints) instead of stacking them above/below the icon.
@@ -403,8 +404,9 @@ export function BirthChart({ planets, houses, ascendant, showAscendantDegree = t
                 const bLeftAlignSelected = LEFT_ALIGN_HOUSES.has(houseB);
                 const aRightAlignSelected = RIGHT_ALIGN_HOUSES.has(houseA);
                 const bRightAlignSelected = RIGHT_ALIGN_HOUSES.has(houseB);
-                const aLeftAlignX = houseA === 5 ? x + 6 : aCenterX - 8;
-                const bLeftAlignX = houseB === 5 ? x + 6 : bCenterX - 8;
+                const CELL_EDGE_ALIGN_HOUSES = new Set([3, 5, 8, 12]);
+                const aLeftAlignX = CELL_EDGE_ALIGN_HOUSES.has(houseA) ? x + 6 : aCenterX - 8;
+                const bLeftAlignX = CELL_EDGE_ALIGN_HOUSES.has(houseB) ? x + 6 : bCenterX - 8;
 
                 const isSelectedA = selectedHouse === houseA;
                 const isSelectedB = selectedHouse === houseB;
@@ -449,13 +451,7 @@ export function BirthChart({ planets, houses, ascendant, showAscendantDegree = t
                                     >
                                         {houseA} {signA ? SIGN_SHORT_SI[signA] : ""}
                                     </text>
-                                    {(() => {
-                                        // Planets sit toward the outer corner (away from `far`), so
-                                        // they don't crowd the icon which moves toward `far`.
-                                        const px = aCenterX + (nearPt[0] - far[0]) * 0.18;
-                                        const py = aCenterY + (nearPt[1] - far[1]) * 0.18;
-                                        return renderPlanetsAroundIcon(houseA, px, py - 11, py + 11, 10, 2);
-                                    })()}
+                                    {renderPlanetsAroundIcon(houseA, aCenterX, aCenterY - 11, aCenterY + 11, 10, 2)}
                                     {(() => {
                                         const [ix, iy] = insetFromFarCorner(far, nearPt, adjacent1, 28);
                                         return renderSignGlyph(signA, ix, iy, 16);
@@ -519,11 +515,7 @@ export function BirthChart({ planets, houses, ascendant, showAscendantDegree = t
                                     >
                                         {houseB} {signB ? SIGN_SHORT_SI[signB] : ""}
                                     </text>
-                                    {(() => {
-                                        const px = bCenterX + (nearPt[0] - far[0]) * 0.18;
-                                        const py = bCenterY + (nearPt[1] - far[1]) * 0.18;
-                                        return renderPlanetsAroundIcon(houseB, px, py - 11, py + 11, 10, 2);
-                                    })()}
+                                    {renderPlanetsAroundIcon(houseB, bCenterX, bCenterY - 11, bCenterY + 11, 10, 2)}
                                     {(() => {
                                         const [ix, iy] = insetFromFarCorner(far, nearPt, adjacent2, 28);
                                         return renderSignGlyph(signB, ix, iy, 16);

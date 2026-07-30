@@ -4,7 +4,7 @@ import ConfirmDeleteModal from "@/components/ConfirmDeleteModal";
 import { useI18n } from "@/hooks/useI18n";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { formatDate } from "@/lib/date";
 import Link from "next/link";
@@ -23,6 +23,8 @@ interface Horoscope {
     owner: { id: string };
 }
 
+type SortableColumn = "name" | "birthDate" | "locationName" | "isPublic";
+
 export default function HoroscopesPage() {
     const { data: session, status } = useSession();
     const router = useRouter();
@@ -33,6 +35,8 @@ export default function HoroscopesPage() {
     const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
     const [deleteError, setDeleteError] = useState<string | null>(null);
     const [error, setError] = useState("");
+    const [sortColumn, setSortColumn] = useState<SortableColumn>("name");
+    const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
 
     useEffect(() => {
         if (status === "unauthenticated") {
@@ -49,6 +53,48 @@ export default function HoroscopesPage() {
             })
             .catch(() => setLoading(false));
     }, [status, router]);
+
+    const handleSort = (column: SortableColumn) => {
+        if (sortColumn === column) {
+            setSortDirection((d) => (d === "asc" ? "desc" : "asc"));
+        } else {
+            setSortColumn(column);
+            setSortDirection("asc");
+        }
+    };
+
+    const sortedHoroscopes = useMemo(() => {
+        const sorted = [...horoscopes];
+        sorted.sort((a, b) => {
+            let cmp = 0;
+            switch (sortColumn) {
+                case "name":
+                    cmp = a.name.localeCompare(b.name);
+                    break;
+                case "birthDate":
+                    cmp = new Date(a.birthDate).getTime() - new Date(b.birthDate).getTime();
+                    break;
+                case "locationName": {
+                    const locA = a.locationName || "";
+                    const locB = b.locationName || "";
+                    cmp = locA.localeCompare(locB);
+                    break;
+                }
+                case "isPublic":
+                    cmp = Number(a.isPublic) - Number(b.isPublic);
+                    break;
+            }
+            return sortDirection === "asc" ? cmp : -cmp;
+        });
+        return sorted;
+    }, [horoscopes, sortColumn, sortDirection]);
+
+    const SortIcon = ({ column }: { column: SortableColumn }) => {
+        if (sortColumn !== column) {
+            return <span className="ml-1 text-gray-300">↕</span>;
+        }
+        return <span className="ml-1 text-indigo-600">{sortDirection === "asc" ? "▲" : "▼"}</span>;
+    };
 
     if (status === "loading" || loading) {
         return <div className="text-center py-20 text-gray-500">{t("common.loading")}</div>;
@@ -132,21 +178,39 @@ export default function HoroscopesPage() {
                     <table className="w-full text-sm">
                         <thead className="bg-gray-50">
                             <tr>
-                                <th className="text-left px-4 py-2 font-medium text-gray-600">{t("horoscope.name")}</th>
-                                <th className="text-left px-4 py-2 font-medium text-gray-600">
+                                <th
+                                    className="text-left px-4 py-2 font-medium text-gray-600 cursor-pointer select-none hover:text-indigo-600 transition-colors"
+                                    onClick={() => handleSort("name")}
+                                >
+                                    {t("horoscope.name")}
+                                    <SortIcon column="name" />
+                                </th>
+                                <th
+                                    className="text-left px-4 py-2 font-medium text-gray-600 cursor-pointer select-none hover:text-indigo-600 transition-colors"
+                                    onClick={() => handleSort("birthDate")}
+                                >
                                     {t("horoscope.birthDate")}
+                                    <SortIcon column="birthDate" />
                                 </th>
-                                <th className="text-left px-4 py-2 font-medium text-gray-600">
+                                <th
+                                    className="text-left px-4 py-2 font-medium text-gray-600 cursor-pointer select-none hover:text-indigo-600 transition-colors"
+                                    onClick={() => handleSort("locationName")}
+                                >
                                     {t("horoscope.location")}
+                                    <SortIcon column="locationName" />
                                 </th>
-                                <th className="text-center px-4 py-2 font-medium text-gray-600">
+                                <th
+                                    className="text-center px-4 py-2 font-medium text-gray-600 cursor-pointer select-none hover:text-indigo-600 transition-colors"
+                                    onClick={() => handleSort("isPublic")}
+                                >
                                     {t("horoscope.public")}
+                                    <SortIcon column="isPublic" />
                                 </th>
                                 <th className="px-4 py-2" />
                             </tr>
                         </thead>
                         <tbody>
-                            {horoscopes.map((h) => (
+                            {sortedHoroscopes.map((h) => (
                                 <tr
                                     key={h._id}
                                     className="border-t hover:bg-gray-50 cursor-pointer"

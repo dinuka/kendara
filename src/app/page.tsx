@@ -1,6 +1,7 @@
 "use client";
 
 import ConfirmDeleteModal from "@/components/ConfirmDeleteModal";
+import HoroscopeDistributionWidget from "@/components/HoroscopeDistributionWidget";
 import PrivacyBadge from "@/components/PrivacyBadge";
 import { useI18n } from "@/hooks/useI18n";
 import { useSession } from "next-auth/react";
@@ -25,6 +26,31 @@ interface Horoscope {
     owner: { id: string };
 }
 
+interface DistributionItem {
+    id: number;
+    count: number;
+}
+
+interface HoroscopeStats {
+    bySign: DistributionItem[];
+    byNakshatra: DistributionItem[];
+}
+
+const SIGN_SYMBOLS: Record<number, string> = {
+    1: "♈",
+    2: "♉",
+    3: "♊",
+    4: "♋",
+    5: "♌",
+    6: "♍",
+    7: "♎",
+    8: "♏",
+    9: "♐",
+    10: "♑",
+    11: "♒",
+    12: "♓",
+};
+
 const RECENT_COUNT = 3;
 
 export default function DashboardPage() {
@@ -32,6 +58,7 @@ export default function DashboardPage() {
     const router = useRouter();
     const { t } = useI18n();
     const [horoscopes, setHoroscopes] = useState<Horoscope[]>([]);
+    const [stats, setStats] = useState<HoroscopeStats>({ bySign: [], byNakshatra: [] });
     const [loading, setLoading] = useState(true);
     const [deletingId, setDeletingId] = useState<string | null>(null);
     const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
@@ -52,6 +79,11 @@ export default function DashboardPage() {
                 setLoading(false);
             })
             .catch(() => setLoading(false));
+
+        fetch("/api/horoscope/stats")
+            .then((r) => r.json())
+            .then((data) => setStats({ bySign: data.bySign ?? [], byNakshatra: data.byNakshatra ?? [] }))
+            .catch(() => setStats({ bySign: [], byNakshatra: [] }));
     }, [status, router]);
 
     if (status === "loading" || loading) {
@@ -109,6 +141,22 @@ export default function DashboardPage() {
                     <div className="text-3xl font-bold text-indigo-600">{thisMonthCount}</div>
                     <div className="text-sm text-gray-500 mt-1">{t("dashboard.thisMonth")}</div>
                 </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+                <HoroscopeDistributionWidget
+                    title={t("dashboard.bySign")}
+                    emptyLabel={t("dashboard.noData")}
+                    items={stats.bySign}
+                    getLabel={(id) => t(`astrology.signNames.${id}`)}
+                    getSymbol={(id) => SIGN_SYMBOLS[id] ?? ""}
+                />
+                <HoroscopeDistributionWidget
+                    title={t("dashboard.byNakshatra")}
+                    emptyLabel={t("dashboard.noData")}
+                    items={stats.byNakshatra}
+                    getLabel={(id) => t(`astrology.nakshatraNames.${id}`)}
+                />
             </div>
 
             {error && (

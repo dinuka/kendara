@@ -10,25 +10,73 @@ import { PLANET_NAMES, PlanetaryStrength, ZODIAC_SIGN_NAMES } from "@/lib/astrol
 import { connectDB } from "@/lib/db";
 import logger from "@/lib/logger";
 import { getAnonymousPlaceholder } from "@/lib/privacy";
-import { detectLanguage, paginateResults } from "@/lib/search/utils";
-
-const SINHALA_EXALTATION = ["උච්ච", "උච්චව", "උච්චත්වය"];
-const ENGLISH_EXALTATION = ["exaltation", "exalted", "uchcha"];
-const SINHALA_DEBILITATION = ["නීච", "නීචව", "නීචත්වය"];
-const ENGLISH_DEBILITATION = ["debilitation", "debilitated", "neecha"];
-const SINHALA_YOGA = ["යෝග", "යෝගය", "යෝග තිබෙන"];
-const ENGLISH_YOGA = ["yoga", "yogas", "yogic"];
+import { generateEmbedding } from "@/lib/search/embedding";
+import { ensureCollection, searchPoints } from "@/lib/search/qdrant";
+import { detectLanguage, findNakshatraMatch, hasNakshatraTriggerWord, paginateResults } from "@/lib/search/utils";
+import {
+    ASCENDANT_WORDS,
+    DOSHA_WORDS,
+    ENGLISH_DEBILITATION,
+    ENGLISH_EXALTATION,
+    ENGLISH_YOGA,
+    SINHALA_DEBILITATION,
+    SINHALA_EXALTATION,
+    SINHALA_YOGA,
+} from "@/lib/search/vocabulary";
 
 type ExactMatch =
     | { type: "ascendant"; sign: number }
     | { type: "planet_in_house"; planet: number; house: number }
+    | { type: "nakshatra"; nakshatra: number }
+    | { type: "planet_strength"; planet: number; strength: PlanetaryStrength }
     | null;
+
+const getStrengthMatch = (query: string): PlanetaryStrength | null => {
+    const q = query.toLowerCase();
+
+    if (SINHALA_EXALTATION.some((w) => q.includes(w)) || ENGLISH_EXALTATION.some((w) => q.includes(w))) {
+        return PlanetaryStrength.UCHCHA;
+    }
+
+    if (SINHALA_DEBILITATION.some((w) => q.includes(w)) || ENGLISH_DEBILITATION.some((w) => q.includes(w))) {
+        return PlanetaryStrength.NEECHA;
+    }
+
+    return null;
+};
+
+const getPlanetMatches = (query: string): number[] => {
+    const q = query.toLowerCase();
+    const planets = new Set<number>();
+
+    for (const [word, planetValue] of Object.entries(PLANET_NAMES)) {
+        if (q.includes(word.toLowerCase())) {
+            planets.add(planetValue);
+        }
+    }
+
+    return [...planets];
+};
 
 const getExactMatch = (query: string): ExactMatch => {
     const q = query.toLowerCase();
-    const ascendantWords = ["ලග්නයේ", "ලග්නය", "ලග්න", "ascendant", "lagna"];
 
-    const hasAscendantWord = ascendantWords.some((w) => q.includes(w));
+    if (hasNakshatraTriggerWord(query)) {
+        const nakshatraValue = findNakshatraMatch(query);
+        if (nakshatraValue !== null) {
+            return { type: "nakshatra", nakshatra: nakshatraValue };
+        }
+    }
+
+    const strengthMatch = getStrengthMatch(query);
+    if (strengthMatch !== null) {
+        const planetMatches = getPlanetMatches(query);
+        if (planetMatches.length === 1) {
+            return { type: "planet_strength", planet: planetMatches[0], strength: strengthMatch };
+        }
+    }
+
+    const hasAscendantWord = ASCENDANT_WORDS.some((w) => q.includes(w));
 
     if (hasAscendantWord) {
         for (const [word, signValue] of Object.entries(ZODIAC_SIGN_NAMES)) {
@@ -46,9 +94,7 @@ const getExactMatch = (query: string): ExactMatch => {
 
     for (const [word, planetValue] of Object.entries(PLANET_NAMES)) {
         if (q.includes(word.toLowerCase())) {
-            const numMatch = q.match(
-                new RegExp(`${word.toLowerCase()}\\s+(\\d+)`),
-            );
+            const numMatch = q.match(new RegExp(`${word.toLowerCase()}\\s+(\\d+)`));
             if (numMatch) {
                 const house = parseInt(numMatch[1], 10);
                 if (house >= 1 && house <= 12) {
@@ -65,6 +111,13 @@ const getAstroKeywords = (query: string): string[] => {
     const q = query.toLowerCase();
     const keywords: string[] = [];
 
+    if (hasNakshatraTriggerWord(query)) {
+        const nakshatraValue = findNakshatraMatch(query);
+        if (nakshatraValue !== null) {
+            keywords.push(`nakshatra:${nakshatraValue}`);
+        }
+    }
+
     for (const [word] of Object.entries(ZODIAC_SIGN_NAMES)) {
         if (q.includes(word.toLowerCase())) {
             keywords.push(`sign:${word}`);
@@ -77,31 +130,17 @@ const getAstroKeywords = (query: string): string[] => {
         }
     }
 
-    for (const w of SINHALA_EXALTATION) {
-        if (q.includes(w)) {
-            keywords.push("strength:exaltation");
-            break;
-        }
-    }
-
-    for (const w of ENGLISH_EXALTATION) {
-        if (q.includes(w)) {
-            keywords.push("strength:exaltation");
-            break;
-        }
-    }
-
-    for (const w of SINHALA_DEBILITATION) {
-        if (q.includes(w)) {
-            keywords.push("strength:debilitation");
-            break;
-        }
-    }
-
-    for (const w of ENGLISH_DEBILITATION) {
-        if (q.includes(w)) {
-            keywords.push("strength:debilitation");
-            break;
+    const strengthMatch = getStrengthMatch(query);
+    if (strengthMatch !== null) {
+        const strengthLabel = strengthMatch === PlanetaryStrength.UCHCHA ? "exaltation" : "debilitation";
+        const planetMatches = getPlanetMatches(query);
+        if (planetMatches.length > 0) {
+            for (const planetValue of planetMatches) {
+                const planetWord = Object.entries(PLANET_NAMES).find(([, v]) => v === planetValue)?.[0];
+                keywords.push(`strength:${strengthLabel}:${planetWord}`);
+            }
+        } else {
+            keywords.push(`strength:${strengthLabel}`);
         }
     }
 
@@ -119,16 +158,14 @@ const getAstroKeywords = (query: string): string[] => {
         }
     }
 
-    const ascendantWords = ["ලග්නයේ", "ලග්නය", "ලග්න", "ascendant", "lagna"];
-    for (const w of ascendantWords) {
+    for (const w of ASCENDANT_WORDS) {
         if (q.includes(w)) {
             keywords.push("ascendant");
             break;
         }
     }
 
-    const doshaWords = ["දෝෂය", "දෝෂ", "dosha", "doshas", "දෝෂ"];
-    for (const w of doshaWords) {
+    for (const w of DOSHA_WORDS) {
         if (q.includes(w)) {
             keywords.push("dosha");
             break;
@@ -147,6 +184,25 @@ const scoreHoroscope = (
     const q = query.toLowerCase();
     const matchedConditions: string[] = [];
 
+    if (hasNakshatraTriggerWord(query)) {
+        const nakshatraValue = findNakshatraMatch(query);
+        if (nakshatraValue !== null && calculatedDetails?.nakshatra) {
+            const nakshatra = calculatedDetails.nakshatra as Record<string, unknown>;
+            const moonNakshatra = nakshatra.moonNakshatra as Record<string, unknown> | undefined;
+            const ascendantNakshatra = nakshatra.ascendantNakshatra as Record<string, unknown> | undefined;
+
+            if (moonNakshatra?.id === nakshatraValue) {
+                score += 1.0;
+                matchedConditions.push(`moon_nakshatra=${nakshatraValue}`);
+            }
+
+            if (ascendantNakshatra?.id === nakshatraValue) {
+                score += 0.5;
+                matchedConditions.push(`ascendant_nakshatra=${nakshatraValue}`);
+            }
+        }
+    }
+
     for (const [word, signValue] of Object.entries(ZODIAC_SIGN_NAMES)) {
         if (q.includes(word.toLowerCase())) {
             if (calculatedDetails?.ascendant) {
@@ -162,9 +218,7 @@ const scoreHoroscope = (
                 for (const p of planets) {
                     if (p.sign === signValue) {
                         score += 0.3;
-                        matchedConditions.push(
-                            `planet_in_sign=${p.name}_${word}`,
-                        );
+                        matchedConditions.push(`planet_in_sign=${p.name}_${word}`);
                     }
                 }
             }
@@ -179,22 +233,20 @@ const scoreHoroscope = (
                     if (p.name === planetValue) {
                         score += 0.3;
 
-                        const signName =
-                            Object.entries(ZODIAC_SIGN_NAMES).find(
-                                ([, v]) => v === p.sign,
-                            )?.[0] || p.sign;
-                        matchedConditions.push(
-                            `${word}_in_sign=${signName}_house=${p.house}`,
-                        );
+                        const signName = Object.entries(ZODIAC_SIGN_NAMES).find(([, v]) => v === p.sign)?.[0] || p.sign;
+                        matchedConditions.push(`${word}_in_sign=${signName}_house=${p.house}`);
                     }
                 }
             }
         }
     }
 
+    const namedPlanets = getPlanetMatches(query);
+    const matchesNamedPlanet = (planetValue: unknown): boolean =>
+        namedPlanets.length === 0 || namedPlanets.includes(planetValue as number);
+
     const hasExaltation =
-        SINHALA_EXALTATION.some((w) => q.includes(w)) ||
-        ENGLISH_EXALTATION.some((w) => q.includes(w));
+        SINHALA_EXALTATION.some((w) => q.includes(w)) || ENGLISH_EXALTATION.some((w) => q.includes(w));
 
     if (hasExaltation) {
         if (calculatedDetails?.planets) {
@@ -202,16 +254,12 @@ const scoreHoroscope = (
             let found = false;
             for (const p of planets) {
                 if (
-                    p.strength === PlanetaryStrength.UCHCHA ||
-                    p.strength === "Uchcha" ||
-                    p.strength === 1
+                    (p.strength === PlanetaryStrength.UCHCHA || p.strength === "Uchcha" || p.strength === 1) &&
+                    matchesNamedPlanet(p.name)
                 ) {
                     score += 0.5;
                     found = true;
-                    const planetName =
-                        Object.entries(PLANET_NAMES).find(
-                            ([, v]) => v === p.name,
-                        )?.[0] || p.name;
+                    const planetName = Object.entries(PLANET_NAMES).find(([, v]) => v === p.name)?.[0] || p.name;
                     matchedConditions.push(`${planetName}=Exaltation`);
                 }
             }
@@ -220,32 +268,25 @@ const scoreHoroscope = (
     }
 
     const hasDebilitation =
-        SINHALA_DEBILITATION.some((w) => q.includes(w)) ||
-        ENGLISH_DEBILITATION.some((w) => q.includes(w));
+        SINHALA_DEBILITATION.some((w) => q.includes(w)) || ENGLISH_DEBILITATION.some((w) => q.includes(w));
 
     if (hasDebilitation) {
         if (calculatedDetails?.planets) {
             const planets = calculatedDetails.planets as Array<Record<string, unknown>>;
             for (const p of planets) {
                 if (
-                    p.strength === PlanetaryStrength.NEECHA ||
-                    p.strength === "Neecha" ||
-                    p.strength === -1
+                    (p.strength === PlanetaryStrength.NEECHA || p.strength === "Neecha" || p.strength === -1) &&
+                    matchesNamedPlanet(p.name)
                 ) {
                     score += 0.5;
-                    const planetName =
-                        Object.entries(PLANET_NAMES).find(
-                            ([, v]) => v === p.name,
-                        )?.[0] || p.name;
+                    const planetName = Object.entries(PLANET_NAMES).find(([, v]) => v === p.name)?.[0] || p.name;
                     matchedConditions.push(`${planetName}=Debilitation`);
                 }
             }
         }
     }
 
-    const hasYoga =
-        SINHALA_YOGA.some((w) => q.includes(w)) ||
-        ENGLISH_YOGA.some((w) => q.includes(w));
+    const hasYoga = SINHALA_YOGA.some((w) => q.includes(w)) || ENGLISH_YOGA.some((w) => q.includes(w));
 
     if (hasYoga) {
         if (calculatedDetails?.yogas) {
@@ -257,10 +298,7 @@ const scoreHoroscope = (
         }
     }
 
-    const hasDosha =
-        q.includes("දෝෂ") ||
-        q.includes("dosha") ||
-        q.includes("මංගල");
+    const hasDosha = q.includes("දෝෂ") || q.includes("dosha") || q.includes("මංගල");
 
     if (hasDosha) {
         if (calculatedDetails?.doshas) {
@@ -281,17 +319,13 @@ const scoreHoroscope = (
     if (houseMatch) {
         const houseNum = parseInt(houseMatch[1], 10);
         if (houseNum >= 1 && houseNum <= 12) {
-            const planetMatch = Object.entries(PLANET_NAMES).find(
-                ([word]) => q.includes(word.toLowerCase()),
-            );
+            const planetMatch = Object.entries(PLANET_NAMES).find(([word]) => q.includes(word.toLowerCase()));
             if (planetMatch && calculatedDetails?.planets) {
                 const planets = calculatedDetails.planets as Array<Record<string, unknown>>;
                 for (const p of planets) {
                     if (p.name === planetMatch[1] && p.house === houseNum) {
                         score += 0.6;
-                        matchedConditions.push(
-                            `${planetMatch[0]}_in_house=${houseNum}`,
-                        );
+                        matchedConditions.push(`${planetMatch[0]}_in_house=${houseNum}`);
                     }
                 }
             }
@@ -312,73 +346,121 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { query } = body;
     const page = Math.max(1, parseInt(body.page || "1", 10) || 1);
-    const pageSize = Math.min(
-        Math.max(1, parseInt(body.pageSize || "5", 10) || 5),
-        20,
-    );
+    const pageSize = Math.min(Math.max(1, parseInt(body.pageSize || "5", 10) || 5), 20);
 
     if (!query || typeof query !== "string") {
         return NextResponse.json({ error: "Query is required" }, { status: 400 });
     }
 
     if (query.length > 500) {
-        return NextResponse.json(
-            { error: "Query exceeds maximum length of 500 characters." },
-            { status: 400 },
-        );
+        return NextResponse.json({ error: "Query exceeds maximum length of 500 characters." }, { status: 400 });
     }
 
     logger.info("search query: %s (page=%d, pageSize=%d)", query, page, pageSize);
 
     const detectedLanguage = detectLanguage(query);
+    const keywords = getAstroKeywords(query);
+    const exactMatch = getExactMatch(query);
+
+    const userId = session.user.id;
+    const userRole = session.user.role;
 
     const horoscopes = await Horoscope.find({
-        $or: [{ "owner.id": session.user.id }, { isPublic: true }],
+        $or: [{ "owner.id": userId }, { isPublic: true }],
     }).lean();
 
     logger.debug("searching through %d horoscopes", horoscopes.length);
 
-    const keywords = getAstroKeywords(query);
-    const exactMatch = getExactMatch(query);
+    const horoscopeIdToDoc = new Map(horoscopes.map((h) => [h._id.toString(), h]));
+
+    let vectorScores: Map<string, number> = new Map();
+    let vectorSearchUsed = false;
+
+    const queryEmbedding = await generateEmbedding(query);
+    if (queryEmbedding) {
+        const collectionReady = await ensureCollection();
+        if (collectionReady) {
+            const qdrantResults = await searchPoints(queryEmbedding, userId, 100);
+            if (qdrantResults.length > 0) {
+                vectorSearchUsed = true;
+                for (const r of qdrantResults) {
+                    const existing = vectorScores.get(r.horoscopeId) ?? 0;
+                    if (r.score > existing) {
+                        vectorScores.set(r.horoscopeId, r.score);
+                    }
+                }
+            }
+        }
+    }
 
     const scoredResults = [];
 
     for (const h of horoscopes) {
-        const calculatedDetails = await CalculatedDetails.findOne({
-            "horoscope.id": h._id.toString(),
-        }).lean();
+        const hId = h._id.toString();
 
         if (exactMatch?.type === "ascendant") {
+            const calculatedDetails = await CalculatedDetails.findOne({
+                "horoscope.id": hId,
+            }).lean();
             const asc = calculatedDetails?.ascendant as Record<string, unknown> | undefined;
             if (!asc || asc.sign !== exactMatch.sign) continue;
         }
 
         if (exactMatch?.type === "planet_in_house") {
+            const calculatedDetails = await CalculatedDetails.findOne({
+                "horoscope.id": hId,
+            }).lean();
             const planets = calculatedDetails?.planets as Array<Record<string, unknown>> | undefined;
             if (!planets) continue;
-            const matched = planets.some(
-                (p) => p.name === exactMatch.planet && p.house === exactMatch.house,
-            );
+            const matched = planets.some((p) => p.name === exactMatch.planet && p.house === exactMatch.house);
             if (!matched) continue;
         }
 
-        const { score, matchedConditions } = scoreHoroscope(
+        if (exactMatch?.type === "nakshatra") {
+            const calculatedDetails = await CalculatedDetails.findOne({
+                "horoscope.id": hId,
+            }).lean();
+            const nakshatra = calculatedDetails?.nakshatra as Record<string, unknown> | undefined;
+            const moonNakshatra = nakshatra?.moonNakshatra as Record<string, unknown> | undefined;
+            if (!moonNakshatra || moonNakshatra.id !== exactMatch.nakshatra) continue;
+        }
+
+        if (exactMatch?.type === "planet_strength") {
+            const calculatedDetails = await CalculatedDetails.findOne({
+                "horoscope.id": hId,
+            }).lean();
+            const planets = calculatedDetails?.planets as Array<Record<string, unknown>> | undefined;
+            if (!planets) continue;
+            const matched = planets.some((p) => p.name === exactMatch.planet && p.strength === exactMatch.strength);
+            if (!matched) continue;
+        }
+
+        const calculatedDetails = await CalculatedDetails.findOne({
+            "horoscope.id": hId,
+        }).lean();
+
+        const { score: keywordScore, matchedConditions } = scoreHoroscope(
             h as unknown as Record<string, unknown>,
             query,
             calculatedDetails as unknown as Record<string, unknown> | null,
         );
 
-        if (score <= 0) continue;
+        if (keywordScore <= 0 && !vectorScores.has(hId)) continue;
+
+        const vectorScore = vectorScores.get(hId) ?? 0;
+
+        const combinedScore = vectorSearchUsed
+            ? +(0.7 * vectorScore + 0.3 * Math.min(keywordScore / 4.0, 1.0)).toFixed(3)
+            : +keywordScore.toFixed(2);
+
+        if (combinedScore <= 0.01 && !vectorSearchUsed) continue;
 
         const charts = await Chart.find({
-            "horoscope.id": h._id.toString(),
+            "horoscope.id": hId,
         }).lean();
 
-        const isOwner = h.owner.id === session?.user?.id;
-        const name =
-            isOwner || h.displayName
-                ? h.name
-                : getAnonymousPlaceholder(h._id.toString());
+        const isOwner = h.owner.id === userId;
+        const name = isOwner || h.displayName ? h.name : getAnonymousPlaceholder(hId);
 
         scoredResults.push({
             horoscope: {
@@ -393,7 +475,9 @@ export async function POST(req: NextRequest) {
                     {} as Record<string, unknown>,
                 ),
             },
-            score,
+            score: combinedScore,
+            vectorScore: vectorSearchUsed ? +vectorScore.toFixed(3) : undefined,
+            keywordScore: keywordScore > 0 ? +keywordScore.toFixed(2) : undefined,
             matchedConditions,
         });
     }
@@ -402,10 +486,11 @@ export async function POST(req: NextRequest) {
     const paginated = paginateResults(scoredResults, page, pageSize);
 
     logger.info(
-        "search returned %d results (showing %d) for query: %s",
+        "search returned %d results (showing %d) for query: %s (vectorSearch=%s)",
         paginated.total,
         paginated.results.length,
         query,
+        vectorSearchUsed,
     );
 
     return NextResponse.json({
@@ -420,6 +505,7 @@ export async function POST(req: NextRequest) {
             language: detectedLanguage,
             understoodAll: true,
             exactMatch,
+            vectorSearchUsed,
         },
     });
 }

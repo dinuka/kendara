@@ -34,6 +34,23 @@ describe("calculateHoroscope", () => {
         });
     });
 
+    test("house signs are sequential whole-sign from the ascendant (no skipped or repeated signs)", () => {
+        const data = {
+            ...baseData,
+            birthDate: new Date("2021-11-12"),
+            birthTime: "10:30",
+            location: "Hospital - Kuliyapitiya",
+            latitude: 7.4697,
+            longitude: 80.0411,
+        };
+        const result = calculateHoroscope(data);
+        const ascSign = result.ascendant.sign;
+        result.houses.forEach((house, i) => {
+            const expectedSign = ((ascSign - 1 + i) % 12) + 1;
+            expect(house.sign).toBe(expectedSign);
+        });
+    });
+
     test("calculates all 9 planets", () => {
         const result = calculateHoroscope(baseData);
         expect(result.planets).toHaveLength(9);

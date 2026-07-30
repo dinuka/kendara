@@ -6,6 +6,9 @@
     "dashboard": {
         "welcome": "ආයුබෝවන්, {name}!",
         "thisMonth": "මෙම මාසයේ එකතු කළ",
+        "bySign": "රාශිය අනුව කේන්දර",
+        "byNakshatra": "නැකත අනුව කේන්දර",
+        "noData": "දත්ත නොමැත",
         "recentHoroscopes": "මෑත කේන්දර",
         "viewAll": "සියලුම කේන්දර බලන්න →"
     },
@@ -107,6 +110,9 @@
         "resetConfig": "පෙරනිමියට යළි සකසන්න",
         "basicSearch": "උදා: මේෂ ලග්නය, ශනි උච්ච, ගුරු 3",
         "complexSearch": "උදා: මේෂ ලග්නයේ ශනි උච්චව ගුරු 3 භාවයේ",
+        "suggestions": {
+            "ariaLabel": "සෙවුම් වචන යෝජනා"
+        },
         "card": {
             "ascSign": "ලග්නය {sign}",
             "noAscendant": "ලග්න දත්ත නොමැත",

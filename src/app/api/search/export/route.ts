@@ -70,10 +70,7 @@ export async function GET(req: NextRequest) {
 
     for (const h of horoscopes) {
         const isOwner = h.owner.id === session.user.id;
-        const name =
-            isOwner || h.displayName
-                ? h.name
-                : getAnonymousPlaceholder(h._id.toString());
+        const name = isOwner || h.displayName ? h.name : getAnonymousPlaceholder(h._id.toString());
 
         const calculatedDetails = await CalculatedDetails.findOne({
             "horoscope.id": h._id.toString(),
@@ -104,11 +101,7 @@ export async function GET(req: NextRequest) {
     const pageResults = results.slice(start, start + pageSize);
 
     if (format === "json") {
-        logger.info(
-            "exported %d results as JSON for user=%s",
-            pageResults.length,
-            session.user.id,
-        );
+        logger.info("exported %d results as JSON for user=%s", pageResults.length, session.user.id);
 
         return NextResponse.json({
             results: pageResults,
@@ -137,38 +130,22 @@ export async function GET(req: NextRequest) {
         const h = r.horoscope;
         const cd = h.calculatedDetails as Record<string, unknown> | null;
 
-        const ascendantSign = cd?.ascendant
-            ? String((cd.ascendant as Record<string, unknown>).sign || "")
-            : "";
-        const ascendantDegree = cd?.ascendant
-            ? String((cd.ascendant as Record<string, unknown>).degree || "")
-            : "";
+        const ascendantSign = cd?.ascendant ? String((cd.ascendant as Record<string, unknown>).sign || "") : "";
+        const ascendantDegree = cd?.ascendant ? String((cd.ascendant as Record<string, unknown>).degree || "") : "";
 
         const planetPositions = cd?.planets
             ? (cd.planets as Array<Record<string, unknown>>)
                   .map((p: Record<string, unknown>) => {
-                      const planetName =
-                          Object.entries(PLANET_NAMES).find(
-                              ([, v]) => v === p.name,
-                          )?.[0] || p.name;
-                      const signName =
-                          Object.entries(ZODIAC_SIGN_NAMES).find(
-                              ([, v]) => v === p.sign,
-                          )?.[0] || p.sign;
+                      const planetName = Object.entries(PLANET_NAMES).find(([, v]) => v === p.name)?.[0] || p.name;
+                      const signName = Object.entries(ZODIAC_SIGN_NAMES).find(([, v]) => v === p.sign)?.[0] || p.sign;
                       return `${planetName} in ${signName} House ${p.house}`;
                   })
                   .join("; ")
             : "";
 
-        const nakshatra = cd?.nakshatra
-            ? JSON.stringify(cd.nakshatra)
-            : "";
+        const nakshatra = cd?.nakshatra ? JSON.stringify(cd.nakshatra) : "";
 
-        const yogas = cd?.yogas
-            ? (cd.yogas as Array<Record<string, unknown>>)
-                  .map((y) => y.name)
-                  .join("; ")
-            : "";
+        const yogas = cd?.yogas ? (cd.yogas as Array<Record<string, unknown>>).map((y) => y.name).join("; ") : "";
 
         const doshas = cd?.doshas
             ? (cd.doshas as Record<string, unknown>).doshas
@@ -195,11 +172,7 @@ export async function GET(req: NextRequest) {
 
     const csvContent = csvRows.join("\n");
 
-    logger.info(
-        "exported %d results as CSV for user=%s",
-        pageResults.length,
-        session.user.id,
-    );
+    logger.info("exported %d results as CSV for user=%s", pageResults.length, session.user.id);
 
     return new NextResponse(csvContent, {
         headers: {

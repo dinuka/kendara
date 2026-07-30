@@ -29,11 +29,7 @@ const SearchBookmarkSchema = new Schema<ISearchBookmark>({
 });
 
 SearchBookmarkSchema.index({ "user.id": 1, createdAt: -1 });
-SearchBookmarkSchema.index(
-    { "user.id": 1, "horoscope.id": 1 },
-    { unique: true },
-);
+SearchBookmarkSchema.index({ "user.id": 1, "horoscope.id": 1 }, { unique: true });
 
 export const SearchBookmark: Model<ISearchBookmark> =
-    mongoose.models.SearchBookmark ||
-    mongoose.model<ISearchBookmark>("SearchBookmark", SearchBookmarkSchema);
+    mongoose.models.SearchBookmark || mongoose.model<ISearchBookmark>("SearchBookmark", SearchBookmarkSchema);

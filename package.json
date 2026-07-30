@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "eslint",
     "test": "jest",
-    "format": "prettier --write \"src/**/*.{ts,tsx,css,json}\""
+    "format": "prettier --write \"src/**/*.{ts,tsx,css,json}\"",
+    "recalculate-horoscopes": "ts-node --transpile-only -P scripts/tsconfig.scripts.json -r tsconfig-paths/register scripts/recalculate-horoscopes.ts"
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
@@ -42,6 +43,8 @@
     "prettier": "^3.9.5",
     "tailwindcss": "^4",
     "ts-jest": "^29.4.11",
+    "ts-node": "^10.9.2",
+    "tsconfig-paths": "^4.2.0",
     "typescript": "5.8"
   }
 }

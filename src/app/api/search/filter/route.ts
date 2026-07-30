@@ -17,9 +17,7 @@ export async function GET() {
 
     await connectDB();
 
-    const filters = await SavedFilter.find({ "user.id": session.user.id })
-        .sort({ lastRunAt: -1 })
-        .lean();
+    const filters = await SavedFilter.find({ "user.id": session.user.id }).sort({ lastRunAt: -1 }).lean();
 
     const publicFilters = filters.filter((f) => f.name !== "__default__");
     const defaultFilter = filters.find((f) => f.name === "__default__") || null;
@@ -54,11 +52,7 @@ export async function POST(req: NextRequest) {
         });
 
         if (count >= MAX_SAVED_FILTERS) {
-            logger.warn(
-                "max saved filters reached for user=%s count=%d",
-                session.user.id,
-                count,
-            );
+            logger.warn("max saved filters reached for user=%s count=%d", session.user.id, count);
             return NextResponse.json(
                 { error: `Maximum ${MAX_SAVED_FILTERS} saved searches reached.` },
                 { status: 400 },
@@ -71,11 +65,7 @@ export async function POST(req: NextRequest) {
         });
 
         if (existing) {
-            logger.info(
-                "overwriting saved filter name=%s for user=%s",
-                name,
-                session.user.id,
-            );
+            logger.info("overwriting saved filter name=%s for user=%s", name, session.user.id);
             existing.query = query || "";
             existing.filterConfig = filterConfig || {};
             existing.lastRunAt = null;
@@ -95,11 +85,7 @@ export async function POST(req: NextRequest) {
         resultCount: 0,
     });
 
-    logger.info(
-        "saved filter created name=%s for user=%s",
-        name,
-        session.user.id,
-    );
+    logger.info("saved filter created name=%s for user=%s", name, session.user.id);
 
     return NextResponse.json(savedFilter, { status: 201 });
 }

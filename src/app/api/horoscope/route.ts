@@ -13,6 +13,7 @@ import { generateChartSvg } from "@/lib/chartRenderer";
 import { ALL_CHART_TYPES } from "@/lib/chartTypes";
 import { connectDB } from "@/lib/db";
 import logger from "@/lib/logger";
+import { indexHoroscope } from "@/lib/search/indexer";
 
 export async function GET(req: NextRequest) {
     logger.info("fetching horoscopes");
@@ -95,6 +96,8 @@ export async function POST(req: NextRequest) {
     });
 
     await Chart.insertMany(chartDocs);
+
+    indexHoroscope(horoscope.id);
     logger.info("horoscope creation complete: id=%s", horoscope.id);
 
     return NextResponse.json(horoscope, { status: 201 });

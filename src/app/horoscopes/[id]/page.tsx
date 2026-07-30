@@ -110,7 +110,7 @@ export default function HoroscopeDetailPage() {
     const [privacyError, setPrivacyError] = useState<string | null>(null);
     const [isPublicState, setIsPublicState] = useState(false);
     const [displayNameState, setDisplayNameState] = useState(true);
-    const [toast, setToast] = useState<{ message: string; type: 'success' | 'info' | 'error' } | null>(null);
+    const [toast, setToast] = useState<{ message: string; type: "success" | "info" | "error" } | null>(null);
 
     const debounceRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -405,9 +405,11 @@ export default function HoroscopeDetailPage() {
             {toast && (
                 <div
                     className={`fixed top-4 right-4 z-50 px-4 py-3 rounded-lg shadow-lg text-sm transition-all ${
-                        toast.type === 'success' ? 'bg-green-600 text-white' :
-                        toast.type === 'info' ? 'bg-indigo-600 text-white' :
-                        'bg-red-600 text-white'
+                        toast.type === "success"
+                            ? "bg-green-600 text-white"
+                            : toast.type === "info"
+                              ? "bg-indigo-600 text-white"
+                              : "bg-red-600 text-white"
                     }`}
                 >
                     {toast.message}
@@ -461,8 +463,8 @@ export default function HoroscopeDetailPage() {
                                 title={t("horoscope.privacy.title")}
                                 className={`w-8 h-8 flex items-center justify-center border rounded transition-colors ${
                                     privacyPanelOpen
-                                        ? 'bg-indigo-100 text-indigo-600 border-indigo-200'
-                                        : 'hover:bg-gray-50 text-gray-600'
+                                        ? "bg-indigo-100 text-indigo-600 border-indigo-200"
+                                        : "hover:bg-gray-50 text-gray-600"
                                 }`}
                             >
                                 <svg
@@ -771,6 +773,7 @@ export default function HoroscopeDetailPage() {
                                         <th className="py-1 pr-3">
                                             {t("astrology.sign")} ({t("astrology.degree")})
                                         </th>
+                                        <th className="py-1 pr-3">{t("astrology.strength")}</th>
                                         <th className="py-1 pr-3">{t("astrology.house")}</th>
                                         <th className="py-1 pr-3">
                                             {t("astrology.nakshatra")} ({t("astrology.pada")})
@@ -843,6 +846,9 @@ export default function HoroscopeDetailPage() {
                                                 </td>
                                                 <td className="py-1 pr-3">
                                                     {getSignName(p.sign)} ({formatDegree(p.degree)})
+                                                </td>
+                                                <td className="py-1 pr-3">
+                                                    {t(`astrology.${STRENGTH_TRANSLATION_KEYS[p.strength]}`)}
                                                 </td>
                                                 <td className="py-1 pr-3">{p.house}</td>
                                                 <td className="py-1 pr-3 text-gray-600">

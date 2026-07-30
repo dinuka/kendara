@@ -95,11 +95,7 @@ export async function DELETE() {
 
     const result = await SearchHistory.deleteMany({ "user.id": session.user.id });
 
-    logger.info(
-        "cleared %d history entries for user=%s",
-        result.deletedCount,
-        session.user.id,
-    );
+    logger.info("cleared %d history entries for user=%s", result.deletedCount, session.user.id);
 
     return NextResponse.json({ success: true });
 }

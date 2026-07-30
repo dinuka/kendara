@@ -42,5 +42,4 @@ SearchHistorySchema.index({ "user.id": 1, createdAt: -1 });
 SearchHistorySchema.index({ "user.id": 1, query: 1, createdAt: -1 });
 
 export const SearchHistory: Model<ISearchHistory> =
-    mongoose.models.SearchHistory ||
-    mongoose.model<ISearchHistory>("SearchHistory", SearchHistorySchema);
+    mongoose.models.SearchHistory || mongoose.model<ISearchHistory>("SearchHistory", SearchHistorySchema);

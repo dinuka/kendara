@@ -31,11 +31,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ horo
 
     await bookmark.save();
 
-    logger.info(
-        "bookmark updated horoscopeId=%s user=%s",
-        horoscopeId,
-        session.user.id,
-    );
+    logger.info("bookmark updated horoscopeId=%s user=%s", horoscopeId, session.user.id);
 
     return NextResponse.json(bookmark);
 }
@@ -63,11 +59,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ h
         "horoscope.id": horoscopeId,
     });
 
-    logger.info(
-        "bookmark deleted horoscopeId=%s user=%s",
-        horoscopeId,
-        session.user.id,
-    );
+    logger.info("bookmark deleted horoscopeId=%s user=%s", horoscopeId, session.user.id);
 
     return NextResponse.json({ success: true });
 }

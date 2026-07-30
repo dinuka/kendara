@@ -40,6 +40,15 @@ jest.mock("@/lib/db", () => ({
     connectDB: jest.fn(),
 }));
 
+jest.mock("@/lib/search/embedding", () => ({
+    generateEmbedding: jest.fn().mockResolvedValue(null),
+}));
+
+jest.mock("@/lib/search/qdrant", () => ({
+    ensureCollection: jest.fn().mockResolvedValue(false),
+    searchPoints: jest.fn().mockResolvedValue([]),
+}));
+
 jest.mock("@/app/api/auth/[...nextauth]/route", () => ({
     authOptions: {},
 }));
