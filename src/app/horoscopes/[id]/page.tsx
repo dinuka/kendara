@@ -271,20 +271,41 @@ export default function HoroscopeDetailPage() {
         return { planets, houses, ascendant };
     };
 
-    const getStrength = (s: number | PlanetaryStrength): PlanetaryStrength => {
-        if (typeof s !== "number") return s;
-        const NUM_TO_STRENGTH: Record<number, PlanetaryStrength> = {
-            1.25: PlanetaryStrength.ATHI_UCHCHA,
-            1: PlanetaryStrength.UCHCHA,
-            [-1]: PlanetaryStrength.NEECHA,
-            [-1.25]: PlanetaryStrength.ATHI_NEECHA,
-            0.75: PlanetaryStrength.MOOLATRIKONA,
-            0.5: PlanetaryStrength.OWN_SIGN,
-            0.1: PlanetaryStrength.MITRA,
-            [-0.1]: PlanetaryStrength.SHATRU,
-            0: PlanetaryStrength.SAMA,
-        };
-        return NUM_TO_STRENGTH[s] ?? PlanetaryStrength.SAMA;
+    const getStrength = (s: number | string | PlanetaryStrength | undefined | null): PlanetaryStrength => {
+        if (typeof s === "number") {
+            const NUM_TO_STRENGTH: Record<number, PlanetaryStrength> = {
+                1.25: PlanetaryStrength.ATHI_UCHCHA,
+                1: PlanetaryStrength.UCHCHA,
+                [-1]: PlanetaryStrength.NEECHA,
+                [-1.25]: PlanetaryStrength.ATHI_NEECHA,
+                0.75: PlanetaryStrength.MOOLATRIKONA,
+                0.5: PlanetaryStrength.OWN_SIGN,
+                0.1: PlanetaryStrength.MITRA,
+                [-0.1]: PlanetaryStrength.SHATRU,
+                0: PlanetaryStrength.SAMA,
+            };
+            return NUM_TO_STRENGTH[s] ?? PlanetaryStrength.SAMA;
+        }
+        if (typeof s === "string") {
+            const STR_TO_ENUM: Record<string, PlanetaryStrength> = {
+                athiuchcha: PlanetaryStrength.ATHI_UCHCHA,
+                uchcha: PlanetaryStrength.UCHCHA,
+                exalted: PlanetaryStrength.UCHCHA,
+                neecha: PlanetaryStrength.NEECHA,
+                debilitated: PlanetaryStrength.NEECHA,
+                athineecha: PlanetaryStrength.ATHI_NEECHA,
+                moolatrikona: PlanetaryStrength.MOOLATRIKONA,
+                ownsign: PlanetaryStrength.OWN_SIGN,
+                mitra: PlanetaryStrength.MITRA,
+                friendly: PlanetaryStrength.MITRA,
+                shatru: PlanetaryStrength.SHATRU,
+                enemy: PlanetaryStrength.SHATRU,
+                sama: PlanetaryStrength.SAMA,
+                neutral: PlanetaryStrength.SAMA,
+            };
+            return STR_TO_ENUM[s.toLowerCase().replace(/[\s_-]/g, "")] ?? PlanetaryStrength.SAMA;
+        }
+        return PlanetaryStrength.SAMA;
     };
 
     const PLANET_SYMBOLS: Record<number, string> = {
@@ -765,7 +786,9 @@ export default function HoroscopeDetailPage() {
                         <h3 className="font-semibold text-sm mb-3 text-indigo-700 uppercase tracking-wide">
                             {t("astrology.planets")}
                         </h3>
-                        <div className="overflow-x-auto">
+
+                        {/* Desktop: table view */}
+                        <div className="hidden sm:block overflow-x-auto">
                             <table className="w-full text-sm">
                                 <thead>
                                     <tr className="text-left text-gray-500 border-b">
@@ -848,7 +871,7 @@ export default function HoroscopeDetailPage() {
                                                     {getSignName(p.sign)} ({formatDegree(p.degree)})
                                                 </td>
                                                 <td className="py-1 pr-3">
-                                                    {t(`astrology.${STRENGTH_TRANSLATION_KEYS[p.strength]}`)}
+                                                    {t(`astrology.${STRENGTH_TRANSLATION_KEYS[getStrength(p.strength)] ?? "neutral"}`)}
                                                 </td>
                                                 <td className="py-1 pr-3">{p.house}</td>
                                                 <td className="py-1 pr-3 text-gray-600">
@@ -866,6 +889,179 @@ export default function HoroscopeDetailPage() {
                                     })}
                                 </tbody>
                             </table>
+                        </div>
+
+                        {/* Mobile: card view */}
+                        <div className="block sm:hidden space-y-2">
+                            {calculatedDetails.planets.map((p) => {
+                                const isExpanded = expandedPlanets.has(p.name);
+                                const isRetrograde = p.retrograde && p.name !== 8 && p.name !== 9;
+
+                                const conjunct = calculatedDetails.planets
+                                    .filter((q) => q.name !== p.name)
+                                    .filter((q) => {
+                                        const dist = Math.abs(p.absoluteDegree - q.absoluteDegree);
+                                        const angularDist = Math.min(dist, 360 - dist);
+                                        return angularDist < (orbMap[p.name] ?? 0);
+                                    })
+                                    .map((q) => {
+                                        let diff = q.absoluteDegree - p.absoluteDegree;
+                                        if (diff > 180) diff -= 360;
+                                        if (diff < -180) diff += 360;
+                                        const sign = diff >= 0 ? "+" : "-";
+                                        const absDiff = Math.abs(diff);
+                                        const totalVikala = Math.round(absDiff * 3600);
+                                        const anshaka = Math.floor(totalVikala / 3600);
+                                        const kala = Math.floor((totalVikala % 3600) / 60);
+                                        const vikala = totalVikala % 60;
+                                        return `${getPlanetName(q.name)} (${sign}${String(anshaka).padStart(2, "0")}:${String(kala).padStart(2, "0")}:${String(vikala).padStart(2, "0")})`;
+                                    });
+
+                                const aspects = p.aspects
+                                    .filter((a) => a.aspectType !== 0)
+                                    .map((a) => {
+                                        const q = calculatedDetails.planets.find(
+                                            (x) => x.name === a.planetName,
+                                        );
+                                        if (!q) return "";
+                                        const exactPoint = (p.absoluteDegree + a.aspectType) % 360;
+                                        let diff = exactPoint - q.absoluteDegree;
+                                        if (diff > 180) diff -= 360;
+                                        if (diff < -180) diff += 360;
+                                        if (Math.abs(diff) > (orbMap[p.name] ?? 0) / 2) return "";
+                                        const sign = diff >= 0 ? "+" : "-";
+                                        const absDiff = Math.abs(diff);
+                                        const totalVikala = Math.round(absDiff * 3600);
+                                        const anshaka = Math.floor(totalVikala / 3600);
+                                        const kala = Math.floor((totalVikala % 3600) / 60);
+                                        const vikala = totalVikala % 60;
+                                        return `${getPlanetName(a.planetName)} (${sign}${String(anshaka).padStart(2, "0")}:${String(kala).padStart(2, "0")}:${String(vikala).padStart(2, "0")})`;
+                                    })
+                                    .filter(Boolean);
+
+                                const tags: string[] = [];
+                                if (p.combustion) tags.push(t("astrology.combustLabel"));
+                                if (calculatedDetails.lord22ndDrekkana === p.name)
+                                    tags.push(t("astrology.drekkanaLordLabel"));
+                                if (calculatedDetails.lord64thNavamsa === p.name)
+                                    tags.push(t("astrology.navamsaLordLabel"));
+                                if (calculatedDetails.atmakaraka === p.name)
+                                    tags.push(t("astrology.atmakarakaLabel"));
+                                if (calculatedDetails.marakaPlanets?.includes(p.name))
+                                    tags.push(t("astrology.marakaLabel"));
+                                if (calculatedDetails.badhakaPlanet?.includes(p.name))
+                                    tags.push(t("astrology.badhakaLabel"));
+
+                                const STRENGTH_COLORS: Record<string, string> = {
+                                    athiUchcha: "text-green-700 font-semibold",
+                                    exalted: "text-green-700 font-semibold",
+                                    athiNeecha: "text-red-600",
+                                    debilitated: "text-red-600",
+                                    moolatrikona: "text-indigo-600 font-semibold",
+                                    ownSign: "text-indigo-600 font-semibold",
+                                };
+                                const resolvedStrength = getStrength(p.strength);
+                                const strengthClass = STRENGTH_COLORS[STRENGTH_TRANSLATION_KEYS[resolvedStrength]] || "text-gray-600";
+
+                                return (
+                                    <div key={p.name} className="border rounded overflow-hidden">
+                                        <button
+                                            onClick={() => {
+                                                setExpandedPlanets((prev) => {
+                                                    const next = new Set(prev);
+                                                    if (next.has(p.name)) {
+                                                        next.delete(p.name);
+                                                    } else {
+                                                        next.add(p.name);
+                                                    }
+                                                    return next;
+                                                });
+                                            }}
+                                            className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50 transition-colors text-left"
+                                        >
+                                            <span className="font-medium whitespace-nowrap">
+                                                {PLANET_SYMBOLS[p.name]} {getPlanetName(p.name)}
+                                            </span>
+                                            {isRetrograde && (
+                                                <span className="text-amber-600 bg-amber-50 text-[10px] rounded px-1 leading-tight">
+                                                    {t("astrology.retrograde")}
+                                                </span>
+                                            )}
+                                            <span className="text-gray-600 whitespace-nowrap">
+                                                {getSignName(p.sign)}
+                                            </span>
+                                            <span className={`whitespace-nowrap ${strengthClass}`}>
+                                                {t(`astrology.${STRENGTH_TRANSLATION_KEYS[resolvedStrength] ?? "neutral"}`)}
+                                            </span>
+                                            <span className="text-gray-600 whitespace-nowrap">
+                                                {t("astrology.house")} {p.house}
+                                            </span>
+                                            <span className="text-gray-500 whitespace-nowrap">
+                                                {getNakshatraName(p.nakshatra) || p.nakshatra} ({p.pada})
+                                            </span>
+                                            {tags.length > 0 && (
+                                                <div className="flex gap-1 shrink-0">
+                                                    {tags.map((tag) => (
+                                                        <span
+                                                            key={tag}
+                                                            className="text-[10px] leading-tight px-1 rounded bg-gray-100 text-gray-600"
+                                                        >
+                                                            {tag}
+                                                        </span>
+                                                    ))}
+                                                </div>
+                                            )}
+                                            <span className="ml-auto text-gray-400 shrink-0">
+                                                {isExpanded ? "▼" : "▶"}
+                                            </span>
+                                        </button>
+                                        {isExpanded && (
+                                            <div className="border-t px-3 py-2 space-y-1.5 text-xs text-gray-600 bg-gray-50">
+                                                <p>
+                                                    <span className="font-medium text-gray-700">
+                                                        {t("astrology.degree")}:
+                                                    </span>{" "}
+                                                    {formatDegree(p.degree)}
+                                                </p>
+                                                {conjunct.length > 0 && (
+                                                    <p>
+                                                        <span className="font-medium text-gray-700">
+                                                            {t("astrology.conjunctions")}:
+                                                        </span>{" "}
+                                                        {conjunct.join(", ")}
+                                                    </p>
+                                                )}
+                                                {aspects.length > 0 && (
+                                                    <p>
+                                                        <span className="font-medium text-gray-700">
+                                                            {t("astrology.aspects")}:
+                                                        </span>{" "}
+                                                        {aspects.join(", ")}
+                                                    </p>
+                                                )}
+                                                {tags.length > 0 && (
+                                                    <div className="flex flex-wrap gap-1 pt-0.5">
+                                                        {tags.map((tag) => (
+                                                            <span
+                                                                key={tag}
+                                                                className="bg-white border rounded px-1.5 py-0.5 text-gray-600"
+                                                            >
+                                                                {tag}
+                                                            </span>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                                <p>
+                                                    <span className="font-medium text-gray-700">
+                                                        {t("astrology.navamsaka")}:
+                                                    </span>{" "}
+                                                    {getSignName(p.navamsaSign)} ({t(`astrology.${STRENGTH_TRANSLATION_KEYS[getStrength(p.navamsaStrength)] ?? "neutral"}`)})
+                                                </p>
+                                            </div>
+                                        )}
+                                    </div>
+                                );
+                            })}
                         </div>
                     </section>
                 </div>

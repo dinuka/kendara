@@ -6,7 +6,7 @@ import { CalculatedDetails } from "@/models/CalculatedDetails";
 import { Chart } from "@/models/Chart";
 import { Horoscope } from "@/models/Horoscope";
 
-import { PLANET_NAMES, PlanetaryStrength, ZODIAC_SIGN_NAMES } from "@/lib/astrologyEnums";
+import { PLANET_NAMES, PlanetaryStrength, STRENGTH_LABELS, ZODIAC_SIGN_NAMES } from "@/lib/astrologyEnums";
 import { connectDB } from "@/lib/db";
 import logger from "@/lib/logger";
 import { getAnonymousPlaceholder } from "@/lib/privacy";
@@ -16,11 +16,7 @@ import { detectLanguage, findNakshatraMatch, hasNakshatraTriggerWord, paginateRe
 import {
     ASCENDANT_WORDS,
     DOSHA_WORDS,
-    ENGLISH_DEBILITATION,
-    ENGLISH_EXALTATION,
     ENGLISH_YOGA,
-    SINHALA_DEBILITATION,
-    SINHALA_EXALTATION,
     SINHALA_YOGA,
 } from "@/lib/search/vocabulary";
 
@@ -34,15 +30,45 @@ type ExactMatch =
 const getStrengthMatch = (query: string): PlanetaryStrength | null => {
     const q = query.toLowerCase();
 
-    if (SINHALA_EXALTATION.some((w) => q.includes(w)) || ENGLISH_EXALTATION.some((w) => q.includes(w))) {
-        return PlanetaryStrength.UCHCHA;
+    const matched = new Set<PlanetaryStrength>();
+    for (const [word, strength] of Object.entries(STRENGTH_LABELS)) {
+        if (q.includes(word)) {
+            matched.add(strength);
+        }
     }
 
-    if (SINHALA_DEBILITATION.some((w) => q.includes(w)) || ENGLISH_DEBILITATION.some((w) => q.includes(w))) {
-        return PlanetaryStrength.NEECHA;
-    }
+    if (matched.has(PlanetaryStrength.ATHI_UCHCHA)) return PlanetaryStrength.ATHI_UCHCHA;
+    if (matched.has(PlanetaryStrength.UCHCHA)) return PlanetaryStrength.UCHCHA;
+    if (matched.has(PlanetaryStrength.ATHI_NEECHA)) return PlanetaryStrength.ATHI_NEECHA;
+    if (matched.has(PlanetaryStrength.NEECHA)) return PlanetaryStrength.NEECHA;
+    if (matched.has(PlanetaryStrength.MOOLATRIKONA)) return PlanetaryStrength.MOOLATRIKONA;
+    if (matched.has(PlanetaryStrength.OWN_SIGN)) return PlanetaryStrength.OWN_SIGN;
+    if (matched.has(PlanetaryStrength.MITRA)) return PlanetaryStrength.MITRA;
+    if (matched.has(PlanetaryStrength.SHATRU)) return PlanetaryStrength.SHATRU;
+    if (matched.has(PlanetaryStrength.SAMA)) return PlanetaryStrength.SAMA;
 
     return null;
+};
+
+const STRENGTH_KEYWORD_MAP: Record<number, string> = {
+    [PlanetaryStrength.ATHI_UCHCHA]: "athi_uchcha",
+    [PlanetaryStrength.UCHCHA]: "exaltation",
+    [PlanetaryStrength.ATHI_NEECHA]: "athi_neecha",
+    [PlanetaryStrength.NEECHA]: "debilitation",
+    [PlanetaryStrength.MOOLATRIKONA]: "moolatrikona",
+    [PlanetaryStrength.OWN_SIGN]: "own_sign",
+    [PlanetaryStrength.MITRA]: "mitra",
+    [PlanetaryStrength.SHATRU]: "shatru",
+    [PlanetaryStrength.SAMA]: "sama",
+};
+
+const getStrengthValue = (strength: unknown): number => {
+    if (typeof strength === "number") return strength;
+    const map: Record<string, number> = {
+        AthiUchcha: 1.25, Uchcha: 1, Neecha: -1, AthiNeecha: -1.25,
+        Moolatrikona: 0.75, OwnSign: 0.5, Mitra: 0.1, Shatru: -0.1, Sama: 0,
+    };
+    return map[strength as string] ?? 0;
 };
 
 const getPlanetMatches = (query: string): number[] => {
@@ -132,7 +158,7 @@ const getAstroKeywords = (query: string): string[] => {
 
     const strengthMatch = getStrengthMatch(query);
     if (strengthMatch !== null) {
-        const strengthLabel = strengthMatch === PlanetaryStrength.UCHCHA ? "exaltation" : "debilitation";
+        const strengthLabel = STRENGTH_KEYWORD_MAP[strengthMatch] || "unknown";
         const planetMatches = getPlanetMatches(query);
         if (planetMatches.length > 0) {
             for (const planetValue of planetMatches) {
@@ -245,43 +271,16 @@ const scoreHoroscope = (
     const matchesNamedPlanet = (planetValue: unknown): boolean =>
         namedPlanets.length === 0 || namedPlanets.includes(planetValue as number);
 
-    const hasExaltation =
-        SINHALA_EXALTATION.some((w) => q.includes(w)) || ENGLISH_EXALTATION.some((w) => q.includes(w));
+    const strengthMatch = getStrengthMatch(query);
 
-    if (hasExaltation) {
-        if (calculatedDetails?.planets) {
-            const planets = calculatedDetails.planets as Array<Record<string, unknown>>;
-            let found = false;
-            for (const p of planets) {
-                if (
-                    (p.strength === PlanetaryStrength.UCHCHA || p.strength === "Uchcha" || p.strength === 1) &&
-                    matchesNamedPlanet(p.name)
-                ) {
-                    score += 0.5;
-                    found = true;
-                    const planetName = Object.entries(PLANET_NAMES).find(([, v]) => v === p.name)?.[0] || p.name;
-                    matchedConditions.push(`${planetName}=Exaltation`);
-                }
-            }
-            if (found) score += 0.3;
-        }
-    }
-
-    const hasDebilitation =
-        SINHALA_DEBILITATION.some((w) => q.includes(w)) || ENGLISH_DEBILITATION.some((w) => q.includes(w));
-
-    if (hasDebilitation) {
-        if (calculatedDetails?.planets) {
-            const planets = calculatedDetails.planets as Array<Record<string, unknown>>;
-            for (const p of planets) {
-                if (
-                    (p.strength === PlanetaryStrength.NEECHA || p.strength === "Neecha" || p.strength === -1) &&
-                    matchesNamedPlanet(p.name)
-                ) {
-                    score += 0.5;
-                    const planetName = Object.entries(PLANET_NAMES).find(([, v]) => v === p.name)?.[0] || p.name;
-                    matchedConditions.push(`${planetName}=Debilitation`);
-                }
+    if (strengthMatch !== null && calculatedDetails?.planets) {
+        const planets = calculatedDetails.planets as Array<Record<string, unknown>>;
+        const strengthLabel = STRENGTH_KEYWORD_MAP[strengthMatch] || "unknown";
+        for (const p of planets) {
+            if (getStrengthValue(p.strength) === strengthMatch && matchesNamedPlanet(p.name)) {
+                score += 0.5;
+                const planetName = Object.entries(PLANET_NAMES).find(([, v]) => v === p.name)?.[0] || p.name;
+                matchedConditions.push(`${planetName}=${strengthLabel}`);
             }
         }
     }
@@ -431,7 +430,10 @@ export async function POST(req: NextRequest) {
             }).lean();
             const planets = calculatedDetails?.planets as Array<Record<string, unknown>> | undefined;
             if (!planets) continue;
-            const matched = planets.some((p) => p.name === exactMatch.planet && p.strength === exactMatch.strength);
+            const matched = planets.some((p) => {
+                if (p.name !== exactMatch.planet) return false;
+                return getStrengthValue(p.strength) === exactMatch.strength;
+            });
             if (!matched) continue;
         }
 

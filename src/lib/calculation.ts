@@ -217,18 +217,6 @@ const NATURAL_ENEMIES: Record<number, number[]> = {
     9: [],
 };
 
-const STRENGTH_VALUES: Record<PlanetaryStrength, number> = {
-    [PlanetaryStrength.ATHI_UCHCHA]: 1.25,
-    [PlanetaryStrength.UCHCHA]: 1,
-    [PlanetaryStrength.NEECHA]: -1,
-    [PlanetaryStrength.ATHI_NEECHA]: -1.25,
-    [PlanetaryStrength.MOOLATRIKONA]: 0.75,
-    [PlanetaryStrength.OWN_SIGN]: 0.5,
-    [PlanetaryStrength.MITRA]: 0.1,
-    [PlanetaryStrength.SHATRU]: -0.1,
-    [PlanetaryStrength.SAMA]: 0,
-};
-
 function computePlanetStrength(planet: number, sign: number, degree: number): PlanetaryStrength {
     const deepDeg = EXALTATION_DEGREE[planet];
 
@@ -506,28 +494,7 @@ function computeMaraka(ascSign: number, planets: Planet[]): number[] {
     const secondLord = SIGN_LORD[secondSign] || 1;
     const seventhLord = SIGN_LORD[seventhSign] || 1;
 
-    const marakas = new Set<number>();
-    marakas.add(secondLord);
-    marakas.add(seventhLord);
-
-    for (const p of planets) {
-        if (p.name === 8 || p.name === 9) continue;
-        if (p.house === 2 || p.house === 7) {
-            marakas.add(p.name);
-        }
-    }
-
-    for (const p of planets) {
-        if (p.name === 8 || p.name === 9) continue;
-        if (p.name === secondLord || p.name === seventhLord) continue;
-        const conjWith2nd = p.aspects.some((a) => a.planetName === secondLord && a.aspectType === 0);
-        const conjWith7th = p.aspects.some((a) => a.planetName === seventhLord && a.aspectType === 0);
-        if (conjWith2nd || conjWith7th) {
-            marakas.add(p.name);
-        }
-    }
-
-    return Array.from(marakas);
+    return [secondLord, seventhLord];
 }
 
 function computeAtmakaraka(planets: Planet[]): number {

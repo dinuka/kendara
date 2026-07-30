@@ -214,6 +214,25 @@ const STRENGTH_RECORDS: Array<{ value: number; label: string; color: string }> =
     { value: -1.25, label: "Athi Neecha", color: "text-red-700 bg-red-50" },
 ];
 
+const parseStrength = (val: unknown): number => {
+    if (typeof val === "number") return val;
+    if (typeof val === "string") {
+        const map: Record<string, number> = {
+            AthiUchcha: 1.25,
+            Uchcha: 1,
+            Neecha: -1,
+            AthiNeecha: -1.25,
+            Moolatrikona: 0.75,
+            OwnSign: 0.5,
+            Mitra: 0.1,
+            Shatru: -0.1,
+            Sama: 0,
+        };
+        return map[val] ?? 0;
+    }
+    return 0;
+};
+
 const getStrengthInfo = (val: number) =>
     STRENGTH_RECORDS.find((r) => r.value === val) || { label: "", color: "text-gray-500" };
 
@@ -235,7 +254,7 @@ const PlanetPositionsTable = ({ planets }: { planets: Array<Record<string, unkno
                     {planets.map((p, i) => {
                         const pName = p.name as number;
                         const pSign = p.sign as number;
-                        const strengthVal = p.strength as number;
+                        const strengthVal = parseStrength(p.strength);
                         const strengthInfo = getStrengthInfo(strengthVal);
                         return (
                             <tr key={i} className="border-b border-gray-50 hover:bg-gray-50/50">
@@ -926,7 +945,6 @@ const SearchResultCard = ({
                                                 const otherTags: string[] = [];
                                                 if (p.combustion as boolean)
                                                     otherTags.push(t("astrology.combustLabel"));
-                                                if (p.retrograde as boolean) otherTags.push(t("astrology.retrograde"));
                                                 if ((cd!.lord22ndDrekkana as number) === pName)
                                                     otherTags.push(t("astrology.drekkanaLordLabel"));
                                                 if ((cd!.lord64thNavamsa as number) === pName)
@@ -952,7 +970,7 @@ const SearchResultCard = ({
                                                         </td>
                                                         <td className="py-1.5 pr-2">
                                                             {t(
-                                                                `astrology.${STRENGTH_TRANSLATION_KEYS[p.strength as PlanetaryStrength]}`,
+                                                                `astrology.${STRENGTH_TRANSLATION_KEYS[parseStrength(p.strength) as PlanetaryStrength]}`,
                                                             )}
                                                         </td>
                                                         <td className="py-1.5 pr-2 text-center font-mono">

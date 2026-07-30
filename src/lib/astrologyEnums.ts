@@ -53,16 +53,76 @@ export const PLANET_NAMES: Record<string, Planet> = {
 };
 
 export enum PlanetaryStrength {
-    ATHI_UCHCHA = "AthiUchcha",
-    UCHCHA = "Uchcha",
-    NEECHA = "Neecha",
-    ATHI_NEECHA = "AthiNeecha",
-    MOOLATRIKONA = "Moolatrikona",
-    OWN_SIGN = "OwnSign",
-    MITRA = "Mitra",
-    SHATRU = "Shatru",
-    SAMA = "Sama",
+    ATHI_UCHCHA = 1.25,
+    UCHCHA = 1,
+    NEECHA = -1,
+    ATHI_NEECHA = -1.25,
+    MOOLATRIKONA = 0.75,
+    OWN_SIGN = 0.5,
+    MITRA = 0.1,
+    SHATRU = -0.1,
+    SAMA = 0,
 }
+
+export const STRENGTH_LABELS: Record<string, PlanetaryStrength> = {
+    "උච්ච": PlanetaryStrength.UCHCHA,
+    "උච්චව": PlanetaryStrength.UCHCHA,
+    "උච්චත්වය": PlanetaryStrength.UCHCHA,
+    "exaltation": PlanetaryStrength.UCHCHA,
+    "exalted": PlanetaryStrength.UCHCHA,
+    "uchcha": PlanetaryStrength.UCHCHA,
+    "අති උච්ච": PlanetaryStrength.ATHI_UCHCHA,
+    "athi uchcha": PlanetaryStrength.ATHI_UCHCHA,
+    "very exalted": PlanetaryStrength.ATHI_UCHCHA,
+    "නීච": PlanetaryStrength.NEECHA,
+    "නීචව": PlanetaryStrength.NEECHA,
+    "නීචත්වය": PlanetaryStrength.NEECHA,
+    "debilitation": PlanetaryStrength.NEECHA,
+    "debilitated": PlanetaryStrength.NEECHA,
+    "neecha": PlanetaryStrength.NEECHA,
+    "අති නීච": PlanetaryStrength.ATHI_NEECHA,
+    "athi neecha": PlanetaryStrength.ATHI_NEECHA,
+    "very debilitated": PlanetaryStrength.ATHI_NEECHA,
+    "moolatrikona": PlanetaryStrength.MOOLATRIKONA,
+    "මූලත්‍රිකෝණ": PlanetaryStrength.MOOLATRIKONA,
+    "own sign": PlanetaryStrength.OWN_SIGN,
+    "ස්ව රාශි": PlanetaryStrength.OWN_SIGN,
+    "ස්වක්ෂේත්‍ර": PlanetaryStrength.OWN_SIGN,
+    "mitra": PlanetaryStrength.MITRA,
+    "මිත්‍ර": PlanetaryStrength.MITRA,
+    "friend sign": PlanetaryStrength.MITRA,
+    "shatru": PlanetaryStrength.SHATRU,
+    "සතුරු": PlanetaryStrength.SHATRU,
+    "ශත්‍රැ": PlanetaryStrength.SHATRU,
+    "enemy sign": PlanetaryStrength.SHATRU,
+    "sama": PlanetaryStrength.SAMA,
+    "සම": PlanetaryStrength.SAMA,
+    "neutral": PlanetaryStrength.SAMA,
+};
+
+export const PLANET_LABELS_EN: Record<number, string> = {
+    1: "Sun",
+    2: "Moon",
+    3: "Mars",
+    4: "Mercury",
+    5: "Jupiter",
+    6: "Venus",
+    7: "Saturn",
+    8: "Rahu",
+    9: "Ketu",
+};
+
+export const PLANET_LABELS_SI: Record<number, string> = {
+    1: "රවි",
+    2: "සඳු",
+    3: "කුජ",
+    4: "බුධ",
+    5: "ගුරු",
+    6: "සිකුරු",
+    7: "ශනි",
+    8: "රාහු",
+    9: "කේතු",
+};
 
 export const COMBUSTION_ORBS: Record<number, number> = {
     [Planet.MOON]: 12,
@@ -71,6 +131,48 @@ export const COMBUSTION_ORBS: Record<number, number> = {
     [Planet.JUPITER]: 11,
     [Planet.VENUS]: 10,
     [Planet.SATURN]: 16,
+};
+
+export const STRENGTH_DISPLAY_EN: Record<string, string> = {
+    [PlanetaryStrength.ATHI_UCHCHA]: "Athi Uchcha (very exalted)",
+    AthiUchcha: "Athi Uchcha (very exalted)",
+    [PlanetaryStrength.UCHCHA]: "Uchcha (exalted)",
+    Uchcha: "Uchcha (exalted)",
+    [PlanetaryStrength.NEECHA]: "Neecha (debilitated)",
+    Neecha: "Neecha (debilitated)",
+    [PlanetaryStrength.ATHI_NEECHA]: "Athi Neecha (very debilitated)",
+    AthiNeecha: "Athi Neecha (very debilitated)",
+    [PlanetaryStrength.MOOLATRIKONA]: "Moolatrikona",
+    Moolatrikona: "Moolatrikona",
+    [PlanetaryStrength.OWN_SIGN]: "own sign",
+    OwnSign: "own sign",
+    [PlanetaryStrength.MITRA]: "friend sign",
+    Mitra: "friend sign",
+    [PlanetaryStrength.SHATRU]: "enemy sign",
+    Shatru: "enemy sign",
+    [PlanetaryStrength.SAMA]: "neutral",
+    Sama: "neutral",
+};
+
+export const STRENGTH_DISPLAY_SI: Record<string, string> = {
+    [PlanetaryStrength.ATHI_UCHCHA]: "අති උච්ච",
+    AthiUchcha: "අති උච්ච",
+    [PlanetaryStrength.UCHCHA]: "උච්ච",
+    Uchcha: "උච්ච",
+    [PlanetaryStrength.NEECHA]: "නීච",
+    Neecha: "නීච",
+    [PlanetaryStrength.ATHI_NEECHA]: "අති නීච",
+    AthiNeecha: "අති නීච",
+    [PlanetaryStrength.MOOLATRIKONA]: "මූලත්‍රිකෝණ",
+    Moolatrikona: "මූලත්‍රිකෝණ",
+    [PlanetaryStrength.OWN_SIGN]: "ස්ව රාශි",
+    OwnSign: "ස්ව රාශි",
+    [PlanetaryStrength.MITRA]: "මිත්‍ර",
+    Mitra: "මිත්‍ර",
+    [PlanetaryStrength.SHATRU]: "ශත්‍රැ",
+    Shatru: "ශත්‍රැ",
+    [PlanetaryStrength.SAMA]: "සම",
+    Sama: "සම",
 };
 
 export enum Nakshatra {
@@ -158,14 +260,6 @@ export const NAKSHATRA_NAMES: Record<string, Nakshatra> = {
     "uttara bhadrapada": Nakshatra.UTTARA_BHADRAPADA,
     රේවතී: Nakshatra.REVATI,
     revati: Nakshatra.REVATI,
-};
-
-// Short colloquial Sinhala forms (the same words used for display in
-// astrology.nakshatraNames in the message files). These are too short to be
-// safe in fuzzy/containment matching (e.g. "සා" would match inside unrelated
-// text), so they participate only in exact-equality lookups — see
-// NORMALIZED_NAKSHATRA_COLLOQUIAL_ALIASES in search/utils.ts.
-export const NAKSHATRA_COLLOQUIAL_NAMES: Record<string, Nakshatra> = {
     අස්විද: Nakshatra.ASHWINI,
     බෙරණ: Nakshatra.BHARANI,
     කැති: Nakshatra.KRITTIKA,
@@ -193,6 +287,94 @@ export const NAKSHATRA_COLLOQUIAL_NAMES: Record<string, Nakshatra> = {
     උත්‍රපුටුප: Nakshatra.UTTARA_BHADRAPADA,
 };
 
+export const NAKSHATRA_LABELS_EN: Record<number, string> = {
+    1: "Ashwini",
+    2: "Bharani",
+    3: "Krittika",
+    4: "Rohini",
+    5: "Mrigashira",
+    6: "Ardra",
+    7: "Punarvasu",
+    8: "Pushya",
+    9: "Ashlesha",
+    10: "Magha",
+    11: "Purva Phalguni",
+    12: "Uttara Phalguni",
+    13: "Hasta",
+    14: "Chitra",
+    15: "Swati",
+    16: "Vishakha",
+    17: "Anuradha",
+    18: "Jyeshtha",
+    19: "Mula",
+    20: "Purva Ashadha",
+    21: "Uttara Ashadha",
+    22: "Shravana",
+    23: "Dhanishta",
+    24: "Shatabhisha",
+    25: "Purva Bhadrapada",
+    26: "Uttara Bhadrapada",
+    27: "Revati",
+};
+
+export const NAKSHATRA_LABELS_SI: Record<number, string> = {
+    1: "අශ්විනි",
+    2: "භරණී",
+    3: "කෘත්තිකා",
+    4: "රෝහිණී",
+    5: "මෘගශීර්ෂ",
+    6: "ආර්ද්‍රා",
+    7: "පුනර්වසු",
+    8: "පුෂ්‍ය",
+    9: "ආශ්ලේෂා",
+    10: "මාඝ",
+    11: "පූර්ව ඵල්ගුනී",
+    12: "උත්තර ඵල්ගුනී",
+    13: "හස්ත",
+    14: "චිත්‍රා",
+    15: "ස්වාති",
+    16: "විශාඛා",
+    17: "අනුරාධා",
+    18: "ජ්‍යෙෂ්ඨා",
+    19: "මූල",
+    20: "පූර්ව ආශාඩ්",
+    21: "උත්තර ආශාඩ්",
+    22: "ශ්‍රවණ",
+    23: "ධනිෂ්ඨා",
+    24: "ශතභිෂා",
+    25: "පූර්ව භාද්‍රපදා",
+    26: "උත්තර භාද්‍රපදා",
+    27: "රේවතී",
+};
+
+export const NAKSHATRA_COLLOQUIAL_KEYS = new Set<string>([
+    "අස්විද",
+    "බෙරණ",
+    "කැති",
+    "රෙහෙණ",
+    "මුවසිරිස",
+    "අද",
+    "පුනාවස",
+    "පුස",
+    "අස්ලිය",
+    "මා",
+    "පුවපල්",
+    "උත්‍රපල්",
+    "හත",
+    "සිත",
+    "සා",
+    "විසා",
+    "අනුර",
+    "දෙට",
+    "පුවසල",
+    "උත්‍රසල",
+    "සුවන",
+    "දෙනට",
+    "සියාවස",
+    "පුවපුටුප",
+    "උත්‍රපුටුප",
+]);
+
 export const ZODIAC_SIGN_NAMES: Record<string, ZodiacSign> = {
     මේෂ: ZodiacSign.ARIES,
     aries: ZodiacSign.ARIES,
@@ -218,4 +400,34 @@ export const ZODIAC_SIGN_NAMES: Record<string, ZodiacSign> = {
     aquarius: ZodiacSign.AQUARIUS,
     මීන: ZodiacSign.PISCES,
     pisces: ZodiacSign.PISCES,
+};
+
+export const ZODIAC_SIGN_LABELS_EN: Record<number, string> = {
+    1: "Aries",
+    2: "Taurus",
+    3: "Gemini",
+    4: "Cancer",
+    5: "Leo",
+    6: "Virgo",
+    7: "Libra",
+    8: "Scorpio",
+    9: "Sagittarius",
+    10: "Capricorn",
+    11: "Aquarius",
+    12: "Pisces",
+};
+
+export const ZODIAC_SIGN_LABELS_SI: Record<number, string> = {
+    1: "මේෂ",
+    2: "වෘෂභ",
+    3: "මිථුන",
+    4: "කටක",
+    5: "සිංහ",
+    6: "කන්යා",
+    7: "තුලා",
+    8: "වෘශ්චික",
+    9: "ධනු",
+    10: "මකර",
+    11: "කුම්භ",
+    12: "මීන",
 };

@@ -1,4 +1,4 @@
-import { NAKSHATRA_COLLOQUIAL_NAMES, NAKSHATRA_NAMES } from "@/lib/astrologyEnums";
+import { NAKSHATRA_COLLOQUIAL_KEYS, NAKSHATRA_NAMES } from "@/lib/astrologyEnums";
 
 const SINHALA_UNICODE_RANGE = /[\u0D80-\u0DFF]/;
 const ZERO_WIDTH_JOINERS = /[\u200C\u200D]/g;
@@ -93,12 +93,9 @@ const NORMALIZED_NAKSHATRA_ALIASES: ReadonlyArray<readonly [string, number]> = O
     ([word, value]) => [normalizeNakshatraQuery(word), value] as const,
 );
 
-// Colloquial forms (e.g. "සා", "අද") are short enough that they'd falsely
-// match as substrings of unrelated text, so they're only ever compared for
-// exact equality against a span — never used in the containment tier below.
-const NORMALIZED_NAKSHATRA_COLLOQUIAL_ALIASES: ReadonlyArray<readonly [string, number]> = Object.entries(
-    NAKSHATRA_COLLOQUIAL_NAMES,
-).map(([word, value]) => [normalizeNakshatraQuery(word), value] as const);
+const COLLOQUIAL_NORMALIZED = new Set(
+    [...NAKSHATRA_COLLOQUIAL_KEYS].map(normalizeNakshatraQuery),
+);
 
 const matchNormalizedSpan = (normalizedSpan: string): number | null => {
     if (!normalizedSpan) return null;
@@ -108,13 +105,11 @@ const matchNormalizedSpan = (normalizedSpan: string): number | null => {
     for (const [alias, value] of NORMALIZED_NAKSHATRA_ALIASES) {
         if (alias === normalizedSpan) {
             exactMatches.add(value);
-        } else if (alias.includes(normalizedSpan) || normalizedSpan.includes(alias)) {
+        } else if (
+            !COLLOQUIAL_NORMALIZED.has(alias) &&
+            (alias.includes(normalizedSpan) || normalizedSpan.includes(alias))
+        ) {
             containmentMatches.add(value);
-        }
-    }
-    for (const [alias, value] of NORMALIZED_NAKSHATRA_COLLOQUIAL_ALIASES) {
-        if (alias === normalizedSpan) {
-            exactMatches.add(value);
         }
     }
 

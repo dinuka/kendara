@@ -1,4 +1,4 @@
-import { NAKSHATRA_COLLOQUIAL_NAMES, NAKSHATRA_NAMES } from "@/lib/astrologyEnums";
+import { NAKSHATRA_NAMES } from "@/lib/astrologyEnums";
 import { getSuggestions, insertSuggestion, splitLastToken } from "@/lib/search/suggestions";
 import { NAKSHATRA_WORDS, normalizeNakshatraQuery } from "@/lib/search/utils";
 
@@ -55,9 +55,6 @@ describe("colloquial nakshatra alias safety", () => {
         };
 
         for (const [word, value] of Object.entries(NAKSHATRA_NAMES)) {
-            record(normalizeNakshatraQuery(word), value);
-        }
-        for (const [word, value] of Object.entries(NAKSHATRA_COLLOQUIAL_NAMES)) {
             record(normalizeNakshatraQuery(word), value);
         }
         for (const triggerSkeleton of NAKSHATRA_WORDS) {
