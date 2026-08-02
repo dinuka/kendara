@@ -1,6 +1,6 @@
 import swisseph from "swisseph-v2";
 
-import { CurrentPlanetRecord, House } from "@/lib/astrology";
+import { CurrentPlanetRecord, House, findHouse } from "@/lib/astrology";
 import { COMBUSTION_ORBS, Planet } from "@/lib/astrologyEnums";
 import logger from "@/lib/logger";
 
@@ -134,18 +134,6 @@ function isCombust(planet: number, sunLongitude: number, planetLongitude: number
     const diff = Math.abs(planetLongitude - sunLongitude);
     const wrappedDiff = Math.min(diff, 360 - diff);
     return wrappedDiff <= orb;
-}
-
-function findHouse(absoluteDegree: number, houses: House[]): number | null {
-    const normDegree = ((absoluteDegree % 360) + 360) % 360;
-    for (const house of houses) {
-        let startAbs = (house.startSign - 1) * 30 + house.startDegree;
-        let endAbs = (house.endSign - 1) * 30 + house.endDegree;
-        if (endAbs <= startAbs) endAbs += 360;
-        const checkDegree = normDegree < startAbs ? normDegree + 360 : normDegree;
-        if (checkDegree >= startAbs && checkDegree < endAbs) return house.houseNumber;
-    }
-    return null;
 }
 
 export function computeCurrentPlanets(ayanamsha: string, birthHouses: House[], forDate?: Date): CurrentPlanetRecord[] {

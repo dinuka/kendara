@@ -12,7 +12,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
 import type { Ascendant, Dashas, House, Planet } from "@/lib/astrology";
-import { formatDegree, navamsaSign } from "@/lib/astrology";
+import { findHouse, formatDegree, navamsaSign } from "@/lib/astrology";
 import { PlanetaryStrength } from "@/lib/astrologyEnums";
 import { ALL_CHART_TYPES, ChartType } from "@/lib/chartTypes";
 import { formatDate } from "@/lib/date";
@@ -808,6 +808,7 @@ export default function HoroscopeDetailPage() {
                                 </thead>
                                 <tbody>
                                     {calculatedDetails.planets.map((p) => {
+                                        const displayHouse = findHouse(p.absoluteDegree, calculatedDetails.houses) ?? p.house;
                                         const conjunct = calculatedDetails.planets
                                             .filter((q) => q.name !== p.name)
                                             .filter((q) => {
@@ -873,7 +874,7 @@ export default function HoroscopeDetailPage() {
                                                 <td className="py-1 pr-3">
                                                     {t(`astrology.${STRENGTH_TRANSLATION_KEYS[getStrength(p.strength)] ?? "neutral"}`)}
                                                 </td>
-                                                <td className="py-1 pr-3">{p.house}</td>
+                                                <td className="py-1 pr-3">{displayHouse}</td>
                                                 <td className="py-1 pr-3 text-gray-600">
                                                     {getNakshatraName(p.nakshatra) || p.nakshatra} ({p.pada})
                                                 </td>
@@ -896,6 +897,7 @@ export default function HoroscopeDetailPage() {
                             {calculatedDetails.planets.map((p) => {
                                 const isExpanded = expandedPlanets.has(p.name);
                                 const isRetrograde = p.retrograde && p.name !== 8 && p.name !== 9;
+                                const displayHouse = findHouse(p.absoluteDegree, calculatedDetails.houses) ?? p.house;
 
                                 const conjunct = calculatedDetails.planets
                                     .filter((q) => q.name !== p.name)
@@ -994,7 +996,7 @@ export default function HoroscopeDetailPage() {
                                                 {t(`astrology.${STRENGTH_TRANSLATION_KEYS[resolvedStrength] ?? "neutral"}`)}
                                             </span>
                                             <span className="text-gray-600 whitespace-nowrap">
-                                                {t("astrology.house")} {p.house}
+                                                {t("astrology.house")} {displayHouse}
                                             </span>
                                             <span className="text-gray-500 whitespace-nowrap">
                                                 {getNakshatraName(p.nakshatra) || p.nakshatra} ({p.pada})

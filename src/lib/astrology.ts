@@ -121,6 +121,22 @@ export interface House {
     lord: number;
 }
 
+/** Determines the house a longitude falls into using the actual cusp-boundary ranges
+ *  (house.startSign/startDegree → house.endSign/endDegree), NOT the whole-sign assignment
+ *  (planet.sign relative to ascendant sign). For unequal houses a sign can be split between
+ *  two houses, so only the boundary ranges give the correct house. */
+export function findHouse(absoluteDegree: number, houses: House[]): number | null {
+    const normDegree = ((absoluteDegree % 360) + 360) % 360;
+    for (const house of houses) {
+        let startAbs = (house.startSign - 1) * 30 + house.startDegree;
+        let endAbs = (house.endSign - 1) * 30 + house.endDegree;
+        if (endAbs <= startAbs) endAbs += 360;
+        const checkDegree = normDegree < startAbs ? normDegree + 360 : normDegree;
+        if (checkDegree >= startAbs && checkDegree < endAbs) return house.houseNumber;
+    }
+    return null;
+}
+
 export interface Ascendant {
     sign: number;
     degree: number;

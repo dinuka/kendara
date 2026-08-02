@@ -90,6 +90,7 @@ export const STRENGTH_LABELS: Record<string, PlanetaryStrength> = {
     "ස්වක්ෂේත්‍ර": PlanetaryStrength.OWN_SIGN,
     "mitra": PlanetaryStrength.MITRA,
     "මිත්‍ර": PlanetaryStrength.MITRA,
+    "මිතුරු": PlanetaryStrength.MITRA,
     "friend sign": PlanetaryStrength.MITRA,
     "shatru": PlanetaryStrength.SHATRU,
     "සතුරු": PlanetaryStrength.SHATRU,

@@ -31,7 +31,7 @@ export const getSuggestions = (lastToken: string): string[] => {
 // Splits a search query into the tokens typed so far and the in-progress
 // last token that autocomplete should match against.
 export const splitLastToken = (query: string): { prefix: string; lastToken: string } => {
-    const match = query.match(/^(.*?)(\S*)$/s);
+    const match = query.match(/^([\s\S]*?)(\S*)$/);
     if (!match) return { prefix: "", lastToken: query };
     return { prefix: match[1], lastToken: match[2] };
 };

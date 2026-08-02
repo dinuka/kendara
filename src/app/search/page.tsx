@@ -9,7 +9,14 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import type { Ascendant, House, Planet } from "@/lib/astrology";
-import { PLANET_COLORS, PLANET_SYMBOLS, formatDegree, formatYearDuration, navamsaSign } from "@/lib/astrology";
+import {
+    PLANET_COLORS,
+    PLANET_SYMBOLS,
+    findHouse,
+    formatDegree,
+    formatYearDuration,
+    navamsaSign,
+} from "@/lib/astrology";
 import { PlanetaryStrength } from "@/lib/astrologyEnums";
 import { getSuggestions, insertSuggestion, splitLastToken } from "@/lib/search/suggestions";
 import { detectLanguage } from "@/lib/search/utils";
@@ -510,6 +517,7 @@ const SearchResultCard = ({
     isBookmarked: boolean;
 }) => {
     const { t } = useI18n();
+    const [expandedPlanets, setExpandedPlanets] = useState<Set<number>>(new Set());
     const h = result.horoscope;
     const cd = h.calculatedDetails as Record<string, unknown> | undefined;
     const charts = h.charts as Record<string, unknown> | undefined;
@@ -878,126 +886,168 @@ const SearchResultCard = ({
                                 <h5 className="text-xs font-semibold text-gray-600 mb-1.5 uppercase tracking-wider">
                                     {t("astrology.planets")}
                                 </h5>
-                                <div className="overflow-x-auto">
-                                    <table className="w-full text-xs">
-                                        <thead>
-                                            <tr className="border-b text-gray-500">
-                                                <th className="text-left py-1 pr-2 font-medium">
-                                                    {t("astrology.planet")}
-                                                </th>
-                                                <th className="text-left py-1 pr-2 font-medium">
-                                                    {t("astrology.sign")} ({t("astrology.degree")})
-                                                </th>
-                                                <th className="text-left py-1 pr-2 font-medium">
-                                                    {t("astrology.strength")}
-                                                </th>
-                                                <th className="text-center py-1 pr-2 font-medium">
-                                                    {t("astrology.house")}
-                                                </th>
-                                                <th className="text-left py-1 pr-2 font-medium">
-                                                    {t("astrology.nakshatra")} ({t("astrology.pada")})
-                                                </th>
-                                                <th className="text-left py-1 pr-2 font-medium">
-                                                    {t("astrology.conjunctions")}
-                                                </th>
-                                                <th className="text-left py-1 pr-2 font-medium">
-                                                    {t("astrology.aspects")}
-                                                </th>
-                                                <th className="text-left py-1 font-medium">{t("astrology.other")}</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {(cd!.planets as Array<Record<string, unknown>>).map((p, i) => {
-                                                const pName = p.name as number;
-                                                const pSign = p.sign as number;
-                                                const aspects = ((p.aspects as Array<Record<string, unknown>>) || [])
-                                                    .filter((a) => (a.aspectType as number) !== 0)
-                                                    .map((a) => {
-                                                        const q = (cd!.planets as Array<Record<string, unknown>>).find(
-                                                            (x) => (x.name as number) === (a.planetName as number),
-                                                        );
-                                                        if (!q) return "";
-                                                        const exactPoint =
-                                                            ((p.absoluteDegree as number) + (a.aspectType as number)) %
-                                                            360;
-                                                        let diff = exactPoint - (q.absoluteDegree as number);
-                                                        if (diff > 180) diff -= 360;
-                                                        if (diff < -180) diff += 360;
-                                                        if (Math.abs(diff) > (ORB_MAP[pName] ?? 0) / 2) return "";
-                                                        return `${t(`astrology.planetNames.${a.planetName as number}`)} (${formatDegDiff(diff)})`;
-                                                    })
-                                                    .filter(Boolean) as string[];
-                                                const conjunctions = (cd!.planets as Array<Record<string, unknown>>)
-                                                    .filter((q) => (q.name as number) !== pName)
-                                                    .filter((q) => {
-                                                        const dist = Math.abs(
-                                                            (p.absoluteDegree as number) - (q.absoluteDegree as number),
-                                                        );
-                                                        return Math.min(dist, 360 - dist) < (ORB_MAP[pName] ?? 0);
-                                                    })
-                                                    .map((q) => {
-                                                        let diff =
-                                                            (q.absoluteDegree as number) - (p.absoluteDegree as number);
-                                                        if (diff > 180) diff -= 360;
-                                                        if (diff < -180) diff += 360;
-                                                        return `${t(`astrology.planetNames.${q.name as number}`)} (${formatDegDiff(diff)})`;
-                                                    });
-                                                const otherTags: string[] = [];
-                                                if (p.combustion as boolean)
-                                                    otherTags.push(t("astrology.combustLabel"));
-                                                if ((cd!.lord22ndDrekkana as number) === pName)
-                                                    otherTags.push(t("astrology.drekkanaLordLabel"));
-                                                if ((cd!.lord64thNavamsa as number) === pName)
-                                                    otherTags.push(t("astrology.navamsaLordLabel"));
-                                                if ((cd!.atmakaraka as number) === pName)
-                                                    otherTags.push(t("astrology.atmakarakaLabel"));
-                                                if (((cd!.marakaPlanets as number[]) || []).includes(pName))
-                                                    otherTags.push(t("astrology.marakaLabel"));
-                                                if (((cd!.badhakaPlanet as number[]) || []).includes(pName))
-                                                    otherTags.push(t("astrology.badhakaLabel"));
-                                                return (
-                                                    <tr
-                                                        key={i}
-                                                        className="border-b border-gray-50 hover:bg-gray-100/50 even:bg-gray-100"
-                                                    >
-                                                        <td className="py-1.5 pr-2 font-medium">
-                                                            {PLANET_SYMBOLS[pName] || ""}{" "}
-                                                            {t(`astrology.planetNames.${pName}`)}
-                                                        </td>
-                                                        <td className="py-1.5 pr-2">
-                                                            {t(`astrology.signNames.${pSign}`)} (
-                                                            {formatDegree(p.degree as number)})
-                                                        </td>
-                                                        <td className="py-1.5 pr-2">
-                                                            {t(
-                                                                `astrology.${STRENGTH_TRANSLATION_KEYS[parseStrength(p.strength) as PlanetaryStrength]}`,
-                                                            )}
-                                                        </td>
-                                                        <td className="py-1.5 pr-2 text-center font-mono">
-                                                            {p.house as number}
-                                                        </td>
-                                                        <td className="py-1.5 pr-2 text-gray-600">
-                                                            {t(
-                                                                `astrology.nakshatraNames.${(p.nakshatra as number) || 1}`,
-                                                            )}{" "}
-                                                            ({(p.pada as number) || 1})
-                                                        </td>
-                                                        <td className="py-1.5 pr-2">
-                                                            {conjunctions.length > 0
-                                                                ? conjunctions.join(", ")
-                                                                : "\u2014"}
-                                                        </td>
-                                                        <td className="py-1.5 pr-2">
-                                                            {aspects.length > 0 ? aspects.join(", ") : "\u2014"}
-                                                        </td>
-                                                        <td className="py-1.5">
-                                                            {otherTags.length > 0 ? otherTags.join(", ") : "\u2014"}
-                                                        </td>
-                                                    </tr>
+                                <div className="space-y-1.5">
+                                    {(cd!.planets as Array<Record<string, unknown>>).map((p, i) => {
+                                        const pName = p.name as number;
+                                        const pSign = p.sign as number;
+                                        const pStrength = parseStrength(p.strength) as PlanetaryStrength;
+                                        const displayHouse =
+                                            findHouse(p.absoluteDegree as number, cd!.houses as House[]) ??
+                                            (p.house as number);
+                                        const isPlanetExpanded = expandedPlanets.has(i);
+
+                                        const aspects = ((p.aspects as Array<Record<string, unknown>>) || [])
+                                            .filter((a) => (a.aspectType as number) !== 0)
+                                            .map((a) => {
+                                                const q = (cd!.planets as Array<Record<string, unknown>>).find(
+                                                    (x) => (x.name as number) === (a.planetName as number),
                                                 );
-                                            })}
-                                        </tbody>
-                                    </table>
+                                                if (!q) return "";
+                                                const exactPoint =
+                                                    ((p.absoluteDegree as number) + (a.aspectType as number)) %
+                                                    360;
+                                                let diff = exactPoint - (q.absoluteDegree as number);
+                                                if (diff > 180) diff -= 360;
+                                                if (diff < -180) diff += 360;
+                                                if (Math.abs(diff) > (ORB_MAP[pName] ?? 0) / 2) return "";
+                                                return `${t(`astrology.planetNames.${a.planetName as number}`)} (${formatDegDiff(diff)})`;
+                                            })
+                                            .filter(Boolean) as string[];
+
+                                        const conjunctions = (cd!.planets as Array<Record<string, unknown>>)
+                                            .filter((q) => (q.name as number) !== pName)
+                                            .filter((q) => {
+                                                const dist = Math.abs(
+                                                    (p.absoluteDegree as number) - (q.absoluteDegree as number),
+                                                );
+                                                return Math.min(dist, 360 - dist) < (ORB_MAP[pName] ?? 0);
+                                            })
+                                            .map((q) => {
+                                                let diff =
+                                                    (q.absoluteDegree as number) - (p.absoluteDegree as number);
+                                                if (diff > 180) diff -= 360;
+                                                if (diff < -180) diff += 360;
+                                                return `${t(`astrology.planetNames.${q.name as number}`)} (${formatDegDiff(diff)})`;
+                                            });
+
+                                        const tags: string[] = [];
+                                        if (p.combustion as boolean)
+                                            tags.push(t("astrology.combustLabel"));
+                                        if ((cd!.lord22ndDrekkana as number) === pName)
+                                            tags.push(t("astrology.drekkanaLordLabel"));
+                                        if ((cd!.lord64thNavamsa as number) === pName)
+                                            tags.push(t("astrology.navamsaLordLabel"));
+                                        if ((cd!.atmakaraka as number) === pName)
+                                            tags.push(t("astrology.atmakarakaLabel"));
+                                        if (((cd!.marakaPlanets as number[]) || []).includes(pName))
+                                            tags.push(t("astrology.marakaLabel"));
+                                        if (((cd!.badhakaPlanet as number[]) || []).includes(pName))
+                                            tags.push(t("astrology.badhakaLabel"));
+
+                                        const strengthKey = STRENGTH_TRANSLATION_KEYS[pStrength];
+                                        const STRENGTH_COLORS: Record<string, string> = {
+                                            athiUchcha: "text-green-700 font-semibold",
+                                            exalted: "text-green-700 font-semibold",
+                                            athiNeecha: "text-red-600",
+                                            debilitated: "text-red-600",
+                                            moolatrikona: "text-indigo-600 font-semibold",
+                                            ownSign: "text-indigo-600 font-semibold",
+                                        };
+                                        const strengthClass = STRENGTH_COLORS[strengthKey] || "text-gray-600";
+
+                                        return (
+                                            <div key={i} className="border rounded overflow-hidden">
+                                                <button
+                                                    onClick={() => {
+                                                        setExpandedPlanets((prev) => {
+                                                            const next = new Set(prev);
+                                                            if (next.has(i)) {
+                                                                next.delete(i);
+                                                            } else {
+                                                                next.add(i);
+                                                            }
+                                                            return next;
+                                                        });
+                                                    }}
+                                                    className="w-full flex items-center gap-2 px-3 py-1.5 text-xs hover:bg-gray-50 transition-colors text-left"
+                                                >
+                                                    <span className="font-medium whitespace-nowrap">
+                                                        {PLANET_SYMBOLS[pName] || ""} {t(`astrology.planetNames.${pName}`)}
+                                                    </span>
+                                                    {p.retrograde as boolean && (
+                                                        <span className="text-amber-600 bg-amber-50 text-[10px] rounded px-1 leading-tight">
+                                                            {t("astrology.retrograde")}
+                                                        </span>
+                                                    )}
+                                                    <span className="text-gray-600 whitespace-nowrap">
+                                                        {t(`astrology.signNames.${pSign}`)}
+                                                    </span>
+                                                    <span className={`whitespace-nowrap ${strengthClass}`}>
+                                                        {t(`astrology.${strengthKey}`)}
+                                                    </span>
+                                                    <span className="text-gray-600 whitespace-nowrap">
+                                                        {t("astrology.house")} {displayHouse}
+                                                    </span>
+                                                    <span className="text-gray-500 whitespace-nowrap">
+                                                        {t(`astrology.nakshatraNames.${(p.nakshatra as number) || 1}`)} ({(p.pada as number) || 1})
+                                                    </span>
+                                                    {tags.length > 0 && (
+                                                        <div className="flex gap-1 shrink-0">
+                                                            {tags.map((tag) => (
+                                                                <span
+                                                                    key={tag}
+                                                                    className="text-[10px] leading-tight px-1 rounded bg-gray-100 text-gray-600"
+                                                                >
+                                                                    {tag}
+                                                                </span>
+                                                            ))}
+                                                        </div>
+                                                    )}
+                                                    <span className="ml-auto text-gray-400 shrink-0">
+                                                        {isPlanetExpanded ? "▼" : "▶"}
+                                                    </span>
+                                                </button>
+                                                {isPlanetExpanded && (
+                                                    <div className="border-t px-3 py-1.5 space-y-1 text-[11px] text-gray-600 bg-gray-50">
+                                                        <p>
+                                                            <span className="font-medium text-gray-700">
+                                                                {t("astrology.degree")}:
+                                                            </span>{" "}
+                                                            {formatDegree(p.degree as number)}
+                                                        </p>
+                                                        {conjunctions.length > 0 && (
+                                                            <p>
+                                                                <span className="font-medium text-gray-700">
+                                                                    {t("astrology.conjunctions")}:
+                                                                </span>{" "}
+                                                                {conjunctions.join(", ")}
+                                                            </p>
+                                                        )}
+                                                        {aspects.length > 0 && (
+                                                            <p>
+                                                                <span className="font-medium text-gray-700">
+                                                                    {t("astrology.aspects")}:
+                                                                </span>{" "}
+                                                                {aspects.join(", ")}
+                                                            </p>
+                                                        )}
+                                                        {tags.length > 0 && (
+                                                            <div className="flex flex-wrap gap-1 pt-0.5">
+                                                                {tags.map((tag) => (
+                                                                    <span
+                                                                        key={tag}
+                                                                        className="bg-white border rounded px-1.5 py-0.5 text-gray-600"
+                                                                    >
+                                                                        {tag}
+                                                                    </span>
+                                                                ))}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        );
+                                    })}
                                 </div>
                             </div>
                         )}
@@ -2012,6 +2062,7 @@ export default function SearchPage() {
                     <button
                         onClick={() => handleSearch()}
                         disabled={loading || !query.trim()}
+                        suppressHydrationWarning
                         className="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700 disabled:opacity-50 text-sm"
                     >
                         {loading ? "Searching..." : t("search.search")}
@@ -2026,6 +2077,7 @@ export default function SearchPage() {
                     <button
                         onClick={handleSaveSearch}
                         disabled={!query.trim() || !searched}
+                        suppressHydrationWarning
                         className="border px-3 py-2 rounded hover:bg-gray-50 text-sm disabled:opacity-50"
                         title="Save search"
                     >
