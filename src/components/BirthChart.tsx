@@ -2,8 +2,8 @@
 
 import { useMemo, useState } from "react";
 
-import type { ChartAscendant, ChartHouse, ChartPlanet } from "@/lib/chartDataTransform";
 import { formatDegree } from "@/lib/astrology";
+import type { ChartAscendant, ChartHouse, ChartPlanet } from "@/lib/chartDataTransform";
 import { PLANET_SHORT_SI, SIGN_SHORT_SI } from "@/lib/chartVisuals";
 
 /** Cropped icon images (public/zodiac/*.png), silhouette on transparent background, aspect 404x275. */
@@ -219,31 +219,26 @@ export function BirthChart({ planets, houses, ascendant, showAscendantDegree = t
         );
     };
 
-    /** Splits a house's planets (already degree-sorted) into an upper row (above the sign icon)
-     *  and a lower row (below it), so all planets show without a "+N" truncation — up to 6 total. */
-    const renderPlanetsAroundIcon = (
-        houseNum: number,
-        cx: number,
-        upperY: number,
-        lowerY: number,
-        fontSize: number,
-        rowSize = 3,
-    ) => {
+    /** Renders a house's planets (already degree-sorted) in rows stacked in the available space
+     *  around the sign icon, so all planets show without a "+N" truncation. `rowYs` holds one
+     *  baseline y per row; the first `rowSize` planets go in the first row, and so on. */
+    const renderPlanetsAroundIcon = (houseNum: number, cx: number, rowYs: number[], fontSize: number, rowSize = 3) => {
         const housePlanets = planetsByHouse[houseNum] || [];
-        const upper = housePlanets.slice(0, rowSize);
-        const lower = housePlanets.slice(rowSize, rowSize * 2);
         return (
             <>
-                {renderPlanetRow(upper, cx, upperY, fontSize)}
-                {renderPlanetRow(lower, cx, lowerY, fontSize)}
+                {rowYs.map((y, i) => (
+                    <g key={i}>
+                        {renderPlanetRow(housePlanets.slice(i * rowSize, (i + 1) * rowSize), cx, y, fontSize)}
+                    </g>
+                ))}
             </>
         );
     };
 
-    /** Splits a corner house's planets into two groups tucked into the triangle's two acute
-     *  corners (the diagonal's endpoints: `nearPt` and `far`), leaving the icon centered at the
-     *  triangle's third vertex (`ownCorner`) untouched — used for the "\" diagonal cells
-     *  (houses 2, 3, 8, 9). */
+    /** Renders a corner house's planets (already degree-sorted) in groups tucked into the two acute
+     *  corners of its triangle (the diagonal's endpoints: `nearPt` and `far`), two groups per corner
+     *  so up to 8 planets show. The sign icon stays centered at the triangle's third vertex
+     *  (`ownCorner`). */
     const renderPlanetsInTriangleCorners = (
         houseNum: number,
         nearPt: Point,
@@ -253,14 +248,19 @@ export function BirthChart({ planets, houses, ascendant, showAscendantDegree = t
         rowSize = 2,
     ) => {
         const housePlanets = planetsByHouse[houseNum] || [];
-        const group1 = housePlanets.slice(0, rowSize);
-        const group2 = housePlanets.slice(rowSize, rowSize * 2);
-        const [nx, ny] = insetFromFarCorner(nearPt, far, ownCorner, 20);
-        const [fx, fy] = insetFromFarCorner(far, nearPt, ownCorner, 20);
+        const groupPositions: Point[] = [
+            insetFromFarCorner(nearPt, far, ownCorner, 20),
+            insetFromFarCorner(far, nearPt, ownCorner, 20),
+            insetFromFarCorner(nearPt, far, ownCorner, 36),
+            insetFromFarCorner(far, nearPt, ownCorner, 36),
+        ];
         return (
             <>
-                {renderPlanetRow(group1, nx, ny, fontSize)}
-                {renderPlanetRow(group2, fx, fy, fontSize)}
+                {groupPositions.map(([gx, gy], i) => (
+                    <g key={i}>
+                        {renderPlanetRow(housePlanets.slice(i * rowSize, (i + 1) * rowSize), gx, gy, fontSize)}
+                    </g>
+                ))}
             </>
         );
     };
@@ -335,8 +335,12 @@ export function BirthChart({ planets, houses, ascendant, showAscendantDegree = t
                                 >
                                     {houseNum} {sign ? SIGN_SHORT_SI[sign] : ""}
                                 </text>
-                                {renderPlanetRow((planetsByHouse[houseNum] || []).slice(0, 3), cx, cy - 6, 13)}
-                                {renderPlanetRow((planetsByHouse[houseNum] || []).slice(3, 6), cx, cy + 18, 13)}
+                                {renderPlanetsAroundIcon(
+                                    houseNum,
+                                    cx,
+                                    spec.labelSide === "top" ? [cy - 26, cy - 6, cy + 18] : [cy - 6, cy + 18, cy + 42],
+                                    13,
+                                )}
                                 {renderSignGlyph(sign, isVertical ? cx : innerPos, isVertical ? innerPos : cy, 24)}
                             </>
                         ) : (
@@ -352,7 +356,7 @@ export function BirthChart({ planets, houses, ascendant, showAscendantDegree = t
                                     {houseNum}
                                 </text>
                                 {renderSignGlyph(sign, cx, cy - 16, 20)}
-                                {renderPlanetsAroundIcon(houseNum, cx, cy + 12, cy + 32, 12)}
+                                {renderPlanetsAroundIcon(houseNum, cx, [cy + 12, cy + 32, cy + 52], 12)}
                             </>
                         )}
                     </g>
@@ -451,7 +455,13 @@ export function BirthChart({ planets, houses, ascendant, showAscendantDegree = t
                                     >
                                         {houseA} {signA ? SIGN_SHORT_SI[signA] : ""}
                                     </text>
-                                    {renderPlanetsAroundIcon(houseA, aCenterX, aCenterY - 11, aCenterY + 11, 10, 2)}
+                                    {renderPlanetsAroundIcon(
+                                        houseA,
+                                        aCenterX,
+                                        [aCenterY - 33, aCenterY - 11, aCenterY + 11, aCenterY + 33],
+                                        10,
+                                        2,
+                                    )}
                                     {(() => {
                                         const [ix, iy] = insetFromFarCorner(far, nearPt, adjacent1, 28);
                                         return renderSignGlyph(signA, ix, iy, 16);
@@ -487,8 +497,7 @@ export function BirthChart({ planets, houses, ascendant, showAscendantDegree = t
                                         : renderPlanetsAroundIcon(
                                               houseA,
                                               aCenterX,
-                                              aCenterY - 28,
-                                              aCenterY + (isAscA ? 26 : 18),
+                                              [aCenterY - 28, aCenterY + 18, aCenterY + 38],
                                               10,
                                               2,
                                           )}
@@ -515,7 +524,13 @@ export function BirthChart({ planets, houses, ascendant, showAscendantDegree = t
                                     >
                                         {houseB} {signB ? SIGN_SHORT_SI[signB] : ""}
                                     </text>
-                                    {renderPlanetsAroundIcon(houseB, bCenterX, bCenterY - 11, bCenterY + 11, 10, 2)}
+                                    {renderPlanetsAroundIcon(
+                                        houseB,
+                                        bCenterX,
+                                        [bCenterY - 33, bCenterY - 11, bCenterY + 11, bCenterY + 33],
+                                        10,
+                                        2,
+                                    )}
                                     {(() => {
                                         const [ix, iy] = insetFromFarCorner(far, nearPt, adjacent2, 28);
                                         return renderSignGlyph(signB, ix, iy, 16);
@@ -551,8 +566,7 @@ export function BirthChart({ planets, houses, ascendant, showAscendantDegree = t
                                         : renderPlanetsAroundIcon(
                                               houseB,
                                               bCenterX,
-                                              bCenterY - 28,
-                                              bCenterY + (isAscB ? 26 : 18),
+                                              [bCenterY - 28, bCenterY + 18, bCenterY + 38],
                                               10,
                                               2,
                                           )}
