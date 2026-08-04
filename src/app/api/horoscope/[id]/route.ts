@@ -40,10 +40,35 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     }
 
     const accessibleFilter = { $or: [{ "owner.id": userId }, { isPublic: true }] };
-    const orderedHoroscopes = await Horoscope.find(accessibleFilter)
+
+    const sortBy = req.nextUrl.searchParams.get("sortBy") ?? "name";
+    const sortDir = req.nextUrl.searchParams.get("sortDir") === "desc" ? -1 : 1;
+    const locale = req.cookies.get("NEXT_LOCALE")?.value ?? "si";
+
+    let sort: Record<string, 1 | -1>;
+    let collation: { locale: string; strength: number } | undefined;
+
+    switch (sortBy) {
+        case "birthDate":
+            sort = { birthDate: sortDir };
+            break;
+        case "locationName":
+            sort = { locationName: sortDir };
+            collation = { locale, strength: 2 };
+            break;
+        case "isPublic":
+            sort = { isPublic: sortDir };
+            break;
+        default:
+            sort = { name: sortDir };
+            collation = { locale, strength: 2 };
+    }
+
+    let orderedQuery = Horoscope.find(accessibleFilter)
         .select({ _id: 1, name: 1, isPublic: 1, displayName: 1, "owner.id": 1 })
-        .sort({ createdAt: -1 })
-        .lean();
+        .sort({ ...sort, createdAt: -1 });
+    if (collation) orderedQuery = orderedQuery.collation(collation);
+    const orderedHoroscopes = await orderedQuery.lean();
 
     const toNavItem = (h: (typeof orderedHoroscopes)[number] | undefined) => {
         if (!h) return null;

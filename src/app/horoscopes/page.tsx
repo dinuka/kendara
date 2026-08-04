@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 
 import { formatDate } from "@/lib/date";
+import { writeHoroscopeSort } from "@/lib/horoscopeSort";
 import Link from "next/link";
 
 interface Horoscope {
@@ -53,6 +54,10 @@ export default function HoroscopesPage() {
             })
             .catch(() => setLoading(false));
     }, [status, router]);
+
+    useEffect(() => {
+        writeHoroscopeSort({ sortBy: sortColumn, sortDir: sortDirection });
+    }, [sortColumn, sortDirection]);
 
     const handleSort = (column: SortableColumn) => {
         if (sortColumn === column) {

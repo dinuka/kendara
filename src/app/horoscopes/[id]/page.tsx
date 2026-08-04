@@ -17,6 +17,7 @@ import { PlanetaryStrength } from "@/lib/astrologyEnums";
 import { toBirthChartData } from "@/lib/chartDataTransform";
 import { ALL_CHART_TYPES, ChartType } from "@/lib/chartTypes";
 import { formatDate } from "@/lib/date";
+import { readHoroscopeSort } from "@/lib/horoscopeSort";
 
 const STRENGTH_TRANSLATION_KEYS: Record<PlanetaryStrength, string> = {
     [PlanetaryStrength.ATHI_UCHCHA]: "athiUchcha",
@@ -189,7 +190,9 @@ export default function HoroscopeDetailPage() {
         setLoading(true);
         setData(null);
 
-        fetch(`/api/horoscope/${params.id}`)
+        const { sortBy, sortDir } = readHoroscopeSort();
+
+        fetch(`/api/horoscope/${params.id}?sortBy=${sortBy}&sortDir=${sortDir}`)
             .then((r) => r.json())
             .then((d) => {
                 setData(d);
