@@ -127,6 +127,7 @@ const MOCK_CALC: CalculationResult = {
     lord64thNavamsa: 7,
     badhakaPlanet: [4, 6],
     marakaPlanets: [3, 7],
+    nidhanamshaPlanets: [5],
     atmakaraka: 5,
     yogas: [{ name: "Parivartana Yoga", planets: [5, 7], description: "Exchange of signs" }],
     doshas: {
@@ -260,6 +261,7 @@ describe("textContent - edge cases", () => {
         lord64thNavamsa: 0,
         badhakaPlanet: [],
         marakaPlanets: [],
+        nidhanamshaPlanets: [],
         atmakaraka: 1,
         yogas: [],
         doshas: { doshas: [] },

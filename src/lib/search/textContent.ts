@@ -30,7 +30,8 @@ const textPartsEn = (calc: CalculationResult): string[] => {
     parts.push(`Moon nakshatra: ${moonNak}, pada ${calc.nakshatra.moonNakshatra.pada}.`);
 
     const ascNak =
-        NAKSHATRA_LABELS_EN[calc.nakshatra.ascendantNakshatra.id] || `Nakshatra ${calc.nakshatra.ascendantNakshatra.id}`;
+        NAKSHATRA_LABELS_EN[calc.nakshatra.ascendantNakshatra.id] ||
+        `Nakshatra ${calc.nakshatra.ascendantNakshatra.id}`;
     parts.push(`Ascendant nakshatra: ${ascNak}, pada ${calc.nakshatra.ascendantNakshatra.pada}.`);
 
     const houseLords = calc.houses.map((h) => {
@@ -69,6 +70,9 @@ const textPartsEn = (calc: CalculationResult): string[] => {
     parts.push(`Atmakaraka: ${PLANET_LABELS_EN[calc.atmakaraka] || `Planet ${calc.atmakaraka}`}.`);
     parts.push(`Badhaka planets: ${calc.badhakaPlanet.map((p) => PLANET_LABELS_EN[p] || `Planet ${p}`).join(", ")}.`);
     parts.push(`Maraka planets: ${calc.marakaPlanets.map((p) => PLANET_LABELS_EN[p] || `Planet ${p}`).join(", ")}.`);
+    parts.push(
+        `Nidhanamsha planets: ${calc.nidhanamshaPlanets.map((p) => PLANET_LABELS_EN[p] || `Planet ${p}`).join(", ")}.`,
+    );
 
     return parts;
 };
@@ -93,7 +97,8 @@ const textPartsSi = (calc: CalculationResult): string[] => {
     parts.push(`චන්ද්‍ර නක්ෂත්‍රය: ${moonNak}, පාද ${calc.nakshatra.moonNakshatra.pada}.`);
 
     const ascNak =
-        NAKSHATRA_LABELS_SI[calc.nakshatra.ascendantNakshatra.id] || `Nakshatra ${calc.nakshatra.ascendantNakshatra.id}`;
+        NAKSHATRA_LABELS_SI[calc.nakshatra.ascendantNakshatra.id] ||
+        `Nakshatra ${calc.nakshatra.ascendantNakshatra.id}`;
     parts.push(`ලග්න නක්ෂත්‍රය: ${ascNak}, පාද ${calc.nakshatra.ascendantNakshatra.pada}.`);
 
     const houseLords = calc.houses.map((h) => {
@@ -132,6 +137,9 @@ const textPartsSi = (calc: CalculationResult): string[] => {
     parts.push(`ආත්මකාරක: ${PLANET_LABELS_SI[calc.atmakaraka] || `Planet ${calc.atmakaraka}`}.`);
     parts.push(`බාධක ග්‍රහ: ${calc.badhakaPlanet.map((p) => PLANET_LABELS_SI[p] || `Planet ${p}`).join(", ")}.`);
     parts.push(`මාරක ග්‍රහ: ${calc.marakaPlanets.map((p) => PLANET_LABELS_SI[p] || `Planet ${p}`).join(", ")}.`);
+    parts.push(
+        `නිධනාම්ශ ග්‍රහ: ${calc.nidhanamshaPlanets.map((p) => PLANET_LABELS_SI[p] || `Planet ${p}`).join(", ")}.`,
+    );
 
     return parts;
 };

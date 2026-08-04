@@ -77,6 +77,7 @@ const CalculatedDetailsSchema = new Schema<ICalculatedDetails>({
     lord64thNavamsa: Number,
     badhakaPlanet: [Number],
     marakaPlanets: [Number],
+    nidhanamshaPlanets: [Number],
     atmakaraka: Number,
     yogas: [{ type: Schema.Types.Mixed }],
     doshas: { type: Schema.Types.Mixed },

@@ -231,6 +231,7 @@ export interface CalculationResult {
     lord64thNavamsa: number;
     badhakaPlanet: number[];
     marakaPlanets: number[];
+    nidhanamshaPlanets: number[];
     atmakaraka: number;
     yogas: unknown[];
     doshas: DoshaInfo;

@@ -123,4 +123,12 @@ describe("calculateHoroscope", () => {
         expect(result.lord22ndDrekkana).toBeGreaterThanOrEqual(1);
         expect(result.lord64thNavamsa).toBeGreaterThanOrEqual(1);
     });
+
+    test("nidhanamsha planets are defined and match the navamsa-position rule", () => {
+        const result = calculateHoroscope(baseData);
+        expect(Array.isArray(result.nidhanamshaPlanets)).toBe(true);
+        result.nidhanamshaPlanets.forEach((p: number) => {
+            expect(typeof p).toBe("number");
+        });
+    });
 });

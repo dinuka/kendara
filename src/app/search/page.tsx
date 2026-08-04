@@ -939,6 +939,8 @@ const SearchResultCard = ({
                                             tags.push(t("astrology.marakaLabel"));
                                         if (((cd!.badhakaPlanet as number[]) || []).includes(pName))
                                             tags.push(t("astrology.badhakaLabel"));
+                                        if (((cd!.nidhanamshaPlanets as number[]) || []).includes(pName))
+                                            tags.push(t("astrology.nidhanamshaLabel"));
 
                                         const strengthKey = STRENGTH_TRANSLATION_KEYS[pStrength];
                                         const STRENGTH_COLORS: Record<string, string> = {

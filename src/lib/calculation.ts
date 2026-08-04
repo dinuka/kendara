@@ -442,6 +442,7 @@ export function calculateHoroscope(
         lord64thNavamsa: computeNavamsaLord(ascSign, ascLong % 30),
         badhakaPlanet: computeBadhaka(ascSign),
         marakaPlanets: computeMaraka(ascSign, planetDetails),
+        nidhanamshaPlanets: computeNidhanamsha(ascSign, ascLong % 30, houses, planetDetails),
         atmakaraka: computeAtmakaraka(planetDetails),
         yogas: [],
         doshas: { doshas: [] },
@@ -483,6 +484,20 @@ function computeMaraka(ascSign: number, planets: Planet[]): number[] {
     const seventhLord = SIGN_LORD[seventhSign] || 1;
 
     return [secondLord, seventhLord];
+}
+
+/** Nidhanamsha (නිධනාම්ශ): the 8th-house (nidhana) sign of the birth chart is located in the
+ *  navamsa (D9) chart; the navamsa house it occupies is the nidhanamsha house, and any planet
+ *  placed in that navamsa house is a nidhanamsha planet. */
+function computeNidhanamsha(ascSign: number, ascDegree: number, houses: House[], planets: Planet[]): number[] {
+    const eighthHouseSign = houses.find((h) => h.houseNumber === 8)?.sign ?? ((ascSign - 1 + 7) % 12) + 1;
+    const ascNavamsaNum = Math.floor(ascDegree / (30 / 9)) + 1;
+    const navamsaLagna = navamsaSign(ascSign, ascNavamsaNum);
+    const nidhanamshaHouse = ((eighthHouseSign - navamsaLagna + 12) % 12) + 1;
+
+    return planets
+        .filter((p) => ((p.navamsaSign - navamsaLagna + 12) % 12) + 1 === nidhanamshaHouse)
+        .map((p) => p.name);
 }
 
 function computeAtmakaraka(planets: Planet[]): number {
