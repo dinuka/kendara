@@ -84,6 +84,12 @@ export default function HoroscopeDetailPage() {
         } | null;
         charts: ChartData[];
         metadata: unknown[];
+        navigation: {
+            prev: { id: string; name: string } | null;
+            next: { id: string; name: string } | null;
+            position: number;
+            total: number;
+        };
     } | null>(null);
     const [activeTab, setActiveTab] = useState("charts");
     const [selectedChart, setSelectedChart] = useState<ChartType>(ChartType.BIRTH);
@@ -180,6 +186,9 @@ export default function HoroscopeDetailPage() {
         }
         if (status !== "authenticated") return;
 
+        setLoading(true);
+        setData(null);
+
         fetch(`/api/horoscope/${params.id}`)
             .then((r) => r.json())
             .then((d) => {
@@ -221,6 +230,95 @@ export default function HoroscopeDetailPage() {
             setDeleteError(t("common.error"));
             setDeleting(false);
         }
+    };
+
+    const goToHoroscope = (id: string) => {
+        router.push(`/horoscopes/${id}`);
+        window.scrollTo({ top: 0, behavior: "auto" });
+    };
+
+    const renderNav = () => {
+        const { prev, next, position, total } = data?.navigation ?? { prev: null, next: null, position: 1, total: 1 };
+
+        const NavLink = ({ direction }: { direction: "prev" | "next" }) => {
+            const target = direction === "prev" ? prev : next;
+            const buttonClass =
+                "group flex items-center gap-2 rounded-lg border px-3 py-2 min-w-0 max-w-[40%] transition-colors " +
+                (target
+                    ? "hover:bg-gray-50 hover:border-indigo-300"
+                    : "opacity-40 cursor-not-allowed pointer-events-none");
+            const textClass = "min-w-0 flex flex-col";
+            const arrow =
+                direction === "prev" ? (
+                    <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        className="w-4 h-4 text-gray-400 group-hover:text-indigo-600 shrink-0"
+                    >
+                        <path d="m12 19-7-7 7-7" />
+                        <path d="M19 12H5" />
+                    </svg>
+                ) : (
+                    <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        className="w-4 h-4 text-gray-400 group-hover:text-indigo-600 shrink-0"
+                    >
+                        <path d="M5 12h14" />
+                        <path d="m12 5 7 7-7 7" />
+                    </svg>
+                );
+
+            if (!target) {
+                return (
+                    <div className={buttonClass}>
+                        {direction === "prev" && arrow}
+                        <div className={textClass}>
+                            <span className="text-xs text-gray-500">{t(`horoscope.nav.${direction}`)}</span>
+                        </div>
+                        {direction === "next" && arrow}
+                    </div>
+                );
+            }
+
+            return (
+                <button
+                    onClick={() => goToHoroscope(target.id)}
+                    className={buttonClass}
+                    aria-label={t(`horoscope.nav.${direction}Aria`, { name: target.name })}
+                    title={target.name}
+                >
+                    {direction === "prev" && arrow}
+                    <div className={textClass}>
+                        <span className="text-xs text-gray-500">{t(`horoscope.nav.${direction}`)}</span>
+                        <span className="text-sm font-medium text-gray-700 truncate group-hover:text-indigo-700">
+                            {target.name}
+                        </span>
+                    </div>
+                    {direction === "next" && arrow}
+                </button>
+            );
+        };
+
+        return (
+            <div className="flex items-center justify-between gap-3 mb-4">
+                <NavLink direction="prev" />
+                <span className="text-xs text-gray-500 whitespace-nowrap">
+                    {t("horoscope.nav.position", { position: String(position), total: String(total) })}
+                </span>
+                <NavLink direction="next" />
+            </div>
+        );
     };
 
     const getPlanetName = (id: number): string => t(`astrology.planetNames.${id}`);
@@ -438,6 +536,8 @@ export default function HoroscopeDetailPage() {
                     {toast.message}
                 </div>
             )}
+
+            {renderNav()}
 
             <div className="flex justify-between items-start mb-2 gap-3">
                 <div className="min-w-0">
@@ -1090,6 +1190,8 @@ export default function HoroscopeDetailPage() {
                     <p>{t("horoscope.metadata")}</p>
                 </div>
             )}
+
+            <div className="border-t pt-4 mt-8">{renderNav()}</div>
 
             <ConfirmDeleteModal
                 open={confirmDelete}

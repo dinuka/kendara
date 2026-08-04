@@ -22,6 +22,9 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
+    const userId = session.user.id;
+    const userRole = session.user.role;
+
     const { id } = await params;
     await connectDB();
 
@@ -36,11 +39,34 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
         horoscope.name = getAnonymousPlaceholder(horoscope._id.toString());
     }
 
+    const accessibleFilter = { $or: [{ "owner.id": userId }, { isPublic: true }] };
+    const orderedHoroscopes = await Horoscope.find(accessibleFilter)
+        .select({ _id: 1, name: 1, isPublic: 1, displayName: 1, "owner.id": 1 })
+        .sort({ createdAt: -1 })
+        .lean();
+
+    const toNavItem = (h: (typeof orderedHoroscopes)[number] | undefined) => {
+        if (!h) return null;
+        let name = h.name;
+        if (h.owner.id !== userId && userRole !== "super-admin" && !h.displayName) {
+            name = getAnonymousPlaceholder(h._id.toString());
+        }
+        return { id: h._id.toString(), name };
+    };
+
+    const currentIndex = orderedHoroscopes.findIndex((h) => h._id.toString() === id);
+    const navigation = {
+        prev: toNavItem(orderedHoroscopes[currentIndex - 1]),
+        next: toNavItem(orderedHoroscopes[currentIndex + 1]),
+        position: currentIndex === -1 ? 1 : currentIndex + 1,
+        total: orderedHoroscopes.length,
+    };
+
     const calculatedDetails = await CalculatedDetails.findOne({ "horoscope.id": id }).lean();
     const charts = await Chart.find({ "horoscope.id": id }).lean();
     const metadata = await Metadata.find({ "horoscope.id": id }).lean();
 
-    return NextResponse.json({ horoscope, calculatedDetails, charts, metadata });
+    return NextResponse.json({ horoscope, calculatedDetails, charts, metadata, navigation });
 }
 
 export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {

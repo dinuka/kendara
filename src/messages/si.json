@@ -57,6 +57,13 @@
         "private": "පෞද්ගලික",
         "public": "ප්‍රසිද්ධ",
         "showName": "නම පෙන්වන්න",
+        "nav": {
+            "prev": "පෙර",
+            "next": "ඊළඟ",
+            "prevAria": "පෙර කේන්දරය: {name}",
+            "nextAria": "ඊළඟ කේන්දරය: {name}",
+            "position": "{position} / {total}"
+        },
         "charts": "සටහන්",
         "calculations": "ගණනය කිරීම්",
         "dashas": "දශා",

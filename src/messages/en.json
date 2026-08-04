@@ -57,6 +57,13 @@
         "private": "Private",
         "public": "Public",
         "showName": "Show name",
+        "nav": {
+            "prev": "Previous",
+            "next": "Next",
+            "prevAria": "Previous horoscope: {name}",
+            "nextAria": "Next horoscope: {name}",
+            "position": "{position} of {total}"
+        },
         "charts": "Charts",
         "calculations": "Calculations",
         "dashas": "Dashas",
