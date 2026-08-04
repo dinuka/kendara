@@ -18,6 +18,7 @@ import {
     navamsaSign,
 } from "@/lib/astrology";
 import { PlanetaryStrength } from "@/lib/astrologyEnums";
+import { toBirthChartData } from "@/lib/chartDataTransform";
 import { getSuggestions, insertSuggestion, splitLastToken } from "@/lib/search/suggestions";
 import { detectLanguage } from "@/lib/search/utils";
 
@@ -682,9 +683,7 @@ const SearchResultCard = ({
                                     }
                                     return (
                                         <BirthChart
-                                            planets={navamsaChartData.planets}
-                                            houses={navamsaChartData.houses}
-                                            ascendant={navamsaChartData.ascendant}
+                                            {...toBirthChartData(navamsaChartData)}
                                             showAscendantDegree={false}
                                         />
                                     );
@@ -904,8 +903,7 @@ const SearchResultCard = ({
                                                 );
                                                 if (!q) return "";
                                                 const exactPoint =
-                                                    ((p.absoluteDegree as number) + (a.aspectType as number)) %
-                                                    360;
+                                                    ((p.absoluteDegree as number) + (a.aspectType as number)) % 360;
                                                 let diff = exactPoint - (q.absoluteDegree as number);
                                                 if (diff > 180) diff -= 360;
                                                 if (diff < -180) diff += 360;
@@ -923,16 +921,14 @@ const SearchResultCard = ({
                                                 return Math.min(dist, 360 - dist) < (ORB_MAP[pName] ?? 0);
                                             })
                                             .map((q) => {
-                                                let diff =
-                                                    (q.absoluteDegree as number) - (p.absoluteDegree as number);
+                                                let diff = (q.absoluteDegree as number) - (p.absoluteDegree as number);
                                                 if (diff > 180) diff -= 360;
                                                 if (diff < -180) diff += 360;
                                                 return `${t(`astrology.planetNames.${q.name as number}`)} (${formatDegDiff(diff)})`;
                                             });
 
                                         const tags: string[] = [];
-                                        if (p.combustion as boolean)
-                                            tags.push(t("astrology.combustLabel"));
+                                        if (p.combustion as boolean) tags.push(t("astrology.combustLabel"));
                                         if ((cd!.lord22ndDrekkana as number) === pName)
                                             tags.push(t("astrology.drekkanaLordLabel"));
                                         if ((cd!.lord64thNavamsa as number) === pName)
@@ -972,9 +968,10 @@ const SearchResultCard = ({
                                                     className="w-full flex items-center gap-2 px-3 py-1.5 text-xs hover:bg-gray-50 transition-colors text-left"
                                                 >
                                                     <span className="font-medium whitespace-nowrap">
-                                                        {PLANET_SYMBOLS[pName] || ""} {t(`astrology.planetNames.${pName}`)}
+                                                        {PLANET_SYMBOLS[pName] || ""}{" "}
+                                                        {t(`astrology.planetNames.${pName}`)}
                                                     </span>
-                                                    {p.retrograde as boolean && (
+                                                    {(p.retrograde as boolean) && (
                                                         <span className="text-amber-600 bg-amber-50 text-[10px] rounded px-1 leading-tight">
                                                             {t("astrology.retrograde")}
                                                         </span>
@@ -989,7 +986,8 @@ const SearchResultCard = ({
                                                         {t("astrology.house")} {displayHouse}
                                                     </span>
                                                     <span className="text-gray-500 whitespace-nowrap">
-                                                        {t(`astrology.nakshatraNames.${(p.nakshatra as number) || 1}`)} ({(p.pada as number) || 1})
+                                                        {t(`astrology.nakshatraNames.${(p.nakshatra as number) || 1}`)}{" "}
+                                                        ({(p.pada as number) || 1})
                                                     </span>
                                                     {tags.length > 0 && (
                                                         <div className="flex gap-1 shrink-0">

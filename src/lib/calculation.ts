@@ -439,7 +439,7 @@ export function calculateHoroscope(
         },
         dashas,
         lord22ndDrekkana: computeDrekkanaLord(ascSign, ascLong % 30),
-        lord64thNavamsa: computeNavamsaLord(planetDetails),
+        lord64thNavamsa: computeNavamsaLord(ascSign, ascLong % 30),
         badhakaPlanet: computeBadhaka(ascSign),
         marakaPlanets: computeMaraka(ascSign, planetDetails),
         atmakaraka: computeAtmakaraka(planetDetails),
@@ -448,30 +448,18 @@ export function calculateHoroscope(
     };
 }
 
-function drekkanaSign(sourceSign: number, drekkanaNum: number): number {
-    return ((sourceSign - 1 + (drekkanaNum - 1) * 4) % 12) + 1;
-}
-
 function computeDrekkanaLord(ascSign: number, ascDegree: number): number {
     const ascDrekkanaNum = Math.floor(ascDegree / 10) + 1;
-    const absDrekkana = (ascSign - 1) * 3 + ascDrekkanaNum;
-    const targetAbs = ((absDrekkana + 21 - 1) % 36) + 1;
-    const sourceSign = Math.floor((targetAbs - 1) / 3) + 1;
-    const drekkanaNum = ((targetAbs - 1) % 3) + 1;
-    const mappedSign = drekkanaSign(sourceSign, drekkanaNum);
-    return SIGN_LORD[mappedSign] || 1;
+    const houseOffset = ascDrekkanaNum === 1 ? 8 : ascDrekkanaNum === 2 ? 12 : 4;
+    const houseSign = ((ascSign - 1 + houseOffset - 1) % 12) + 1;
+    return SIGN_LORD[houseSign] || 1;
 }
 
-function computeNavamsaLord(planets: Planet[]): number {
-    const moon = planets.find((p) => p.name === 2);
-    if (!moon) return 1;
-    const moonNavamsaNum = Math.floor(moon.degree / (20 / 3)) + 1;
-    const absNavamsa = (moon.sign - 1) * 9 + moonNavamsaNum;
-    const targetAbs = ((absNavamsa + 63 - 1) % 108) + 1;
-    const sourceSign = Math.floor((targetAbs - 1) / 9) + 1;
-    const navamsaNum = ((targetAbs - 1) % 9) + 1;
-    const mappedSign = navamsaSign(sourceSign, navamsaNum);
-    return SIGN_LORD[mappedSign] || 1;
+function computeNavamsaLord(ascSign: number, ascDegree: number): number {
+    const ascNavamsaNum = Math.floor(ascDegree / (30 / 9)) + 1;
+    const d9Lagna = navamsaSign(ascSign, ascNavamsaNum);
+    const fourthHouseSign = ((d9Lagna - 1 + 3) % 12) + 1;
+    return SIGN_LORD[fourthHouseSign] || 1;
 }
 
 function computeBadhaka(ascSign: number): number[] {

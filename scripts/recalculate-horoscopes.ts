@@ -1,7 +1,7 @@
 import mongoose from "mongoose";
 
 import { calculateHoroscope } from "../src/lib/calculation";
-import { getChartData } from "../src/lib/chartDataTransform";
+import { getChartData, isLeanChartType, toBirthChartData } from "../src/lib/chartDataTransform";
 import { generateChartSvg } from "../src/lib/chartRenderer";
 import { ALL_CHART_TYPES } from "../src/lib/chartTypes";
 import { connectDB } from "../src/lib/db";
@@ -49,7 +49,7 @@ async function migrate() {
                 return {
                     horoscope: { id },
                     type,
-                    data: chartData,
+                    data: isLeanChartType(type) ? toBirthChartData(chartData) : chartData,
                     imageKey: "",
                     svgData: generateChartSvg(chartData, type),
                 };

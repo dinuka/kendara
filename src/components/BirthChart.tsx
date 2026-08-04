@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 
-import type { Ascendant, House, Planet } from "@/lib/astrology";
+import type { ChartAscendant, ChartHouse, ChartPlanet } from "@/lib/chartDataTransform";
 import { formatDegree } from "@/lib/astrology";
 import { PLANET_SHORT_SI, SIGN_SHORT_SI } from "@/lib/chartVisuals";
 
@@ -40,9 +40,9 @@ const SIGN_COLORS: Record<number, { from: string; to: string; badge: string }> =
 };
 
 interface BirthChartProps {
-    planets: Planet[];
-    houses: House[];
-    ascendant: Ascendant;
+    planets: ChartPlanet[];
+    houses: ChartHouse[];
+    ascendant: ChartAscendant;
     showAscendantDegree?: boolean;
 }
 
@@ -106,11 +106,11 @@ const TIER_COLORS: Record<HighlightTier, string> = {
  *  selected > 5th/9th (trine) > lord's other house. */
 function computeHighlights(
     selectedHouse: number | null,
-    houses: House[],
+    houses: ChartHouse[],
 ): { houseTiers: Map<number, HighlightTier>; lordPlanet: number | null } {
     if (selectedHouse === null) return { houseTiers: new Map(), lordPlanet: null };
 
-    const houseByNumber: Record<number, House> = {};
+    const houseByNumber: Record<number, ChartHouse> = {};
     for (const h of houses) houseByNumber[h.houseNumber] = h;
 
     const selected = houseByNumber[selectedHouse];
@@ -137,7 +137,7 @@ export function BirthChart({ planets, houses, ascendant, showAscendantDegree = t
     const signByHouse: Record<number, number> = {};
     for (const h of houses) signByHouse[h.houseNumber] = h.sign;
 
-    const planetsByHouse: Record<number, Planet[]> = {};
+    const planetsByHouse: Record<number, ChartPlanet[]> = {};
     for (const p of planets) {
         if (!planetsByHouse[p.house]) planetsByHouse[p.house] = [];
         planetsByHouse[p.house].push(p);
@@ -195,7 +195,7 @@ export function BirthChart({ planets, houses, ascendant, showAscendantDegree = t
     };
 
     /** Renders one row of planet labels (no truncation) at the given position. */
-    const renderPlanetRow = (planetsToShow: Planet[], cx: number, cy: number, fontSize: number) => {
+    const renderPlanetRow = (planetsToShow: ChartPlanet[], cx: number, cy: number, fontSize: number) => {
         if (planetsToShow.length === 0) return null;
         return (
             <text x={cx} y={cy} textAnchor="middle" fontSize={fontSize} fill="#1f2937">

@@ -35,6 +35,39 @@ type ExactCondition =
 
 type ExactMatch = ExactCondition[];
 
+type QueryClause = {
+    raw: string;
+    exactMatch: ExactMatch;
+    keywords: string[];
+    detectedLanguage: "si" | "en";
+};
+
+type QueryGroup = {
+    clauses: QueryClause[];
+};
+
+// A comma splits the query into groups that are ANDed together. Within a group a
+// bare "හෝ" (OR) splits it into independent clauses; a group matches if ANY of its
+// clauses matches. A comma-less single-group query keeps its current AND semantics.
+const COMMA_RE = /\s*,\s*/g;
+const OR_SEPARATOR_RE = /හෝ\s+(?!\s*$)/g;
+
+const splitQueryGroups = (query: string): string[] => {
+    const groups = query
+        .split(COMMA_RE)
+        .map((group) => group.trim())
+        .filter(Boolean);
+    return groups.length > 1 ? groups : [query.trim()];
+};
+
+const splitQueryClauses = (group: string): string[] => {
+    const parts = group
+        .split(OR_SEPARATOR_RE)
+        .map((part) => part.trim())
+        .filter(Boolean);
+    return parts.length > 1 ? parts : [group.trim()];
+};
+
 const getStrengthMatch = (query: string): PlanetaryStrength | null => {
     const q = stripJoiners(query.toLowerCase());
 
@@ -474,7 +507,19 @@ export async function POST(req: NextRequest) {
 
     const detectedLanguage = detectLanguage(query);
     const keywords = getAstroKeywords(query);
-    const exactMatch = getExactMatch(query);
+
+    // Queries can carry several intents, e.g. "මේෂ ලග්නය, කුජ 1 හෝ කුජ 10". A comma
+    // splits the query into groups that are ANDed together (all must match); within a
+    // group a හෝ (OR) separator splits it into clauses, a group matching if ANY clause
+    // matches. A comma-less query is a single group with the existing AND semantics.
+    const groups: QueryGroup[] = splitQueryGroups(query).map((group) => ({
+        clauses: splitQueryClauses(group).map((clause) => ({
+            raw: clause,
+            exactMatch: getExactMatch(clause),
+            keywords: getAstroKeywords(clause),
+            detectedLanguage: detectLanguage(clause),
+        })),
+    }));
 
     const userId = session.user.id;
     const userRole = session.user.role;
@@ -516,50 +561,86 @@ export async function POST(req: NextRequest) {
             "horoscope.id": hId,
         }).lean();
 
-        if (exactMatch.length > 0) {
-            const passesExact = exactMatch.every((condition) => {
-                switch (condition.type) {
-                    case "ascendant": {
-                        const asc = calculatedDetails?.ascendant as Record<string, unknown> | undefined;
-                        return !!asc && asc.sign === condition.sign;
-                    }
-                    case "planet_in_house": {
-                        const planets = calculatedDetails?.planets as Array<Record<string, unknown>> | undefined;
-                        if (!planets) return false;
-                        return planets.some(
-                            (p) =>
-                                p.name === condition.planet &&
-                                getEffectivePlanetHouse(p, calculatedDetails?.houses) === condition.house,
-                        );
-                    }
-                    case "nakshatra": {
-                        const nakshatra = calculatedDetails?.nakshatra as Record<string, unknown> | undefined;
-                        const moonNakshatra = nakshatra?.moonNakshatra as Record<string, unknown> | undefined;
-                        return !!moonNakshatra && moonNakshatra.id === condition.nakshatra;
-                    }
-                    case "planet_strength": {
-                        const planets = calculatedDetails?.planets as Array<Record<string, unknown>> | undefined;
-                        if (!planets) return false;
-                        return planets.some(
-                            (p) => p.name === condition.planet && getStrengthValue(p.strength) === condition.strength,
-                        );
-                    }
-                    default:
-                        return false;
+        if (groups.length === 0) continue;
+
+        // A horoscope must satisfy every comma-separated group (AND), and within a
+        // group it needs only ONE of its හෝ clauses to match (OR).
+        const matchedGroupScores: number[] = [];
+        const matchedGroupConditions: string[][] = [];
+        let allGroupsMatch = true;
+
+        for (const group of groups) {
+            let groupBestScore = 0;
+            let groupBestConditions: string[] = [];
+
+            for (const clause of group.clauses) {
+                const clauseExact = clause.exactMatch;
+
+                if (clauseExact.length > 0) {
+                    const passesExact = clauseExact.every((condition) => {
+                        switch (condition.type) {
+                            case "ascendant": {
+                                const asc = calculatedDetails?.ascendant as Record<string, unknown> | undefined;
+                                return !!asc && asc.sign === condition.sign;
+                            }
+                            case "planet_in_house": {
+                                const planets = calculatedDetails?.planets as Array<Record<string, unknown>> | undefined;
+                                if (!planets) return false;
+                                return planets.some(
+                                    (p) =>
+                                        p.name === condition.planet &&
+                                        getEffectivePlanetHouse(p, calculatedDetails?.houses) === condition.house,
+                                );
+                            }
+                            case "nakshatra": {
+                                const nakshatra = calculatedDetails?.nakshatra as Record<string, unknown> | undefined;
+                                const moonNakshatra = nakshatra?.moonNakshatra as Record<string, unknown> | undefined;
+                                return !!moonNakshatra && moonNakshatra.id === condition.nakshatra;
+                            }
+                            case "planet_strength": {
+                                const planets = calculatedDetails?.planets as Array<Record<string, unknown>> | undefined;
+                                if (!planets) return false;
+                                return planets.some(
+                                    (p) =>
+                                        p.name === condition.planet && getStrengthValue(p.strength) === condition.strength,
+                                );
+                            }
+                            default:
+                                return false;
+                        }
+                    });
+                    if (!passesExact) continue;
                 }
-            });
-            if (!passesExact) continue;
+
+                const { score: clauseScore, matchedConditions } = scoreHoroscope(
+                    h as unknown as Record<string, unknown>,
+                    clause.raw,
+                    calculatedDetails as unknown as Record<string, unknown> | null,
+                );
+
+                if (clauseScore > groupBestScore) {
+                    groupBestScore = clauseScore;
+                    groupBestConditions = matchedConditions;
+                }
+            }
+
+            if (groupBestScore <= 0) {
+                allGroupsMatch = false;
+                break;
+            }
+
+            matchedGroupScores.push(groupBestScore);
+            matchedGroupConditions.push(groupBestConditions);
         }
 
-        const { score: keywordScore, matchedConditions } = scoreHoroscope(
-            h as unknown as Record<string, unknown>,
-            query,
-            calculatedDetails as unknown as Record<string, unknown> | null,
-        );
-
-        if (keywordScore <= 0 && !vectorScores.has(hId)) continue;
+        if (!allGroupsMatch && !vectorScores.has(hId)) continue;
 
         const vectorScore = vectorScores.get(hId) ?? 0;
+
+        // Across ANDed groups the best clause score per group is summed, capped so a
+        // string of strong matches does not dominate the vector signal.
+        const keywordScore = matchedGroupScores.reduce((sum, s) => sum + s, 0);
+        const matchedConditions = matchedGroupConditions.flat();
 
         const combinedScore = vectorSearchUsed
             ? +(0.7 * vectorScore + 0.3 * Math.min(keywordScore / 4.0, 1.0)).toFixed(3)
@@ -612,11 +693,26 @@ export async function POST(req: NextRequest) {
         pageSize: paginated.pageSize,
         totalPages: paginated.totalPages,
         queryUnderstanding: {
-            mode: exactMatch.length === 1 ? `exact_${exactMatch[0].type}` : exactMatch.length > 1 ? "exact_multiple" : "basic",
+            mode: groups.length > 1
+                ? "and_groups"
+                : groups[0].clauses.length > 1
+                  ? "or_multiple"
+                  : groups[0].clauses[0].exactMatch.length === 1
+                    ? `exact_${groups[0].clauses[0].exactMatch[0].type}`
+                    : groups[0].clauses[0].exactMatch.length > 1
+                      ? "exact_multiple"
+                      : "basic",
             conditions: keywords,
             language: detectedLanguage,
             understoodAll: true,
-            exactMatch,
+            exactMatch: groups.map((g) => g.clauses.map((c) => c.exactMatch)),
+            groups: groups.map((g) => ({
+                clauses: g.clauses.map((c) => ({
+                    query: c.raw,
+                    conditions: c.keywords,
+                    language: c.detectedLanguage,
+                })),
+            })),
             vectorSearchUsed,
         },
     });

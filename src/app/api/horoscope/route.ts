@@ -8,7 +8,7 @@ import { Horoscope } from "@/models/Horoscope";
 import { User } from "@/models/User";
 
 import { calculateHoroscope } from "@/lib/calculation";
-import { getChartData } from "@/lib/chartDataTransform";
+import { getChartData, isLeanChartType, toBirthChartData } from "@/lib/chartDataTransform";
 import { generateChartSvg } from "@/lib/chartRenderer";
 import { ALL_CHART_TYPES } from "@/lib/chartTypes";
 import { connectDB } from "@/lib/db";
@@ -89,7 +89,7 @@ export async function POST(req: NextRequest) {
         return {
             horoscope: { id: horoscope.id },
             type,
-            data: chartData,
+            data: isLeanChartType(type) ? toBirthChartData(chartData) : chartData,
             imageKey: "",
             svgData: generateChartSvg(chartData, type),
         };

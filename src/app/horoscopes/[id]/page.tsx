@@ -14,6 +14,7 @@ import { useEffect, useRef, useState } from "react";
 import type { Ascendant, Dashas, House, Planet } from "@/lib/astrology";
 import { findHouse, formatDegree, navamsaSign } from "@/lib/astrology";
 import { PlanetaryStrength } from "@/lib/astrologyEnums";
+import { toBirthChartData } from "@/lib/chartDataTransform";
 import { ALL_CHART_TYPES, ChartType } from "@/lib/chartTypes";
 import { formatDate } from "@/lib/date";
 
@@ -589,9 +590,11 @@ export default function HoroscopeDetailPage() {
                             return (
                                 <div className="flex justify-center bg-white rounded-lg border p-4 overflow-auto">
                                     <BirthChart
-                                        planets={calculatedDetails.planets}
-                                        houses={calculatedDetails.houses}
-                                        ascendant={calculatedDetails.ascendant}
+                                        {...toBirthChartData({
+                                            planets: calculatedDetails.planets,
+                                            houses: calculatedDetails.houses,
+                                            ascendant: calculatedDetails.ascendant,
+                                        })}
                                     />
                                 </div>
                             );
@@ -621,12 +624,7 @@ export default function HoroscopeDetailPage() {
                             }
                             return (
                                 <div className="flex justify-center bg-white rounded-lg border p-4 overflow-auto">
-                                    <BirthChart
-                                        planets={navamsaData.planets}
-                                        houses={navamsaData.houses}
-                                        ascendant={navamsaData.ascendant}
-                                        showAscendantDegree={false}
-                                    />
+                                    <BirthChart {...toBirthChartData(navamsaData)} showAscendantDegree={false} />
                                 </div>
                             );
                         }
@@ -642,11 +640,7 @@ export default function HoroscopeDetailPage() {
                             }
                             return (
                                 <div className="flex justify-center bg-white rounded-lg border p-4 overflow-auto">
-                                    <BirthChart
-                                        planets={chartData.data.planets}
-                                        houses={chartData.data.houses}
-                                        ascendant={chartData.data.ascendant}
-                                    />
+                                    <BirthChart {...toBirthChartData(chartData.data)} />
                                 </div>
                             );
                         }
@@ -808,7 +802,8 @@ export default function HoroscopeDetailPage() {
                                 </thead>
                                 <tbody>
                                     {calculatedDetails.planets.map((p) => {
-                                        const displayHouse = findHouse(p.absoluteDegree, calculatedDetails.houses) ?? p.house;
+                                        const displayHouse =
+                                            findHouse(p.absoluteDegree, calculatedDetails.houses) ?? p.house;
                                         const conjunct = calculatedDetails.planets
                                             .filter((q) => q.name !== p.name)
                                             .filter((q) => {
@@ -872,7 +867,9 @@ export default function HoroscopeDetailPage() {
                                                     {getSignName(p.sign)} ({formatDegree(p.degree)})
                                                 </td>
                                                 <td className="py-1 pr-3">
-                                                    {t(`astrology.${STRENGTH_TRANSLATION_KEYS[getStrength(p.strength)] ?? "neutral"}`)}
+                                                    {t(
+                                                        `astrology.${STRENGTH_TRANSLATION_KEYS[getStrength(p.strength)] ?? "neutral"}`,
+                                                    )}
                                                 </td>
                                                 <td className="py-1 pr-3">{displayHouse}</td>
                                                 <td className="py-1 pr-3 text-gray-600">
@@ -922,9 +919,7 @@ export default function HoroscopeDetailPage() {
                                 const aspects = p.aspects
                                     .filter((a) => a.aspectType !== 0)
                                     .map((a) => {
-                                        const q = calculatedDetails.planets.find(
-                                            (x) => x.name === a.planetName,
-                                        );
+                                        const q = calculatedDetails.planets.find((x) => x.name === a.planetName);
                                         if (!q) return "";
                                         const exactPoint = (p.absoluteDegree + a.aspectType) % 360;
                                         let diff = exactPoint - q.absoluteDegree;
@@ -947,8 +942,7 @@ export default function HoroscopeDetailPage() {
                                     tags.push(t("astrology.drekkanaLordLabel"));
                                 if (calculatedDetails.lord64thNavamsa === p.name)
                                     tags.push(t("astrology.navamsaLordLabel"));
-                                if (calculatedDetails.atmakaraka === p.name)
-                                    tags.push(t("astrology.atmakarakaLabel"));
+                                if (calculatedDetails.atmakaraka === p.name) tags.push(t("astrology.atmakarakaLabel"));
                                 if (calculatedDetails.marakaPlanets?.includes(p.name))
                                     tags.push(t("astrology.marakaLabel"));
                                 if (calculatedDetails.badhakaPlanet?.includes(p.name))
@@ -963,7 +957,8 @@ export default function HoroscopeDetailPage() {
                                     ownSign: "text-indigo-600 font-semibold",
                                 };
                                 const resolvedStrength = getStrength(p.strength);
-                                const strengthClass = STRENGTH_COLORS[STRENGTH_TRANSLATION_KEYS[resolvedStrength]] || "text-gray-600";
+                                const strengthClass =
+                                    STRENGTH_COLORS[STRENGTH_TRANSLATION_KEYS[resolvedStrength]] || "text-gray-600";
 
                                 return (
                                     <div key={p.name} className="border rounded overflow-hidden">
@@ -993,7 +988,9 @@ export default function HoroscopeDetailPage() {
                                                 {getSignName(p.sign)}
                                             </span>
                                             <span className={`whitespace-nowrap ${strengthClass}`}>
-                                                {t(`astrology.${STRENGTH_TRANSLATION_KEYS[resolvedStrength] ?? "neutral"}`)}
+                                                {t(
+                                                    `astrology.${STRENGTH_TRANSLATION_KEYS[resolvedStrength] ?? "neutral"}`,
+                                                )}
                                             </span>
                                             <span className="text-gray-600 whitespace-nowrap">
                                                 {t("astrology.house")} {displayHouse}
@@ -1057,7 +1054,11 @@ export default function HoroscopeDetailPage() {
                                                     <span className="font-medium text-gray-700">
                                                         {t("astrology.navamsaka")}:
                                                     </span>{" "}
-                                                    {getSignName(p.navamsaSign)} ({t(`astrology.${STRENGTH_TRANSLATION_KEYS[getStrength(p.navamsaStrength)] ?? "neutral"}`)})
+                                                    {getSignName(p.navamsaSign)} (
+                                                    {t(
+                                                        `astrology.${STRENGTH_TRANSLATION_KEYS[getStrength(p.navamsaStrength)] ?? "neutral"}`,
+                                                    )}
+                                                    )
                                                 </p>
                                             </div>
                                         )}
