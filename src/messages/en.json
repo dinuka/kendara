@@ -318,6 +318,12 @@
             "dasamsa-d10": "Dasamsa",
             "shodasha-vargas": "Shodasha Vargas"
         },
+        "chartPairTitle": "Birth & Navamsa",
+        "otherCharts": "Other Charts",
+        "chartCaptions": {
+            "birth": "Birth Chart (D1)",
+            "navamsa-d9": "Navamsa Chart (D9)"
+        },
         "padaFormat": "{pada} Pada",
         "viewDetails": "View details",
         "less": "Less"

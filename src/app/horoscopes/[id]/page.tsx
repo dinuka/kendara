@@ -93,7 +93,7 @@ export default function HoroscopeDetailPage() {
         };
     } | null>(null);
     const [activeTab, setActiveTab] = useState("charts");
-    const [selectedChart, setSelectedChart] = useState<ChartType>(ChartType.BIRTH);
+    const [selectedChart, setSelectedChart] = useState<ChartType>(ChartType.HOUSE);
     const [loading, setLoading] = useState(true);
     const [orbMap, setOrbMap] = useState<Record<number, number>>({
         1: 15,
@@ -522,7 +522,7 @@ export default function HoroscopeDetailPage() {
         { id: "metadata", label: t("horoscope.metadata") },
     ];
 
-    const chartTypes = ALL_CHART_TYPES;
+    const chartTypes = ALL_CHART_TYPES.filter((type) => type !== ChartType.BIRTH && type !== ChartType.NAVAMSA_D9);
 
     return (
         <div>
@@ -665,96 +665,129 @@ export default function HoroscopeDetailPage() {
             </div>
 
             {activeTab === "charts" && (
-                <div>
-                    <div className="flex gap-2 mb-4 flex-wrap">
-                        {chartTypes.map((type) => (
-                            <button
-                                key={type}
-                                onClick={() => setSelectedChart(type)}
-                                className={`text-xs px-3 py-1.5 border rounded capitalize transition-colors ${
-                                    selectedChart === type
-                                        ? "bg-indigo-600 text-white border-indigo-600"
-                                        : "hover:bg-gray-50"
-                                }`}
-                            >
-                                {t(`astrology.chartTypes.${type}`)}
-                            </button>
-                        ))}
-                    </div>
-                    {(() => {
-                        if (!calculatedDetails) {
+                <div className="space-y-6">
+                    <section aria-labelledby="chart-pair-title">
+                        <h3
+                            id="chart-pair-title"
+                            className="font-semibold text-sm mb-3 text-indigo-700 uppercase tracking-wide"
+                        >
+                            {t("astrology.chartPairTitle")}
+                        </h3>
+                        {(() => {
+                            if (!calculatedDetails) {
+                                return (
+                                    <div className="bg-white rounded-lg border p-6 text-center text-gray-400 min-h-[300px] flex items-center justify-center">
+                                        <p className="text-sm">{t("astrology.noChartData")}</p>
+                                    </div>
+                                );
+                            }
+                            const navamsaData = getNavamsaChartData();
+                            return (
+                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                                    <figure className="bg-white rounded-lg border p-4 overflow-auto">
+                                        <figcaption className="text-sm font-semibold text-gray-700 mb-2">
+                                            {t("astrology.chartCaptions.birth")}
+                                        </figcaption>
+                                        <div className="flex justify-center">
+                                            <BirthChart
+                                                {...toBirthChartData({
+                                                    planets: calculatedDetails.planets,
+                                                    houses: calculatedDetails.houses,
+                                                    ascendant: calculatedDetails.ascendant,
+                                                })}
+                                            />
+                                        </div>
+                                    </figure>
+                                    <figure className="bg-white rounded-lg border p-4 overflow-auto">
+                                        <figcaption className="text-sm font-semibold text-gray-700 mb-2">
+                                            {t("astrology.chartCaptions.navamsa-d9")}
+                                        </figcaption>
+                                        {!navamsaData ? (
+                                            <div className="bg-white rounded-lg border p-6 text-center text-gray-400 min-h-[300px] flex items-center justify-center">
+                                                <p className="text-sm">{t("astrology.noChartData")}</p>
+                                            </div>
+                                        ) : (
+                                            <div className="flex justify-center">
+                                                <BirthChart
+                                                    {...toBirthChartData(navamsaData)}
+                                                    showAscendantDegree={false}
+                                                />
+                                            </div>
+                                        )}
+                                    </figure>
+                                </div>
+                            );
+                        })()}
+                    </section>
+
+                    <section aria-labelledby="other-charts-title">
+                        <h3
+                            id="other-charts-title"
+                            className="font-semibold text-sm mb-3 text-indigo-700 uppercase tracking-wide"
+                        >
+                            {t("astrology.otherCharts")}
+                        </h3>
+                        <div role="group" aria-label={t("astrology.otherCharts")} className="flex gap-2 mb-4 flex-wrap">
+                            {chartTypes.map((type) => (
+                                <button
+                                    key={type}
+                                    onClick={() => setSelectedChart(type)}
+                                    aria-pressed={selectedChart === type}
+                                    className={`text-xs px-3 py-1.5 border rounded capitalize transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
+                                        selectedChart === type
+                                            ? "bg-indigo-600 text-white border-indigo-600"
+                                            : "hover:bg-gray-50"
+                                    }`}
+                                >
+                                    {t(`astrology.chartTypes.${type}`)}
+                                </button>
+                            ))}
+                        </div>
+                        {(() => {
+                            if (!calculatedDetails) {
+                                return (
+                                    <div className="bg-white rounded-lg border p-6 text-center text-gray-400 min-h-[300px] flex items-center justify-center">
+                                        <p className="text-sm">{t("astrology.noChartData")}</p>
+                                    </div>
+                                );
+                            }
+
+                            if (selectedChart === ChartType.HOUSE) {
+                                return (
+                                    <div className="flex justify-center bg-white rounded-lg border p-4 overflow-auto">
+                                        <HouseChart
+                                            planets={calculatedDetails.planets}
+                                            houses={calculatedDetails.houses}
+                                            ascendant={calculatedDetails.ascendant}
+                                            horoscopeId={params.id as string}
+                                        />
+                                    </div>
+                                );
+                            }
+
+                            if (selectedChart === ChartType.CHANDRA_LAGNA || selectedChart === ChartType.SURYA_LAGNA) {
+                                const chartData = data.charts.find((c) => c.type === selectedChart);
+                                if (!chartData?.data) {
+                                    return (
+                                        <div className="bg-white rounded-lg border p-6 text-center text-gray-400 min-h-[300px] flex items-center justify-center">
+                                            <p className="text-sm">{t("astrology.noChartData")}</p>
+                                        </div>
+                                    );
+                                }
+                                return (
+                                    <div className="flex justify-center bg-white rounded-lg border p-4 overflow-auto">
+                                        <BirthChart {...toBirthChartData(chartData.data)} />
+                                    </div>
+                                );
+                            }
+
                             return (
                                 <div className="bg-white rounded-lg border p-6 text-center text-gray-400 min-h-[300px] flex items-center justify-center">
                                     <p className="text-sm">{t("astrology.noChartData")}</p>
                                 </div>
                             );
-                        }
-
-                        if (selectedChart === ChartType.BIRTH) {
-                            return (
-                                <div className="flex justify-center bg-white rounded-lg border p-4 overflow-auto">
-                                    <BirthChart
-                                        {...toBirthChartData({
-                                            planets: calculatedDetails.planets,
-                                            houses: calculatedDetails.houses,
-                                            ascendant: calculatedDetails.ascendant,
-                                        })}
-                                    />
-                                </div>
-                            );
-                        }
-
-                        if (selectedChart === ChartType.HOUSE) {
-                            return (
-                                <div className="flex justify-center bg-white rounded-lg border p-4 overflow-auto">
-                                    <HouseChart
-                                        planets={calculatedDetails.planets}
-                                        houses={calculatedDetails.houses}
-                                        ascendant={calculatedDetails.ascendant}
-                                        horoscopeId={params.id as string}
-                                    />
-                                </div>
-                            );
-                        }
-
-                        if (selectedChart === ChartType.NAVAMSA_D9) {
-                            const navamsaData = getNavamsaChartData();
-                            if (!navamsaData) {
-                                return (
-                                    <div className="bg-white rounded-lg border p-6 text-center text-gray-400 min-h-[300px] flex items-center justify-center">
-                                        <p className="text-sm">{t("astrology.noChartData")}</p>
-                                    </div>
-                                );
-                            }
-                            return (
-                                <div className="flex justify-center bg-white rounded-lg border p-4 overflow-auto">
-                                    <BirthChart {...toBirthChartData(navamsaData)} showAscendantDegree={false} />
-                                </div>
-                            );
-                        }
-
-                        if (selectedChart === ChartType.CHANDRA_LAGNA || selectedChart === ChartType.SURYA_LAGNA) {
-                            const chartData = data.charts.find((c) => c.type === selectedChart);
-                            if (!chartData?.data) {
-                                return (
-                                    <div className="bg-white rounded-lg border p-6 text-center text-gray-400 min-h-[300px] flex items-center justify-center">
-                                        <p className="text-sm">{t("astrology.noChartData")}</p>
-                                    </div>
-                                );
-                            }
-                            return (
-                                <div className="flex justify-center bg-white rounded-lg border p-4 overflow-auto">
-                                    <BirthChart {...toBirthChartData(chartData.data)} />
-                                </div>
-                            );
-                        }
-
-                        return (
-                            <div className="bg-white rounded-lg border p-6 text-center text-gray-400 min-h-[300px] flex items-center justify-center">
-                                <p className="text-sm">{t("astrology.noChartData")}</p>
-                            </div>
-                        );
-                    })()}
+                        })()}
+                    </section>
                 </div>
             )}
 

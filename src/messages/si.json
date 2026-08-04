@@ -318,6 +318,12 @@
             "dasamsa-d10": "දසාංශ",
             "shodasha-vargas": "ෂෝඩශ වර්ග"
         },
+        "chartPairTitle": "ජන්ම හා නවාංශක",
+        "otherCharts": "වෙනත් සටහන්",
+        "chartCaptions": {
+            "birth": "ජන්ම කේන්ද්රය (D1)",
+            "navamsa-d9": "නවාංශකය (D9)"
+        },
         "padaFormat": "{pada} වෙනි පාදය",
         "viewDetails": "විස්තර බලන්න",
         "less": "අඩුවෙන්"
