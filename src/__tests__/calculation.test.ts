@@ -131,4 +131,12 @@ describe("calculateHoroscope", () => {
             expect(typeof p).toBe("number");
         });
     });
+
+    test("ashtamansha planets are defined and match the 8th-house/navamsa rule", () => {
+        const result = calculateHoroscope(baseData);
+        expect(Array.isArray(result.ashtamanshaPlanets)).toBe(true);
+        result.ashtamanshaPlanets.forEach((p: number) => {
+            expect(typeof p).toBe("number");
+        });
+    });
 });

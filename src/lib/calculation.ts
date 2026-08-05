@@ -385,8 +385,8 @@ export function calculateHoroscope(
             i === 0
                 ? false
                 : Math.abs(planetDetails[i].absoluteDegree - sunLong) < sunOrb ||
-                  Math.abs(planetDetails[i].absoluteDegree - sunLong + 360) < sunOrb ||
-                  Math.abs(planetDetails[i].absoluteDegree - sunLong - 360) < sunOrb;
+                Math.abs(planetDetails[i].absoluteDegree - sunLong + 360) < sunOrb ||
+                Math.abs(planetDetails[i].absoluteDegree - sunLong - 360) < sunOrb;
 
         const aspects: Aspect[] = [];
         for (let j = 0; j < planetDetails.length; j++) {
@@ -443,6 +443,7 @@ export function calculateHoroscope(
         badhakaPlanet: computeBadhaka(ascSign),
         marakaPlanets: computeMaraka(ascSign, planetDetails),
         nidhanamshaPlanets: computeNidhanamsha(ascSign, ascLong % 30, houses, planetDetails),
+        ashtamanshaPlanets: computeAshtamansha(ascSign, ascLong % 30, houses, planetDetails),
         atmakaraka: computeAtmakaraka(planetDetails),
         yogas: [],
         doshas: { doshas: [] },
@@ -497,6 +498,23 @@ function computeNidhanamsha(ascSign: number, ascDegree: number, houses: House[],
 
     return planets
         .filter((p) => ((p.navamsaSign - navamsaLagna + 12) % 12) + 1 === nidhanamshaHouse)
+        .map((p) => p.name);
+}
+
+/** Ashtamansha (අෂ්ඨමාංශ): for each planet, take the sign of the 8th house counted from the
+ *  planet's house in the birth chart, locate that sign's house in the navamsa (D9) chart, and if
+ *  the planet itself occupies that navamsa house it is an ashtamansha planet. */
+function computeAshtamansha(ascSign: number, ascDegree: number, houses: House[], planets: Planet[]): number[] {
+    const ascNavamsaNum = Math.floor(ascDegree / (30 / 9)) + 1;
+    const navamsaLagna = navamsaSign(ascSign, ascNavamsaNum);
+
+    return planets
+        .filter((p) => {
+            const eighthHouseNumber = ((p.house + 6) % 12) + 1;
+            const eighthHouseSign = houses.find((h) => h.houseNumber === eighthHouseNumber)?.sign ?? p.sign;
+            const ashtamanshaSignHouse = ((eighthHouseSign - navamsaLagna + 12) % 12) + 1;
+            return ((p.navamsaSign - navamsaLagna + 12) % 12) + 1 === ashtamanshaSignHouse;
+        })
         .map((p) => p.name);
 }
 

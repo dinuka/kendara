@@ -232,6 +232,7 @@ export interface CalculationResult {
     badhakaPlanet: number[];
     marakaPlanets: number[];
     nidhanamshaPlanets: number[];
+    ashtamanshaPlanets: number[];
     atmakaraka: number;
     yogas: unknown[];
     doshas: DoshaInfo;

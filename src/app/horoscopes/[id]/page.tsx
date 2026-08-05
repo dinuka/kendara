@@ -79,6 +79,7 @@ export default function HoroscopeDetailPage() {
             badhakaPlanet: number[];
             marakaPlanets: number[];
             nidhanamshaPlanets: number[];
+            ashtamanshaPlanets: number[];
             atmakaraka: number;
             yogas: unknown[];
             doshas: { doshas: unknown[] };
@@ -995,6 +996,8 @@ export default function HoroscopeDetailPage() {
                                             tags.push(t("astrology.badhakaLabel"));
                                         if (calculatedDetails.nidhanamshaPlanets?.includes(p.name))
                                             tags.push(t("astrology.nidhanamshaLabel"));
+                                        if (calculatedDetails.ashtamanshaPlanets?.includes(p.name))
+                                            tags.push(t("astrology.ashtamanshaLabel"));
                                         return (
                                             <tr key={p.name} className="border-b border-gray-50">
                                                 <td className="py-1 pr-3 font-medium">
@@ -1088,6 +1091,8 @@ export default function HoroscopeDetailPage() {
                                     tags.push(t("astrology.badhakaLabel"));
                                 if (calculatedDetails.nidhanamshaPlanets?.includes(p.name))
                                     tags.push(t("astrology.nidhanamshaLabel"));
+                                if (calculatedDetails.ashtamanshaPlanets?.includes(p.name))
+                                    tags.push(t("astrology.ashtamanshaLabel"));
 
                                 const STRENGTH_COLORS: Record<string, string> = {
                                     athiUchcha: "text-green-700 font-semibold",
