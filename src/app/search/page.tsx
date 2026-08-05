@@ -490,7 +490,18 @@ const formatCondition = (
     if (mc.startsWith("dosha=")) {
         return t("search.conditions.dosha", { name: mc.slice("dosha=".length) });
     }
-    const ROLE_KEYS = ["ashtamansha", "nidhanamsha", "maraka", "badhaka", "drekkana", "navamsa", "atmakaraka"];
+    const ROLE_KEYS = [
+        "ashtamansha",
+        "nidhanamsha",
+        "maraka",
+        "badhaka",
+        "drekkana",
+        "navamsa",
+        "atmakaraka",
+        "wargoththama",
+        "gandanta",
+        "gandamula",
+    ];
     const roleKey = ROLE_KEYS.find((role) => mc.startsWith(`${role}=`));
     if (roleKey) {
         return t(`search.conditions.${roleKey}`, { planet: mc.slice(`${roleKey}=`.length) });
@@ -740,6 +751,11 @@ const SearchResultCard = ({
                                     {t(`astrology.planetNames.${(ascData.lord as number) || 1}`)}){" "}
                                     {ascDegree ? formatDegree(ascDegree) : ""}
                                 </div>
+                                {Boolean(cd?.isAscendantWargoththama) && (
+                                    <div className="mt-1 inline-flex items-center gap-1 text-[10px] text-indigo-700 bg-indigo-50 border border-indigo-200 rounded px-1.5 py-0.5">
+                                        {t("astrology.wargoththamaLabel")}
+                                    </div>
+                                )}
                                 {config.nakshatra && (cd?.nakshatra as boolean) && (
                                     <div className="text-xs text-gray-600">
                                         {(() => {
@@ -935,22 +951,37 @@ const SearchResultCard = ({
                                                 return `${t(`astrology.planetNames.${q.name as number}`)} (${formatDegDiff(diff)})`;
                                             });
 
-                                        const tags: string[] = [];
-                                        if (p.combustion as boolean) tags.push(t("astrology.combustLabel"));
+                                        const tags: { key: string; text: string; strikethrough?: boolean }[] = [];
+                                        if (p.combustion as boolean)
+                                            tags.push({ key: "combustion", text: t("astrology.combustLabel") });
                                         if ((cd!.lord22ndDrekkana as number) === pName)
-                                            tags.push(t("astrology.drekkanaLordLabel"));
+                                            tags.push({ key: "drekkana", text: t("astrology.drekkanaLordLabel") });
                                         if ((cd!.lord64thNavamsa as number) === pName)
-                                            tags.push(t("astrology.navamsaLordLabel"));
+                                            tags.push({ key: "navamsa", text: t("astrology.navamsaLordLabel") });
                                         if ((cd!.atmakaraka as number) === pName)
-                                            tags.push(t("astrology.atmakarakaLabel"));
+                                            tags.push({ key: "atmakaraka", text: t("astrology.atmakarakaLabel") });
                                         if (((cd!.marakaPlanets as number[]) || []).includes(pName))
-                                            tags.push(t("astrology.marakaLabel"));
+                                            tags.push({ key: "maraka", text: t("astrology.marakaLabel") });
                                         if (((cd!.badhakaPlanet as number[]) || []).includes(pName))
-                                            tags.push(t("astrology.badhakaLabel"));
+                                            tags.push({ key: "badhaka", text: t("astrology.badhakaLabel") });
                                         if (((cd!.nidhanamshaPlanets as number[]) || []).includes(pName))
-                                            tags.push(t("astrology.nidhanamshaLabel"));
+                                            tags.push({ key: "nidhanamsha", text: t("astrology.nidhanamshaLabel") });
                                         if (((cd!.ashtamanshaPlanets as number[]) || []).includes(pName))
-                                            tags.push(t("astrology.ashtamanshaLabel"));
+                                            tags.push({ key: "ashtamansha", text: t("astrology.ashtamanshaLabel") });
+                                        if (((cd!.wargoththamaPlanets as number[]) || []).includes(pName)) {
+                                            const crossed =
+                                                ((cd!.gandanthaPlanets as number[]) || []).includes(pName) ||
+                                                ((cd!.gandamulaPlanets as number[]) || []).includes(pName);
+                                            tags.push({
+                                                key: "wargoththama",
+                                                text: t("astrology.wargoththamaLabel"),
+                                                strikethrough: crossed,
+                                            });
+                                        }
+                                        if (((cd!.gandanthaPlanets as number[]) || []).includes(pName))
+                                            tags.push({ key: "gandanta", text: t("astrology.gandantaLabel") });
+                                        if (((cd!.gandamulaPlanets as number[]) || []).includes(pName))
+                                            tags.push({ key: "gandamula", text: t("astrology.gandamulaLabel") });
 
                                         const strengthKey = STRENGTH_TRANSLATION_KEYS[pStrength];
                                         const STRENGTH_COLORS: Record<string, string> = {
@@ -1002,13 +1033,15 @@ const SearchResultCard = ({
                                                         ({(p.pada as number) || 1})
                                                     </span>
                                                     {tags.length > 0 && (
-                                                        <div className="flex gap-1 shrink-0">
+                                                        <div className="flex gap-1 shrink-0 flex-wrap">
                                                             {tags.map((tag) => (
                                                                 <span
-                                                                    key={tag}
-                                                                    className="text-[10px] leading-tight px-1 rounded bg-gray-100 text-gray-600"
+                                                                    key={tag.key}
+                                                                    className={`text-[10px] leading-tight px-1 rounded bg-gray-100 text-gray-600 ${
+                                                                        tag.strikethrough ? "line-through" : ""
+                                                                    }`}
                                                                 >
-                                                                    {tag}
+                                                                    {tag.text}
                                                                 </span>
                                                             ))}
                                                         </div>
@@ -1045,10 +1078,12 @@ const SearchResultCard = ({
                                                             <div className="flex flex-wrap gap-1 pt-0.5">
                                                                 {tags.map((tag) => (
                                                                     <span
-                                                                        key={tag}
-                                                                        className="bg-white border rounded px-1.5 py-0.5 text-gray-600"
+                                                                        key={tag.key}
+                                                                        className={`bg-white border rounded px-1.5 py-0.5 text-gray-600 ${
+                                                                            tag.strikethrough ? "line-through" : ""
+                                                                        }`}
                                                                     >
-                                                                        {tag}
+                                                                        {tag.text}
                                                                     </span>
                                                                 ))}
                                                             </div>

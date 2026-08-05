@@ -234,6 +234,10 @@ export interface CalculationResult {
     nidhanamshaPlanets: number[];
     ashtamanshaPlanets: number[];
     atmakaraka: number;
+    isAscendantWargoththama: boolean;
+    wargoththamaPlanets: number[];
+    gandanthaPlanets: number[];
+    gandamulaPlanets: number[];
     yogas: unknown[];
     doshas: DoshaInfo;
 }

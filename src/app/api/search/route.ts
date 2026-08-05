@@ -247,6 +247,12 @@ const getRoleField = (role: PlanetRoleKey): string => {
             return "lord64thNavamsa";
         case "atmakaraka":
             return "atmakaraka";
+        case "wargoththama":
+            return "wargoththamaPlanets";
+        case "gandanta":
+            return "gandanthaPlanets";
+        case "gandamula":
+            return "gandamulaPlanets";
     }
 };
 

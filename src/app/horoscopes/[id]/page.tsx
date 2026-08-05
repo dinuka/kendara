@@ -810,6 +810,11 @@ export default function HoroscopeDetailPage() {
                                     {getPlanetName(calculatedDetails.nakshatra.ascendantNakshatra?.lord ?? 0)}){" "}
                                     {getPadaFormat(calculatedDetails.nakshatra.ascendantNakshatra?.pada ?? 1)}
                                 </p>
+                                {calculatedDetails.isAscendantWargoththama && (
+                                    <p className="mt-2 inline-flex items-center gap-1 text-xs text-indigo-700 bg-indigo-50 border border-indigo-200 rounded px-2 py-0.5">
+                                        {t("astrology.wargoththamaLabel")}
+                                    </p>
+                                )}
                             </div>
                             <div className="bg-gray-50 rounded p-3">
                                 <h4 className="font-semibold text-sm text-indigo-700 uppercase tracking-wide mb-2">
@@ -982,22 +987,37 @@ export default function HoroscopeDetailPage() {
                                                 return `${getPlanetName(a.planetName)} (${sign}${String(anshaka).padStart(2, "0")}:${String(kala).padStart(2, "0")}:${String(vikala).padStart(2, "0")})`;
                                             })
                                             .filter(Boolean);
-                                        const tags: string[] = [];
-                                        if (p.combustion) tags.push(t("astrology.combustLabel"));
+                                        const tags: { key: string; text: string; strikethrough?: boolean }[] = [];
+                                        if (p.combustion)
+                                            tags.push({ key: "combustion", text: t("astrology.combustLabel") });
                                         if (calculatedDetails.lord22ndDrekkana === p.name)
-                                            tags.push(t("astrology.drekkanaLordLabel"));
+                                            tags.push({ key: "drekkana", text: t("astrology.drekkanaLordLabel") });
                                         if (calculatedDetails.lord64thNavamsa === p.name)
-                                            tags.push(t("astrology.navamsaLordLabel"));
+                                            tags.push({ key: "navamsa", text: t("astrology.navamsaLordLabel") });
                                         if (calculatedDetails.atmakaraka === p.name)
-                                            tags.push(t("astrology.atmakarakaLabel"));
+                                            tags.push({ key: "atmakaraka", text: t("astrology.atmakarakaLabel") });
                                         if (calculatedDetails.marakaPlanets?.includes(p.name))
-                                            tags.push(t("astrology.marakaLabel"));
+                                            tags.push({ key: "maraka", text: t("astrology.marakaLabel") });
                                         if (calculatedDetails.badhakaPlanet?.includes(p.name))
-                                            tags.push(t("astrology.badhakaLabel"));
+                                            tags.push({ key: "badhaka", text: t("astrology.badhakaLabel") });
                                         if (calculatedDetails.nidhanamshaPlanets?.includes(p.name))
-                                            tags.push(t("astrology.nidhanamshaLabel"));
+                                            tags.push({ key: "nidhanamsha", text: t("astrology.nidhanamshaLabel") });
                                         if (calculatedDetails.ashtamanshaPlanets?.includes(p.name))
-                                            tags.push(t("astrology.ashtamanshaLabel"));
+                                            tags.push({ key: "ashtamansha", text: t("astrology.ashtamanshaLabel") });
+                                        if (calculatedDetails.wargoththamaPlanets?.includes(p.name)) {
+                                            const crossed =
+                                                calculatedDetails.gandanthaPlanets?.includes(p.name) ||
+                                                calculatedDetails.gandamulaPlanets?.includes(p.name);
+                                            tags.push({
+                                                key: "wargoththama",
+                                                text: t("astrology.wargoththamaLabel"),
+                                                strikethrough: crossed,
+                                            });
+                                        }
+                                        if (calculatedDetails.gandanthaPlanets?.includes(p.name))
+                                            tags.push({ key: "gandanta", text: t("astrology.gandantaLabel") });
+                                        if (calculatedDetails.gandamulaPlanets?.includes(p.name))
+                                            tags.push({ key: "gandamula", text: t("astrology.gandamulaLabel") });
                                         return (
                                             <tr key={p.name} className="border-b border-gray-50">
                                                 <td className="py-1 pr-3 font-medium">
@@ -1023,7 +1043,24 @@ export default function HoroscopeDetailPage() {
                                                 <td className="py-1 pr-3">
                                                     {aspects.length > 0 ? aspects.join(", ") : "—"}
                                                 </td>
-                                                <td className="py-1 pr-3">{tags.length > 0 ? tags.join(", ") : "—"}</td>
+                                                <td className="py-1 pr-3">
+                                                    {tags.length > 0 ? (
+                                                        <span className="flex flex-wrap gap-1">
+                                                            {tags.map((tag) => (
+                                                                <span
+                                                                    key={tag.key}
+                                                                    className={`text-[10px] leading-tight px-1 rounded bg-gray-100 text-gray-600 whitespace-nowrap ${
+                                                                        tag.strikethrough ? "line-through" : ""
+                                                                    }`}
+                                                                >
+                                                                    {tag.text}
+                                                                </span>
+                                                            ))}
+                                                        </span>
+                                                    ) : (
+                                                        "—"
+                                                    )}
+                                                </td>
                                             </tr>
                                         );
                                     })}
@@ -1078,21 +1115,36 @@ export default function HoroscopeDetailPage() {
                                     })
                                     .filter(Boolean);
 
-                                const tags: string[] = [];
-                                if (p.combustion) tags.push(t("astrology.combustLabel"));
+                                const tags: { key: string; text: string; strikethrough?: boolean }[] = [];
+                                if (p.combustion) tags.push({ key: "combustion", text: t("astrology.combustLabel") });
                                 if (calculatedDetails.lord22ndDrekkana === p.name)
-                                    tags.push(t("astrology.drekkanaLordLabel"));
+                                    tags.push({ key: "drekkana", text: t("astrology.drekkanaLordLabel") });
                                 if (calculatedDetails.lord64thNavamsa === p.name)
-                                    tags.push(t("astrology.navamsaLordLabel"));
-                                if (calculatedDetails.atmakaraka === p.name) tags.push(t("astrology.atmakarakaLabel"));
+                                    tags.push({ key: "navamsa", text: t("astrology.navamsaLordLabel") });
+                                if (calculatedDetails.atmakaraka === p.name)
+                                    tags.push({ key: "atmakaraka", text: t("astrology.atmakarakaLabel") });
                                 if (calculatedDetails.marakaPlanets?.includes(p.name))
-                                    tags.push(t("astrology.marakaLabel"));
+                                    tags.push({ key: "maraka", text: t("astrology.marakaLabel") });
                                 if (calculatedDetails.badhakaPlanet?.includes(p.name))
-                                    tags.push(t("astrology.badhakaLabel"));
+                                    tags.push({ key: "badhaka", text: t("astrology.badhakaLabel") });
                                 if (calculatedDetails.nidhanamshaPlanets?.includes(p.name))
-                                    tags.push(t("astrology.nidhanamshaLabel"));
+                                    tags.push({ key: "nidhanamsha", text: t("astrology.nidhanamshaLabel") });
                                 if (calculatedDetails.ashtamanshaPlanets?.includes(p.name))
-                                    tags.push(t("astrology.ashtamanshaLabel"));
+                                    tags.push({ key: "ashtamansha", text: t("astrology.ashtamanshaLabel") });
+                                if (calculatedDetails.wargoththamaPlanets?.includes(p.name)) {
+                                    const crossed =
+                                        calculatedDetails.gandanthaPlanets?.includes(p.name) ||
+                                        calculatedDetails.gandamulaPlanets?.includes(p.name);
+                                    tags.push({
+                                        key: "wargoththama",
+                                        text: t("astrology.wargoththamaLabel"),
+                                        strikethrough: crossed,
+                                    });
+                                }
+                                if (calculatedDetails.gandanthaPlanets?.includes(p.name))
+                                    tags.push({ key: "gandanta", text: t("astrology.gandantaLabel") });
+                                if (calculatedDetails.gandamulaPlanets?.includes(p.name))
+                                    tags.push({ key: "gandamula", text: t("astrology.gandamulaLabel") });
 
                                 const STRENGTH_COLORS: Record<string, string> = {
                                     athiUchcha: "text-green-700 font-semibold",
@@ -1145,13 +1197,15 @@ export default function HoroscopeDetailPage() {
                                                 {getNakshatraName(p.nakshatra) || p.nakshatra} ({p.pada})
                                             </span>
                                             {tags.length > 0 && (
-                                                <div className="flex gap-1 shrink-0">
+                                                <div className="flex gap-1 shrink-0 flex-wrap">
                                                     {tags.map((tag) => (
                                                         <span
-                                                            key={tag}
-                                                            className="text-[10px] leading-tight px-1 rounded bg-gray-100 text-gray-600"
+                                                            key={tag.key}
+                                                            className={`text-[10px] leading-tight px-1 rounded bg-gray-100 text-gray-600 ${
+                                                                tag.strikethrough ? "line-through" : ""
+                                                            }`}
                                                         >
-                                                            {tag}
+                                                            {tag.text}
                                                         </span>
                                                     ))}
                                                 </div>
@@ -1188,10 +1242,12 @@ export default function HoroscopeDetailPage() {
                                                     <div className="flex flex-wrap gap-1 pt-0.5">
                                                         {tags.map((tag) => (
                                                             <span
-                                                                key={tag}
-                                                                className="bg-white border rounded px-1.5 py-0.5 text-gray-600"
+                                                                key={tag.key}
+                                                                className={`bg-white border rounded px-1.5 py-0.5 text-gray-600 ${
+                                                                    tag.strikethrough ? "line-through" : ""
+                                                                }`}
                                                             >
-                                                                {tag}
+                                                                {tag.text}
                                                             </span>
                                                         ))}
                                                     </div>

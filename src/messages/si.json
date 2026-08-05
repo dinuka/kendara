@@ -160,7 +160,13 @@
             "ashtamanshaPresent": "අෂ්ඨමාංශ ග්‍රහ තිබේ",
             "nidhanamshaPresent": "නිධනාම්ශ ග්‍රහ තිබේ",
             "marakaPresent": "මාරක ග්‍රහ තිබේ",
-            "badhakaPresent": "බාධක ග්‍රහ තිබේ"
+            "badhakaPresent": "බාධක ග්‍රහ තිබේ",
+            "wargoththama": "{planet} වර්ගෝත්තම",
+            "wargoththamaPresent": "වර්ගෝත්තම ග්‍රහ තිබේ",
+            "gandanta": "{planet} ගණ්ඩාන්ත",
+            "gandantaPresent": "ගණ්ඩාන්ත ග්‍රහ තිබේ",
+            "gandamula": "{planet} ගණ්ඩමූල",
+            "gandamulaPresent": "ගණ්ඩමූල ග්‍රහ තිබේ"
         },
         "table": {
             "planetName": "ග්‍රහයා {id}",
@@ -221,6 +227,9 @@
         "badhakaLabel": "බාධක",
         "nidhanamshaLabel": "නිධනාම්ශ",
         "ashtamanshaLabel": "අෂ්ඨමාංශ",
+        "wargoththamaLabel": "වර්ගෝත්තම",
+        "gandantaLabel": "ගණ්ඩාන්ත",
+        "gandamulaLabel": "ගණ්ඩමූල",
         "marakaBadhaka": "මාරක / බාධක",
         "dashas": "දශා",
         "dashaLevels": {

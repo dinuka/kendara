@@ -130,6 +130,10 @@ const MOCK_CALC: CalculationResult = {
     nidhanamshaPlanets: [5],
     ashtamanshaPlanets: [2],
     atmakaraka: 5,
+    isAscendantWargoththama: false,
+    wargoththamaPlanets: [4],
+    gandanthaPlanets: [],
+    gandamulaPlanets: [],
     yogas: [{ name: "Parivartana Yoga", planets: [5, 7], description: "Exchange of signs" }],
     doshas: {
         doshas: [
@@ -198,6 +202,12 @@ describe("textContent - English", () => {
         expect(textEn).toContain("Ashtamansha planets");
         expect(textEn).toContain("22nd Drekkana lord");
         expect(textEn).toContain("64th Navamsa lord");
+    });
+
+    test("includes wargoththama, gandanta, and gandamula planets", () => {
+        expect(textEn).toContain("Wargoththama planets: Mercury");
+        expect(textEn).toContain("Gandanta planets:");
+        expect(textEn).toContain("Gandamula planets:");
     });
 });
 
@@ -271,6 +281,10 @@ describe("textContent - edge cases", () => {
         nidhanamshaPlanets: [],
         ashtamanshaPlanets: [],
         atmakaraka: 1,
+        isAscendantWargoththama: false,
+        wargoththamaPlanets: [],
+        gandanthaPlanets: [],
+        gandamulaPlanets: [],
         yogas: [],
         doshas: { doshas: [] },
     };

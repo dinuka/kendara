@@ -7,11 +7,21 @@ export const ASCENDANT_WORDS = ["ලග්නයේ", "ලග්නය", "ලග
 export const DOSHA_WORDS = ["දෝෂය", "දෝෂ", "dosha", "doshas"];
 
 export type PlanetRoleKey =
-    "ashtamansha" | "nidhanamsha" | "maraka" | "badhaka" | "drekkana" | "navamsa" | "atmakaraka";
+    | "ashtamansha"
+    | "nidhanamsha"
+    | "maraka"
+    | "badhaka"
+    | "drekkana"
+    | "navamsa"
+    | "atmakaraka"
+    | "wargoththama"
+    | "gandanta"
+    | "gandamula";
 
 // Words that signal a planet's special role (varga) in the horoscope. Each maps to a
 // field on CalculatedDetails: ashtamanshaPlanets, nidhanamshaPlanets, marakaPlanets,
-// badhakaPlanet (arrays) and lord22ndDrekkana, lord64thNavamsa, atmakaraka (single).
+// badhakaPlanet (arrays), wargoththamaPlanets/gandanthaPlanets/gandamulaPlanets (arrays),
+// and lord22ndDrekkana, lord64thNavamsa, atmakaraka (single).
 export const PLANET_ROLE_WORDS: Record<PlanetRoleKey, string[]> = {
     ashtamansha: [
         "අෂ්ඨමාංශ",
@@ -41,6 +51,9 @@ export const PLANET_ROLE_WORDS: Record<PlanetRoleKey, string[]> = {
     ],
     navamsa: ["නවාංශකාධිපති", "නවාංශකාධිපතියා", "නවාම්ශකාධිපති", "නවාම්ශ", "නවාංශ", "navamsa", "navamsha"],
     atmakaraka: ["ආත්මකාරක", "atmakaraka"],
+    wargoththama: ["වර්ගෝත්තම", "වර්ගොත්තම", "wargoththama", "wargottama", "wargotthama", "vargottama"],
+    gandanta: ["ගණ්ඩාන්ත", "ගන්ඩාන්ත", "gandanta", "gandaanta"],
+    gandamula: ["ගණ්ඩමූල", "ගන්ඩමූල", "gandamula", "gandamoola"],
 };
 
 const ROLE_TRIGGER_WORDS = Object.values(PLANET_ROLE_WORDS).flat();

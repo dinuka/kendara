@@ -140,3 +140,48 @@ describe("calculateHoroscope", () => {
         });
     });
 });
+
+describe("calculateHoroscope Wargoththama & Gandanta/Gandamula", () => {
+    const baseData = {
+        name: "Test",
+        displayName: true,
+        birthDate: new Date("1990-06-15"),
+        birthTime: "08:30",
+        location: "Colombo",
+        latitude: 6.9271,
+        longitude: 79.8612,
+        gender: "male" as const,
+        ayanamsha: "lahiri" as const,
+        isPublic: false,
+        owner: { id: "user-1" },
+    } as unknown as any;
+
+    test("wargoththama flag is a boolean and wargoththama planets match sign==navamsa rule", () => {
+        const result = calculateHoroscope(baseData);
+        expect(typeof result.isAscendantWargoththama).toBe("boolean");
+        expect(Array.isArray(result.wargoththamaPlanets)).toBe(true);
+        result.wargoththamaPlanets.forEach((p: number) => {
+            const planet = result.planets.find((pl) => pl.name === p);
+            expect(planet).toBeDefined();
+            expect(planet!.sign).toBe(planet!.navamsaSign);
+        });
+    });
+
+    test("gandantha and gandamula planets are arrays and match nakshatra+pada rule", () => {
+        const result = calculateHoroscope(baseData);
+        expect(Array.isArray(result.gandanthaPlanets)).toBe(true);
+        expect(Array.isArray(result.gandamulaPlanets)).toBe(true);
+        result.gandanthaPlanets.forEach((p: number) => {
+            const planet = result.planets.find((pl) => pl.name === p);
+            expect(planet).toBeDefined();
+            expect(planet!.pada).toBe(4);
+            expect([9, 18, 27]).toContain(planet!.nakshatra);
+        });
+        result.gandamulaPlanets.forEach((p: number) => {
+            const planet = result.planets.find((pl) => pl.name === p);
+            expect(planet).toBeDefined();
+            expect(planet!.pada).toBe(1);
+            expect([1, 10, 19]).toContain(planet!.nakshatra);
+        });
+    });
+});

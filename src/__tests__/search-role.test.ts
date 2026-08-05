@@ -195,4 +195,51 @@ describe("search: planet role (varga) matching", () => {
         expect(body.results).toHaveLength(1);
         expect(body.queryUnderstanding.mode).toBe("exact_planet_role");
     });
+
+    test("වර්ගෝත්තම බුධ matches when Mercury is a wargoththama planet", async () => {
+        mockSingle({ wargoththamaPlanets: [4] });
+        const response = await search("වර්ගෝත්තම බුධ");
+        const body = await response.json();
+        expect(body.results).toHaveLength(1);
+        expect(body.results[0].matchedConditions).toContain("wargoththama=බුධ");
+    });
+
+    test("වර්ගෝත්තම බුධ does not match when Mercury is not wargoththama", async () => {
+        mockSingle({ wargoththamaPlanets: [6] });
+        const response = await search("වර්ගෝත්තම බුධ");
+        const body = await response.json();
+        expect(body.results).toHaveLength(0);
+    });
+
+    test("wargottama presence-only matches when any wargoththama planet exists", async () => {
+        mockSingle({ wargoththamaPlanets: [3] });
+        const response = await search("wargottama");
+        const body = await response.json();
+        expect(body.results).toHaveLength(1);
+        expect(body.results[0].matchedConditions).toContain("wargoththama_present");
+    });
+
+    test("ගණ්ඩාන්ත ශුක්‍ර matches when Venus is a gandanta planet", async () => {
+        mockSingle({ gandanthaPlanets: [6] });
+        const response = await search("ගණ්ඩාන්ත ශුක්‍ර");
+        const body = await response.json();
+        expect(body.results).toHaveLength(1);
+        expect(body.results[0].matchedConditions).toContain("gandanta=ශුක්‍ර");
+    });
+
+    test("ගණ්ඩමූල සඳ matches when Moon is a gandamula planet", async () => {
+        mockSingle({ gandamulaPlanets: [2] });
+        const response = await search("ගණ්ඩමූල සඳ");
+        const body = await response.json();
+        expect(body.results).toHaveLength(1);
+        expect(body.results[0].matchedConditions).toContain("gandamula=සඳු");
+    });
+
+    test("gandanta presence-only matches when any gandanta planet exists", async () => {
+        mockSingle({ gandanthaPlanets: [3] });
+        const response = await search("gandanta");
+        const body = await response.json();
+        expect(body.results).toHaveLength(1);
+        expect(body.results[0].matchedConditions).toContain("gandanta_present");
+    });
 });

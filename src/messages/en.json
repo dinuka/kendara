@@ -160,7 +160,13 @@
             "ashtamanshaPresent": "Has Ashtamansha planets",
             "nidhanamshaPresent": "Has Nidhanamsha planets",
             "marakaPresent": "Has Maraka planets",
-            "badhakaPresent": "Has Badhaka planets"
+            "badhakaPresent": "Has Badhaka planets",
+            "wargoththama": "{planet} Wargoththama",
+            "wargoththamaPresent": "Has Wargoththama planets",
+            "gandanta": "{planet} Gandanta",
+            "gandantaPresent": "Has Gandanta planets",
+            "gandamula": "{planet} Gandamula",
+            "gandamulaPresent": "Has Gandamula planets"
         },
         "table": {
             "planetName": "Planet {id}",
@@ -221,6 +227,9 @@
         "badhakaLabel": "Badhaka",
         "nidhanamshaLabel": "Nidhanamsha",
         "ashtamanshaLabel": "Ashtamansha",
+        "wargoththamaLabel": "Wargoththama",
+        "gandantaLabel": "Gandanta",
+        "gandamulaLabel": "Gandamula",
         "marakaBadhaka": "Maraka / Badhaka",
         "dashas": "Dashas",
         "dashaLevels": {

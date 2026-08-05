@@ -31,6 +31,19 @@ describe("getSuggestions", () => {
         expect(getSuggestions("නවාංශ")).toContain("නවාංශකාධිපති");
     });
 
+    test("වර්ගෝත්තම is suggested", () => {
+        expect(getSuggestions("වර්ග")).toContain("වර්ගෝත්තම");
+    });
+
+    test("ගණ්ඩාන්ත and ගණ්ඩමූල are suggested", () => {
+        expect(getSuggestions("ගණ්ඩ")).toContain("ගණ්ඩාන්ත");
+        expect(getSuggestions("ගණ්ඩ")).toContain("ගණ්ඩමූල");
+    });
+
+    test("wargottama is suggested from the english prefix", () => {
+        expect(getSuggestions("varg")).toContain("vargottama");
+    });
+
     test("is ZWJ-insensitive when the token omits the joiner", () => {
         expect(getSuggestions("ශුක")).toContain("ශුක්‍ර");
     });

@@ -385,8 +385,8 @@ export function calculateHoroscope(
             i === 0
                 ? false
                 : Math.abs(planetDetails[i].absoluteDegree - sunLong) < sunOrb ||
-                Math.abs(planetDetails[i].absoluteDegree - sunLong + 360) < sunOrb ||
-                Math.abs(planetDetails[i].absoluteDegree - sunLong - 360) < sunOrb;
+                  Math.abs(planetDetails[i].absoluteDegree - sunLong + 360) < sunOrb ||
+                  Math.abs(planetDetails[i].absoluteDegree - sunLong - 360) < sunOrb;
 
         const aspects: Aspect[] = [];
         for (let j = 0; j < planetDetails.length; j++) {
@@ -445,9 +445,42 @@ export function calculateHoroscope(
         nidhanamshaPlanets: computeNidhanamsha(ascSign, ascLong % 30, houses, planetDetails),
         ashtamanshaPlanets: computeAshtamansha(ascSign, ascLong % 30, houses, planetDetails),
         atmakaraka: computeAtmakaraka(planetDetails),
+        isAscendantWargoththama: computeAscendantWargoththama(ascSign, ascLong % 30),
+        wargoththamaPlanets: computeWargoththama(planetDetails),
+        gandanthaPlanets: computeGandantha(planetDetails),
+        gandamulaPlanets: computeGandamula(planetDetails),
         yogas: [],
         doshas: { doshas: [] },
     };
+}
+
+/** Gandamula (ගණ්ඩමූල): planets in the 1st pada of Ashwini, Magha, or Mula nakshatras. */
+const GANDAMULA_NAKSHATRAS = new Set([1, 10, 19]);
+const GANDAMULA_PADA = 1;
+
+/** Gandantha (ගණ්ඩාන්ත): planets in the 4th pada of Ashlesha, Jyestha, or Revati nakshatras. */
+const GANDANTHA_NAKSHATRAS = new Set([9, 18, 27]);
+const GANDANTHA_PADA = 4;
+
+/** Wargoththama (වර්ගෝත්තම): the horoscope is Wargoththama when the ascendant's lagna sign
+ *  equals its navamsa (D9) sign. */
+function computeAscendantWargoththama(ascSign: number, ascDegree: number): boolean {
+    const ascNavamsaNum = Math.floor(ascDegree / (30 / 9)) + 1;
+    const ascNavamsaSign = navamsaSign(ascSign, ascNavamsaNum);
+    return ascSign === ascNavamsaSign;
+}
+
+/** Wargoththama planets: a planet is Wargoththama when its birth-chart sign equals its navamsa sign. */
+function computeWargoththama(planets: Planet[]): number[] {
+    return planets.filter((p) => p.sign === p.navamsaSign).map((p) => p.name);
+}
+
+function computeGandantha(planets: Planet[]): number[] {
+    return planets.filter((p) => GANDANTHA_NAKSHATRAS.has(p.nakshatra) && p.pada === GANDANTHA_PADA).map((p) => p.name);
+}
+
+function computeGandamula(planets: Planet[]): number[] {
+    return planets.filter((p) => GANDAMULA_NAKSHATRAS.has(p.nakshatra) && p.pada === GANDAMULA_PADA).map((p) => p.name);
 }
 
 function computeDrekkanaLord(ascSign: number, ascDegree: number): number {
