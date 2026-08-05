@@ -23,6 +23,14 @@ describe("getSuggestions", () => {
         expect(getSuggestions("phal")).toContain("uttara phalguni");
     });
 
+    test("දෙර්කාණ suggests දෙර්කාණාධිපති", () => {
+        expect(getSuggestions("දෙර්කාණ")).toContain("දෙර්කාණාධිපති");
+    });
+
+    test("නවාංශ suggests නවාංශකාධිපති", () => {
+        expect(getSuggestions("නවාංශ")).toContain("නවාංශකාධිපති");
+    });
+
     test("is ZWJ-insensitive when the token omits the joiner", () => {
         expect(getSuggestions("ශුක")).toContain("ශුක්‍ර");
     });

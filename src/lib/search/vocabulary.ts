@@ -6,12 +6,46 @@ export const ENGLISH_YOGA = ["yoga", "yogas", "yogic"];
 export const ASCENDANT_WORDS = ["ලග්නයේ", "ලග්නය", "ලග්න", "ascendant", "lagna"];
 export const DOSHA_WORDS = ["දෝෂය", "දෝෂ", "dosha", "doshas"];
 
-const TRIGGER_WORDS = [
-    ...SINHALA_YOGA,
-    ...ENGLISH_YOGA,
-    ...ASCENDANT_WORDS,
-    ...DOSHA_WORDS,
-];
+export type PlanetRoleKey =
+    "ashtamansha" | "nidhanamsha" | "maraka" | "badhaka" | "drekkana" | "navamsa" | "atmakaraka";
+
+// Words that signal a planet's special role (varga) in the horoscope. Each maps to a
+// field on CalculatedDetails: ashtamanshaPlanets, nidhanamshaPlanets, marakaPlanets,
+// badhakaPlanet (arrays) and lord22ndDrekkana, lord64thNavamsa, atmakaraka (single).
+export const PLANET_ROLE_WORDS: Record<PlanetRoleKey, string[]> = {
+    ashtamansha: [
+        "අෂ්ඨමාංශ",
+        "අෂ්ටමාංශ",
+        "අශ්ඨමාංශ",
+        "අස්ථමාංශ",
+        "අස්ටමාංශ",
+        "ashtamansha",
+        "astamansha",
+        "astamamsha",
+    ],
+    nidhanamsha: ["නිධනාම්ශ", "නිධනාම්ෂ", "නිධනාංශ", "nidhanamsha"],
+    maraka: ["මාරක", "maraka"],
+    badhaka: ["බාධක", "badhaka", "badaka"],
+    drekkana: [
+        "ද්‍රැක්කානාධිපති",
+        "ද්‍රැක්කාන",
+        "ද්‍රෙක්කාන",
+        "ද්‍රැකාන",
+        "දෙර්කාණාධිපති",
+        "දෙර්කාණ",
+        "දෙර්කාන",
+        "දෙර්කානාධිපති",
+        "drekkana",
+        "drekana",
+        "derkana",
+    ],
+    navamsa: ["නවාංශකාධිපති", "නවාංශකාධිපතියා", "නවාම්ශකාධිපති", "නවාම්ශ", "නවාංශ", "navamsa", "navamsha"],
+    atmakaraka: ["ආත්මකාරක", "atmakaraka"],
+};
+
+const ROLE_TRIGGER_WORDS = Object.values(PLANET_ROLE_WORDS).flat();
+
+const TRIGGER_WORDS = [...SINHALA_YOGA, ...ENGLISH_YOGA, ...ASCENDANT_WORDS, ...DOSHA_WORDS, ...ROLE_TRIGGER_WORDS];
 
 // Every word the search API can actually parse into a filter — sign, planet,
 // nakshatra (including colloquial Sinhala forms), strength, and trigger words.

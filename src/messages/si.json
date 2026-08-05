@@ -149,7 +149,18 @@
             "exaltation": "{planet} උච්ච",
             "debilitation": "{planet} නීච",
             "yogaPresent": "යෝග {count}",
-            "dosha": "දෝෂය: {name}"
+            "dosha": "දෝෂය: {name}",
+            "ashtamansha": "{planet} අෂ්ඨමාංශ",
+            "nidhanamsha": "{planet} නිධනාම්ශ",
+            "maraka": "{planet} මාරක",
+            "badhaka": "{planet} බාධක",
+            "drekkana": "{planet} 22 වන ද්‍රැක්කාන අධිපති",
+            "navamsa": "{planet} 64 වන නවාම්ශ අධිපති",
+            "atmakaraka": "ආත්මකාරක {planet}",
+            "ashtamanshaPresent": "අෂ්ඨමාංශ ග්‍රහ තිබේ",
+            "nidhanamshaPresent": "නිධනාම්ශ ග්‍රහ තිබේ",
+            "marakaPresent": "මාරක ග්‍රහ තිබේ",
+            "badhakaPresent": "බාධක ග්‍රහ තිබේ"
         },
         "table": {
             "planetName": "ග්‍රහයා {id}",

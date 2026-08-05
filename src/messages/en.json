@@ -149,7 +149,18 @@
             "exaltation": "{planet} Exalted",
             "debilitation": "{planet} Debil.",
             "yogaPresent": "{count} Yogas",
-            "dosha": "Dosha: {name}"
+            "dosha": "Dosha: {name}",
+            "ashtamansha": "{planet} Ashtamansha",
+            "nidhanamsha": "{planet} Nidhanamsha",
+            "maraka": "{planet} Maraka",
+            "badhaka": "{planet} Badhaka",
+            "drekkana": "{planet} 22nd Drek. Lord",
+            "navamsa": "{planet} 64th Nav. Lord",
+            "atmakaraka": "Atmakaraka {planet}",
+            "ashtamanshaPresent": "Has Ashtamansha planets",
+            "nidhanamshaPresent": "Has Nidhanamsha planets",
+            "marakaPresent": "Has Maraka planets",
+            "badhakaPresent": "Has Badhaka planets"
         },
         "table": {
             "planetName": "Planet {id}",

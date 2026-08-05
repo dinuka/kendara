@@ -128,6 +128,7 @@ const MOCK_CALC: CalculationResult = {
     badhakaPlanet: [4, 6],
     marakaPlanets: [3, 7],
     nidhanamshaPlanets: [5],
+    ashtamanshaPlanets: [2],
     atmakaraka: 5,
     yogas: [{ name: "Parivartana Yoga", planets: [5, 7], description: "Exchange of signs" }],
     doshas: {
@@ -191,6 +192,12 @@ describe("textContent - English", () => {
     test("includes badhaka and maraka planets", () => {
         expect(textEn).toContain("Badhaka planets");
         expect(textEn).toContain("Maraka planets");
+    });
+
+    test("includes ashtamansha and the varga lords", () => {
+        expect(textEn).toContain("Ashtamansha planets");
+        expect(textEn).toContain("22nd Drekkana lord");
+        expect(textEn).toContain("64th Navamsa lord");
     });
 });
 
@@ -262,6 +269,7 @@ describe("textContent - edge cases", () => {
         badhakaPlanet: [],
         marakaPlanets: [],
         nidhanamshaPlanets: [],
+        ashtamanshaPlanets: [],
         atmakaraka: 1,
         yogas: [],
         doshas: { doshas: [] },

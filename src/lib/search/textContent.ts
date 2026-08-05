@@ -73,6 +73,11 @@ const textPartsEn = (calc: CalculationResult): string[] => {
     parts.push(
         `Nidhanamsha planets: ${calc.nidhanamshaPlanets.map((p) => PLANET_LABELS_EN[p] || `Planet ${p}`).join(", ")}.`,
     );
+    parts.push(
+        `Ashtamansha planets: ${calc.ashtamanshaPlanets.map((p) => PLANET_LABELS_EN[p] || `Planet ${p}`).join(", ")}.`,
+    );
+    parts.push(`22nd Drekkana lord: ${PLANET_LABELS_EN[calc.lord22ndDrekkana] || `Planet ${calc.lord22ndDrekkana}`}.`);
+    parts.push(`64th Navamsa lord: ${PLANET_LABELS_EN[calc.lord64thNavamsa] || `Planet ${calc.lord64thNavamsa}`}.`);
 
     return parts;
 };
@@ -140,6 +145,13 @@ const textPartsSi = (calc: CalculationResult): string[] => {
     parts.push(
         `නිධනාම්ශ ග්‍රහ: ${calc.nidhanamshaPlanets.map((p) => PLANET_LABELS_SI[p] || `Planet ${p}`).join(", ")}.`,
     );
+    parts.push(
+        `අෂ්ඨමාංශ ග්‍රහ: ${calc.ashtamanshaPlanets.map((p) => PLANET_LABELS_SI[p] || `Planet ${p}`).join(", ")}.`,
+    );
+    parts.push(
+        `22 වන ද්‍රැක්කාන අධිපති: ${PLANET_LABELS_SI[calc.lord22ndDrekkana] || `Planet ${calc.lord22ndDrekkana}`}.`,
+    );
+    parts.push(`64 වන නවාම්ශ අධිපති: ${PLANET_LABELS_SI[calc.lord64thNavamsa] || `Planet ${calc.lord64thNavamsa}`}.`);
 
     return parts;
 };

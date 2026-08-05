@@ -24,6 +24,8 @@ import {
     ASCENDANT_WORDS,
     DOSHA_WORDS,
     ENGLISH_YOGA,
+    PLANET_ROLE_WORDS,
+    PlanetRoleKey,
     SINHALA_YOGA,
 } from "@/lib/search/vocabulary";
 
@@ -31,7 +33,8 @@ type ExactCondition =
     | { type: "ascendant"; sign: number }
     | { type: "planet_in_house"; planet: number; house: number }
     | { type: "nakshatra"; nakshatra: number }
-    | { type: "planet_strength"; planet: number; strength: PlanetaryStrength };
+    | { type: "planet_strength"; planet: number; strength: PlanetaryStrength }
+    | { type: "planet_role"; role: PlanetRoleKey; planet: number };
 
 type ExactMatch = ExactCondition[];
 
@@ -106,8 +109,15 @@ const STRENGTH_KEYWORD_MAP: Record<number, string> = {
 const getStrengthValue = (strength: unknown): number => {
     if (typeof strength === "number") return strength;
     const map: Record<string, number> = {
-        AthiUchcha: 1.25, Uchcha: 1, Neecha: -1, AthiNeecha: -1.25,
-        Moolatrikona: 0.75, OwnSign: 0.5, Mitra: 0.1, Shatru: -0.1, Sama: 0,
+        AthiUchcha: 1.25,
+        Uchcha: 1,
+        Neecha: -1,
+        AthiNeecha: -1.25,
+        Moolatrikona: 0.75,
+        OwnSign: 0.5,
+        Mitra: 0.1,
+        Shatru: -0.1,
+        Sama: 0,
     };
     return map[strength as string] ?? 0;
 };
@@ -218,6 +228,73 @@ const getEffectivePlanetHouse = (planet: Record<string, unknown>, houses: unknow
     return planet.house as number;
 };
 
+const isSinglePlanetRole = (role: PlanetRoleKey): boolean =>
+    role === "drekkana" || role === "navamsa" || role === "atmakaraka";
+
+const getRoleField = (role: PlanetRoleKey): string => {
+    switch (role) {
+        case "ashtamansha":
+            return "ashtamanshaPlanets";
+        case "nidhanamsha":
+            return "nidhanamshaPlanets";
+        case "maraka":
+            return "marakaPlanets";
+        case "badhaka":
+            return "badhakaPlanet";
+        case "drekkana":
+            return "lord22ndDrekkana";
+        case "navamsa":
+            return "lord64thNavamsa";
+        case "atmakaraka":
+            return "atmakaraka";
+    }
+};
+
+// Detects which varga role words a query asks about (e.g. "බාධක", "ashtamansha",
+// "ද්‍රැක්කානාධිපති" / "drekkana"). Returns null when no role concept is mentioned.
+const getPlanetRole = (query: string): PlanetRoleKey | null => {
+    const q = stripJoiners(query.toLowerCase());
+    for (const [role, words] of Object.entries(PLANET_ROLE_WORDS)) {
+        for (const word of words) {
+            if (q.includes(stripJoiners(word.toLowerCase()))) {
+                return role as PlanetRoleKey;
+            }
+        }
+    }
+    return null;
+};
+
+const hasPlanetRole = (
+    role: PlanetRoleKey,
+    planet: number,
+    calculatedDetails: Record<string, unknown> | null,
+): boolean => {
+    if (!calculatedDetails) return false;
+    const field = getRoleField(role);
+
+    if (isSinglePlanetRole(role)) {
+        return calculatedDetails[field] === planet;
+    }
+
+    const arr = calculatedDetails[field];
+    return Array.isArray(arr) && arr.includes(planet);
+};
+
+// Presence-only check used when a role word appears without a named planet (e.g. just
+// "අෂ්ඨමාංශ" or "22nd drekkana lord"). Single-valued lords (drekkana/navamsa/atmakaraka)
+// are treated as present whenever they hold a valid planet, so a bare "22nd drekkana
+// lord" query still matches a horoscope instead of returning nothing.
+const hasAnyPlanetRole = (role: PlanetRoleKey, calculatedDetails: Record<string, unknown> | null): boolean => {
+    if (!calculatedDetails) return false;
+    const value = calculatedDetails[getRoleField(role)];
+
+    if (isSinglePlanetRole(role)) {
+        return typeof value === "number" && value >= 1 && value <= 9;
+    }
+
+    return Array.isArray(value) && value.length > 0;
+};
+
 const getExactMatch = (query: string): ExactMatch => {
     const q = stripJoiners(query.toLowerCase());
     const conditions: ExactMatch = [];
@@ -232,6 +309,13 @@ const getExactMatch = (query: string): ExactMatch => {
     const planetStrengthPairs = getPlanetStrengthPairs(query);
     for (const { planet, strength } of planetStrengthPairs) {
         conditions.push({ type: "planet_strength", planet, strength });
+    }
+
+    const planetRole = getPlanetRole(query);
+    if (planetRole !== null) {
+        for (const planet of getPlanetMatches(query)) {
+            conditions.push({ type: "planet_role", role: planetRole, planet });
+        }
     }
 
     const hasAscendantWord = ASCENDANT_WORDS.some((w) => q.includes(stripJoiners(w.toLowerCase())));
@@ -270,8 +354,7 @@ const getExactMatch = (query: string): ExactMatch => {
     }
 
     const deduped = conditions.filter(
-        (c, i, arr) =>
-            arr.findIndex((other) => JSON.stringify(other) === JSON.stringify(c)) === i,
+        (c, i, arr) => arr.findIndex((other) => JSON.stringify(other) === JSON.stringify(c)) === i,
     );
 
     return deduped;
@@ -312,6 +395,11 @@ const getAstroKeywords = (query: string): string[] => {
         } else {
             keywords.push(`strength:${strengthLabel}`);
         }
+    }
+
+    const planetRole = getPlanetRole(query);
+    if (planetRole !== null) {
+        keywords.push(`role:${planetRole}`);
     }
 
     for (const w of SINHALA_YOGA) {
@@ -433,6 +521,23 @@ const scoreHoroscope = (
 
     const hasYoga = SINHALA_YOGA.some((w) => q.includes(w)) || ENGLISH_YOGA.some((w) => q.includes(w));
 
+    const planetRole = getPlanetRole(query);
+    if (planetRole !== null) {
+        const rolePlanetMatches = getPlanetMatches(query);
+        if (rolePlanetMatches.length > 0) {
+            for (const planet of rolePlanetMatches) {
+                if (hasPlanetRole(planetRole, planet, calculatedDetails)) {
+                    score += 0.5;
+                    const planetWord = Object.entries(PLANET_NAMES).find(([, v]) => v === planet)?.[0] || planet;
+                    matchedConditions.push(`${planetRole}=${planetWord}`);
+                }
+            }
+        } else if (hasAnyPlanetRole(planetRole, calculatedDetails)) {
+            score += 0.4;
+            matchedConditions.push(`${planetRole}_present`);
+        }
+    }
+
     if (hasYoga) {
         if (calculatedDetails?.yogas) {
             const yogas = calculatedDetails.yogas as Array<Record<string, unknown>>;
@@ -470,7 +575,10 @@ const scoreHoroscope = (
             if (planetMatch && calculatedDetails?.planets) {
                 const planets = calculatedDetails.planets as Array<Record<string, unknown>>;
                 for (const p of planets) {
-                    if (p.name === planetMatch[1] && getEffectivePlanetHouse(p, calculatedDetails?.houses) === houseNum) {
+                    if (
+                        p.name === planetMatch[1] &&
+                        getEffectivePlanetHouse(p, calculatedDetails?.houses) === houseNum
+                    ) {
                         score += 0.6;
                         matchedConditions.push(`${planetMatch[0]}_in_house=${houseNum}`);
                     }
@@ -493,7 +601,7 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { query } = body;
     const page = Math.max(1, parseInt(body.page || "1", 10) || 1);
-    const pageSize = Math.min(Math.max(1, parseInt(body.pageSize || "5", 10) || 5), 20);
+    const pageSize = Math.min(Math.max(1, parseInt(body.pageSize || "6", 10) || 6), 20);
 
     if (!query || typeof query !== "string") {
         return NextResponse.json({ error: "Query is required" }, { status: 400 });
@@ -584,7 +692,8 @@ export async function POST(req: NextRequest) {
                                 return !!asc && asc.sign === condition.sign;
                             }
                             case "planet_in_house": {
-                                const planets = calculatedDetails?.planets as Array<Record<string, unknown>> | undefined;
+                                const planets = calculatedDetails?.planets as
+                                    Array<Record<string, unknown>> | undefined;
                                 if (!planets) return false;
                                 return planets.some(
                                     (p) =>
@@ -598,11 +707,20 @@ export async function POST(req: NextRequest) {
                                 return !!moonNakshatra && moonNakshatra.id === condition.nakshatra;
                             }
                             case "planet_strength": {
-                                const planets = calculatedDetails?.planets as Array<Record<string, unknown>> | undefined;
+                                const planets = calculatedDetails?.planets as
+                                    Array<Record<string, unknown>> | undefined;
                                 if (!planets) return false;
                                 return planets.some(
                                     (p) =>
-                                        p.name === condition.planet && getStrengthValue(p.strength) === condition.strength,
+                                        p.name === condition.planet &&
+                                        getStrengthValue(p.strength) === condition.strength,
+                                );
+                            }
+                            case "planet_role": {
+                                return hasPlanetRole(
+                                    condition.role,
+                                    condition.planet,
+                                    calculatedDetails as Record<string, unknown> | null,
                                 );
                             }
                             default:
@@ -693,15 +811,16 @@ export async function POST(req: NextRequest) {
         pageSize: paginated.pageSize,
         totalPages: paginated.totalPages,
         queryUnderstanding: {
-            mode: groups.length > 1
-                ? "and_groups"
-                : groups[0].clauses.length > 1
-                  ? "or_multiple"
-                  : groups[0].clauses[0].exactMatch.length === 1
-                    ? `exact_${groups[0].clauses[0].exactMatch[0].type}`
-                    : groups[0].clauses[0].exactMatch.length > 1
-                      ? "exact_multiple"
-                      : "basic",
+            mode:
+                groups.length > 1
+                    ? "and_groups"
+                    : groups[0].clauses.length > 1
+                      ? "or_multiple"
+                      : groups[0].clauses[0].exactMatch.length === 1
+                        ? `exact_${groups[0].clauses[0].exactMatch[0].type}`
+                        : groups[0].clauses[0].exactMatch.length > 1
+                          ? "exact_multiple"
+                          : "basic",
             conditions: keywords,
             language: detectedLanguage,
             understoodAll: true,

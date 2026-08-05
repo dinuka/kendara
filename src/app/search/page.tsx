@@ -490,6 +490,14 @@ const formatCondition = (
     if (mc.startsWith("dosha=")) {
         return t("search.conditions.dosha", { name: mc.slice("dosha=".length) });
     }
+    const ROLE_KEYS = ["ashtamansha", "nidhanamsha", "maraka", "badhaka", "drekkana", "navamsa", "atmakaraka"];
+    const roleKey = ROLE_KEYS.find((role) => mc.startsWith(`${role}=`));
+    if (roleKey) {
+        return t(`search.conditions.${roleKey}`, { planet: mc.slice(`${roleKey}=`.length) });
+    }
+    if (ROLE_KEYS.some((role) => mc === `${role}_present`)) {
+        return t(`search.conditions.${mc.replace("_present", "Present")}`);
+    }
     if (mc.includes("_in_sign=")) {
         const [planet, rest] = mc.split("_in_sign=");
         const [sign, housePart] = rest.split("_house=");
@@ -1717,7 +1725,7 @@ export default function SearchPage() {
                     body: JSON.stringify({
                         query: q,
                         page: p,
-                        pageSize: 5,
+                        pageSize: 6,
                     }),
                 });
 
