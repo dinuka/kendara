@@ -238,6 +238,7 @@ export interface CalculationResult {
     wargoththamaPlanets: number[];
     gandanthaPlanets: number[];
     gandamulaPlanets: number[];
+    pushkaraPlanets: number[];
     yogas: unknown[];
     doshas: DoshaInfo;
 }

@@ -166,7 +166,9 @@
             "gandanta": "{planet} Gandanta",
             "gandantaPresent": "Has Gandanta planets",
             "gandamula": "{planet} Gandamula",
-            "gandamulaPresent": "Has Gandamula planets"
+            "gandamulaPresent": "Has Gandamula planets",
+            "pushkara": "{planet} Pushkara",
+            "pushkaraPresent": "Has Pushkara planets"
         },
         "table": {
             "planetName": "Planet {id}",
@@ -230,6 +232,7 @@
         "wargoththamaLabel": "Wargoththama",
         "gandantaLabel": "Gandanta",
         "gandamulaLabel": "Gandamula",
+        "pushkaraLabel": "Pushkara",
         "marakaBadhaka": "Maraka / Badhaka",
         "dashas": "Dashas",
         "dashaLevels": {

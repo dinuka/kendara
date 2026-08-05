@@ -184,4 +184,19 @@ describe("calculateHoroscope Wargoththama & Gandanta/Gandamula", () => {
             expect([1, 10, 19]).toContain(planet!.nakshatra);
         });
     });
+
+    test("pushkara planets are arrays and match the birth-sign -> navamsa-group rule", () => {
+        const result = calculateHoroscope(baseData);
+        expect(Array.isArray(result.pushkaraPlanets)).toBe(true);
+        result.pushkaraPlanets.forEach((p: number) => {
+            const planet = result.planets.find((pl) => pl.name === p);
+            expect(planet).toBeDefined();
+            const group = (() => {
+                if ([1, 5, 9].includes(planet!.sign)) return [7, 9];
+                if ([4, 8, 12].includes(planet!.sign)) return [4, 6];
+                return [2, 12];
+            })();
+            expect(group).toContain(planet!.navamsaSign);
+        });
+    });
 });

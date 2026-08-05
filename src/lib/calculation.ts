@@ -449,6 +449,7 @@ export function calculateHoroscope(
         wargoththamaPlanets: computeWargoththama(planetDetails),
         gandanthaPlanets: computeGandantha(planetDetails),
         gandamulaPlanets: computeGandamula(planetDetails),
+        pushkaraPlanets: computePushkara(planetDetails),
         yogas: [],
         doshas: { doshas: [] },
     };
@@ -461,6 +462,22 @@ const GANDAMULA_PADA = 1;
 /** Gandantha (ගණ්ඩාන්ත): planets in the 4th pada of Ashlesha, Jyestha, or Revati nakshatras. */
 const GANDANTHA_NAKSHATRAS = new Set([9, 18, 27]);
 const GANDANTHA_PADA = 4;
+
+/** Pushkara navamsa target signs keyed by birth-chart sign (1-12). */
+const PUSHKARA_NAVAMSA_SIGNS: Record<number, number[]> = {
+    1: [7, 9],
+    2: [2, 12],
+    3: [2, 12],
+    4: [4, 6],
+    5: [7, 9],
+    6: [2, 12],
+    7: [2, 12],
+    8: [4, 6],
+    9: [7, 9],
+    10: [2, 12],
+    11: [2, 12],
+    12: [4, 6],
+};
 
 /** Wargoththama (වර්ගෝත්තම): the horoscope is Wargoththama when the ascendant's lagna sign
  *  equals its navamsa (D9) sign. */
@@ -481,6 +498,18 @@ function computeGandantha(planets: Planet[]): number[] {
 
 function computeGandamula(planets: Planet[]): number[] {
     return planets.filter((p) => GANDAMULA_NAKSHATRAS.has(p.nakshatra) && p.pada === GANDAMULA_PADA).map((p) => p.name);
+}
+
+/** Pushkara (පුෂ්කර): a planet whose navamsa (D9) sign falls in the Pushkara group assigned to its
+ *  birth-chart sign. Groups:
+ *    1, 5, 9          => navamsa 7, 9
+ *    2, 6, 10, 3, 7, 11 => navamsa 2, 12
+ *    4, 8, 12         => navamsa 4, 6
+ *  e.g. Mercury (Budha) in Makara (10) is Pushkara when its navamsa sign is Vrishabha (2) or Meena (12). */
+function computePushkara(planets: Planet[]): number[] {
+    return planets
+        .filter((p) => PUSHKARA_NAVAMSA_SIGNS[p.sign]?.includes(p.navamsaSign))
+        .map((p) => p.name);
 }
 
 function computeDrekkanaLord(ascSign: number, ascDegree: number): number {

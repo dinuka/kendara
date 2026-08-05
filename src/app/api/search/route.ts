@@ -253,6 +253,8 @@ const getRoleField = (role: PlanetRoleKey): string => {
             return "gandanthaPlanets";
         case "gandamula":
             return "gandamulaPlanets";
+        case "pushkara":
+            return "pushkaraPlanets";
     }
 };
 

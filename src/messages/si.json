@@ -166,7 +166,9 @@
             "gandanta": "{planet} ගණ්ඩාන්ත",
             "gandantaPresent": "ගණ්ඩාන්ත ග්‍රහ තිබේ",
             "gandamula": "{planet} ගණ්ඩමූල",
-            "gandamulaPresent": "ගණ්ඩමූල ග්‍රහ තිබේ"
+            "gandamulaPresent": "ගණ්ඩමූල ග්‍රහ තිබේ",
+            "pushkara": "{planet} පුෂ්කර",
+            "pushkaraPresent": "පුෂ්කර ග්‍රහ තිබේ"
         },
         "table": {
             "planetName": "ග්‍රහයා {id}",
@@ -230,6 +232,7 @@
         "wargoththamaLabel": "වර්ගෝත්තම",
         "gandantaLabel": "ගණ්ඩාන්ත",
         "gandamulaLabel": "ගණ්ඩමූල",
+        "pushkaraLabel": "පුෂ්කර",
         "marakaBadhaka": "මාරක / බාධක",
         "dashas": "දශා",
         "dashaLevels": {

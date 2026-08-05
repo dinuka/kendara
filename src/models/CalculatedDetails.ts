@@ -83,6 +83,7 @@ const CalculatedDetailsSchema = new Schema<ICalculatedDetails>({
     wargoththamaPlanets: [Number],
     gandanthaPlanets: [Number],
     gandamulaPlanets: [Number],
+    pushkaraPlanets: [Number],
     atmakaraka: Number,
     yogas: [{ type: Schema.Types.Mixed }],
     doshas: { type: Schema.Types.Mixed },

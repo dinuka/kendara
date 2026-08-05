@@ -242,4 +242,35 @@ describe("search: planet role (varga) matching", () => {
         expect(body.results).toHaveLength(1);
         expect(body.results[0].matchedConditions).toContain("gandanta_present");
     });
+
+    test("පුෂ්කර බුධ matches when Mercury is a pushkara planet", async () => {
+        mockSingle({ pushkaraPlanets: [4] });
+        const response = await search("පුෂ්කර බුධ");
+        const body = await response.json();
+        expect(body.results).toHaveLength(1);
+        expect(body.results[0].matchedConditions).toContain("pushkara=බුධ");
+    });
+
+    test("පුෂ්කර සඳ does not match when Moon is not a pushkara planet", async () => {
+        mockSingle({ pushkaraPlanets: [6] });
+        const response = await search("පුෂ්කර සඳ");
+        const body = await response.json();
+        expect(body.results).toHaveLength(0);
+    });
+
+    test("pushkara presence-only matches when any pushkara planet exists", async () => {
+        mockSingle({ pushkaraPlanets: [8] });
+        const response = await search("pushkara");
+        const body = await response.json();
+        expect(body.results).toHaveLength(1);
+        expect(body.results[0].matchedConditions).toContain("pushkara_present");
+    });
+
+    test("pushkaram buhda matches Mercury when it is a pushkara planet (English variant)", async () => {
+        mockSingle({ pushkaraPlanets: [4] });
+        const response = await search("pushkaram budha");
+        const body = await response.json();
+        expect(body.results).toHaveLength(1);
+        expect(body.results[0].matchedConditions).toContain("pushkara=බුධ");
+    });
 });

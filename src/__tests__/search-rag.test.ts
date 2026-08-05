@@ -134,6 +134,7 @@ const MOCK_CALC: CalculationResult = {
     wargoththamaPlanets: [4],
     gandanthaPlanets: [],
     gandamulaPlanets: [],
+    pushkaraPlanets: [8],
     yogas: [{ name: "Parivartana Yoga", planets: [5, 7], description: "Exchange of signs" }],
     doshas: {
         doshas: [
@@ -208,6 +209,10 @@ describe("textContent - English", () => {
         expect(textEn).toContain("Wargoththama planets: Mercury");
         expect(textEn).toContain("Gandanta planets:");
         expect(textEn).toContain("Gandamula planets:");
+    });
+
+    test("includes pushkara planets", () => {
+        expect(textEn).toContain("Pushkara planets: Rahu");
     });
 });
 
@@ -285,6 +290,7 @@ describe("textContent - edge cases", () => {
         wargoththamaPlanets: [],
         gandanthaPlanets: [],
         gandamulaPlanets: [],
+        pushkaraPlanets: [],
         yogas: [],
         doshas: { doshas: [] },
     };

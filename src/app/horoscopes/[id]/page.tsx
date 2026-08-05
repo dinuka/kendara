@@ -81,6 +81,11 @@ export default function HoroscopeDetailPage() {
             nidhanamshaPlanets: number[];
             ashtamanshaPlanets: number[];
             atmakaraka: number;
+            isAscendantWargoththama: boolean;
+            wargoththamaPlanets: number[];
+            gandanthaPlanets: number[];
+            gandamulaPlanets: number[];
+            pushkaraPlanets: number[];
             yogas: unknown[];
             doshas: { doshas: unknown[] };
         } | null;
@@ -1018,6 +1023,8 @@ export default function HoroscopeDetailPage() {
                                             tags.push({ key: "gandanta", text: t("astrology.gandantaLabel") });
                                         if (calculatedDetails.gandamulaPlanets?.includes(p.name))
                                             tags.push({ key: "gandamula", text: t("astrology.gandamulaLabel") });
+                                        if (calculatedDetails.pushkaraPlanets?.includes(p.name))
+                                            tags.push({ key: "pushkara", text: t("astrology.pushkaraLabel") });
                                         return (
                                             <tr key={p.name} className="border-b border-gray-50">
                                                 <td className="py-1 pr-3 font-medium">
@@ -1145,6 +1152,8 @@ export default function HoroscopeDetailPage() {
                                     tags.push({ key: "gandanta", text: t("astrology.gandantaLabel") });
                                 if (calculatedDetails.gandamulaPlanets?.includes(p.name))
                                     tags.push({ key: "gandamula", text: t("astrology.gandamulaLabel") });
+                                if (calculatedDetails.pushkaraPlanets?.includes(p.name))
+                                    tags.push({ key: "pushkara", text: t("astrology.pushkaraLabel") });
 
                                 const STRENGTH_COLORS: Record<string, string> = {
                                     athiUchcha: "text-green-700 font-semibold",

@@ -501,6 +501,7 @@ const formatCondition = (
         "wargoththama",
         "gandanta",
         "gandamula",
+        "pushkara",
     ];
     const roleKey = ROLE_KEYS.find((role) => mc.startsWith(`${role}=`));
     if (roleKey) {
@@ -982,6 +983,8 @@ const SearchResultCard = ({
                                             tags.push({ key: "gandanta", text: t("astrology.gandantaLabel") });
                                         if (((cd!.gandamulaPlanets as number[]) || []).includes(pName))
                                             tags.push({ key: "gandamula", text: t("astrology.gandamulaLabel") });
+                                        if (((cd!.pushkaraPlanets as number[]) || []).includes(pName))
+                                            tags.push({ key: "pushkara", text: t("astrology.pushkaraLabel") });
 
                                         const strengthKey = STRENGTH_TRANSLATION_KEYS[pStrength];
                                         const STRENGTH_COLORS: Record<string, string> = {
