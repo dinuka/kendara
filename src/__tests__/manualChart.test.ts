@@ -11,6 +11,7 @@ import {
     computeConjunctions,
     computeMoonNakshatra,
     deriveAgeRanges,
+    manualPlacementsToInput,
     deriveBirthDateCandidates,
     deriveBirthDateRange,
     deriveBirthMonthRange,
@@ -553,6 +554,51 @@ describe("compute integration", () => {
     });
     test("placementsToMap inverts house-keyed object", () => {
         expect(placementsToMap({ 1: [1, 4], 4: [2] })).toEqual({ 1: 1, 4: 1, 2: 4 });
+    });
+    test("manualPlacementsToInput converts stored houses back into the compute input shape", () => {
+        const input = manualPlacementsToInput({
+            lagna: 4,
+            lagnaDegree: 12,
+            navamsaLagna: 6,
+            houses: [
+                { houseNumber: 1, sign: 4, planets: [1, 4], aspects: [] },
+                { houseNumber: 4, sign: 7, planets: [2], aspects: [] },
+                { houseNumber: 7, sign: 10, planets: [], aspects: [] },
+            ],
+            navamsaHouses: [{ houseNumber: 2, sign: 7, planets: [3], aspects: [] }],
+            validation: {
+                budha: "valid",
+                sikuru: "valid",
+                rahuKethuAxis: "valid",
+                planetCount: "valid",
+                navamsaPlanetCount: "valid",
+            },
+        });
+        expect(input).toEqual({
+            lagna: 4,
+            lagnaDegree: 12,
+            navamsaLagna: 6,
+            houses: { 1: [1, 4], 4: [2] },
+            navamsaHouses: { 2: [3] },
+        });
+    });
+    test("manualPlacementsToInput omits empty houses", () => {
+        const input = manualPlacementsToInput({
+            lagna: 1,
+            houses: [
+                { houseNumber: 1, sign: 1, planets: [], aspects: [] },
+                { houseNumber: 3, sign: 3, planets: [5], aspects: [] },
+            ],
+            validation: {
+                budha: "valid",
+                sikuru: "valid",
+                rahuKethuAxis: "valid",
+                planetCount: "valid",
+                navamsaPlanetCount: "valid",
+            },
+        });
+        expect(input.houses).toEqual({ 3: [5] });
+        expect(input.navamsaHouses).toEqual({});
     });
     test("deriveNavamsaLagnaFromDegree: degree 0 stays in the sign's first navamsa", () => {
         expect(deriveNavamsaLagnaFromDegree(1, 0)).toBe(1);

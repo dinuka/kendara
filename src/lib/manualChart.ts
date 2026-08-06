@@ -172,6 +172,26 @@ export function placementsToMap(placements: Record<number, number[]>): Record<nu
     return houseOfPlanet;
 }
 
+/** Convert the stored `ManualHousePlacements` (house objects keyed by houseNumber, the persisted
+ *  source of truth) back into the `ManualChartInput` shape (`houses`/`navamsaHouses` as
+ *  house-number → planet-enum maps) so it can be fed back through `compute()` for recalculation. */
+export function manualPlacementsToInput(placements: ManualHousePlacements): ManualChartInput {
+    const toRecord = (houses: ManualHouse[] | null | undefined): Record<number, number[]> => {
+        const result: Record<number, number[]> = {};
+        for (const house of houses ?? []) {
+            if (house.planets.length > 0) result[house.houseNumber] = house.planets;
+        }
+        return result;
+    };
+    return {
+        lagna: placements.lagna,
+        lagnaDegree: placements.lagnaDegree,
+        navamsaLagna: placements.navamsaLagna,
+        houses: toRecord(placements.houses),
+        navamsaHouses: toRecord(placements.navamsaHouses),
+    };
+}
+
 export function buildHouses(lagna: number, houseOfPlanet: Record<number, number>): ManualHouse[] {
     const houseSigns = deriveHouseSigns(lagna);
     const planetsByHouse: Record<number, number[]> = {};

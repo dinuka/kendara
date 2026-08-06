@@ -11,11 +11,14 @@ import { Chart } from "../src/models/Chart";
 import { Horoscope } from "../src/models/Horoscope";
 import { User } from "../src/models/User";
 
+import { recalculateCalculatedHoroscope } from "./recalculate-calculated-horoscopes";
+
 /** Recomputes CalculatedDetails and Chart docs for every existing horoscope, using the same
  *  calculateHoroscope/getChartData/generateChartSvg pipeline as the PUT /api/horoscope/[id]
- *  recalculation path. Needed because fixes to the calculation logic (e.g. the whole-sign house
- *  fix) only apply to horoscopes calculated after the fix — existing records keep stale data
- *  until explicitly recalculated. */
+ *  recalculation path for auto horoscopes and the compute/synthesize manual pipeline (delegated to
+ *  recalculateCalculatedHoroscope) for calculated (manual) horoscopes. Needed because fixes to the
+ *  calculation logic (e.g. the whole-sign house fix) only apply to horoscopes calculated after the
+ *  fix — existing records keep stale data until explicitly recalculated. */
 async function migrate() {
     await connectDB();
 
@@ -31,6 +34,13 @@ async function migrate() {
     for (let horoscope = await cursor.next(); horoscope != null; horoscope = await cursor.next()) {
         const id = horoscope._id.toString();
         try {
+            if (horoscope.source === "manual") {
+                await recalculateCalculatedHoroscope(horoscope);
+                updated++;
+                logger.info("recalculated calculated horoscope id=%s", id);
+                continue;
+            }
+
             let planetaryOrbs = orbsByOwnerId.get(horoscope.owner.id);
             if (!planetaryOrbs) {
                 const user = await User.findOne({ googleId: horoscope.owner.id }).lean();
