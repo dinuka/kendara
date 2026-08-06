@@ -14,10 +14,11 @@ import { useSession } from "next-auth/react";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
-import type { Ascendant, Dashas, House, Planet } from "@/lib/astrology";
+import type { Ascendant, CalculationResult, Dashas, House, Planet } from "@/lib/astrology";
 import { findHouse, formatDegree, navamsaSign } from "@/lib/astrology";
 import { PlanetaryStrength } from "@/lib/astrologyEnums";
-import { toBirthChartData } from "@/lib/chartDataTransform";
+import { getChartData, toBirthChartData } from "@/lib/chartDataTransform";
+import type { ChartInput } from "@/lib/chartDataTransform";
 import { ALL_CHART_TYPES, ChartType } from "@/lib/chartTypes";
 import { formatDate } from "@/lib/date";
 import { readHoroscopeSort } from "@/lib/horoscopeSort";
@@ -495,6 +496,22 @@ export default function HoroscopeDetailPage() {
         });
     };
 
+    /** Surya Lagna / Chandra Lagna chart data. Auto horoscopes have these precomputed and stored on
+     *  the document; manual horoscopes don't, so the birth chart is rotated to the Sun (planet 1) or
+     *  Moon (planet 2) lagna on the fly using its sign. */
+    const getSunMoonChartData = (type: ChartType): ChartInput | null => {
+        if (horoscope.source !== "manual" || !calculatedDetails) return null;
+        const planets = getManualAdjustedPlanets();
+        const target = type === ChartType.SURYA_LAGNA ? 1 : 2;
+        if (!planets.some((p) => p.name === target)) return null;
+        const result = {
+            planets,
+            houses: calculatedDetails.houses,
+            ascendant: calculatedDetails.ascendant,
+        };
+        return getChartData(result as CalculationResult, type);
+    };
+
     const getStrength = (s: number | string | PlanetaryStrength | undefined | null): PlanetaryStrength => {
         if (typeof s === "number") {
             const NUM_TO_STRENGTH: Record<number, PlanetaryStrength> = {
@@ -955,7 +972,15 @@ export default function HoroscopeDetailPage() {
                                         selectedChart === ChartType.SURYA_LAGNA
                                     ) {
                                         const chartData = data.charts.find((c) => c.type === selectedChart);
-                                        if (!chartData?.data) {
+                                        if (chartData?.data) {
+                                            return (
+                                                <div className="flex justify-center bg-white rounded-lg border p-4 overflow-auto">
+                                                    <BirthChart {...toBirthChartData(chartData.data)} />
+                                                </div>
+                                            );
+                                        }
+                                        const manualChartData = getSunMoonChartData(selectedChart);
+                                        if (!manualChartData) {
                                             return (
                                                 <div className="bg-white rounded-lg border p-6 text-center text-gray-400 min-h-[300px] flex items-center justify-center">
                                                     <p className="text-sm">{t("astrology.noChartData")}</p>
@@ -964,7 +989,7 @@ export default function HoroscopeDetailPage() {
                                         }
                                         return (
                                             <div className="flex justify-center bg-white rounded-lg border p-4 overflow-auto">
-                                                <BirthChart {...toBirthChartData(chartData.data)} />
+                                                <BirthChart {...toBirthChartData(manualChartData)} />
                                             </div>
                                         );
                                     }
