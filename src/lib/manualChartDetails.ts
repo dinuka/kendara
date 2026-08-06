@@ -8,7 +8,10 @@ import {
     type ManualChartResult,
     SIGN_LORD,
     buildWholeSignHouses,
+    computeAscendantNakshatra,
+    computeMoonNakshatra,
     navamsaLagnaOptions,
+    synthesizeOtherDetails,
 } from "@/lib/manualChart";
 
 export type ManualChartPayload = { ok: true; value: ManualChartInput } | { ok: false; error: string };
@@ -162,13 +165,19 @@ export function synthesizePlanets(result: ManualChartResult): Planet[] {
 export function synthesizeCalculation(result: ManualChartResult): CalculationResult {
     const { manualHousePlacements } = result;
     const lagna = manualHousePlacements.lagna;
+    const planets = synthesizePlanets(result);
+    const moon = planets.find((p) => p.name === 2);
+    const ascendantNakshatra = computeAscendantNakshatra(manualHousePlacements);
+    const moonNakshatra = moon
+        ? computeMoonNakshatra(moon.sign, moon.navamsaSign)
+        : { id: 1, pada: 1, lord: 9 };
     return {
         ascendant: synthesizeAscendant(lagna),
         houses: buildWholeSignHouses(lagna),
-        planets: synthesizePlanets(result),
+        planets,
         nakshatra: {
-            moonNakshatra: { id: 1, pada: 1, lord: 9 },
-            ascendantNakshatra: { id: 1, pada: 1, lord: 9 },
+            moonNakshatra,
+            ascendantNakshatra,
         },
         dashas: {
             mahadasha: [],
@@ -180,18 +189,7 @@ export function synthesizeCalculation(result: ManualChartResult): CalculationRes
                 pranaLord: null,
             },
         },
-        lord22ndDrekkana: 0,
-        lord64thNavamsa: 0,
-        badhakaPlanet: [],
-        marakaPlanets: [],
-        nidhanamshaPlanets: [],
-        ashtamanshaPlanets: [],
-        atmakaraka: 1,
-        isAscendantWargoththama: false,
-        wargoththamaPlanets: [],
-        gandanthaPlanets: [],
-        gandamulaPlanets: [],
-        pushkaraPlanets: [],
+        ...synthesizeOtherDetails(manualHousePlacements, planets),
         yogas: [],
         doshas: { doshas: [] },
     };

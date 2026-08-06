@@ -2,7 +2,7 @@
 
 import { useI18n } from "@/hooks/useI18n";
 
-import type { DerivedRanges } from "@/lib/manualChart";
+import { deriveBirthDateRange, type DerivedRanges } from "@/lib/manualChart";
 
 interface DerivedRangesSectionProps {
     ranges: DerivedRanges;
@@ -10,6 +10,8 @@ interface DerivedRangesSectionProps {
 
 export default function DerivedRangesSection({ ranges }: DerivedRangesSectionProps) {
     const { t, locale } = useI18n();
+
+    const birthDateRange = deriveBirthDateRange(ranges.birthMonthRange, ranges.birthDateCandidates);
 
     return (
         <section
@@ -32,23 +34,10 @@ export default function DerivedRangesSection({ ranges }: DerivedRangesSectionPro
                     </dd>
                 </div>
                 <div className="flex gap-2">
-                    <dt className="text-gray-500 w-32 shrink-0">📅 {t("manualChart.birthMonth")}</dt>
+                    <dt className="text-gray-500 w-32 shrink-0">📅 {t("manualChart.birthDate")}</dt>
                     <dd className="text-gray-700">
-                        {ranges.birthMonthRange ? (
-                            `${formatDate(ranges.birthMonthRange.start, t)} – ${formatDate(
-                                ranges.birthMonthRange.end,
-                                t,
-                            )}`
-                        ) : (
-                            <span className="text-gray-400 italic">{t("manualChart.placeRaviFirst")}</span>
-                        )}
-                    </dd>
-                </div>
-                <div className="flex gap-2">
-                    <dt className="text-gray-500 w-32 shrink-0">📆 {t("manualChart.birthDates")}</dt>
-                    <dd className="text-gray-700">
-                        {ranges.birthDateCandidates.length > 0 ? (
-                            ranges.birthDateCandidates.map((c) => c.candidateDay).join(", ")
+                        {birthDateRange ? (
+                            `${formatDate(birthDateRange.start, t)} – ${formatDate(birthDateRange.end, t)}`
                         ) : (
                             <span className="text-gray-400 italic">{t("manualChart.placeRaviFirst")}</span>
                         )}

@@ -4,9 +4,10 @@ import { BirthChart } from "@/components/BirthChart";
 import CalculatedChartBadge from "@/components/CalculatedChartBadge";
 import ConfirmDeleteModal from "@/components/ConfirmDeleteModal";
 import DashaSection from "@/components/Dasha/DashaSection";
+import DerivedRangesSection from "@/components/ManualChart/DerivedRanges";
 import { HouseChart } from "@/components/HouseChart";
-import ManualChartDetailPanel from "@/components/ManualChart/ManualChartDetailPanel";
 import ManualChartEditor from "@/components/ManualChart/ManualChartEditor";
+import ValidationBadges from "@/components/ManualChart/ValidationBadges";
 import PrivacyBadge from "@/components/PrivacyBadge";
 import PrivacyToggle from "@/components/PrivacyToggle";
 import { useI18n } from "@/hooks/useI18n";
@@ -22,7 +23,7 @@ import type { ChartInput } from "@/lib/chartDataTransform";
 import { ALL_CHART_TYPES, ChartType } from "@/lib/chartTypes";
 import { formatDate } from "@/lib/date";
 import { readHoroscopeSort } from "@/lib/horoscopeSort";
-import { buildWholeSignHouses, formatNavamsaDegreeRange, navamsaIndexForSign } from "@/lib/manualChart";
+import { buildBhavaHouses, buildWholeSignHouses, computeAscendantNakshatra, computeMoonNakshatra, deriveBirthTimeRange, formatNavamsaDegreeRange, navamsaIndexForSign, synthesizeOtherDetails, synthesizeValidation } from "@/lib/manualChart";
 import type { DerivedRanges, ManualHouse, ManualHousePlacements } from "@/lib/manualChart";
 
 const STRENGTH_TRANSLATION_KEYS: Record<PlanetaryStrength, string> = {
@@ -229,6 +230,68 @@ export default function HoroscopeDetailPage() {
         fetch(`/api/horoscope/${params.id}?sortBy=${sortBy}&sortDir=${sortDir}`)
             .then((r) => r.json())
             .then((d) => {
+                if (
+                    d?.horoscope?.source === "manual" &&
+                    d?.calculatedDetails?.manualHousePlacements &&
+                    d?.calculatedDetails?.planets
+                ) {
+                    d = {
+                        ...d,
+                        calculatedDetails: {
+                            ...d.calculatedDetails,
+                            ...synthesizeOtherDetails(
+                                d.calculatedDetails.manualHousePlacements,
+                                d.calculatedDetails.planets,
+                            ),
+                            manualHousePlacements: {
+                                ...d.calculatedDetails.manualHousePlacements,
+                                validation: synthesizeValidation(
+                                    d.calculatedDetails.manualHousePlacements,
+                                ),
+                            },
+                            houses: (() => {
+                                const mhp = d.calculatedDetails.manualHousePlacements;
+                                const lagna = mhp.lagna;
+                                let ascAbsDeg = (lagna - 1) * 30;
+                                if (mhp.lagnaDegree !== undefined) {
+                                    ascAbsDeg = (lagna - 1) * 30 + mhp.lagnaDegree;
+                                } else if (mhp.navamsaLagna !== undefined) {
+                                    ascAbsDeg =
+                                        (lagna - 1) * 30 +
+                                        (navamsaIndexForSign(lagna, mhp.navamsaLagna) - 0.5) * (30 / 9);
+                                }
+                                return buildBhavaHouses(lagna, ascAbsDeg);
+                            })(),
+                            nakshatra: {
+                                ...d.calculatedDetails.nakshatra,
+                                ascendantNakshatra: computeAscendantNakshatra(
+                                    d.calculatedDetails.manualHousePlacements,
+                                ),
+                                moonNakshatra: (() => {
+                                    const moon = (d.calculatedDetails.planets as Planet[]).find(
+                                        (p) => p.name === 2,
+                                    );
+                                    return moon
+                                        ? computeMoonNakshatra(moon.sign, moon.navamsaSign)
+                                        : undefined;
+                                })(),
+                            },
+                            derivedRanges: (() => {
+                                const stored = d.calculatedDetails.derivedRanges as
+                                    | DerivedRanges
+                                    | undefined;
+                                const ravi = (d.calculatedDetails.planets as Planet[]).find(
+                                    (p) => p.name === 1,
+                                );
+                                const birthTimeRange = ravi ? deriveBirthTimeRange(ravi.house) : null;
+                                return {
+                                    ...stored,
+                                    birthTimeRange,
+                                };
+                            })(),
+                        },
+                    };
+                }
                 setData(d);
                 setLoading(false);
             })
@@ -494,6 +557,75 @@ export default function HoroscopeDetailPage() {
             const degree = (index - 0.5) * arc;
             return { ...p, degree, absoluteDegree: (p.sign - 1) * 30 + degree };
         });
+    };
+
+    const isManualNoBirthDate = horoscope.source === "manual" && !horoscope.birthDate;
+
+    const NAVAMSA_ARC = 30 / 9;
+
+    /** Ascendant's navamsa segment [start,end] within the lagna sign for manual horoscopes. Derived
+     *  from the effective ascendant degree (entered `lagnaDegree` when given, else the stored
+     *  navamsa lagna) so the calculations-tab ranges line up with the house chart's lagna line. */
+    const getAscMidRange = (): { start: number; end: number } => {
+        const { lagna, lagnaDegree, navamsaLagna } = calculatedDetails?.manualHousePlacements ?? { lagna: 1 };
+        let index = 1;
+        if (lagnaDegree !== undefined) index = Math.floor(lagnaDegree / NAVAMSA_ARC) + 1;
+        else if (navamsaLagna !== undefined) index = navamsaIndexForSign(lagna, navamsaLagna);
+        return { start: (index - 1) * NAVAMSA_ARC, end: index * NAVAMSA_ARC };
+    };
+
+    /** Navamsa segment degree range label (e.g. `10:00–13:20`) for a planet's degree within its
+     *  sign, derived from which navamsa wedge the sign falls into. */
+    const getPlanetDegreeRange = (p: Planet): string => {
+        const index = navamsaIndexForSign(p.sign, p.navamsaSign ?? p.sign);
+        return formatNavamsaDegreeRange((index - 1) * NAVAMSA_ARC, index * NAVAMSA_ARC);
+    };
+
+    /** House start/mid/end labels for manual whole-sign horoscopes. Per the agreed model, every row
+     *  repeats the same 3-segment pattern with rotating signs: Start = last segment of the previous
+     *  sign (26:40–30:00), Mid = the ascendant's navamsa segment in this house's sign, End = last
+     *  segment of this house's sign (26:40–30:00). */
+    const getManualHouseRange = (
+        sign: number,
+        midStart: number,
+        midEnd: number,
+    ): { start: string; mid: string; end: string } => {
+        const prevSign = ((sign - 2 + 12) % 12) + 1;
+        const lastSegment = formatNavamsaDegreeRange(30 - NAVAMSA_ARC, 30);
+        return {
+            start: `${getSignName(prevSign)} (${lastSegment})`,
+            mid: `${getSignName(sign)} (${formatNavamsaDegreeRange(midStart, midEnd)})`,
+            end: `${getSignName(sign)} (${lastSegment})`,
+        };
+    };
+
+    /** Aspected planet labels for a manual horoscope, computed from the synthesized (navamsa-midpoint)
+     *  degrees using the same Vedic aspect angles (60/90/120/180) and orbs as auto horoscopes. */
+    const getManualAspects = (p: Planet): string[] => {
+        if (horoscope.source !== "manual" || !calculatedDetails?.planets.length) return [];
+        const planets = getManualAdjustedPlanets();
+        const orb = orbMap[p.name] ?? 0;
+        return planets
+            .filter((x) => x.name !== p.name)
+            .map((x) => {
+                const dist = Math.abs(p.absoluteDegree - x.absoluteDegree);
+                const rawDist = Math.min(dist, 360 - dist);
+                const nearest = [0, 60, 90, 120, 180].reduce((prev, curr) =>
+                    Math.abs(rawDist - curr) < Math.abs(rawDist - prev) ? curr : prev,
+                );
+                if (nearest === 0 || Math.abs(rawDist - nearest) > orb / 2) return null;
+                let diff = x.absoluteDegree - p.absoluteDegree;
+                if (diff > 180) diff -= 360;
+                if (diff < -180) diff += 360;
+                const sign = diff >= 0 ? "+" : "-";
+                const absDiff = Math.abs(diff);
+                const totalVikala = Math.round(absDiff * 3600);
+                const anshaka = Math.floor(totalVikala / 3600);
+                const kala = Math.floor((totalVikala % 3600) / 60);
+                const vikala = totalVikala % 60;
+                return `${getPlanetName(x.name)} (${sign}${String(anshaka).padStart(2, "0")}:${String(kala).padStart(2, "0")}:${String(vikala).padStart(2, "0")})`;
+            })
+            .filter((v): v is string => v !== null);
     };
 
     /** Surya Lagna / Chandra Lagna chart data. Auto horoscopes have these precomputed and stored on
@@ -1006,14 +1138,12 @@ export default function HoroscopeDetailPage() {
 
                     {activeTab === "calculations" && calculatedDetails && (
                         <div className="space-y-6">
-                            {horoscope.source === "manual" &&
-                                calculatedDetails.manualHousePlacements &&
-                                calculatedDetails.derivedRanges && (
-                                    <ManualChartDetailPanel
-                                        manualHousePlacements={calculatedDetails.manualHousePlacements}
-                                        derivedRanges={calculatedDetails.derivedRanges}
-                                    />
-                                )}
+                            {horoscope.source === "manual" && calculatedDetails.manualHousePlacements && (
+                                <ValidationBadges
+                                    validation={calculatedDetails.manualHousePlacements.validation}
+                                    scope="birth"
+                                />
+                            )}
                             <section className="bg-white rounded-lg border p-4">
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div className="bg-gray-50 rounded p-3">
@@ -1023,7 +1153,12 @@ export default function HoroscopeDetailPage() {
                                         <p className="text-sm mb-1">
                                             {getSignName(calculatedDetails.ascendant.sign)} (
                                             {getPlanetName(calculatedDetails.ascendant.lord)}){" "}
-                                            {formatDegree(calculatedDetails.ascendant.degree)}
+                                            {isManualNoBirthDate
+                                                ? formatNavamsaDegreeRange(
+                                                      getAscMidRange().start,
+                                                      getAscMidRange().end,
+                                                  )
+                                                : formatDegree(calculatedDetails.ascendant.degree)}
                                         </p>
                                         <p className="text-sm text-gray-600">
                                             {getNakshatraName(calculatedDetails.nakshatra.ascendantNakshatra?.id ?? 0)}{" "}
@@ -1069,6 +1204,10 @@ export default function HoroscopeDetailPage() {
                                             {calculatedDetails.houses.map((h) => {
                                                 const planetsInHouse = getPlanetsInHouse(h.houseNumber);
                                                 const houseMidAbs = getHouseMidAbs(h);
+                                                const isManualRow = isManualNoBirthDate;
+                                                const manualRange = isManualRow
+                                                    ? getManualHouseRange(h.sign, getAscMidRange().start, getAscMidRange().end)
+                                                    : null;
                                                 const aspectsToHouse = getAspectsToHouse(h.houseNumber)
                                                     .map((a) => ({
                                                         ...a,
@@ -1084,41 +1223,47 @@ export default function HoroscopeDetailPage() {
                                                     <tr key={h.houseNumber} className="border-b border-gray-50">
                                                         <td className="py-1 pr-3 font-medium">{h.houseNumber}</td>
                                                         <td className="py-1 pr-3 text-gray-600">
-                                                            {formatSignLordDegree(
-                                                                h.startSign,
-                                                                h.startLord,
-                                                                h.startDegree,
-                                                                h.sign,
-                                                                h.lord,
-                                                            )}
+                                                            {manualRange
+                                                                ? manualRange.start
+                                                                : formatSignLordDegree(
+                                                                      h.startSign,
+                                                                      h.startLord,
+                                                                      h.startDegree,
+                                                                      h.sign,
+                                                                      h.lord,
+                                                                  )}
                                                         </td>
                                                         <td className="py-1 pr-3 text-gray-600">
-                                                            {formatSignLordDegree(
-                                                                h.middleSign,
-                                                                h.middleLord,
-                                                                h.middleDegree,
-                                                                h.sign,
-                                                                h.lord,
-                                                            )}
+                                                            {manualRange
+                                                                ? manualRange.mid
+                                                                : formatSignLordDegree(
+                                                                      h.middleSign,
+                                                                      h.middleLord,
+                                                                      h.middleDegree,
+                                                                      h.sign,
+                                                                      h.lord,
+                                                                  )}
                                                         </td>
                                                         <td className="py-1 pr-3 text-gray-600">
-                                                            {formatSignLordDegree(
-                                                                h.endSign,
-                                                                h.endLord,
-                                                                h.endDegree,
-                                                                h.sign,
-                                                                h.lord,
-                                                            )}
+                                                            {manualRange
+                                                                ? manualRange.end
+                                                                : formatSignLordDegree(
+                                                                      h.endSign,
+                                                                      h.endLord,
+                                                                      h.endDegree,
+                                                                      h.sign,
+                                                                      h.lord,
+                                                                  )}
                                                         </td>
                                                         <td className="py-1 pr-3">
-                                                            {planetsInHouse.length > 0
-                                                                ? planetsInHouse
-                                                                      .map(
-                                                                          (p) =>
-                                                                              `${getPlanetName(p.name)} (${formatDegree(p.degree)})`,
-                                                                      )
-                                                                      .join(", ")
-                                                                : "—"}
+{planetsInHouse.length > 0
+                                                                        ? planetsInHouse
+                                                                              .map(
+                                                                                  (p) =>
+                                                                                      `${getPlanetName(p.name)} (${manualRange ? getPlanetDegreeRange(p) : formatDegree(p.degree)})`,
+                                                                              )
+                                                                              .join(", ")
+                                                                        : "—"}
                                                         </td>
                                                         <td className="py-1 pr-3">
                                                             {aspectsToHouse.length > 0
@@ -1165,6 +1310,8 @@ export default function HoroscopeDetailPage() {
                                                 </th>
                                                 <th className="py-1 pr-3">{t("astrology.strength")}</th>
                                                 <th className="py-1 pr-3">{t("astrology.house")}</th>
+                                                <th className="py-1 pr-3">{t("astrology.navamsa")}</th>
+                                                <th className="py-1 pr-3">{t("astrology.navamsa")} {t("astrology.strength")}</th>
                                                 <th className="py-1 pr-3">
                                                     {t("astrology.nakshatra")} ({t("astrology.pada")})
                                                 </th>
@@ -1174,9 +1321,11 @@ export default function HoroscopeDetailPage() {
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            {calculatedDetails.planets.map((p) => {
+                                            {[...calculatedDetails.planets].sort((a, b) => a.name - b.name).map((p) => {
                                                 const displayHouse =
-                                                    findHouse(p.absoluteDegree, calculatedDetails.houses) ?? p.house;
+                                                    horoscope.source === "manual"
+                                                        ? p.house
+                                                        : (findHouse(p.absoluteDegree, calculatedDetails.houses) ?? p.house);
                                                 const conjunct = calculatedDetails.planets
                                                     .filter((q) => q.name !== p.name)
                                                     .filter((q) => {
@@ -1196,27 +1345,29 @@ export default function HoroscopeDetailPage() {
                                                         const vikala = totalVikala % 60;
                                                         return `${getPlanetName(q.name)} (${sign}${String(anshaka).padStart(2, "0")}:${String(kala).padStart(2, "0")}:${String(vikala).padStart(2, "0")})`;
                                                     });
-                                                const aspects = p.aspects
-                                                    .filter((a) => a.aspectType !== 0)
-                                                    .map((a) => {
-                                                        const q = calculatedDetails.planets.find(
-                                                            (x) => x.name === a.planetName,
-                                                        );
-                                                        if (!q) return "";
-                                                        const exactPoint = (p.absoluteDegree + a.aspectType) % 360;
-                                                        let diff = exactPoint - q.absoluteDegree;
-                                                        if (diff > 180) diff -= 360;
-                                                        if (diff < -180) diff += 360;
-                                                        if (Math.abs(diff) > (orbMap[p.name] ?? 0) / 2) return "";
-                                                        const sign = diff >= 0 ? "+" : "-";
-                                                        const absDiff = Math.abs(diff);
-                                                        const totalVikala = Math.round(absDiff * 3600);
-                                                        const anshaka = Math.floor(totalVikala / 3600);
-                                                        const kala = Math.floor((totalVikala % 3600) / 60);
-                                                        const vikala = totalVikala % 60;
-                                                        return `${getPlanetName(a.planetName)} (${sign}${String(anshaka).padStart(2, "0")}:${String(kala).padStart(2, "0")}:${String(vikala).padStart(2, "0")})`;
-                                                    })
-                                                    .filter(Boolean);
+                                                const aspects = horoscope.source === "manual"
+                                                    ? getManualAspects(p)
+                                                    : p.aspects
+                                                          .filter((a) => a.aspectType !== 0)
+                                                          .map((a) => {
+                                                              const q = calculatedDetails.planets.find(
+                                                                  (x) => x.name === a.planetName,
+                                                              );
+                                                              if (!q) return "";
+                                                              const exactPoint = (p.absoluteDegree + a.aspectType) % 360;
+                                                              let diff = exactPoint - q.absoluteDegree;
+                                                              if (diff > 180) diff -= 360;
+                                                              if (diff < -180) diff += 360;
+                                                              if (Math.abs(diff) > (orbMap[p.name] ?? 0) / 2) return "";
+                                                              const sign = diff >= 0 ? "+" : "-";
+                                                              const absDiff = Math.abs(diff);
+                                                              const totalVikala = Math.round(absDiff * 3600);
+                                                              const anshaka = Math.floor(totalVikala / 3600);
+                                                              const kala = Math.floor((totalVikala % 3600) / 60);
+                                                              const vikala = totalVikala % 60;
+                                                              return `${getPlanetName(a.planetName)} (${sign}${String(anshaka).padStart(2, "0")}:${String(kala).padStart(2, "0")}:${String(vikala).padStart(2, "0")})`;
+                                                          })
+                                                          .filter(Boolean);
                                                 const tags: { key: string; text: string; strikethrough?: boolean }[] =
                                                     [];
                                                 if (p.combustion)
@@ -1277,7 +1428,7 @@ export default function HoroscopeDetailPage() {
                                                                 : getPlanetName(p.name)}
                                                         </td>
                                                         <td className="py-1 pr-3">
-                                                            {getSignName(p.sign)} ({formatDegree(p.degree)})
+                                                            {getSignName(p.sign)} ({isManualNoBirthDate ? getPlanetDegreeRange(p) : formatDegree(p.degree)})
                                                         </td>
                                                         <td className="py-1 pr-3">
                                                             {t(
@@ -1285,6 +1436,14 @@ export default function HoroscopeDetailPage() {
                                                             )}
                                                         </td>
                                                         <td className="py-1 pr-3">{displayHouse}</td>
+                                                        <td className="py-1 pr-3">
+                                                            {getSignName(p.navamsaSign)}
+                                                        </td>
+                                                        <td className="py-1 pr-3">
+                                                            {t(
+                                                                `astrology.${STRENGTH_TRANSLATION_KEYS[getStrength(p.navamsaStrength)] ?? "neutral"}`,
+                                                            )}
+                                                        </td>
                                                         <td className="py-1 pr-3 text-gray-600">
                                                             {getNakshatraName(p.nakshatra) || p.nakshatra} ({p.pada})
                                                         </td>
@@ -1321,11 +1480,13 @@ export default function HoroscopeDetailPage() {
 
                                 {/* Mobile: card view */}
                                 <div className="block sm:hidden space-y-2">
-                                    {calculatedDetails.planets.map((p) => {
+                                    {[...calculatedDetails.planets].sort((a, b) => a.name - b.name).map((p) => {
                                         const isExpanded = expandedPlanets.has(p.name);
                                         const isRetrograde = p.retrograde && p.name !== 8 && p.name !== 9;
                                         const displayHouse =
-                                            findHouse(p.absoluteDegree, calculatedDetails.houses) ?? p.house;
+                                            horoscope.source === "manual"
+                                                ? p.house
+                                                : (findHouse(p.absoluteDegree, calculatedDetails.houses) ?? p.house);
 
                                         const conjunct = calculatedDetails.planets
                                             .filter((q) => q.name !== p.name)
@@ -1347,27 +1508,29 @@ export default function HoroscopeDetailPage() {
                                                 return `${getPlanetName(q.name)} (${sign}${String(anshaka).padStart(2, "0")}:${String(kala).padStart(2, "0")}:${String(vikala).padStart(2, "0")})`;
                                             });
 
-                                        const aspects = p.aspects
-                                            .filter((a) => a.aspectType !== 0)
-                                            .map((a) => {
-                                                const q = calculatedDetails.planets.find(
-                                                    (x) => x.name === a.planetName,
-                                                );
-                                                if (!q) return "";
-                                                const exactPoint = (p.absoluteDegree + a.aspectType) % 360;
-                                                let diff = exactPoint - q.absoluteDegree;
-                                                if (diff > 180) diff -= 360;
-                                                if (diff < -180) diff += 360;
-                                                if (Math.abs(diff) > (orbMap[p.name] ?? 0) / 2) return "";
-                                                const sign = diff >= 0 ? "+" : "-";
-                                                const absDiff = Math.abs(diff);
-                                                const totalVikala = Math.round(absDiff * 3600);
-                                                const anshaka = Math.floor(totalVikala / 3600);
-                                                const kala = Math.floor((totalVikala % 3600) / 60);
-                                                const vikala = totalVikala % 60;
-                                                return `${getPlanetName(a.planetName)} (${sign}${String(anshaka).padStart(2, "0")}:${String(kala).padStart(2, "0")}:${String(vikala).padStart(2, "0")})`;
-                                            })
-                                            .filter(Boolean);
+                                        const aspects = horoscope.source === "manual"
+                                            ? getManualAspects(p)
+                                            : p.aspects
+                                                  .filter((a) => a.aspectType !== 0)
+                                                  .map((a) => {
+                                                      const q = calculatedDetails.planets.find(
+                                                          (x) => x.name === a.planetName,
+                                                      );
+                                                      if (!q) return "";
+                                                      const exactPoint = (p.absoluteDegree + a.aspectType) % 360;
+                                                      let diff = exactPoint - q.absoluteDegree;
+                                                      if (diff > 180) diff -= 360;
+                                                      if (diff < -180) diff += 360;
+                                                      if (Math.abs(diff) > (orbMap[p.name] ?? 0) / 2) return "";
+                                                      const sign = diff >= 0 ? "+" : "-";
+                                                      const absDiff = Math.abs(diff);
+                                                      const totalVikala = Math.round(absDiff * 3600);
+                                                      const anshaka = Math.floor(totalVikala / 3600);
+                                                      const kala = Math.floor((totalVikala % 3600) / 60);
+                                                      const vikala = totalVikala % 60;
+                                                      return `${getPlanetName(a.planetName)} (${sign}${String(anshaka).padStart(2, "0")}:${String(kala).padStart(2, "0")}:${String(vikala).padStart(2, "0")})`;
+                                                  })
+                                                  .filter(Boolean);
 
                                         const tags: { key: string; text: string; strikethrough?: boolean }[] = [];
                                         if (p.combustion)
@@ -1527,6 +1690,10 @@ export default function HoroscopeDetailPage() {
                                     })}
                                 </div>
                             </section>
+
+                            {horoscope.source === "manual" && calculatedDetails.derivedRanges && (
+                                <DerivedRangesSection ranges={calculatedDetails.derivedRanges} />
+                            )}
                         </div>
                     )}
 

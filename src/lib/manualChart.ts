@@ -1,5 +1,6 @@
 import { navamsaSign } from "@/lib/astrology";
 import { Planet, PlanetaryStrength } from "@/lib/astrologyEnums";
+import type { CalculationResult, House, Planet as AstroPlanet } from "@/lib/astrology";
 
 export type ValidationStatus = "valid" | "invalid" | "incomplete" | "skipped";
 
@@ -161,8 +162,7 @@ export function computeConjunctions(houseOfPlanet: Record<number, number>): Reco
 }
 
 /** Convert a house-number-keyed placements object into a planet -> house map. */
-export function placementsToMap(placements: Record<number, number[]>): Record<number, number> {
-    const houseOfPlanet: Record<number, number> = {};
+export function placementsToMap(placements: Record<number, number[]>): Record<number, number> {    const houseOfPlanet: Record<number, number> = {};
     for (const [houseKey, planets] of Object.entries(placements)) {
         const house = Number(houseKey);
         for (const planet of planets) {
@@ -396,6 +396,53 @@ export function navamsaIndexForSign(birthSign: number, navamsaSignValue: number)
     return 1;
 }
 
+/** Ascendant (Lagna) Nakshatra for a manual horoscope. Uses the absolute ascendant degree derived
+ *  from `lagnaDegree` when recorded, otherwise the midpoint of the navamsa wedge implied by the
+ *  stored navamsa lagna (matching `getAscendantAbsDeg`). Falls back to the sign midpoint (15°) when
+ *  neither a degree nor a navamsa lagna is recorded. */
+export function computeAscendantNakshatra(
+    mhp: { lagna: number; lagnaDegree?: number; navamsaLagna?: number },
+): { id: number; pada: number; lord: number } {
+    const { lagna, lagnaDegree, navamsaLagna } = mhp;
+    let absDegree: number;
+    if (lagnaDegree !== undefined) {
+        absDegree = (lagna - 1) * 30 + lagnaDegree;
+    } else if (navamsaLagna !== undefined) {
+        const index = navamsaIndexForSign(lagna, navamsaLagna);
+        absDegree = (lagna - 1) * 30 + (index - 0.5) * NAVAMSA_ARC;
+    } else {
+        absDegree = (lagna - 1) * 30 + 15;
+    }
+    return nakshatraDetails(absDegree);
+}
+
+/** Moon (Chandra) Nakshatra for a manual horoscope. Manual charts don't record the Moon's exact
+ *  degree — only its birth house and (optionally) its navamsa segment — so it's derived from the
+ *  Moon's absolute birth degree: the navamsa-segment midpoint inferred from the Moon's navamsa sign,
+ *  or the sign midpoint (15°) when no navamsa data exists. */
+export function computeMoonNakshatra(
+    birthSign: number,
+    navamsaSignForMoon?: number,
+): { id: number; pada: number; lord: number } {
+    let absDegree: number;
+    if (navamsaSignForMoon !== undefined) {
+        const index = navamsaIndexForSign(birthSign, navamsaSignForMoon);
+        absDegree = (birthSign - 1) * 30 + (index - 0.5) * NAVAMSA_ARC;
+    } else {
+        absDegree = (birthSign - 1) * 30 + 15;
+    }
+    return nakshatraDetails(absDegree);
+}
+
+/** Vimshottari nakshatra lords, ordered 1..27 (same cycle as the auto pipeline: Ketu, Venus, Sun,
+ *  Moon, Mars, Rahu, Jupiter, Saturn, Mercury). Lord for nakshatra id `n` is this[index]. */
+const NAKSHATRA_LORDS = Array.from({ length: 27 }, (_, i) => [9, 6, 1, 2, 3, 8, 5, 7, 4][i % 9]);
+
+function nakshatraDetails(absoluteDegree: number): { id: number; pada: number; lord: number } {
+    const { nakshatra, pada } = nakshatraAndPada(absoluteDegree);
+    return { id: nakshatra, pada, lord: NAKSHATRA_LORDS[nakshatra - 1] };
+}
+
 function nakshatraAndPada(absoluteDegree: number): { nakshatra: number; pada: number } {
     const normalized = ((absoluteDegree % 360) + 360) % 360;
     const nakNum = Math.floor(normalized / NAKSHATRA_ARC);
@@ -509,7 +556,7 @@ export function derivePlanetsTable(input: PlanetsTableInput): ManualPlanetRow[] 
         .sort((a, b) => a.house - b.house || a.planet - b.planet);
 }
 
-/** Probable birth time range from Ravi's house. 2-hour window starting 05:00 for house 1, +2h per house. */
+/** Probable birth time range from Ravi's house (see BIRTH_TIME_RANGES for the house→time mapping). */
 export function deriveBirthTimeRange(raviHouse: number): { start: string; end: string } | null {
     const range = BIRTH_TIME_RANGES[raviHouse];
     return range ? { ...range } : null;
@@ -541,8 +588,33 @@ export function deriveBirthDateCandidates(raviNavamsaIndex: number): BirthDateCa
     ];
 }
 
+const DAYS_IN_MONTH = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+
+/** Fuse the birth month range and the two candidate days into a single {start, end} date range.
+ *  The anchors live in the month-range's start month: the first candidate is the start day, the
+ *  second candidate rolls over month boundaries (e.g. candidate 36 anchored in March → April 5). */
+export function deriveBirthDateRange(
+    birthMonthRange: { start: { month: number; day: number }; end: { month: number; day: number } } | null | undefined,
+    birthDateCandidates: BirthDateCandidate[],
+): { start: { month: number; day: number }; end: { month: number; day: number } } | null {
+    if (!birthMonthRange || birthDateCandidates.length < 2) return null;
+    const anchorMonth = birthMonthRange.start.month;
+    const roll = (day: number): { month: number; day: number } => {
+        let month = anchorMonth;
+        let dayOfMonth = day;
+        while (dayOfMonth > DAYS_IN_MONTH[month - 1]) {
+            dayOfMonth -= DAYS_IN_MONTH[month - 1];
+            month = (month % 12) + 1;
+        }
+        return { month, day: dayOfMonth };
+    };
+    return { start: roll(birthDateCandidates[0].candidateDay), end: roll(birthDateCandidates[1].candidateDay) };
+}
+
 /** Probable age ranges from Shani's birth navamsa and current Shani position.
- *  1st age (months) = months-to-next-sign + completed current-sign months + 30 x (sign gap).
+ *  Shani travels ~1° per month (~30 months per sign, forward through the zodiac). The age is the
+ *  time for Shani to move from its birth sign to its current sign:
+ *  months-to-exit-birth-sign + 30 × (complete signs crossed) + months into the current sign.
  *  2nd/3rd ages add 30 years each. Negative intermediates clamp to 0 with a warning flag. */
 export function deriveAgeRanges(
     shaniBirthNavamsa: number,
@@ -552,7 +624,9 @@ export function deriveAgeRanges(
 ): AgeRange[] {
     const monthsToNextSign = shaniBirthNavamsa <= 1 ? SHANI_MONTHS_FOR_SIGN.default : SHANI_MONTHS_FOR_SIGN.alternate;
     const completedMonths = Math.max(0, Math.round(currentShaniDegree));
-    const signGapMonths = 30 * (birthShaniSign - currentShaniSign - 1);
+    // Forward distance in signs from the birth sign to the current sign (0 when Shani hasn't left it).
+    const forwardGap = ((currentShaniSign - birthShaniSign) % 12 + 12) % 12;
+    const signGapMonths = 30 * (forwardGap - 1);
 
     let firstMonths = monthsToNextSign + completedMonths + signGapMonths;
     const warning = firstMonths < 0;
@@ -649,20 +723,23 @@ export function compute(input: ManualChartInput, currentShani?: CurrentShani | n
     };
 }
 
-/** Probable birth time range per house (US-CH-009 business rule). */
+/** Probable birth time range per house (US-CH-009 business rule). The Sun is in the 1st house at
+ *  sunrise (~06:00) and moves "backward" through the houses as the ascendant advances one sign every
+ *  ~2 hours across the day: house 1 @ sunrise, 12 @ ~08:00, 11 @ ~10:00, ... 7 @ sunset (~18:00),
+ *  ..., 2 @ ~04:00. So the 3rd house is the night window 01:00–03:00. */
 export const BIRTH_TIME_RANGES: Record<number, { start: string; end: string }> = {
     1: { start: "05:00", end: "07:00" },
-    2: { start: "07:00", end: "09:00" },
-    3: { start: "09:00", end: "11:00" },
-    4: { start: "11:00", end: "13:00" },
-    5: { start: "13:00", end: "15:00" },
-    6: { start: "15:00", end: "17:00" },
+    2: { start: "03:00", end: "05:00" },
+    3: { start: "01:00", end: "03:00" },
+    4: { start: "23:00", end: "01:00" },
+    5: { start: "21:00", end: "23:00" },
+    6: { start: "19:00", end: "21:00" },
     7: { start: "17:00", end: "19:00" },
-    8: { start: "19:00", end: "21:00" },
-    9: { start: "21:00", end: "23:00" },
-    10: { start: "23:00", end: "01:00" },
-    11: { start: "01:00", end: "03:00" },
-    12: { start: "03:00", end: "05:00" },
+    8: { start: "15:00", end: "17:00" },
+    9: { start: "13:00", end: "15:00" },
+    10: { start: "11:00", end: "13:00" },
+    11: { start: "09:00", end: "11:00" },
+    12: { start: "07:00", end: "09:00" },
 };
 
 /** Probable birth month range per sign (US-CH-010 business rule). */
@@ -704,18 +781,219 @@ export function formatNavamsaDegreeRange(start: number, end: number): string {
 /** Exported for the API layer: builds whole-sign House objects from a lagna (for the current-planets call). */
 export function buildWholeSignHouses(lagna: number): import("@/lib/astrology").House[] {
     const houseSigns = deriveHouseSigns(lagna);
-    return houseSigns.map((sign, i) => ({
-        houseNumber: i + 1,
-        startDegree: 0,
-        startSign: sign,
-        startLord: SIGN_LORD[sign] || 1,
-        middleDegree: 0,
-        middleSign: sign,
-        middleLord: SIGN_LORD[sign] || 1,
-        endDegree: 0,
-        endSign: sign,
-        endLord: SIGN_LORD[sign] || 1,
-        sign,
-        lord: SIGN_LORD[sign] || 1,
-    }));
+    return houseSigns.map((sign, i) => {
+        const nextSign = (sign % 12) + 1;
+        return {
+            houseNumber: i + 1,
+            startDegree: 0,
+            startSign: sign,
+            startLord: SIGN_LORD[sign] || 1,
+            middleDegree: 15,
+            middleSign: sign,
+            middleLord: SIGN_LORD[sign] || 1,
+            endDegree: 0,
+            endSign: nextSign,
+            endLord: SIGN_LORD[nextSign] || 1,
+            sign,
+            lord: SIGN_LORD[sign] || 1,
+        };
+    });
+}
+
+/** Builds the house chart (bhava) House objects for a manual horoscope, anchored so house 1's
+ *  middle line coincides exactly with the ascendant (lagna) line at `ascAbsDeg`. Per the calc-tab
+ *  degree-range model, each house spans from the last navamsa of the previous sign (26:40) to the
+ *  last navamsa of its own sign, and every house's middle line sits at the ascendant's degree
+ *  rotated +30° per house — which is exactly the repeating "Mid = ascendant segment in this
+ *  house's sign" range shown in the calculations tab. */
+export function buildBhavaHouses(lagna: number, ascAbsDeg: number): import("@/lib/astrology").House[] {
+    const boundaryDegree = 30 - NAVAMSA_ARC;
+    return Array.from({ length: 12 }, (_, i) => {
+        const houseNumber = i + 1;
+        const sign = ((lagna - 1 + i) % 12) + 1;
+        const prevSign = ((sign - 2 + 12) % 12) + 1;
+        const midAbs = (((ascAbsDeg + i * 30) % 360) + 360) % 360;
+        const midSign = Math.floor(midAbs / 30) + 1;
+        return {
+            houseNumber,
+            startDegree: boundaryDegree,
+            startSign: prevSign,
+            startLord: SIGN_LORD[prevSign] || 1,
+            middleDegree: midAbs % 30,
+            middleSign: midSign,
+            middleLord: SIGN_LORD[midSign] || 1,
+            endDegree: boundaryDegree,
+            endSign: sign,
+            endLord: SIGN_LORD[sign] || 1,
+            sign,
+            lord: SIGN_LORD[sign] || 1,
+        };
+    });
+}
+
+const PUSHKARA_NAVAMSA_SIGNS: Record<number, number[]> = {
+    1: [7, 9],
+    2: [2, 12],
+    3: [2, 12],
+    4: [4, 6],
+    5: [7, 9],
+    6: [2, 12],
+    7: [2, 12],
+    8: [4, 6],
+    9: [7, 9],
+    10: [2, 12],
+    11: [2, 12],
+    12: [4, 6],
+};
+
+const GANDAMULA_NAKSHATRAS = new Set([1, 10, 19]);
+const GANDANTHA_NAKSHATRAS = new Set([9, 18, 27]);
+
+export function computeBadhaka(ascSign: number): number[] {
+    const isMovable = [1, 4, 7, 10].includes(ascSign);
+    const isFixed = [2, 5, 8, 11].includes(ascSign);
+    const badhakaHouse = isMovable ? 11 : isFixed ? 9 : 7;
+    const badhakaSign = ((ascSign + badhakaHouse - 2) % 12) + 1;
+    return [SIGN_LORD[badhakaSign] || 1];
+}
+
+export function computeMaraka(ascSign: number): number[] {
+    const secondSign = (ascSign % 12) + 1;
+    const seventhSign = ((ascSign + 6 - 1) % 12) + 1;
+    return [SIGN_LORD[secondSign] || 1, SIGN_LORD[seventhSign] || 1];
+}
+
+export function computeAtmakaraka(planets: AstroPlanet[]): number {
+    let maxDeg = -1;
+    let atmakaraka = 1;
+    for (const p of planets) {
+        if (p.name === 8 || p.name === 9) continue;
+        if (p.degree > maxDeg) {
+            maxDeg = p.degree;
+            atmakaraka = p.name;
+        }
+    }
+    return atmakaraka;
+}
+
+function computeWargoththama(planets: AstroPlanet[]): number[] {
+    return planets.filter((p) => p.sign === p.navamsaSign).map((p) => p.name);
+}
+
+function computeGandantha(planets: AstroPlanet[]): number[] {
+    return planets.filter((p) => GANDANTHA_NAKSHATRAS.has(p.nakshatra) && p.pada === 4).map((p) => p.name);
+}
+
+function computeGandamula(planets: AstroPlanet[]): number[] {
+    return planets.filter((p) => GANDAMULA_NAKSHATRAS.has(p.nakshatra) && p.pada === 1).map((p) => p.name);
+}
+
+function computePushkara(planets: AstroPlanet[]): number[] {
+    return planets.filter((p) => PUSHKARA_NAVAMSA_SIGNS[p.sign]?.includes(p.navamsaSign)).map((p) => p.name);
+}
+
+function nthHouseSignFrom(houseSign: number, offset: number): number {
+    return ((houseSign - 1 + offset - 1) % 12) + 1;
+}
+
+function computeNidhanamsha(
+    ascSign: number,
+    ascNavamsaLagna: number,
+    houses: House[],
+    planets: AstroPlanet[],
+): number[] {
+    const eighthHouseSign = houses.find((h) => h.houseNumber === 8)?.sign ?? nthHouseSignFrom(ascSign, 8);
+    const nidhanamshaHouse = ((eighthHouseSign - ascNavamsaLagna + 12) % 12) + 1;
+    return planets
+        .filter((p) => ((p.navamsaSign - ascNavamsaLagna + 12) % 12) + 1 === nidhanamshaHouse)
+        .map((p) => p.name);
+}
+
+function computeAshtamansha(
+    ascSign: number,
+    ascNavamsaLagna: number,
+    houses: House[],
+    planets: AstroPlanet[],
+): number[] {
+    return planets
+        .filter((p) => {
+            const eighthHouseNumber = ((p.house + 6) % 12) + 1;
+            const eighthHouseSign = houses.find((h) => h.houseNumber === eighthHouseNumber)?.sign ?? p.sign;
+            const ashtamanshaSignHouse = ((eighthHouseSign - ascNavamsaLagna + 12) % 12) + 1;
+            return ((p.navamsaSign - ascNavamsaLagna + 12) % 12) + 1 === ashtamanshaSignHouse;
+        })
+        .map((p) => p.name);
+}
+
+/** Recompute placement validation from the source-of-truth stored `houses` (a `ManualHouse[]`).
+ *  Older horoscopes persisted stale/invalid `validation` computed under earlier rules, so the view
+ *  recomputes it at render time from the actual house placements. */
+export function synthesizeValidation(
+    manualHousePlacements: { lagna: number; navamsaLagna?: number; houses?: ManualHouse[]; navamsaHouses?: ManualHouse[] | null },
+): PlacementValidation {
+    const houseOfPlanet: Record<number, number> = {};
+    for (const house of manualHousePlacements.houses ?? []) {
+        for (const planet of house.planets) houseOfPlanet[planet] = house.houseNumber;
+    }
+    const navamsaPlacements: Record<number, number[]> = {};
+    for (const house of manualHousePlacements.navamsaHouses ?? []) {
+        navamsaPlacements[house.houseNumber] = house.planets;
+    }
+    const navamsaActive =
+        !!manualHousePlacements.navamsaLagna && Object.keys(navamsaPlacements).length > 0;
+    return validatePlacements(houseOfPlanet, navamsaPlacements, navamsaActive);
+}
+
+/** Recompute the "Other" detail fields (22nd Drekkana Lord, 64th Navamsa Lord, Maraka, Badhaka,
+ *  Atmakaraka, Wargoththama, Gandantha/Gandamula, Pushkara, Nidhanamsha/Ashtamansha) for a manual
+ *  horoscope from its stored `manualHousePlacements` and persisted planets. Render-time recomputation
+ *  is needed because older horoscopes stored `0`/`[]` defaults for these fields. */
+export function synthesizeOtherDetails(
+    manualHousePlacements: { lagna: number; lagnaDegree?: number; navamsaLagna?: number; navamsaHouses?: ManualHouse[] | null },
+    planets: AstroPlanet[],
+): Pick<
+    CalculationResult,
+    | "lord22ndDrekkana"
+    | "lord64thNavamsa"
+    | "badhakaPlanet"
+    | "marakaPlanets"
+    | "nidhanamshaPlanets"
+    | "ashtamanshaPlanets"
+    | "atmakaraka"
+    | "isAscendantWargoththama"
+    | "wargoththamaPlanets"
+    | "gandanthaPlanets"
+    | "gandamulaPlanets"
+    | "pushkaraPlanets"
+> {
+    const lagna = manualHousePlacements.lagna;
+    const ascDegree =
+        manualHousePlacements.lagnaDegree !== undefined
+            ? manualHousePlacements.lagnaDegree
+            : manualHousePlacements.navamsaLagna !== undefined
+              ? (navamsaIndexForSign(lagna, manualHousePlacements.navamsaLagna) - 0.5) * (30 / 9)
+              : 0;
+    const ascNavamsaNum = Math.floor(ascDegree / (30 / 9)) + 1;
+    const ascNavamsaSign = navamsaSign(lagna, ascNavamsaNum);
+    const ascNavamsaLagna = manualHousePlacements.navamsaLagna ?? ascNavamsaSign;
+    const hasNavamsa = !!manualHousePlacements.navamsaHouses?.length;
+    const houses = buildWholeSignHouses(lagna);
+    return {
+        lord22ndDrekkana: computeDrekkanaLord(lagna, ascDegree),
+        lord64thNavamsa: computeNavamsaLord(lagna, ascDegree),
+        badhakaPlanet: computeBadhaka(lagna),
+        marakaPlanets: computeMaraka(lagna),
+        nidhanamshaPlanets: hasNavamsa ? computeNidhanamsha(lagna, ascNavamsaLagna, houses, planets) : [],
+        ashtamanshaPlanets: hasNavamsa ? computeAshtamansha(lagna, ascNavamsaLagna, houses, planets) : [],
+        atmakaraka: computeAtmakaraka(planets),
+        isAscendantWargoththama: computeAscWargoththama(lagna, ascNavamsaSign),
+        wargoththamaPlanets: computeWargoththama(planets),
+        gandanthaPlanets: computeGandantha(planets),
+        gandamulaPlanets: computeGandamula(planets),
+        pushkaraPlanets: computePushkara(planets),
+    };
+}
+
+function computeAscWargoththama(ascSign: number, ascNavamsaSign: number): boolean {
+    return ascSign === ascNavamsaSign;
 }

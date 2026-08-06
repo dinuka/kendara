@@ -475,6 +475,7 @@
         "birthTime": "Birth time",
         "birthMonth": "Birth month",
         "birthDates": "Birth dates",
+        "birthDate": "Birth date",
         "ages": "Ages",
         "estimateDisclaimer": "These are probable ranges based on the entered chart, not exact birth details.",
         "placeRaviFirst": "Place Ravi first",

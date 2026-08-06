@@ -14,6 +14,8 @@ import { generateChartSvg } from "@/lib/chartRenderer";
 import { ALL_CHART_TYPES } from "@/lib/chartTypes";
 import { connectDB } from "@/lib/db";
 import logger from "@/lib/logger";
+import { deriveAgeRanges, navamsaIndexForSign } from "@/lib/manualChart";
+import { getCurrentShani } from "@/lib/manualChartDetails";
 import { getAnonymousPlaceholder } from "@/lib/privacy";
 
 const CALC_FIELDS = ["birthDate", "birthTime", "latitude", "longitude", "ayanamsha"];
@@ -90,6 +92,25 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     const calculatedDetails = await CalculatedDetails.findOne({ "horoscope.id": id }).lean();
     const charts = await Chart.find({ "horoscope.id": id }).lean();
     const metadata = await Metadata.find({ "horoscope.id": id }).lean();
+
+    if (horoscope.source === "manual" && calculatedDetails?.planets) {
+        const planets = calculatedDetails.planets as Array<{ name: number; sign: number; navamsaSign?: number }>;
+        const shani = planets.find((p) => p.name === 7);
+        const lagna = calculatedDetails.manualHousePlacements?.lagna ?? 1;
+        const currentShani = getCurrentShani(lagna);
+
+        if (shani && currentShani && calculatedDetails.derivedRanges) {
+            const navamsaIndex = shani.navamsaSign
+                ? navamsaIndexForSign(shani.sign, shani.navamsaSign)
+                : 1;
+            calculatedDetails.derivedRanges.ageRanges = deriveAgeRanges(
+                navamsaIndex,
+                currentShani.degree,
+                currentShani.sign,
+                shani.sign,
+            );
+        }
+    }
 
     return NextResponse.json({ horoscope, calculatedDetails, charts, metadata, navigation });
 }

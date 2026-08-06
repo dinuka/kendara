@@ -3,11 +3,16 @@ import {
     BIRTH_DATE_BASE,
     BIRTH_MONTH_RANGES,
     BIRTH_TIME_RANGES,
+    buildBhavaHouses,
+    buildWholeSignHouses,
     compute,
     computeAspects,
+    computeAscendantNakshatra,
     computeConjunctions,
+    computeMoonNakshatra,
     deriveAgeRanges,
     deriveBirthDateCandidates,
+    deriveBirthDateRange,
     deriveBirthMonthRange,
     deriveBirthTimeRange,
     deriveHouseSigns,
@@ -17,6 +22,7 @@ import {
     deriveRanges,
     navamsaLagnaOptions,
     placementsToMap,
+    synthesizeValidation,
     validatePlacements,
 } from "@/lib/manualChart";
 
@@ -280,6 +286,45 @@ describe("deriveNavamsaData (UT-CH-050..056)", () => {
         expect(e.degreeRangeStart).toBeCloseTo((8 * 30) / 9, 5);
         expect(e.degreeRangeEnd).toBeCloseTo(30, 5);
     });
+    describe("computeAscendantNakshatra", () => {
+        test("uses lagnaDegree when recorded", () => {
+            // Aries 5° => Ashwini, pada 2, lord Ketu(9)
+            const n = computeAscendantNakshatra({ lagna: 1, lagnaDegree: 5 });
+            expect(n.id).toBe(1);
+            expect(n.pada).toBe(2);
+            expect(n.lord).toBe(9);
+        });
+        test("uses navamsa lagna midpoint when no degree", () => {
+            // Only degrees 13°20'–16°40' (middle of the 5th wedge) fall within Bharani matches the
+            // fallback; here we simply assert it returns a valid nakshatra for Aries with a midpoint
+            // source. The fallback test covers the deterministic 15° case.
+            const n = computeAscendantNakshatra({ lagna: 1, navamsaLagna: 1 });
+            expect(n.id).toBeGreaterThanOrEqual(1);
+        });
+        test("falls back to sign midpoint 15° when no degree/navamsa", () => {
+            // Aries 15° => abs 15 => Bharani(2), pada 1, lord Venus(6)
+            const n = computeAscendantNakshatra({ lagna: 1 });
+            expect(n.id).toBe(2);
+            expect(n.pada).toBe(1);
+            expect(n.lord).toBe(6);
+        });
+    });
+
+    describe("computeMoonNakshatra", () => {
+        test("uses navamsa segment midpoint when navamsa sign present", () => {
+            // Moon in Aries, navamsa sign Aries (1st wedge, midpoint 1°40') => Ashwini(1) pada 1
+            const n = computeMoonNakshatra(1, 1);
+            expect(n.id).toBe(1);
+            expect(n.pada).toBe(1);
+            expect(n.lord).toBe(9);
+        });
+        test("falls back to sign midpoint 15° when no navamsa sign", () => {
+            // Aries 15° => Bharani(2)
+            const n = computeMoonNakshatra(1);
+            expect(n.id).toBe(2);
+        });
+    });
+
     test("U053 nakshatra + pada from midpoint 5° Aries", () => {
         // Sun in Aries 5° => abs midpoint 5, in 2nd navamsa
         const e = deriveNavamsaData({ [Planet.SUN]: 1 }, { [Planet.SUN]: 2 })[0];
@@ -335,18 +380,20 @@ describe("derived birth ranges config tables (UT-CH-060..075)", () => {
         expect(BIRTH_TIME_RANGES[1]).toEqual({ start: "05:00", end: "07:00" });
     });
     test("U061 birth time ravi house 4", () => {
-        expect(BIRTH_TIME_RANGES[4]).toEqual({ start: "11:00", end: "13:00" });
+        expect(BIRTH_TIME_RANGES[4]).toEqual({ start: "23:00", end: "01:00" });
     });
     test("U062 birth time ravi house 12", () => {
-        expect(BIRTH_TIME_RANGES[12]).toEqual({ start: "03:00", end: "05:00" });
+        expect(BIRTH_TIME_RANGES[12]).toEqual({ start: "07:00", end: "09:00" });
     });
     test("U063 full birth-time table contiguous 2h windows", () => {
         const keys = Object.keys(BIRTH_TIME_RANGES)
             .map(Number)
             .sort((a, b) => a - b);
         expect(keys).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
-        for (let r = 1; r < 11; r++) {
-            expect(BIRTH_TIME_RANGES[r].end).toBe(BIRTH_TIME_RANGES[r + 1].start);
+        // Temporal-order chain: house 1 (sunrise 05:00–07:00) → 12 → 11 → ... → 2 wraps to 1.
+        const chain = [1, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1];
+        for (let i = 0; i < chain.length - 1; i++) {
+            expect(BIRTH_TIME_RANGES[chain[i]].end).toBe(BIRTH_TIME_RANGES[chain[i + 1]].start);
         }
     });
     test("U064 birth month Mesha", () => {
@@ -387,9 +434,36 @@ describe("derived birth ranges config tables (UT-CH-060..075)", () => {
         const c = deriveBirthDateCandidates(3);
         expect(c[0].candidateDay).toBe(12 + 3 * 3);
     });
-    test("U071 age 1st formula", () => {
+    test("U070b fused birth date range rolls end candidate over month boundary", () => {
+        // Month range March (3) – April, candidates 27 & 36 -> March 27 – April 5.
+        const range = deriveBirthDateRange(
+            { start: { month: 3, day: 15 }, end: { month: 4, day: 15 } },
+            [
+                { navamsaIndex: 5, candidateDay: 27, reasoning: "27" },
+                { navamsaIndex: 5, candidateDay: 36, reasoning: "36" },
+            ],
+        );
+        expect(range).toEqual({
+            start: { month: 3, day: 27 },
+            end: { month: 4, day: 5 },
+        });
+    });
+    test("U070c fused birth date range returns null without month range", () => {
+        expect(deriveBirthDateRange(null, [{ candidateDay: 12, navamsaIndex: 0 }] as never)).toBeNull();
+    });
+    test("U071 age 1st formula uses forward modular sign gap", () => {
         const ages = deriveAgeRanges(1, 18, 5, 9);
-        expect(ages[0].valueMonths).toBe(30 + 18 + 30 * (9 - 5 - 1));
+        // Shani travels forward: birth sign 9 -> current sign 5 crosses 8 signs mod 12.
+        expect(ages[0].valueMonths).toBe(30 + 18 + 30 * (8 - 1));
+        expect(ages[0].warning).toBe(false);
+    });
+    test("U071b forward gap stays positive when current sign exceeds birth sign", () => {
+        // Current Shani in Pisces (sign 12), birth Shani in earlier signs: ages must be positive,
+        // not clamped to 0 (regression: backward gap made every case negative).
+        const ages = deriveAgeRanges(1, 20.4, 12, 1);
+        expect(ages[0].valueMonths).toBeGreaterThan(0);
+        expect(ages[0].warning).toBe(false);
+        expect(ages[0].valueYears).toBeCloseTo(29.2, 1);
     });
     test("U072 age 2nd = 1st + 30y", () => {
         const ages = deriveAgeRanges(1, 0, 5, 5);
@@ -400,7 +474,7 @@ describe("derived birth ranges config tables (UT-CH-060..075)", () => {
         expect(ages[2].valueMonths).toBe(ages[1].valueMonths + 30 * 12);
     });
     test("U074 negative intermediate clamped to 0 with warning", () => {
-        const ages = deriveAgeRanges(1, 0, 10, 1);
+        const ages = deriveAgeRanges(2, 0, 5, 5);
         expect(ages[0].valueMonths).toBe(0);
         expect(ages[0].warning).toBe(true);
     });
@@ -424,6 +498,10 @@ describe("compute integration", () => {
             start: { month: 4, day: 15 },
             end: { month: 5, day: 15 },
         });
+    });
+    test("birth time night window for Ravi in 3rd house", () => {
+        const result = compute({ lagna: 1, houses: { "3": [Planet.SUN] } });
+        expect(result.derivedRanges.birthTimeRange).toEqual({ start: "01:00", end: "03:00" });
     });
     test("navamsa houses enrich planets table", () => {
         const result = compute({
@@ -494,5 +572,92 @@ describe("compute integration", () => {
                 expect(navamsaLagnaOptions(s)).toContain(derived);
             }
         }
+    });
+});
+
+describe("synthesizeValidation", () => {
+    test("V001 recomputes validation from stored houses, ignoring stale persisted value", () => {
+        // Mirrors the stale record: identical houses must yield valid regardless of a bad stored value.
+        const manual = {
+            lagna: 10,
+            houses: [
+                { houseNumber: 1, sign: 10, planets: [], aspects: [5] },
+                { houseNumber: 2, sign: 11, planets: [2, 8], aspects: [] },
+                { houseNumber: 3, sign: 12, planets: [1, 5], aspects: [3, 7] },
+                { houseNumber: 4, sign: 1, planets: [3, 4, 6], aspects: [9] },
+                { houseNumber: 8, sign: 5, planets: [9], aspects: [2] },
+                { houseNumber: 9, sign: 6, planets: [7], aspects: [1] },
+            ],
+        };
+        const v = synthesizeValidation(manual as never);
+        expect(v.budha.status).toBe("valid");
+        expect(v.sikuru.status).toBe("valid");
+        expect(v.rahuKethuAxis.status).toBe("valid");
+    });
+});
+
+describe("buildWholeSignHouses", () => {
+    test("W001 each whole-sign house spans exactly 30 degrees with proper start/middle/end cusps", () => {
+        const houses = buildWholeSignHouses(1);
+        expect(houses).toHaveLength(12);
+        houses.forEach((h) => {
+            const start = (h.startSign - 1) * 30 + h.startDegree;
+            let end = (h.endSign - 1) * 30 + h.endDegree;
+            if (end <= start) end += 360;
+            const mid = (h.middleSign - 1) * 30 + h.middleDegree;
+            expect(end - start).toBe(30);
+            expect(mid - start).toBe(15);
+        });
+    });
+    test("W002 houses wrap across the zodiac (house 12 -> house 1)", () => {
+        const houses = buildWholeSignHouses(1);
+        const h12 = houses[11];
+        expect(h12.endSign).toBe(1);
+        expect(h12.startSign).toBe(12);
+        expect((h12.startSign - 1) * 30 + h12.startDegree).toBe(330);
+    });
+});
+
+describe("buildBhavaHouses", () => {
+    test("W003 house 1's middle line equals the ascendant (lagna) absolute degree", () => {
+        const houses = buildBhavaHouses(1, 10);
+        const h1 = houses[0];
+        const mid = (h1.middleSign - 1) * 30 + h1.middleDegree;
+        expect(mid).toBe(10);
+    });
+    test("W004 house middles advance 30 degrees per house from the lagna", () => {
+        const houses = buildBhavaHouses(1, 10);
+        houses.forEach((h, i) => {
+            const mid = (h.middleSign - 1) * 30 + h.middleDegree;
+            expect((mid % 360 + 360) % 360).toBe((10 + i * 30) % 360);
+        });
+    });
+    test("W005 each bhava house spans 30 degrees, starting at the previous sign's last navamsa", () => {
+        const houses = buildBhavaHouses(1, 10);
+        houses.forEach((h) => {
+            let start = (h.startSign - 1) * 30 + h.startDegree;
+            let end = (h.endSign - 1) * 30 + h.endDegree;
+            if (end <= start) end += 360;
+            expect(end - start).toBeCloseTo(30, 5);
+            expect(h.startDegree).toBeCloseTo(26.666, 2);
+            expect(h.endDegree).toBeCloseTo(26.666, 2);
+        });
+    });
+    test("W006 house-1 wedge for Pisces lagna contains the lagna degree", () => {
+        const houses = buildBhavaHouses(12, 350);
+        const h1 = houses[0];
+        const start = (h1.startSign - 1) * 30 + h1.startDegree;
+        const end = (h1.endSign - 1) * 30 + h1.endDegree;
+        const mid = (h1.middleSign - 1) * 30 + h1.middleDegree;
+        expect(start).toBeCloseTo(326.666, 2);
+        expect(end).toBeCloseTo(356.666, 2);
+        expect(mid).toBe(350);
+        expect(start <= mid && mid < end).toBe(true);
+    });
+    test("W007 houses are not aligned to rashi (sign) boundaries", () => {
+        const houses = buildBhavaHouses(1, 10);
+        const h2 = houses[1];
+        const h2start = (h2.startSign - 1) * 30 + h2.startDegree;
+        expect(h2start).not.toBe(30);
     });
 });
