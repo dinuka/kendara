@@ -133,7 +133,9 @@ export function getCurrentShani(lagna: number): CurrentShani | null {
  *  (toBirthChartData, generateChartSvg) work unchanged for manual horoscopes. */
 export function synthesizePlanets(result: ManualChartResult): Planet[] {
     return result.planetsTable.map((row) => {
-        const degree = row.navamsa ? row.navamsa.degreeRangeStart : 0;
+        const degree = row.navamsa
+            ? (row.navamsa.degreeRangeStart + row.navamsa.degreeRangeEnd) / 2
+            : 0;
         const { nakshatra, pada } = row.navamsa
             ? { nakshatra: row.navamsa.nakshatra, pada: row.navamsa.pada }
             : { nakshatra: 1, pada: 1 };

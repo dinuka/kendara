@@ -21,6 +21,7 @@ import { toBirthChartData } from "@/lib/chartDataTransform";
 import { ALL_CHART_TYPES, ChartType } from "@/lib/chartTypes";
 import { formatDate } from "@/lib/date";
 import { readHoroscopeSort } from "@/lib/horoscopeSort";
+import { buildWholeSignHouses, formatNavamsaDegreeRange, navamsaIndexForSign } from "@/lib/manualChart";
 import type { DerivedRanges, ManualHouse, ManualHousePlacements } from "@/lib/manualChart";
 
 const STRENGTH_TRANSLATION_KEYS: Record<PlanetaryStrength, string> = {
@@ -369,6 +370,40 @@ export default function HoroscopeDetailPage() {
 
     const getNavamsaChartData = (): { planets: Planet[]; houses: House[]; ascendant: Ascendant } | null => {
         if (!calculatedDetails) return null;
+
+        if (horoscope.source === "manual" && calculatedDetails.manualHousePlacements) {
+            const { navamsaLagna, navamsaHouses } = calculatedDetails.manualHousePlacements;
+            if (navamsaLagna !== undefined) {
+                const houses = buildWholeSignHouses(navamsaLagna);
+                const planets: Planet[] = [];
+                navamsaHouses?.forEach(({ houseNumber, sign, planets: housePlanets }) => {
+                    housePlanets.forEach((name) => {
+                        planets.push({
+                            name,
+                            sign,
+                            degree: 0,
+                            absoluteDegree: 0,
+                            house: houseNumber,
+                            nakshatra: 0,
+                            pada: 0,
+                            retrograde: false,
+                            combustion: false,
+                            strength: PlanetaryStrength.SAMA,
+                            navamsaSign: sign,
+                            navamsaStrength: PlanetaryStrength.SAMA,
+                            aspects: [],
+                        });
+                    });
+                });
+                const ascendant: Ascendant = {
+                    sign: navamsaLagna,
+                    degree: 0,
+                    lord: SIGN_LORD_MAP[navamsaLagna] ?? 1,
+                };
+                return { planets, houses, ascendant };
+            }
+        }
+
         const ascNavSign = getNavamsaSign(calculatedDetails.ascendant.sign, calculatedDetails.ascendant.degree);
 
         const houses: House[] = Array.from({ length: 12 }, (_, i) => {
@@ -404,6 +439,60 @@ export default function HoroscopeDetailPage() {
         };
 
         return { planets, houses, ascendant };
+    };
+
+    /** Degree label for the birth (Rashi) chart center. Manual horoscopes show the user-entered
+     *  lagna degree when given; otherwise they show the navamsa-segment degree range implied by the
+     *  stored navamsa lagna. Auto (ephemeris) charts keep their real ascendant degree. */
+    const getBirthChartAscendantDegreeLabel = (): string | undefined => {
+        if (horoscope.source !== "manual" || !calculatedDetails?.manualHousePlacements) return undefined;
+        const { lagna, lagnaDegree, navamsaLagna } = calculatedDetails.manualHousePlacements;
+        if (lagnaDegree !== undefined) return formatDegree(lagnaDegree);
+        if (navamsaLagna !== undefined) {
+            const index = navamsaIndexForSign(lagna, navamsaLagna);
+            const arc = 30 / 9;
+            return formatNavamsaDegreeRange((index - 1) * arc, index * arc);
+        }
+        return undefined;
+    };
+
+    /** Navamsa wedge (1-9) of the ASC sign to highlight on the house chart. For manual horoscopes
+     *  this must come from the stored navamsa lagna, not from ascendant.degree (always 0 for manual
+     *  charts, which would select navamsa #1 spuriously). */
+    const getAscendantNavamsaNum = (): number | undefined => {
+        if (horoscope.source !== "manual" || !calculatedDetails?.manualHousePlacements) return undefined;
+        const { lagna, navamsaLagna } = calculatedDetails.manualHousePlacements;
+        if (navamsaLagna === undefined) return undefined;
+        return navamsaIndexForSign(lagna, navamsaLagna);
+    };
+
+    /** Absolute ecliptic degree (0-360) to anchor the house chart's lagna line (12 o'clock). For
+     *  manual horoscopes the lagna line must point through the selected navamsa wedge: the entered
+     *  lagna degree when given, otherwise the midpoint of the navamsa wedge implied by the stored
+     *  navamsa lagna. */
+    const getAscendantAbsDeg = (): number | undefined => {
+        if (horoscope.source !== "manual" || !calculatedDetails?.manualHousePlacements) return undefined;
+        const { lagna, lagnaDegree, navamsaLagna } = calculatedDetails.manualHousePlacements;
+        if (lagnaDegree !== undefined) return (lagna - 1) * 30 + lagnaDegree;
+        if (navamsaLagna !== undefined) {
+            const index = navamsaIndexForSign(lagna, navamsaLagna);
+            const arc = 30 / 9;
+            return (lagna - 1) * 30 + (index - 0.5) * arc;
+        }
+        return undefined;
+    };
+
+    /** Planets with degree re-synthesized to the midpoint of each planet's navamsa segment for
+     *  manual horoscopes, so planet lines point at the middle of the navamsa wedge (the stored
+     *  `calculatedDetails.planets` use the segment start, written when the chart was created). */
+    const getManualAdjustedPlanets = (): Planet[] => {
+        if (horoscope.source !== "manual" || !calculatedDetails?.manualHousePlacements) return calculatedDetails?.planets ?? [];
+        return calculatedDetails.planets.map((p) => {
+            const index = navamsaIndexForSign(p.sign, p.navamsaSign ?? p.sign);
+            const arc = 30 / 9;
+            const degree = (index - 0.5) * arc;
+            return { ...p, degree, absoluteDegree: (p.sign - 1) * 30 + degree };
+        });
     };
 
     const getStrength = (s: number | string | PlanetaryStrength | undefined | null): PlanetaryStrength => {
@@ -784,6 +873,7 @@ export default function HoroscopeDetailPage() {
                                                             houses: calculatedDetails.houses,
                                                             ascendant: calculatedDetails.ascendant,
                                                         })}
+                                                        ascendantDegreeLabel={getBirthChartAscendantDegreeLabel()}
                                                     />
                                                 </div>
                                             </figure>
@@ -849,10 +939,12 @@ export default function HoroscopeDetailPage() {
                                         return (
                                             <div className="flex justify-center bg-white rounded-lg border p-4 overflow-auto">
                                                 <HouseChart
-                                                    planets={calculatedDetails.planets}
+                                                    planets={getManualAdjustedPlanets()}
                                                     houses={calculatedDetails.houses}
                                                     ascendant={calculatedDetails.ascendant}
                                                     horoscopeId={params.id as string}
+                                                    ascNavamsaNum={getAscendantNavamsaNum()}
+                                                    ascAbsDeg={getAscendantAbsDeg()}
                                                 />
                                             </div>
                                         );

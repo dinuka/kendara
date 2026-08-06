@@ -17,6 +17,14 @@ interface HouseChartProps {
     houses: House[];
     ascendant: Ascendant;
     horoscopeId?: string;
+    /** Explicit navamsa wedge number (1-9) of the ascendant's sign to highlight in the navamsa
+     *  ring. When omitted it is derived from `ascendant.degree`, which for manual horoscopes is
+     *  always 0 (and thus would wrongly highlight navamsa #1). */
+    ascNavamsaNum?: number;
+    /** Absolute ecliptic degree (0-360) to anchor the chart's 12 o'clock (the lagna line).
+     *  When omitted it is `(sign-1)*30 + ascendant.degree` — for manual horoscopes always the 1st
+     *  navamsa, so the lagna line wouldn't point through the selected navamsa wedge. */
+    ascAbsDeg?: number;
 }
 
 type Point = [number, number];
@@ -142,7 +150,7 @@ function ringLabel(
     );
 }
 
-export function HouseChart({ planets, houses, ascendant, horoscopeId }: HouseChartProps) {
+export function HouseChart({ planets, houses, ascendant, horoscopeId, ascNavamsaNum, ascAbsDeg: ascAbsDegOverride }: HouseChartProps) {
     const { t } = useI18n();
     const [zoom, setZoom] = useState(1);
     const [selectedAbsDeg, setSelectedAbsDeg] = useState<number | null>(null);
@@ -161,9 +169,9 @@ export function HouseChart({ planets, houses, ascendant, horoscopeId }: HouseCha
         y: number;
     } | null>(null);
     const chartRef = useRef<HTMLDivElement>(null);
-    const ascAbsDeg = (ascendant.sign - 1) * 30 + ascendant.degree;
-    const ascNavamsaNum = Math.floor(ascendant.degree / NAVAMSA_SPAN) + 1;
-    const ascNavamsaSign = navamsaSign(ascendant.sign, ascNavamsaNum);
+    const ascAbsDeg = ascAbsDegOverride ?? (ascendant.sign - 1) * 30 + ascendant.degree;
+    const resolvedAscNavamsaNum = ascNavamsaNum ?? Math.floor(ascendant.degree / NAVAMSA_SPAN) + 1;
+    const ascNavamsaSign = navamsaSign(ascendant.sign, resolvedAscNavamsaNum);
 
     const fetchCurrentPlanets = useCallback(
         async (date?: string, time?: string) => {
@@ -301,7 +309,7 @@ export function HouseChart({ planets, houses, ascendant, horoscopeId }: HouseCha
             const end = start + NAVAMSA_SPAN;
             const mid = start + NAVAMSA_SPAN / 2;
             const resolvedSign = navamsaSign(sign, n);
-            const isAscNavamsa = sign === ascendant.sign && n === ascNavamsaNum;
+            const isAscNavamsa = sign === ascendant.sign && n === resolvedAscNavamsaNum;
             const isSelected = selectedAbsDeg !== null && degreeInWedge(selectedAbsDeg, start, end);
             navamsaWedges.push(
                 <g key={`nav-${sign}-${n}`}>

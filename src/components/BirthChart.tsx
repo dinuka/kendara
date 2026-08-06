@@ -44,6 +44,7 @@ interface BirthChartProps {
     houses: ChartHouse[];
     ascendant: ChartAscendant;
     showAscendantDegree?: boolean;
+    ascendantDegreeLabel?: string;
 }
 
 const UNIT = 140;
@@ -131,7 +132,13 @@ function computeHighlights(
     return { houseTiers, lordPlanet };
 }
 
-export function BirthChart({ planets, houses, ascendant, showAscendantDegree = true }: BirthChartProps) {
+export function BirthChart({
+    planets,
+    houses,
+    ascendant,
+    showAscendantDegree = true,
+    ascendantDegreeLabel,
+}: BirthChartProps) {
     const [selectedHouse, setSelectedHouse] = useState<number | null>(null);
 
     const signByHouse: Record<number, number> = {};
@@ -589,7 +596,7 @@ export function BirthChart({ planets, houses, ascendant, showAscendantDegree = t
                         fontWeight="bold"
                         fill="#1f2937"
                     >
-                        {formatDegree(ascendant.degree)}
+                        {ascendantDegreeLabel ?? formatDegree(ascendant.degree)}
                     </text>
                 )}
                 {renderSignGlyph(ascendant.sign, UNIT * 1.5, UNIT + (showAscendantDegree ? 70 : 58), 26)}
