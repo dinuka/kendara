@@ -45,6 +45,11 @@
 │  │  Current Planet     │                                     │
 │  │  Calculation Engine │                                     │
 │  └─────────────────────┘                                     │
+│  ┌─────────────────────┐                                     │
+│  │  Manual Chart       │                                     │
+│  │  Derivation Engine  │                                     │
+│  │  (pure, no ephemeris)│                                     │
+│  └─────────────────────┘                                     │
 └─────────────┼────────────────────────────────────────────────┘
               │
 ┌─────────────┼────────────────────────────────────────────────┐
@@ -113,6 +118,14 @@
 - Results are ephemeral overlay data returned alongside the chart response and discarded after serving
 - This avoids stale transit data and eliminates the need for a background refresh job
 
+### 5. Manual Chart Derivation (Calculated Horoscopes)
+
+- Students can enter already-calculated horoscopes without birth details via a "Calculated Chart" mode
+- The house placements (lagna + planets-per-house) are the single source of truth; all tables (houses, planets table, navamsa, validation, derived birth ranges) are recomputed from it by pure functions in `src/lib/manualChart.ts`
+- The derivation is fully deterministic (whole-sign, mod-12 arithmetic, config-table lookups) — **no ephemeris, no I/O** — so the same shared module runs client-side for instant preview and server-side for persistence with zero logic drift
+- Horoscopes are flagged `source: "manual"` (vs `"auto"` for ephemeris-calculated); manual horoscopes reuse the existing privacy/search/share features and show "not available" empty states for ephemeris-dependent data (dashas, varga charts)
+- Full spec: `specs/architecture/20260805-1514-calculated-horoscope.md`
+
 ### Toggle Privacy Setting Flow
 
 ```
@@ -169,6 +182,24 @@ User → Open Horoscope Form →
   → Queue embedding generation (async background job) →
   → Return to User immediately
   → [Background] Generate embedding text → Store in Qdrant
+```
+
+### Manual (Calculated Chart) Horoscope Flow
+
+```
+User → Open Horoscope Form → Select "Calculated Chart" mode →
+  → Enter name + Lagna →
+  → Place planets in derived 12-house table (Navamsa house table optional, entered directly) →
+    → Client recomputes houses/aspects/validation/planets table instantly via src/lib/manualChart.ts →
+  → View derived birth ranges (time from Ravi's house, month from Ravi's sign,
+      date candidates from Ravi's degree/Navamsa, ages from Shani) →
+  → Submit → POST /api/horoscope/manual { name, lagna, houses, navamsaHouses } →
+  → Server validates + re-derives via same manualChart.ts module →
+  → Store Horoscope(source: "manual") + CalculatedDetails(manualHousePlacements, derivedRanges)
+      + birth/navamsa Chart records →
+  → Return horoscope + derived ranges →
+  → Subsequent edits: PUT /api/horoscope/[id]/manual-chart (debounced, owner-only) →
+    → Server re-derives and persists → client reconciles
 ```
 
 ### Search Flow
@@ -252,11 +283,13 @@ User → Click "Login with Google" →
 | Method | Route | Description |
 |--------|-------|-------------|
 | GET | /api/horoscope | List user's + public horoscopes |
-| POST | /api/horoscope | Create horoscope (triggers calculation) |
+| POST | /api/horoscope | Create horoscope from birth details (triggers ephemeris calculation) |
+| POST | /api/horoscope/manual | Create a manually-entered horoscope from an already-calculated chart — body: `{ name, lagna, houses, navamsaHouses }` (no birth details required) |
 | GET | /api/horoscope/:id | Get horoscope with all details |
 | PUT | /api/horoscope/:id | Update horoscope |
 | DELETE | /api/horoscope/:id | Delete horoscope (own) |
 | PATCH | /api/horoscope/:id/privacy | Toggle public/private and/or show/hide name — body: `{ isPublic?: boolean, displayName?: boolean }` |
+| PUT | /api/horoscope/:id/manual-chart | Update a manual horoscope's chart — body: `{ lagna, houses, navamsaHouses }` (owner-only; 409 on `source: "auto"`) |
 | GET | /api/horoscope/:id/dasha | Get dasha timeline data (returns dashas JSON from CalculatedDetails) — optional standalone endpoint; data also available via GET /api/horoscope/:id |
 
 ### Location
@@ -351,14 +384,15 @@ User → Click "Login with Google" →
   owner: { id: UUID },
   name: string,
   displayName: boolean,
-  birthDate: Date,
-  birthTime: string,
+  birthDate: Date,           // optional when source = "manual"
+  birthTime: string,         // optional when source = "manual"
   location: { id: UUID },
   locationName: string,
   latitude: number,
   longitude: number,
   gender: "male" | "female" | "other",
   ayanamsha: "lahiri" | "raman" | "krishnamurti" | "yukteshwar",
+  source: "auto" | "manual", // "manual" = entered from an already-calculated chart
   isPublic: boolean,
   createdAt: Date,
   updatedAt: Date
@@ -422,6 +456,8 @@ User → Click "Login with Google" →
   atmakaraka: number,
   yogas: [...],
   doshas: { doshas: [...] },
+  manualHousePlacements?: object,   // source="manual": { lagna, houses, navamsaLagna, navamsaHouses?, validation }
+  derivedRanges?: object,           // source="manual": { birthTimeRange, birthMonthRange, birthDateCandidates, ageRanges }
   createdAt: Date
 }
 ```
@@ -563,7 +599,7 @@ User → Click "Login with Google" →
 ### Indexes
 
 - users: { googleId: 1 } (unique)
-- horoscopes: { "owner.id": 1 }, { isPublic: 1 }, { createdAt: -1 }
+- horoscopes: { "owner.id": 1 }, { isPublic: 1 }, { createdAt: -1 }, { source: 1 }
 - calculatedDetails: { "horoscope.id": 1 } (unique)
 - charts: { "horoscope.id": 1 }
 - metadata: { "horoscope.id": 1 }, { key: 1 }
@@ -598,6 +634,8 @@ User → Click "Login with Google" →
 - Current planet computation uses the ephemeris library synchronously per request; rate limiting should be applied to prevent abuse since each calculation is CPU-intensive
 - The calculation function uses only the server's system clock — no user-controlled time input is accepted (avoids time-manipulation attacks)
 - Ephemeris data access is read-only and does not require authentication scoping beyond the standard session check
+- Manual chart payloads (`source: "manual"` + `PUT /api/horoscope/:id/manual-chart`) are strictly validated server-side (numeric enums, house range 1–12, no duplicate planets) and are owner-only writes
+- Derived birth ranges (time/month/date/age) are read-only outputs computed from user-entered sign/placement data — no user-controlled degree/time input is accepted for range derivation
 
 ### Privacy & Access Control
 

@@ -37,6 +37,7 @@
 | longitude | Float | Longitude (auto-populated from saved location, user can override) |
 | gender | Enum(male, female, other) | Gender |
 | ayanamsha | Enum(lahiri, raman, krishnamurti, yukteshwar) | Ayanamsha system (default: lahiri) |
+| source | Enum(auto, manual) | How the chart data was produced: `auto` = calculated from birth details via ephemeris; `manual` = entered by the student from an already-calculated chart (no birth details required) |
 | isPublic | Boolean | Visibility flag — `true` = visible to all students in search; `false` = visible only to owner and Super Admin (and via share link) |
 | displayName | Boolean | Show/hide actual name on public-facing surfaces (search cards, public detail view) — only meaningful when `isPublic=true`; owner and Super Admin always see the name |
 | createdAt | DateTime | Record created |
@@ -77,7 +78,13 @@
 | atmakaraka | String | Atmakaraka planet |
 | yogas | JSON | Yoga formations — see [Yogas](#yogas) structure |
 | doshas | JSON | Dosha calculations — see [Doshas](#doshas) structure |
+| manualHousePlacements | JSON | Manual chart input for `source: "manual"` horoscopes — see [ManualHousePlacements](#manualhouseplacements) structure |
+| derivedRanges | JSON | Derived probable birth ranges for manual horoscopes — see [DerivedRanges](#derivedranges) structure |
 | createdAt | DateTime | Record created |
+
+**Notes:**
+- `manualHousePlacements` and `derivedRanges` are only present on horoscopes with `source: "manual"` (no ephemeris calculation)
+- For `source: "auto"` horoscopes, these fields are absent; for `source: "manual"` horoscopes, ephemeris-derived fields (dashas, vargas) may be absent
 
 **Relationships**:
 
@@ -406,6 +413,83 @@ All enums use numeric values for easy i18n. Display names are mapped separately 
 ```
 
 **Note:** `degreeGap` = longitudinal distance between two planets minus the nearest major aspect angle (Conjunction 0°, Sextile 60°, Square 90°, Trine 120°, Opposition 180°). Maximum valid `degreeGap` is < 30° — beyond this, the aspect is not considered effective. In the example above, Sun (12.5°) to Mercury (75.0°) has a raw distance of 62.5°, and the nearest major aspect is Sextile (60°), so `degreeGap` = 2.5°.
+
+### ManualHousePlacements
+
+Stored on a manually-entered horoscope (`source: "manual"`). This is the **single source of truth** for the manual chart — the planets table and all derived values are recomputed from it, never stored independently.
+
+```json
+{
+  "lagna": 1,
+  "houses": [
+    {
+      "houseNumber": 1,
+      "sign": 1,
+      "planets": [1, 4],
+      "aspects": []
+    },
+    {
+      "houseNumber": 2,
+      "sign": 2,
+      "planets": [],
+      "aspects": [5]
+    }
+  ],
+  "navamsaHouses": [
+    {
+      "houseNumber": 1,
+      "sign": 6,
+      "planets": [1]
+    }
+  ],
+  "validation": {
+    "budha": { "status": "valid", "message": "Mercury in Sun's house or ±1" },
+    "sikuru": { "status": "invalid", "message": "Venus must be in Sun's house or ±2" },
+    "rahuKethuAxis": { "status": "incomplete", "message": "Kethu not placed" }
+  }
+}
+```
+
+**Notes:**
+- `houses` always has exactly 12 entries (house 1–12), one per house
+- `sign` uses the numeric ZodiacSign enum; `planets` uses the numeric Planet enum
+- `planets` may be empty (no planet placed); a planet appears exactly once across all houses
+- `aspects` (per-house) lists which planets aspect this house, derived from the special-aspect rules (Mars 4/8/12, Jupiter 5/9/11, Saturn 3/7/10, Rahu/Kethu 5/9, others 7th-house full aspect)
+- `navamsaHouses` is optional; present only when the student enters Navamsa placements directly (no separate Navamsa Lagna field — house signs derived whole-sign from the placements)
+- `validation` is advisory (non-blocking) and persisted for display on later visits
+
+### DerivedRanges
+
+Computed (and persisted) probable birth ranges derived from Ravi's and Shani's placements on a manual horoscope.
+
+```json
+{
+  "birthTimeRange": {
+    "start": "05:00",
+    "end": "07:00"
+  },
+  "birthMonthRange": {
+    "start": { "month": 4, "day": 15 },
+    "end": { "month": 5, "day": 15 }
+  },
+  "birthDateCandidates": [
+    { "navamsaIndex": 0, "candidateDay": 12, "reasoning": "12 + 0" },
+    { "navamsaIndex": 0, "candidateDay": 21, "reasoning": "17 + 4" }
+  ],
+  "ageRanges": [
+    { "ageIndex": 1, "valueMonths": 48, "label": "1st age" },
+    { "ageIndex": 2, "valueYears": 78, "label": "2nd age" },
+    { "ageIndex": 3, "valueYears": 108, "label": "3rd age" }
+  ]
+}
+```
+
+**Notes:**
+- `birthTimeRange` maps from Ravi's house (1st → 05:00–07:00, 2nd → 07:00–09:00, ..., configurable table)
+- `birthMonthRange` maps from Ravi's sign (Mesha → Apr 15–May 15, ..., configurable table)
+- `birthDateCandidates` derive from Ravi's Navamsa index: base 12 + index×3 and base 17 + index×7 (configurable)
+- `ageRanges` derive from Shani's birth Navamsa and current Shani degree: 1st age in months, 2nd/3rd ages add 30-year increments
+- All values are advisory estimates, clearly labeled as probable ranges
 
 ### Nakshatra
 

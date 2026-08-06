@@ -80,7 +80,7 @@ export default function NewHoroscopePage() {
 
     return (
         <div className="max-w-2xl mx-auto">
-            <h1 className="text-2xl font-bold mb-6">{t("horoscope.add")}</h1>
+            <h1 className="text-2xl font-bold mb-6">{t("horoscope.addBirth")}</h1>
 
             <form onSubmit={handleSubmit} className="bg-white rounded-lg shadow-sm border p-6 space-y-4">
                 <div>

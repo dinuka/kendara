@@ -258,6 +258,10 @@ export function calculateHoroscope(
 ): CalculationResult {
     logger.info({ name: data.name, ayanamsha: data.ayanamsha }, "starting horoscope calculation");
 
+    if (!data.birthDate) {
+        throw new Error("birthDate is required for ephemeris calculation");
+    }
+
     const birthDate = new Date(data.birthDate);
     const year = birthDate.getFullYear();
     const month = String(birthDate.getMonth() + 1).padStart(2, "0");
@@ -507,9 +511,7 @@ function computeGandamula(planets: Planet[]): number[] {
  *    4, 8, 12         => navamsa 4, 6
  *  e.g. Mercury (Budha) in Makara (10) is Pushkara when its navamsa sign is Vrishabha (2) or Meena (12). */
 function computePushkara(planets: Planet[]): number[] {
-    return planets
-        .filter((p) => PUSHKARA_NAVAMSA_SIGNS[p.sign]?.includes(p.navamsaSign))
-        .map((p) => p.name);
+    return planets.filter((p) => PUSHKARA_NAVAMSA_SIGNS[p.sign]?.includes(p.navamsaSign)).map((p) => p.name);
 }
 
 function computeDrekkanaLord(ascSign: number, ascDegree: number): number {

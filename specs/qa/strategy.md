@@ -192,6 +192,54 @@
 | Color contrast | Verify sky-blue border (`#0EA5E9` light / `#38BDF8` dark) against chart background meets WCAG AA (3:1 for non-text). Verify planet fill colors maintain contrast over all backgrounds. |
 | Sinhala font rendering | Verify Noto Sans Sinhala loads correctly. Verify Sinhala letters are not replaced with fallback fonts that change meaning. |
 
+## Calculated Horoscope (Manual Entry) — Testing Considerations
+
+> Full test plan: `specs/qa/20260805-1514-calculated-horoscope-test-plan.md`
+
+### Pure Derivation Testing (`src/lib/manualChart.ts`)
+
+| Consideration | Strategy |
+|---------------|----------|
+| No I/O, no ephemeris | All derivation functions are pure — test directly with numeric enum inputs; no mocking needed |
+| House sign derivation | Whole-sign mod-12: test Lagna 1, 7, 12 (wrap), reject 0/13/NaN |
+| Validation rules | Budha ±1, Sikuru ±2, Rahu/Ketu opposite (gap 6) — test same-house, in-range, out-of-range, house-wrap (Ravi 12→1), missing planets (skipped/incomplete), multiple simultaneous violations |
+| Special aspects | Mars 4/8/12, Jupiter 5/9/11, Saturn 3/7/10, Rahu/Ketu 5/9, others 7th-house; verify mod-12 wrap |
+| Navamsa enrichment | Degree range from navamsa index (1st → 00:00–03:20), 12th navamsa mod-30 wrap, nakshatra/pada from midpoint, boundary at exactly 13°20' |
+| Config tables | Birth-time (12 rows contiguous 2h windows), birth-month (12 rows, +1 month, 15th anchor, Meena wrap), birth-date formula (12+n×3, 17+n×7), age formula (clamp negatives) |
+| Determinism | Same input → identical output every run (snapshot-style assertions for table lookups) |
+
+### API Testing
+
+| Consideration | Strategy |
+|---------------|----------|
+| `POST /api/horoscope/manual` | Create with name+lagna+houses; minimal body (no navamsa); with navamsaHouses; assert `source: "manual"` persisted and derivedRanges returned |
+| Validation failures | Missing name/lagna, invalid enums (0/13), invalid house key, duplicate planet → 400 |
+| Auth | No session → 401; owner-only PUT → 403 for non-owner; 404 not found |
+| `PUT /api/horoscope/[id]/manual-chart` | Update on auto horoscope → 409; recompute validation + derivedRanges on update |
+| Legacy regression | Existing `POST /api/horoscope` (auto) behavior unchanged |
+
+### Component / E2E Testing
+
+| Consideration | Strategy |
+|---------------|----------|
+| Mode toggle | Defaults Birth Details; switching renders manual form; state preserved across switch |
+| Live derivation | Lagna change re-derives house signs; planet add/remove updates chips + derived tables instantly (client uses same shared module) |
+| Picker | Only unplaced planets listed; all 9 placed → Add disabled; duplicate prevention |
+| Validation badges | Live valid/invalid/skipped/incomplete states; tooltips; save allowed with violations (advisory) |
+| Navamsa table | Collapsed by default; planets enrich planets table columns 8–11 |
+| Derived ranges | Render time/month/date/age; hints when Ravi/Shani missing |
+| Detail page | Calculated Chart badge; Edit Chart prefilled; dual birth+navamsa charts; dasha "not available" empty state |
+| Bilingual | Full SI/EN parity across all new strings; en.json ↔ si.json in sync; Sinhala 30% width allowance |
+| Accessibility | tablist/tab roles, menu role, aria-live validation, table headers, keyboard flow, color+text not color alone |
+
+### Data Integrity
+
+| Consideration | Strategy |
+|---------------|----------|
+| Single source of truth | House placements are the source; planets table/derivedRanges always recomputed (verify on update) |
+| Schema safety | Legacy horoscopes default `source: "auto"`; manual fields absent on auto horoscopes |
+| Concurrency | Two-tab edit → last write wins, no corruption |
+
 ## Horoscope Privacy — Testing Considerations
 
 ### API Testing

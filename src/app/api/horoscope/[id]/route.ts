@@ -109,6 +109,11 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
         return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
+    const isManual = (horoscope as any).source === "manual";
+    if (isManual) {
+        logger.info("manual horoscope update: skipping ephemeris recalculation id=%s", id);
+    }
+
     if (body.location !== undefined) {
         if (body.location && typeof body.location === "object" && body.location.id) {
             body.location = { id: body.location.id };
@@ -118,9 +123,9 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
         }
     }
 
-    const needsRecalc = CALC_FIELDS.some(
-        (f) => body[f] !== undefined && String(body[f]) !== String((horoscope as any)[f]),
-    );
+    const needsRecalc =
+        !isManual &&
+        CALC_FIELDS.some((f) => body[f] !== undefined && String(body[f]) !== String((horoscope as any)[f]));
 
     Object.assign(horoscope, body);
     await horoscope.save();

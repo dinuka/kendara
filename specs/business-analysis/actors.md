@@ -46,6 +46,13 @@
   - View own bookmarked horoscopes from a dedicated list
   - Export search results (as CSV/JSON for off-platform analysis)
   - Open horoscope detail from search result
+  - Create a horoscope from an already-calculated chart by entering the Lagna instead of birth details
+  - Enter planet placements manually into the derived 12-house table
+  - Trigger validation of Budha (Mercury), Sikuru (Venus), and Rahu/Kethu placements against Ravi (Sun)
+  - View the derived planets table (Planet, Sign, Str, House, Conjunctions, Aspects, Other)
+  - Enter the Navamsa (D9) Lagna to view the Navamsa house table and enrich the planets table
+  - View derived probable birth ranges: birth time (from Ravi's house), birth month (from Ravi's sign), birth date candidates (from Ravi's degree range), and age ranges (from Shani's position)
+  - Save and manage manually-entered horoscopes with the existing search, share, metadata, and privacy features
 - **Authentication**: Google SSO (auto-assigned)
 
 ## 2. Super Admin
@@ -85,3 +92,10 @@
   - Generate embeddings when horoscope is set to public
   - Manage embedding lifecycle asynchronously (queue-based background processing)
   - Log search queries for analytics and system monitoring
+  - Derive the 12 house signs from an entered Lagna (whole-sign, mod-12)
+  - Validate manual planet placements (Budha, Sikuru, Rahu/Kethu rules against Ravi)
+  - Compute aspects (Drishti) and conjunctions from manual house placements
+  - Derive the planets table (Planet, Sign, Str, House, Conjunctions, Aspects, Other) including 22nd Drekkana Lord, 64th Navamsa Lord, and Atmakaraka
+  - Derive the Navamsa (D9) house table from an entered Navamsa Lagna
+  - Enrich the planets table with Navamsa, Navamsa Strength, Degree range, and Nakshatra (Pada)
+  - Derive probable birth time/month/date/age ranges from Ravi's and Shani's placements

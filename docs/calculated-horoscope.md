@@ -16,7 +16,7 @@ It is workflow should like this.
 
 - Budha should with Ravi's house or -1 or +1 houses
 - Sikuru should with Ravi's house or -2 or +2 houses
-- Kethu and Rahu gap should be 7 houses.
+- Kethu and Rahu gap should be 6 houses (opposite houses).
 
 1. The system should update the Aspects using given input.
 2. The system should create the planets table using that information.

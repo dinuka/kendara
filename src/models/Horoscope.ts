@@ -1,18 +1,23 @@
 import mongoose, { Document, Model, Schema } from "mongoose";
 
+export type HoroscopeSource = "auto" | "manual";
+
 export interface IHoroscope extends Document {
     id: string;
     owner: { id: string };
     name: string;
     displayName: boolean;
-    birthDate: Date;
-    birthTime: string;
+    /** Present for `auto` horoscopes; omitted for `manual` (calculated-chart) horoscopes. */
+    birthDate?: Date;
+    birthTime?: string;
     location: { id: string } | null;
     locationName: string;
     latitude: number;
     longitude: number;
     gender: "male" | "female" | "other";
     ayanamsha: "lahiri" | "raman" | "krishnamurti" | "yukteshwar";
+    /** `auto` = ephemeris-calculated from birth details (legacy); `manual` = entered calculated chart. */
+    source: HoroscopeSource;
     isPublic: boolean;
     createdAt: Date;
     updatedAt: Date;
@@ -25,8 +30,8 @@ const HoroscopeSchema = new Schema<IHoroscope>(
         },
         name: { type: String, required: true },
         displayName: { type: Boolean, default: true },
-        birthDate: { type: Date, required: true },
-        birthTime: { type: String, required: true },
+        birthDate: { type: Date },
+        birthTime: { type: String },
         location: {
             id: { type: String },
         },
@@ -42,6 +47,11 @@ const HoroscopeSchema = new Schema<IHoroscope>(
             type: String,
             enum: ["lahiri", "raman", "krishnamurti", "yukteshwar"],
             default: "lahiri",
+        },
+        source: {
+            type: String,
+            enum: ["auto", "manual"],
+            default: "auto",
         },
         isPublic: { type: Boolean, default: false },
     },

@@ -18,6 +18,8 @@ Kendara is a bilingual (Sinhala/English) astrology study web app for students to
 
 > **Search UX:** The Search Horoscope feature has a dedicated UX spec at `specs/ux/20260727-2100-search-horoscope.md` covering RAG-based natural language search, config panel, result cards, history, saved searches, bookmarks, export, and all associated states/accessibility/responsive behavior. The summary below references that spec for full details.
 
+> **Calculated Horoscope UX:** The Calculated Chart (manual entry) feature has a dedicated UX spec at `specs/ux/20260805-1514-calculated-horoscope.md` covering the mode toggle, house table editor, navamsa editor, live validation badges, derived planets table, probable birth-range derivation, and detail-page integration for `source: "manual"` horoscopes.
+
 ---
 
 ## Design System
@@ -149,7 +151,8 @@ Landing Page → Click "Login with Google" → Google OAuth →
 
 ```
 Dashboard → Click "Add Horoscope" →
-  → Fill Form (Name, Date, Time) →
+  → Choose entry mode (Birth Details | Calculated Chart) →
+  → [Birth Details] Fill Form (Name, Date, Time) →
   → Location field shows LocationPicker dropdown (saved locations) →
   → Select location → Name auto-fills → Lat/Lon auto-fill from saved data →
   → Or type to search an existing location →
@@ -157,7 +160,14 @@ Dashboard → Click "Add Horoscope" →
   → User can override Lat/Lon fields manually if needed →
   → Submit → Loading spinner ("Calculating...") →
   → Horoscope Detail View (charts + calculations)
+  → [Calculated Chart] Enter name + Lagna →
+  → Place planets in the derived 12-house table (+ optional Navamsa table) →
+  → Derived tables/ranges update live →
+  → Submit → POST /api/horoscope/manual →
+  → Horoscope Detail View (Calculated Chart badge, editable chart)
 ```
+
+> Full calculated-chart flow: `specs/ux/20260805-1514-calculated-horoscope.md`
 
 ### Flow 3: Search Horoscopes
 
@@ -440,6 +450,19 @@ Search → Results load →
 - **End**: Jump to the last period at the top level
 - ARIA: `role="tree"` on container, `role="treeitem"` on each period, `aria-expanded` on toggle, `aria-current="true"` on active period
 
+### Manual Chart Editor
+
+> Full spec: `specs/ux/20260805-1514-calculated-horoscope.md`
+
+- **Mode toggle**: Segmented control on the Add Horoscope page (`role="tablist"`, two `role="tab"` options: Birth Details / Calculated Chart); default Birth Details
+- **House table editor**: 12-row editable table (House | Sign | Planets | Aspects); each row has `[+ Add]` opening a popover of unplaced planets; placed planets render as removable chips
+- **Planet picker**: Popover `role="menu"` listing all unplaced planets (glyph + EN + SI name); a planet exists once across the chart
+- **Validation badges**: Slim bar below the house table with Budha ✓/✗, Sikuru ✓/✗, Rahu–Ketu ✓/⏳/✗; `role="status"` + `aria-live="polite"`; advisory (non-blocking) with tooltips explaining the rule
+- **Navamsa house table**: Optional, collapsed by default; same planet picker; enriches the planets table with Navamsa columns
+- **Planets table**: Read-only, live-derived (Planet, Sign, Str, House, Conjunctions, Aspects, Other + Navamsa columns); mobile → card-per-planet
+- **Derived ranges**: Read-only card with birth time/month/date/age probable ranges + estimate disclaimer
+- **Detail page**: `source: "manual"` horoscopes show a "Calculated Chart" badge, an "Edit Chart" button, dual birth+navamsa charts, and "not available" empty states for dasha/varga data
+
 ### Search Input
 
 > Full spec: `specs/ux/20260727-2100-search-horoscope.md` §4
@@ -634,5 +657,7 @@ Search → Results load →
 | `specs/ux/20260720-0730-current-planetary-positions.md` | Current planetary positions overlay UX specification |
 | `specs/ux/20260727-1926-privacy-settings.md` | Horoscope privacy settings UX specification |
 | `specs/ux/20260727-2100-search-horoscope.md` | Search Horoscope (RAG-based) UX specification |
+| `specs/ux/20260805-1514-calculated-horoscope.md` | Calculated Horoscope (manual entry) UX specification |
 | `src/components/PrivacyToggle.tsx` | PrivacyToggle component (isPublic + displayName toggles) |
 | `src/components/PrivacyBadge.tsx` | Privacy status badge (Public / Private / Name Hidden) |
+| `src/components/ManualChart/` | Manual Chart editor components (ModeToggle, HouseTableEditor, NavamsaHouseTableEditor, PlanetPicker, ValidationBadges, PlanetsTable, DerivedRanges, ManualChartEditor, ManualChartDetailPanel) |

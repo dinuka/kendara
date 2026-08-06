@@ -132,12 +132,20 @@ export default function HoroscopesPage() {
         <div>
             <div className="flex justify-between items-center mb-8">
                 <h1 className="text-2xl font-bold">{t("nav.horoscopes")}</h1>
-                <Link
-                    href="/horoscopes/new"
-                    className="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700 transition-colors text-sm"
-                >
-                    + {t("nav.addHoroscope")}
-                </Link>
+                <div className="flex gap-2">
+                    <Link
+                        href="/horoscopes/new"
+                        className="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700 transition-colors text-sm"
+                    >
+                        + {t("horoscope.addBirth")}
+                    </Link>
+                    <Link
+                        href="/horoscopes/new/manual"
+                        className="border border-indigo-600 text-indigo-600 px-4 py-2 rounded hover:bg-indigo-50 transition-colors text-sm"
+                    >
+                        + {t("horoscope.addCalculated")}
+                    </Link>
+                </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">

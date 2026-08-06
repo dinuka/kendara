@@ -1,10 +1,15 @@
 import mongoose, { Document, Model, Schema } from "mongoose";
 
 import type { CalculationResult } from "@/lib/astrology";
+import type { DerivedRanges, ManualHousePlacements } from "@/lib/manualChart";
 
 export interface ICalculatedDetails extends Document, CalculationResult {
     id: string;
     horoscope: { id: string };
+    /** Present only for `source: "manual"` horoscopes — the entered house placements (single source of truth). */
+    manualHousePlacements?: ManualHousePlacements;
+    /** Present only for `source: "manual"` horoscopes — derived probable birth ranges. */
+    derivedRanges?: DerivedRanges;
     createdAt: Date;
 }
 
@@ -87,6 +92,8 @@ const CalculatedDetailsSchema = new Schema<ICalculatedDetails>({
     atmakaraka: Number,
     yogas: [{ type: Schema.Types.Mixed }],
     doshas: { type: Schema.Types.Mixed },
+    manualHousePlacements: { type: Schema.Types.Mixed },
+    derivedRanges: { type: Schema.Types.Mixed },
     createdAt: { type: Date, default: Date.now },
 });
 
