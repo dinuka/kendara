@@ -15,6 +15,7 @@ import { compute } from "@/lib/manualChart";
 import {
     getCurrentShani,
     parseManualChartBody,
+    sanitizeManualHousePlacements,
     synthesizeCalculation,
     synthesizeNavamsaCalculation,
 } from "@/lib/manualChartDetails";
@@ -73,7 +74,7 @@ export async function POST(req: NextRequest) {
     await CalculatedDetails.create({
         horoscope: { id: horoscope.id },
         ...synth,
-        manualHousePlacements: result.manualHousePlacements,
+        manualHousePlacements: sanitizeManualHousePlacements(result.manualHousePlacements),
         derivedRanges: result.derivedRanges,
     });
 

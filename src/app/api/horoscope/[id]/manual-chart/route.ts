@@ -15,6 +15,7 @@ import { compute } from "@/lib/manualChart";
 import {
     getCurrentShani,
     parseManualChartBody,
+    sanitizeManualHousePlacements,
     synthesizeCalculation,
     synthesizeNavamsaCalculation,
 } from "@/lib/manualChartDetails";
@@ -70,7 +71,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
         { "horoscope.id": id },
         {
             ...synth,
-            manualHousePlacements: result.manualHousePlacements,
+            manualHousePlacements: sanitizeManualHousePlacements(result.manualHousePlacements),
             derivedRanges: result.derivedRanges,
         },
         { upsert: true },

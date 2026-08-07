@@ -6,6 +6,7 @@ import {
     type CurrentShani,
     type ManualChartInput,
     type ManualChartResult,
+    type ManualHousePlacements,
     SIGN_LORD,
     buildWholeSignHouses,
     computeAscendantNakshatra,
@@ -117,6 +118,20 @@ export function parseManualChartBody(body: unknown): ManualChartPayload {
 
 export function synthesizeAscendant(lagna: number): Ascendant {
     return { sign: lagna, degree: 0, lord: SIGN_LORD[lagna] || 1 };
+}
+
+/** Strip absent optional keys (`lagnaDegree`, `navamsaLagna`) from a ManualHousePlacements object
+ *  before persisting it. BSON serializes `undefined` as `null`, so without this the stored document
+ *  keeps `lagnaDegree: null` / `navamsaLagna: null` — which render-time `!== undefined` checks (and
+ *  older records) treat as present. The render layer normalizes null away too, but storage should
+ *  stay clean for new writes. */
+export function sanitizeManualHousePlacements(
+    placements: ManualHousePlacements,
+): ManualHousePlacements {
+    const clean: ManualHousePlacements = { ...placements };
+    if (clean.lagnaDegree === undefined) delete clean.lagnaDegree;
+    if (clean.navamsaLagna === undefined) delete clean.navamsaLagna;
+    return clean;
 }
 
 /** Current Shani position (for the age-range derivation). Best-effort: returns null when the

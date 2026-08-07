@@ -185,8 +185,8 @@ export function manualPlacementsToInput(placements: ManualHousePlacements): Manu
     };
     return {
         lagna: placements.lagna,
-        lagnaDegree: placements.lagnaDegree,
-        navamsaLagna: placements.navamsaLagna,
+        lagnaDegree: placements.lagnaDegree ?? undefined,
+        navamsaLagna: placements.navamsaLagna ?? undefined,
         houses: toRecord(placements.houses),
         navamsaHouses: toRecord(placements.navamsaHouses),
     };
@@ -821,30 +821,31 @@ export function buildWholeSignHouses(lagna: number): import("@/lib/astrology").H
 }
 
 /** Builds the house chart (bhava) House objects for a manual horoscope, anchored so house 1's
- *  middle line coincides exactly with the ascendant (lagna) line at `ascAbsDeg`. Per the calc-tab
- *  degree-range model, each house spans from the last navamsa of the previous sign (26:40) to the
- *  last navamsa of its own sign, and every house's middle line sits at the ascendant's degree
- *  rotated +30° per house — which is exactly the repeating "Mid = ascendant segment in this
- *  house's sign" range shown in the calculations tab. */
+ *  middle line coincides exactly with the ascendant (lagna) line at `ascAbsDeg`. Each house is a
+ *  30° span centered on its middle line (the lagna degree rotated +30° per house): start cusp =
+ *  middle − 15°, end cusp = middle + 15°. The cusps therefore track the ascendant's navamsa
+ *  position — the calc-tab Start/Mid/End segments are derived from these same boundaries. */
 export function buildBhavaHouses(lagna: number, ascAbsDeg: number): import("@/lib/astrology").House[] {
-    const boundaryDegree = 30 - NAVAMSA_ARC;
     return Array.from({ length: 12 }, (_, i) => {
         const houseNumber = i + 1;
         const sign = ((lagna - 1 + i) % 12) + 1;
-        const prevSign = ((sign - 2 + 12) % 12) + 1;
         const midAbs = (((ascAbsDeg + i * 30) % 360) + 360) % 360;
+        const startAbs = (((midAbs - 15) % 360) + 360) % 360;
+        const endAbs = (((midAbs + 15) % 360) + 360) % 360;
+        const startSign = Math.floor(startAbs / 30) + 1;
+        const endSign = Math.floor(endAbs / 30) + 1;
         const midSign = Math.floor(midAbs / 30) + 1;
         return {
             houseNumber,
-            startDegree: boundaryDegree,
-            startSign: prevSign,
-            startLord: SIGN_LORD[prevSign] || 1,
+            startDegree: startAbs % 30,
+            startSign,
+            startLord: SIGN_LORD[startSign] || 1,
             middleDegree: midAbs % 30,
             middleSign: midSign,
             middleLord: SIGN_LORD[midSign] || 1,
-            endDegree: boundaryDegree,
-            endSign: sign,
-            endLord: SIGN_LORD[sign] || 1,
+            endDegree: endAbs % 30,
+            endSign,
+            endLord: SIGN_LORD[endSign] || 1,
             sign,
             lord: SIGN_LORD[sign] || 1,
         };

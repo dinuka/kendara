@@ -6,6 +6,7 @@ import logger from "../src/lib/logger";
 import { compute, manualPlacementsToInput } from "../src/lib/manualChart";
 import {
     getCurrentShani,
+    sanitizeManualHousePlacements,
     synthesizeCalculation,
     synthesizeNavamsaCalculation,
 } from "../src/lib/manualChartDetails";
@@ -33,7 +34,7 @@ export async function recalculateCalculatedHoroscope(horoscope: IHoroscope): Pro
         { "horoscope.id": id },
         {
             ...synth,
-            manualHousePlacements: result.manualHousePlacements,
+            manualHousePlacements: sanitizeManualHousePlacements(result.manualHousePlacements),
             derivedRanges: result.derivedRanges,
         },
         { upsert: true },

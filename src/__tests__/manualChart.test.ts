@@ -678,25 +678,27 @@ describe("buildBhavaHouses", () => {
             expect((mid % 360 + 360) % 360).toBe((10 + i * 30) % 360);
         });
     });
-    test("W005 each bhava house spans 30 degrees, starting at the previous sign's last navamsa", () => {
+    test("W005 each bhava house spans 30 degrees centered on its middle (cusps = midAbs ± 15)", () => {
         const houses = buildBhavaHouses(1, 10);
         houses.forEach((h) => {
             let start = (h.startSign - 1) * 30 + h.startDegree;
             let end = (h.endSign - 1) * 30 + h.endDegree;
             if (end <= start) end += 360;
+            const mid = (h.middleSign - 1) * 30 + h.middleDegree;
             expect(end - start).toBeCloseTo(30, 5);
-            expect(h.startDegree).toBeCloseTo(26.666, 2);
-            expect(h.endDegree).toBeCloseTo(26.666, 2);
+            expect((mid - start + 360) % 360).toBeCloseTo(15, 5);
+            expect((end - mid + 360) % 360).toBeCloseTo(15, 5);
         });
     });
     test("W006 house-1 wedge for Pisces lagna contains the lagna degree", () => {
         const houses = buildBhavaHouses(12, 350);
         const h1 = houses[0];
         const start = (h1.startSign - 1) * 30 + h1.startDegree;
-        const end = (h1.endSign - 1) * 30 + h1.endDegree;
+        let end = (h1.endSign - 1) * 30 + h1.endDegree;
+        if (end <= start) end += 360;
         const mid = (h1.middleSign - 1) * 30 + h1.middleDegree;
-        expect(start).toBeCloseTo(326.666, 2);
-        expect(end).toBeCloseTo(356.666, 2);
+        expect(start).toBeCloseTo(335, 5);
+        expect(end).toBeCloseTo(365, 5);
         expect(mid).toBe(350);
         expect(start <= mid && mid < end).toBe(true);
     });
@@ -705,5 +707,17 @@ describe("buildBhavaHouses", () => {
         const h2 = houses[1];
         const h2start = (h2.startSign - 1) * 30 + h2.startDegree;
         expect(h2start).not.toBe(30);
+    });
+    test("W008 house cusps derive from the ascendant's navamsa position, not fixed 26:40 boundaries", () => {
+        // Lagna=8 (Scorpio), navamsaLagna=5 -> navamsa index 2 -> ascendant center 215° (Scorpio 05:00).
+        // Derived cusps: start = 200° (Libra 20:00), end = 230° (Scorpio 20:00). A fixed 26:40
+        // boundary model would wrongly report Libra/Scorpio 26:40.
+        const ascAbsDeg = (8 - 1) * 30 + (2 - 0.5) * (30 / 9);
+        const houses = buildBhavaHouses(8, ascAbsDeg);
+        const h1 = houses[0];
+        const start = (h1.startSign - 1) * 30 + h1.startDegree;
+        const end = (h1.endSign - 1) * 30 + h1.endDegree;
+        expect(start).toBeCloseTo(200, 5);
+        expect(end).toBeCloseTo(230, 5);
     });
 });

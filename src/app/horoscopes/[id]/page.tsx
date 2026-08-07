@@ -74,6 +74,30 @@ function placementsRecord(manual: ManualHouse[]): Record<number, number[]> {
     return result;
 }
 
+/** Effective ascendant absolute degree (0-360) for a manual horoscope: the CENTER of the ascendant's
+ *  navamsa wedge (the "mid of the degree range" the calculations tab shows), derived from the entered
+ *  `lagnaDegree` when given, else the stored navamsa lagna. The chart's lagna line and house-1 bhava
+ *  middle are anchored to this so they stay centered on the highlighted navamsa wedge. */
+function manualAscAbsDeg(mhp: { lagna: number; lagnaDegree?: number; navamsaLagna?: number }): number {
+    const arc = 30 / 9;
+    let index = 1;
+    if (mhp.lagnaDegree !== undefined) index = Math.floor(mhp.lagnaDegree / arc) + 1;
+    else if (mhp.navamsaLagna !== undefined) index = navamsaIndexForSign(mhp.lagna, mhp.navamsaLagna);
+    return (mhp.lagna - 1) * 30 + (index - 0.5) * arc;
+}
+
+/** Navamsa segment (1-9) within its sign that CONTAINS an absolute degree: `{ sign, start, end }`
+ *  in-sign degree range. Used to render the calc-tab Start/End boundaries as navamsa segments
+ *  (matching the Mid column's DD:MM–DD:MM format), derived from the house cusps `midAbs ± 15°`. */
+function navamsaSegmentForAbsDegree(abs: number): { sign: number; start: number; end: number } {
+    const arc = 30 / 9;
+    const norm = ((abs % 360) + 360) % 360;
+    const sign = Math.floor(norm / 30) + 1;
+    const inSign = norm % 30;
+    const index = Math.floor(inSign / arc) + 1;
+    return { sign, start: (index - 1) * arc, end: index * arc };
+}
+
 function birthDateInputValue(value?: Date | string): string {
     if (!value) return "";
     const date = typeof value === "string" ? new Date(value) : value;
@@ -235,38 +259,36 @@ export default function HoroscopeDetailPage() {
                     d?.calculatedDetails?.manualHousePlacements &&
                     d?.calculatedDetails?.planets
                 ) {
+                    // Older records persisted `null` for absent lagnaDegree/navamsaLagna, which the
+                    // `!== undefined` checks below would otherwise treat as present (making the lagna
+                    // line point at the sign start instead of the navamsa-wedge center). Normalize
+                    // null -> undefined once so every derived value uses the same source of truth.
+                    const mhp = {
+                        ...d.calculatedDetails.manualHousePlacements,
+                        lagnaDegree:
+                            d.calculatedDetails.manualHousePlacements.lagnaDegree ?? undefined,
+                        navamsaLagna:
+                            d.calculatedDetails.manualHousePlacements.navamsaLagna ?? undefined,
+                    };
                     d = {
                         ...d,
                         calculatedDetails: {
                             ...d.calculatedDetails,
                             ...synthesizeOtherDetails(
-                                d.calculatedDetails.manualHousePlacements,
+                                mhp,
                                 d.calculatedDetails.planets,
                             ),
                             manualHousePlacements: {
-                                ...d.calculatedDetails.manualHousePlacements,
-                                validation: synthesizeValidation(
-                                    d.calculatedDetails.manualHousePlacements,
-                                ),
+                                ...mhp,
+                                validation: synthesizeValidation(mhp),
                             },
                             houses: (() => {
-                                const mhp = d.calculatedDetails.manualHousePlacements;
                                 const lagna = mhp.lagna;
-                                let ascAbsDeg = (lagna - 1) * 30;
-                                if (mhp.lagnaDegree !== undefined) {
-                                    ascAbsDeg = (lagna - 1) * 30 + mhp.lagnaDegree;
-                                } else if (mhp.navamsaLagna !== undefined) {
-                                    ascAbsDeg =
-                                        (lagna - 1) * 30 +
-                                        (navamsaIndexForSign(lagna, mhp.navamsaLagna) - 0.5) * (30 / 9);
-                                }
-                                return buildBhavaHouses(lagna, ascAbsDeg);
+                                return buildBhavaHouses(lagna, manualAscAbsDeg(mhp));
                             })(),
                             nakshatra: {
                                 ...d.calculatedDetails.nakshatra,
-                                ascendantNakshatra: computeAscendantNakshatra(
-                                    d.calculatedDetails.manualHousePlacements,
-                                ),
+                                ascendantNakshatra: computeAscendantNakshatra(mhp),
                                 moonNakshatra: (() => {
                                     const moon = (d.calculatedDetails.planets as Planet[]).find(
                                         (p) => p.name === 2,
@@ -521,29 +543,22 @@ export default function HoroscopeDetailPage() {
     };
 
     /** Navamsa wedge (1-9) of the ASC sign to highlight on the house chart. For manual horoscopes
-     *  this must come from the stored navamsa lagna, not from ascendant.degree (always 0 for manual
-     *  charts, which would select navamsa #1 spuriously). */
+     *  this must come from the entered lagna degree (else the stored navamsa lagna), not from
+     *  ascendant.degree (always 0 for manual charts, which would select navamsa #1 spuriously). */
     const getAscendantNavamsaNum = (): number | undefined => {
         if (horoscope.source !== "manual" || !calculatedDetails?.manualHousePlacements) return undefined;
-        const { lagna, navamsaLagna } = calculatedDetails.manualHousePlacements;
+        const { lagna, lagnaDegree, navamsaLagna } = calculatedDetails.manualHousePlacements;
+        if (lagnaDegree !== undefined) return Math.floor(lagnaDegree / (30 / 9)) + 1;
         if (navamsaLagna === undefined) return undefined;
         return navamsaIndexForSign(lagna, navamsaLagna);
     };
 
     /** Absolute ecliptic degree (0-360) to anchor the house chart's lagna line (12 o'clock). For
-     *  manual horoscopes the lagna line must point through the selected navamsa wedge: the entered
-     *  lagna degree when given, otherwise the midpoint of the navamsa wedge implied by the stored
-     *  navamsa lagna. */
+     *  manual horoscopes the lagna line must point through the CENTER of the selected navamsa wedge
+     *  (see `manualAscAbsDeg`), so it lines up with the calculations-tab degree ranges. */
     const getAscendantAbsDeg = (): number | undefined => {
         if (horoscope.source !== "manual" || !calculatedDetails?.manualHousePlacements) return undefined;
-        const { lagna, lagnaDegree, navamsaLagna } = calculatedDetails.manualHousePlacements;
-        if (lagnaDegree !== undefined) return (lagna - 1) * 30 + lagnaDegree;
-        if (navamsaLagna !== undefined) {
-            const index = navamsaIndexForSign(lagna, navamsaLagna);
-            const arc = 30 / 9;
-            return (lagna - 1) * 30 + (index - 0.5) * arc;
-        }
-        return undefined;
+        return manualAscAbsDeg(calculatedDetails.manualHousePlacements);
     };
 
     /** Planets with degree re-synthesized to the midpoint of each planet's navamsa segment for
@@ -581,21 +596,25 @@ export default function HoroscopeDetailPage() {
         return formatNavamsaDegreeRange((index - 1) * NAVAMSA_ARC, index * NAVAMSA_ARC);
     };
 
-    /** House start/mid/end labels for manual whole-sign horoscopes. Per the agreed model, every row
-     *  repeats the same 3-segment pattern with rotating signs: Start = last segment of the previous
-     *  sign (26:40–30:00), Mid = the ascendant's navamsa segment in this house's sign, End = last
-     *  segment of this house's sign (26:40–30:00). */
+    /** House start/mid/end labels for manual whole-sign horoscopes. Every house is a 30° span
+     *  centered on its middle line (`ascAbsDeg` rotated +30° per house): Mid = the ascendant's
+     *  navamsa segment in this house's sign, Start/End = the navamsa segment containing the house
+     *  cusps `midAbs − 15°` / `midAbs + 15°`. The cusps therefore track the ascendant's navamsa
+     *  position, matching `buildBhavaHouses` and the house chart. */
     const getManualHouseRange = (
+        houseNumber: number,
         sign: number,
         midStart: number,
         midEnd: number,
+        ascAbsDeg: number,
     ): { start: string; mid: string; end: string } => {
-        const prevSign = ((sign - 2 + 12) % 12) + 1;
-        const lastSegment = formatNavamsaDegreeRange(30 - NAVAMSA_ARC, 30);
+        const midAbs = (((ascAbsDeg + (houseNumber - 1) * 30) % 360) + 360) % 360;
+        const startSeg = navamsaSegmentForAbsDegree(midAbs - 15);
+        const endSeg = navamsaSegmentForAbsDegree(midAbs + 15);
         return {
-            start: `${getSignName(prevSign)} (${lastSegment})`,
+            start: `${getSignName(startSeg.sign)} (${formatNavamsaDegreeRange(startSeg.start, startSeg.end)})`,
             mid: `${getSignName(sign)} (${formatNavamsaDegreeRange(midStart, midEnd)})`,
-            end: `${getSignName(sign)} (${lastSegment})`,
+            end: `${getSignName(endSeg.sign)} (${formatNavamsaDegreeRange(endSeg.start, endSeg.end)})`,
         };
     };
 
@@ -1206,7 +1225,13 @@ export default function HoroscopeDetailPage() {
                                                 const houseMidAbs = getHouseMidAbs(h);
                                                 const isManualRow = isManualNoBirthDate;
                                                 const manualRange = isManualRow
-                                                    ? getManualHouseRange(h.sign, getAscMidRange().start, getAscMidRange().end)
+                                                    ? getManualHouseRange(
+                                                          h.houseNumber,
+                                                          h.sign,
+                                                          getAscMidRange().start,
+                                                          getAscMidRange().end,
+                                                          getAscendantAbsDeg() ?? 0,
+                                                      )
                                                     : null;
                                                 const aspectsToHouse = getAspectsToHouse(h.houseNumber)
                                                     .map((a) => ({
