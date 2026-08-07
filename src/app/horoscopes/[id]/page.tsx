@@ -18,6 +18,7 @@ import ValidationBadges from "@/components/ManualChart/ValidationBadges";
 import type { Ascendant, CalculationResult, Dashas, House, Planet } from "@/lib/astrology";
 import {
     computeAscendantSpecialFlags,
+    computePanchaPakshi,
     computeThithiFromPlanets,
     findHouse,
     formatDegree,
@@ -141,6 +142,7 @@ export default function HoroscopeDetailPage() {
                 ascendantNakshatra?: { id: number; pada: number; lord: number };
             };
             thithi: number;
+            panchaPakshi?: number;
             dashas: unknown;
             lord22ndDrekkana: number;
             lord64thNavamsa: number;
@@ -459,6 +461,17 @@ export default function HoroscopeDetailPage() {
     const getSignName = (id: number): string => t(`astrology.signNames.${id}`);
     const getNakshatraName = (id: number): string => t(`astrology.nakshatraNames.${id}`);
     const getThithiName = (id: number): string => t(`astrology.thithiNames.${id}`);
+
+    const getPanchaPakshiName = (id: number): string => t(`astrology.panchaPakshiNames.${id}`);
+
+    /** Pancha Pakshi (පංච පක්ෂී) bird, recomputed from the Moon nakshatra + paksha at render time
+     *  so older CalculatedDetails documents that predate the `panchaPakshi` field still display it. */
+    const getPanchaPakshi = (): number => {
+        if (typeof calculatedDetails?.panchaPakshi === "number") return calculatedDetails.panchaPakshi;
+        const moonNakId = calculatedDetails?.nakshatra?.moonNakshatra?.id;
+        const thithi = getThithi();
+        return computePanchaPakshi(moonNakId ?? 1, thithi);
+    };
     const getPadaFormat = (pada: number): string => t("astrology.padaFormat", { pada: String(pada) });
     const getDashaLevelName = (level: string): string => t(`astrology.dashaLevels.${level}`);
 
@@ -1280,6 +1293,9 @@ export default function HoroscopeDetailPage() {
                                         </p>
                                         <p className="text-sm mt-1 text-gray-600">
                                             {t("astrology.thithi")}: {getThithiName(getThithi())} ({getThithi()})
+                                        </p>
+                                        <p className="text-sm mt-1 text-gray-600">
+                                            {t("astrology.panchaPakshi")}: {getPanchaPakshiName(getPanchaPakshi())}
                                         </p>
                                     </div>
                                 </div>

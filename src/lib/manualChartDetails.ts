@@ -1,5 +1,5 @@
 import type { Ascendant, CalculationResult, Planet } from "@/lib/astrology";
-import { computeThithiFromPlanets, navamsaSign } from "@/lib/astrology";
+import { computePanchaPakshi, computeThithiFromPlanets, navamsaSign } from "@/lib/astrology";
 import { PlanetaryStrength } from "@/lib/astrologyEnums";
 import { computeCurrentPlanets } from "@/lib/currentPlanets";
 import {
@@ -192,6 +192,7 @@ export function synthesizeCalculation(result: ManualChartResult, birthDate?: Dat
             ascendantNakshatra,
         },
         thithi: computeThithiFromPlanets(planets),
+        panchaPakshi: computePanchaPakshi(moonNakshatra.id, computeThithiFromPlanets(planets)),
         dashas: calculateManualDashas(moonNakshatra.id, moonNakshatra.pada, birthDate),
         ...synthesizeOtherDetails(manualHousePlacements, planets),
         yogas: [],

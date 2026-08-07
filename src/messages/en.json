@@ -225,6 +225,7 @@
         "planets": "Planets (Graha)",
         "nakshatra": "Nakshatra",
         "thithi": "Thithi",
+        "panchaPakshi": "Pancha Pakshi",
         "aspects": "Aspects",
         "strengthsSpecialLords": "Strengths & Special Lords",
         "combustLabel": "Combust",
@@ -369,6 +370,13 @@
             "28": "Krishna Trayodashi",
             "29": "Krishna Chaturdashi",
             "30": "Amavasya"
+        },
+        "panchaPakshiNames": {
+            "1": "Vulture",
+            "2": "Owl",
+            "3": "Crow",
+            "4": "Cock",
+            "5": "Peacock"
         },
         "chartTypes": {
             "birth": "Birth",

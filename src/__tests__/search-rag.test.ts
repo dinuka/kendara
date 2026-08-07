@@ -1,5 +1,5 @@
 import type { CalculationResult } from "@/lib/astrology";
-import { Nakshatra, PlanetaryStrength, ZodiacSign } from "@/lib/astrologyEnums";
+import { Nakshatra, PanchaPakshi, PlanetaryStrength, ZodiacSign } from "@/lib/astrologyEnums";
 import { generateTextContent } from "@/lib/search/textContent";
 import { findNakshatraMatch, hasNakshatraTriggerWord } from "@/lib/search/utils";
 
@@ -101,6 +101,7 @@ const MOCK_CALC: CalculationResult = {
         ascendantNakshatra: { id: 1, pada: 2, lord: 3 },
     },
     thithi: 15,
+    panchaPakshi: PanchaPakshi.OWL,
     dashas: {
         mahadasha: [
             {
@@ -279,6 +280,7 @@ describe("textContent - edge cases", () => {
             ascendantNakshatra: { id: 1, pada: 1, lord: 3 },
         },
         thithi: 1,
+        panchaPakshi: PanchaPakshi.VULTURE,
         dashas: {
             mahadasha: [],
             currentPeriod: {

@@ -1,4 +1,4 @@
-import { PlanetaryStrength } from "./astrologyEnums";
+import { PanchaPakshi, PlanetaryStrength } from "./astrologyEnums";
 
 export const PLANET_SYMBOLS: Record<number, string> = {
     1: "\u2609",
@@ -97,6 +97,45 @@ export function computeThithiFromPlanets(planets: Pick<Planet, "name" | "absolut
     const moon = planets.find((p) => p.name === 2);
     if (!sun || !moon) return 1;
     return computeThithi(sun.absoluteDegree, moon.absoluteDegree);
+}
+
+/** Contiguous nakshatra ranges (1-27) forming the five Pancha Pakshi groups, in order:
+ *  Ashwini–Ardra, Punarvasu–Uttara Phalguni, Hasta–Anuradha, Jyeshtha–Shravana, Dhanishta–Revati. */
+const PANCHAPAKSHI_NAKSHATRA_GROUPS: [number, number][] = [
+    [1, 6],
+    [7, 12],
+    [13, 17],
+    [18, 22],
+    [23, 27],
+];
+
+/** Bird order per paksha: group index → bird. The Crow group (3rd) stays fixed; the other four
+ *  rotate between Shukla and Krishna Paksha. */
+const SHUKLA_PAKSHI: PanchaPakshi[] = [
+    PanchaPakshi.VULTURE,
+    PanchaPakshi.OWL,
+    PanchaPakshi.CROW,
+    PanchaPakshi.COCK,
+    PanchaPakshi.PEACOCK,
+];
+
+const KRISHNA_PAKSHI: PanchaPakshi[] = [
+    PanchaPakshi.PEACOCK,
+    PanchaPakshi.COCK,
+    PanchaPakshi.CROW,
+    PanchaPakshi.OWL,
+    PanchaPakshi.VULTURE,
+];
+
+/** Pancha Pakshi (පංච පක්ෂී): the governing bird derived from the Moon's nakshatra group and the
+ *  Moon's paksha. Shukla Paksha spans thithi 1-15 (waxing), Krishna Paksha thithi 16-30 (waning). */
+export function computePanchaPakshi(moonNakshatraId: number, thithi: number): PanchaPakshi {
+    const groupIndex = PANCHAPAKSHI_NAKSHATRA_GROUPS.findIndex(
+        ([start, end]) => moonNakshatraId >= start && moonNakshatraId <= end,
+    );
+    if (groupIndex < 0) return PanchaPakshi.VULTURE;
+    const table = thithi >= 1 && thithi <= 15 ? SHUKLA_PAKSHI : KRISHNA_PAKSHI;
+    return table[groupIndex];
 }
 
 export function formatDashaDuration(years: number, months: number, days: number): string {
@@ -294,6 +333,8 @@ export interface CalculationResult {
     nakshatra: NakshatraInfo;
     /** Thithi (තිති) of the Moon, 1-30 (see computeThithi). */
     thithi: number;
+    /** Pancha Pakshi (පංච පක්ෂී) governing bird (see computePanchaPakshi). */
+    panchaPakshi: PanchaPakshi;
     dashas: DashaInfo;
     lord22ndDrekkana: number;
     lord64thNavamsa: number;

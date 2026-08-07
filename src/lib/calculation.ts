@@ -16,6 +16,7 @@ import {
     Prana,
     Sukshama,
     Vidasa,
+    computePanchaPakshi,
     computeThithi,
     navamsaSign,
 } from "@/lib/astrology";
@@ -435,6 +436,8 @@ export function calculateHoroscope(
 
     const dashas = calculateDashas(positions.Mo.longitude, moonNakshatra, nakshatraLords[moonNakshatra - 1], birthDate);
 
+    const thithi = computeThithi(sunLong, moonLong);
+
     return {
         ascendant,
         houses,
@@ -443,7 +446,8 @@ export function calculateHoroscope(
             moonNakshatra: { id: moonNakshatra, pada: moonPada, lord: nakshatraLords[moonNakshatra - 1] },
             ascendantNakshatra: { id: ascNakshatra, pada: ascPada, lord: nakshatraLords[ascNakshatra - 1] },
         },
-        thithi: computeThithi(sunLong, moonLong),
+        thithi,
+        panchaPakshi: computePanchaPakshi(moonNakshatra, thithi),
         dashas,
         lord22ndDrekkana: computeDrekkanaLord(ascSign, ascLong % 30),
         lord64thNavamsa: computeNavamsaLord(ascSign, ascLong % 30),

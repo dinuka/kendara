@@ -75,6 +75,7 @@ const CalculatedDetailsSchema = new Schema<ICalculatedDetails>({
     planets: [{ type: Schema.Types.Mixed }],
     nakshatra: { type: Schema.Types.Mixed },
     thithi: Number,
+    panchaPakshi: Number,
     dashas: {
         mahadasha: { type: [MahadashaSchema], default: [] },
         currentPeriod: { type: CurrentPeriodSchema, required: true },

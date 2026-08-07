@@ -191,6 +191,14 @@ export const STRENGTH_DISPLAY_SI: Record<string, string> = {
     Sama: "සම",
 };
 
+export enum PanchaPakshi {
+    VULTURE = 1,
+    OWL = 2,
+    CROW = 3,
+    COCK = 4,
+    PEACOCK = 5,
+}
+
 export enum Nakshatra {
     ASHWINI = 1,
     BHARANI = 2,
