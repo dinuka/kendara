@@ -92,13 +92,23 @@ export default function CurrentPeriodBadge({
                     </span>
                 ))}
             </div>
-            {mahadashaList.length > 0 && (
-                <div className="text-[11px] text-gray-400 mt-1.5">
-                    {getPlanetName(currentPeriod.mahadashaLord)} Mahadasha:{" "}
-                    {mahadashaList.find((m) => m.planet === currentPeriod.mahadashaLord)?.startDate ?? ""} &mdash;{" "}
-                    {mahadashaList.find((m) => m.planet === currentPeriod.mahadashaLord)?.endDate ?? ""}
-                </div>
-            )}
+            {mahadashaList.length > 0 &&
+                (() => {
+                    const running = mahadashaList.find((m) => m.planet === currentPeriod.mahadashaLord);
+                    return running?.startDate ? (
+                        <div className="text-[11px] text-gray-400 mt-1.5">
+                            {getPlanetName(currentPeriod.mahadashaLord)} Mahadasha: {running.startDate} &mdash;{" "}
+                            {running.endDate}
+                        </div>
+                    ) : (
+                        <div className="text-[11px] text-gray-400 mt-1.5">
+                            {getPlanetName(currentPeriod.mahadashaLord)} Mahadasha:{" "}
+                            {mahadashaList.find((m) => m.planet === currentPeriod.mahadashaLord)?.durationYears
+                                ? `${mahadashaList.find((m) => m.planet === currentPeriod.mahadashaLord)?.durationYears} years`
+                                : "duration unavailable"}
+                        </div>
+                    );
+                })()}
         </div>
     );
 }

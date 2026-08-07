@@ -54,8 +54,13 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     }
 
     const b = (body ?? {}) as Record<string, unknown>;
+    let birthDate = horoscope.birthDate ?? undefined;
     if (typeof b.birthDate === "string" && /^\d{4}-\d{2}-\d{2}$/.test(b.birthDate)) {
-        await Horoscope.updateOne({ _id: id }, { birthDate: new Date(`${b.birthDate}T00:00:00Z`) });
+        birthDate = new Date(`${b.birthDate}T00:00:00Z`);
+        await Horoscope.updateOne({ _id: id }, { birthDate });
+    }
+    if (typeof b.name === "string" && b.name.trim() !== "") {
+        await Horoscope.updateOne({ _id: id }, { name: b.name.trim() });
     }
 
     const parsed = parseManualChartBody(body);
@@ -66,7 +71,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     const currentShani = getCurrentShani(parsed.value.lagna);
     const result = compute(parsed.value, currentShani);
 
-    const synth = synthesizeCalculation(result);
+    const synth = synthesizeCalculation(result, birthDate);
     await CalculatedDetails.findOneAndUpdate(
         { "horoscope.id": id },
         {
@@ -78,7 +83,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     );
 
     await Chart.deleteMany({ "horoscope.id": id });
-    const navSynth = synthesizeNavamsaCalculation(result);
+    const navSynth = synthesizeNavamsaCalculation(result, birthDate);
     const chartTypes = navSynth ? [ChartType.BIRTH, ChartType.NAVAMSA_D9] : [ChartType.BIRTH];
     const chartDocs = chartTypes.map((type) => {
         const chartSource = type === ChartType.NAVAMSA_D9 && navSynth ? navSynth : synth;

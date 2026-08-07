@@ -1,3 +1,4 @@
+import { computeAscendantSpecialFlags, navamsaSign } from "@/lib/astrology";
 import { calculateHoroscope } from "@/lib/calculation";
 
 describe("calculateHoroscope", () => {
@@ -91,6 +92,13 @@ describe("calculateHoroscope", () => {
         expect(result.nakshatra.ascendantNakshatra).toBeDefined();
         expect(result.nakshatra.moonNakshatra.id).toBeGreaterThanOrEqual(1);
         expect(result.nakshatra.moonNakshatra.id).toBeLessThanOrEqual(27);
+    });
+
+    test("thithi is calculated as an integer 1-30", () => {
+        const result = calculateHoroscope(baseData);
+        expect(Number.isInteger(result.thithi)).toBe(true);
+        expect(result.thithi).toBeGreaterThanOrEqual(1);
+        expect(result.thithi).toBeLessThanOrEqual(30);
     });
 
     test("maraka planets is an array of numbers", () => {
@@ -198,5 +206,47 @@ describe("calculateHoroscope Wargoththama & Gandanta/Gandamula", () => {
             })();
             expect(group).toContain(planet!.navamsaSign);
         });
+    });
+
+    test("ascendant gandantha/gandamula flags are booleans and match the lagna nakshatra+pada rule", () => {
+        const result = calculateHoroscope(baseData);
+        expect(typeof result.isAscendantGandantha).toBe("boolean");
+        expect(typeof result.isAscendantGandamula).toBe("boolean");
+        const ascNakshatra = result.nakshatra.ascendantNakshatra;
+        expect(result.isAscendantGandantha).toBe([9, 18, 27].includes(ascNakshatra.id) && ascNakshatra.pada === 4);
+        expect(result.isAscendantGandamula).toBe([1, 10, 19].includes(ascNakshatra.id) && ascNakshatra.pada === 1);
+    });
+
+    test("ascendant pushkara flag is a boolean and matches the lagna sign -> navamsa-group rule", () => {
+        const result = calculateHoroscope(baseData);
+        expect(typeof result.isAscendantPushkara).toBe("boolean");
+        const ascSign = result.ascendant.sign;
+        const group = (() => {
+            if ([1, 5, 9].includes(ascSign)) return [7, 9];
+            if ([4, 8, 12].includes(ascSign)) return [4, 6];
+            return [2, 12];
+        })();
+        const ascNavamsaNum = Math.floor(result.ascendant.degree / (30 / 9)) + 1;
+        const ascNavamsaSign = navamsaSign(ascSign, ascNavamsaNum);
+        expect(result.isAscendantPushkara).toBe(group.includes(ascNavamsaSign));
+    });
+
+    test("computeAscendantSpecialFlags matches the stored calculation flags", () => {
+        const result = calculateHoroscope(baseData);
+        const { isAscendantGandantha, isAscendantGandamula, isAscendantPushkara } = computeAscendantSpecialFlags(
+            result.ascendant.sign,
+            result.ascendant.degree,
+            result.nakshatra.ascendantNakshatra.id,
+            result.nakshatra.ascendantNakshatra.pada,
+        );
+        expect(isAscendantGandantha).toBe(result.isAscendantGandantha);
+        expect(isAscendantGandamula).toBe(result.isAscendantGandamula);
+        expect(isAscendantPushkara).toBe(result.isAscendantPushkara);
+    });
+
+    test("computeAscendantSpecialFlags marks Mesha lagna in Ashwini pada 1 as Gandamula (render-time fallback)", () => {
+        const flags = computeAscendantSpecialFlags(1, 2.61, 1, 1);
+        expect(flags.isAscendantGandamula).toBe(true);
+        expect(flags.isAscendantGandantha).toBe(false);
     });
 });

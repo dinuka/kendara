@@ -2,7 +2,7 @@
 
 import { useI18n } from "@/hooks/useI18n";
 
-import { deriveBirthDateRange, type DerivedRanges } from "@/lib/manualChart";
+import { type DerivedRanges, deriveBirthDateRange } from "@/lib/manualChart";
 
 interface DerivedRangesSectionProps {
     ranges: DerivedRanges;

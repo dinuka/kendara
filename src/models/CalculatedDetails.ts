@@ -74,6 +74,7 @@ const CalculatedDetailsSchema = new Schema<ICalculatedDetails>({
     houses: [{ type: Schema.Types.Mixed }],
     planets: [{ type: Schema.Types.Mixed }],
     nakshatra: { type: Schema.Types.Mixed },
+    thithi: Number,
     dashas: {
         mahadasha: { type: [MahadashaSchema], default: [] },
         currentPeriod: { type: CurrentPeriodSchema, required: true },
@@ -85,6 +86,9 @@ const CalculatedDetailsSchema = new Schema<ICalculatedDetails>({
     nidhanamshaPlanets: [Number],
     ashtamanshaPlanets: [Number],
     isAscendantWargoththama: Boolean,
+    isAscendantGandantha: { type: Boolean, default: false },
+    isAscendantGandamula: { type: Boolean, default: false },
+    isAscendantPushkara: { type: Boolean, default: false },
     wargoththamaPlanets: [Number],
     gandanthaPlanets: [Number],
     gandamulaPlanets: [Number],

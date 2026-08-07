@@ -1,0 +1,1 @@
+- Should calculate Rupa values for Shad bala

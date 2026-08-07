@@ -93,9 +93,7 @@ const NORMALIZED_NAKSHATRA_ALIASES: ReadonlyArray<readonly [string, number]> = O
     ([word, value]) => [normalizeNakshatraQuery(word), value] as const,
 );
 
-const COLLOQUIAL_NORMALIZED = new Set(
-    [...NAKSHATRA_COLLOQUIAL_KEYS].map(normalizeNakshatraQuery),
-);
+const COLLOQUIAL_NORMALIZED = new Set([...NAKSHATRA_COLLOQUIAL_KEYS].map(normalizeNakshatraQuery));
 
 const matchNormalizedSpan = (normalizedSpan: string): number | null => {
     if (!normalizedSpan) return null;

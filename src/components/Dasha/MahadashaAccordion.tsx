@@ -79,9 +79,15 @@ export default function MahadashaAccordion({
                 <span className="font-semibold text-gray-800 text-sm">{getPlanetName(mahadasha.planet)}</span>
                 <span className="text-xs text-gray-400">{getDashaLevelName("mahadasha")}</span>
                 <span className="text-xs text-gray-400 ml-auto">
-                    {mahadasha.startDate} &mdash; {mahadasha.endDate}
+                    {mahadasha.startDate ? (
+                        <>
+                            {mahadasha.startDate} &mdash; {mahadasha.endDate}
+                        </>
+                    ) : (
+                        <span className="text-gray-400">age</span>
+                    )}
+                    <span className="text-gray-500 ml-2">({formatYearDuration(mahadasha.startAge)})</span>
                 </span>
-                <span className="text-xs text-gray-500 ml-2">(age {formatYearDuration(mahadasha.startAge)})</span>
                 <span className="text-xs text-gray-400 whitespace-nowrap">
                     {formatYearDuration(mahadasha.durationYears)}
                 </span>

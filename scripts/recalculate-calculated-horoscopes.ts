@@ -1,3 +1,7 @@
+import { CalculatedDetails } from "../src/models/CalculatedDetails";
+import { Chart } from "../src/models/Chart";
+import { Horoscope, IHoroscope } from "../src/models/Horoscope";
+
 import { getChartData, isLeanChartType, toBirthChartData } from "../src/lib/chartDataTransform";
 import { generateChartSvg } from "../src/lib/chartRenderer";
 import { ChartType } from "../src/lib/chartTypes";
@@ -10,9 +14,6 @@ import {
     synthesizeCalculation,
     synthesizeNavamsaCalculation,
 } from "../src/lib/manualChartDetails";
-import { CalculatedDetails } from "../src/models/CalculatedDetails";
-import { Chart } from "../src/models/Chart";
-import { Horoscope, IHoroscope } from "../src/models/Horoscope";
 
 /** Recomputed the stored `CalculatedDetails` and `Chart` docs for one calculated (manual) horoscope,
  *  replaying the POST /api/horoscope/manual pipeline from the persisted `manualHousePlacements`
@@ -27,8 +28,8 @@ export async function recalculateCalculatedHoroscope(horoscope: IHoroscope): Pro
     const input = manualPlacementsToInput(existing.manualHousePlacements);
     const currentShani = getCurrentShani(input.lagna);
     const result = compute(input, currentShani);
-    const synth = synthesizeCalculation(result);
-    const navSynth = synthesizeNavamsaCalculation(result);
+    const synth = synthesizeCalculation(result, horoscope.birthDate);
+    const navSynth = synthesizeNavamsaCalculation(result, horoscope.birthDate);
 
     await CalculatedDetails.findOneAndUpdate(
         { "horoscope.id": id },

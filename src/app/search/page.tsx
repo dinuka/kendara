@@ -12,6 +12,7 @@ import type { Ascendant, House, Planet } from "@/lib/astrology";
 import {
     PLANET_COLORS,
     PLANET_SYMBOLS,
+    computeAscendantSpecialFlags,
     findHouse,
     formatDegree,
     formatYearDuration,
@@ -21,6 +22,7 @@ import { PlanetaryStrength } from "@/lib/astrologyEnums";
 import { toBirthChartData } from "@/lib/chartDataTransform";
 import { getSuggestions, insertSuggestion, splitLastToken } from "@/lib/search/suggestions";
 import { detectLanguage } from "@/lib/search/utils";
+import Link from "next/link";
 
 const STRENGTH_TRANSLATION_KEYS: Record<PlanetaryStrength, string> = {
     [PlanetaryStrength.ATHI_UCHCHA]: "athiUchcha",
@@ -614,7 +616,15 @@ const SearchResultCard = ({
             >
                 <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
-                        <h3 className="font-semibold text-sm truncate">{h.name as string}</h3>
+                        <Link
+                            href={`/horoscopes/${(h._id as string) || (h.id as string)}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={(e) => e.stopPropagation()}
+                            className="font-semibold text-sm truncate text-indigo-600 hover:text-indigo-700 hover:underline"
+                        >
+                            {h.name as string}
+                        </Link>
                         <ScoreBadge score={result.score} />
                     </div>
                     {ascSign !== undefined ? (
@@ -752,11 +762,56 @@ const SearchResultCard = ({
                                     {t(`astrology.planetNames.${(ascData.lord as number) || 1}`)}){" "}
                                     {ascDegree ? formatDegree(ascDegree) : ""}
                                 </div>
-                                {Boolean(cd?.isAscendantWargoththama) && (
-                                    <div className="mt-1 inline-flex items-center gap-1 text-[10px] text-indigo-700 bg-indigo-50 border border-indigo-200 rounded px-1.5 py-0.5">
-                                        {t("astrology.wargoththamaLabel")}
-                                    </div>
-                                )}
+                                {(() => {
+                                    const nk = cd?.nakshatra as Record<string, unknown> | undefined;
+                                    const an = nk?.ascendantNakshatra as Record<string, unknown> | undefined;
+                                    const recomputed = computeAscendantSpecialFlags(
+                                        ascSign ?? 0,
+                                        ascDegree ?? 0,
+                                        (an?.id as number) ?? 0,
+                                        (an?.pada as number) ?? 1,
+                                    );
+                                    const flags = {
+                                        isAscendantGandantha:
+                                            Boolean(cd?.isAscendantGandantha) || recomputed.isAscendantGandantha,
+                                        isAscendantGandamula:
+                                            Boolean(cd?.isAscendantGandamula) || recomputed.isAscendantGandamula,
+                                        isAscendantPushkara:
+                                            Boolean(cd?.isAscendantPushkara) || recomputed.isAscendantPushkara,
+                                    };
+                                    const tags: { key: string; text: string; strikethrough?: boolean }[] = [];
+                                    if (Boolean(cd?.isAscendantWargoththama)) {
+                                        const crossed = flags.isAscendantGandantha || flags.isAscendantGandamula;
+                                        tags.push({
+                                            key: "wargoththama",
+                                            text: t("astrology.wargoththamaLabel"),
+                                            strikethrough: crossed,
+                                        });
+                                    }
+                                    if (flags.isAscendantGandantha)
+                                        tags.push({ key: "gandanta", text: t("astrology.gandantaLabel") });
+                                    if (flags.isAscendantGandamula)
+                                        tags.push({ key: "gandamula", text: t("astrology.gandamulaLabel") });
+                                    if (flags.isAscendantPushkara)
+                                        tags.push({ key: "pushkara", text: t("astrology.pushkaraLabel") });
+                                    if (tags.length === 0) return null;
+                                    return (
+                                        <div className="mt-1 flex flex-wrap gap-1">
+                                            {tags.map((tag) => (
+                                                <span
+                                                    key={tag.key}
+                                                    className={`inline-flex items-center gap-1 text-[10px] rounded px-1.5 py-0.5 border ${
+                                                        tag.key === "wargoththama"
+                                                            ? "text-indigo-700 bg-indigo-50 border-indigo-200"
+                                                            : "text-gray-600 bg-gray-100 border-gray-200"
+                                                    } ${tag.strikethrough ? "line-through" : ""}`}
+                                                >
+                                                    {tag.text}
+                                                </span>
+                                            ))}
+                                        </div>
+                                    );
+                                })()}
                                 {config.nakshatra && (cd?.nakshatra as boolean) && (
                                     <div className="text-xs text-gray-600">
                                         {(() => {

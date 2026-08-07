@@ -1,6 +1,14 @@
 import { navamsaSign } from "@/lib/astrology";
+import type {
+    Antardasha,
+    Planet as AstroPlanet,
+    CalculationResult,
+    CurrentPeriod,
+    DashaInfo,
+    House,
+    Mahadasha,
+} from "@/lib/astrology";
 import { Planet, PlanetaryStrength } from "@/lib/astrologyEnums";
-import type { CalculationResult, House, Planet as AstroPlanet } from "@/lib/astrology";
 
 export type ValidationStatus = "valid" | "invalid" | "incomplete" | "skipped";
 
@@ -162,7 +170,8 @@ export function computeConjunctions(houseOfPlanet: Record<number, number>): Reco
 }
 
 /** Convert a house-number-keyed placements object into a planet -> house map. */
-export function placementsToMap(placements: Record<number, number[]>): Record<number, number> {    const houseOfPlanet: Record<number, number> = {};
+export function placementsToMap(placements: Record<number, number[]>): Record<number, number> {
+    const houseOfPlanet: Record<number, number> = {};
     for (const [houseKey, planets] of Object.entries(placements)) {
         const house = Number(houseKey);
         for (const planet of planets) {
@@ -420,9 +429,11 @@ export function navamsaIndexForSign(birthSign: number, navamsaSignValue: number)
  *  from `lagnaDegree` when recorded, otherwise the midpoint of the navamsa wedge implied by the
  *  stored navamsa lagna (matching `getAscendantAbsDeg`). Falls back to the sign midpoint (15°) when
  *  neither a degree nor a navamsa lagna is recorded. */
-export function computeAscendantNakshatra(
-    mhp: { lagna: number; lagnaDegree?: number; navamsaLagna?: number },
-): { id: number; pada: number; lord: number } {
+export function computeAscendantNakshatra(mhp: { lagna: number; lagnaDegree?: number; navamsaLagna?: number }): {
+    id: number;
+    pada: number;
+    lord: number;
+} {
     const { lagna, lagnaDegree, navamsaLagna } = mhp;
     let absDegree: number;
     if (lagnaDegree !== undefined) {
@@ -461,6 +472,174 @@ const NAKSHATRA_LORDS = Array.from({ length: 27 }, (_, i) => [9, 6, 1, 2, 3, 8, 
 function nakshatraDetails(absoluteDegree: number): { id: number; pada: number; lord: number } {
     const { nakshatra, pada } = nakshatraAndPada(absoluteDegree);
     return { id: nakshatra, pada, lord: NAKSHATRA_LORDS[nakshatra - 1] };
+}
+
+/** Vimshottari Mahadasha years per planet, matching the auto pipeline (Ketu 7, Venus 20, Sun 6,
+ *  Moon 10, Mars 7, Rahu 18, Jupiter 16, Saturn 19, Mercury 17). */
+const VIMSHOTTARI_YEARS: Record<number, number> = {
+    9: 7,
+    6: 20,
+    1: 6,
+    2: 10,
+    3: 7,
+    8: 18,
+    5: 16,
+    7: 19,
+    4: 17,
+};
+
+const VIMSHOTTARI_CYCLE_PLANETS = [9, 6, 1, 2, 3, 8, 5, 7, 4];
+
+const TOTAL_VIMSHOTTARI_YEARS = 120;
+
+const DASHA_DAYS_PER_YEAR = 365.25;
+
+function getVimshottariYears(planet: number): number {
+    return VIMSHOTTARI_YEARS[planet] ?? 0;
+}
+
+function vimshottariStartIndex(planet: number): number {
+    const index = VIMSHOTTARI_CYCLE_PLANETS.indexOf(planet);
+    return index === -1 ? 0 : index;
+}
+
+function vimshottariCycle(startIndex: number, count: number): number[] {
+    return Array.from({ length: count }, (_, i) => VIMSHOTTARI_CYCLE_PLANETS[(startIndex + i) % 9]);
+}
+
+function addDashaYears(date: Date, years: number): Date {
+    return new Date(date.getTime() + years * DASHA_DAYS_PER_YEAR * 24 * 60 * 60 * 1000);
+}
+
+function dashaYearsBetween(from: Date, to: Date): number {
+    return (to.getTime() - from.getTime()) / (DASHA_DAYS_PER_YEAR * 24 * 60 * 60 * 1000);
+}
+
+function formatDashaDate(date: Date): string {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, "0");
+    const d = String(date.getDate()).padStart(2, "0");
+    return `${y}-${m}-${d}`;
+}
+
+/** Vimshottari Mahadasha sequence for a manual horoscope, derived from the Moon's nakshatra + pada.
+ *  The Moon's longitude is estimated at the midpoint of its pada (`(pada-0.5)*PADA_ARC` within the
+ *  nakshatra), so the starting Mahadasha lord is the nakshatra's Vimshottari lord and its balance is
+ *  `lordYears * (1 - (pada-0.5)/4)` — e.g. the 2nd pada of Mula starts Ketu dasha with a remaining
+ *  `7 - 7*1.5/4 = 4.375` years. When a `birthDate` is provided the start/end dates and ages are
+ *  anchored to it (mirroring the auto pipeline); otherwise the sequence is duration-only with empty
+ *  date strings. Antardashas are proportional to each Mahadasha's full period. */
+export function calculateManualDashas(moonNakshatraId: number, pada: number, birthDate?: Date | null): DashaInfo {
+    const degInNakshatra = (pada - 0.5) * PADA_ARC;
+    const balanceFraction = (NAKSHATRA_ARC - degInNakshatra) / NAKSHATRA_ARC;
+    const lord = NAKSHATRA_LORDS[moonNakshatraId - 1] ?? 9;
+    const firstYears = +(getVimshottariYears(lord) * balanceFraction).toFixed(4);
+    const startIndex = vimshottariStartIndex(lord);
+    const hasDate = !!birthDate;
+    const epoch = birthDate ?? new Date(0);
+
+    const mahadashaList: Mahadasha[] = [];
+    let currentDate = new Date(epoch);
+
+    for (let mi = 0; mi < 9; mi++) {
+        const planet = VIMSHOTTARI_CYCLE_PLANETS[(startIndex + mi) % 9];
+        const fullYears = getVimshottariYears(planet);
+        const mdYears = mi === 0 ? firstYears : fullYears;
+
+        const mdStart = new Date(currentDate);
+        const mdEnd = addDashaYears(mdStart, mdYears);
+
+        // For the first Mahadasha, the antardasha running at birth is found by locating where the
+        // elapsed portion (before birth) falls within the full AD sequence.
+        let adStartOffset = 0;
+        if (mi === 0 && firstYears < fullYears) {
+            const elapsedBeforeBirth = fullYears - firstYears;
+            let cumulative = 0;
+            for (let ai = 0; ai < 9; ai++) {
+                const adPlanet = VIMSHOTTARI_CYCLE_PLANETS[(startIndex + ai) % 9];
+                cumulative += (fullYears * getVimshottariYears(adPlanet)) / TOTAL_VIMSHOTTARI_YEARS;
+                if (cumulative > elapsedBeforeBirth) {
+                    adStartOffset = ai;
+                    break;
+                }
+            }
+        }
+
+        const fullAdPlanets = vimshottariCycle(vimshottariStartIndex(planet), 9);
+        const adPlanets =
+            adStartOffset === 0
+                ? fullAdPlanets
+                : [...fullAdPlanets.slice(adStartOffset), ...fullAdPlanets.slice(0, adStartOffset)];
+
+        const antardasha: Antardasha[] = [];
+        let adDate = new Date(mdStart);
+        for (let ai = 0; ai < adPlanets.length; ai++) {
+            const remainingFromStart = dashaYearsBetween(adDate, mdEnd);
+            if (remainingFromStart <= 0.0001) break;
+
+            const adLord = adPlanets[ai];
+            const adFullYears = (fullYears * getVimshottariYears(adLord)) / TOTAL_VIMSHOTTARI_YEARS;
+            const isLastAd = ai === adPlanets.length - 1;
+            let adEnd = addDashaYears(adDate, adFullYears);
+            if (isLastAd) adEnd = new Date(mdEnd);
+            else if (adEnd > mdEnd) adEnd = new Date(mdEnd);
+
+            const adYears = dashaYearsBetween(adDate, adEnd);
+            const adMonths = Math.round(adYears * 12);
+            if (adMonths < 1 && !isLastAd) {
+                adDate = new Date(adEnd);
+                continue;
+            }
+
+            antardasha.push({
+                planet: adLord,
+                startDate: hasDate ? formatDashaDate(adDate) : "",
+                endDate: hasDate ? formatDashaDate(adEnd) : "",
+                durationMonths: adMonths,
+                vidasa: [],
+                startAge: dashaYearsBetween(epoch, adDate),
+            });
+            adDate = new Date(adEnd);
+        }
+
+        mahadashaList.push({
+            planet,
+            startDate: hasDate ? formatDashaDate(mdStart) : "",
+            endDate: hasDate ? formatDashaDate(mdEnd) : "",
+            durationYears: mdYears,
+            remainingYearsAtBirth: mi === 0 ? firstYears : 0,
+            antardasha,
+            startAge: dashaYearsBetween(epoch, mdStart),
+        });
+
+        currentDate = new Date(mdEnd);
+    }
+
+    const currentPeriod: CurrentPeriod = {
+        mahadashaLord: mahadashaList[0].planet,
+        antardashaLord: mahadashaList[0].antardasha[0]?.planet ?? mahadashaList[0].planet,
+        vidasaLord: null,
+        sukshamaLord: null,
+        pranaLord: null,
+    };
+
+    if (hasDate) {
+        const now = new Date();
+        for (const md of mahadashaList) {
+            if (now >= new Date(md.startDate) && now < new Date(md.endDate)) {
+                currentPeriod.mahadashaLord = md.planet;
+                for (const ad of md.antardasha) {
+                    if (now >= new Date(ad.startDate) && now < new Date(ad.endDate)) {
+                        currentPeriod.antardashaLord = ad.planet;
+                        break;
+                    }
+                }
+                break;
+            }
+        }
+    }
+
+    return { mahadasha: mahadashaList, currentPeriod };
 }
 
 function nakshatraAndPada(absoluteDegree: number): { nakshatra: number; pada: number } {
@@ -645,7 +824,7 @@ export function deriveAgeRanges(
     const monthsToNextSign = shaniBirthNavamsa <= 1 ? SHANI_MONTHS_FOR_SIGN.default : SHANI_MONTHS_FOR_SIGN.alternate;
     const completedMonths = Math.max(0, Math.round(currentShaniDegree));
     // Forward distance in signs from the birth sign to the current sign (0 when Shani hasn't left it).
-    const forwardGap = ((currentShaniSign - birthShaniSign) % 12 + 12) % 12;
+    const forwardGap = (((currentShaniSign - birthShaniSign) % 12) + 12) % 12;
     const signGapMonths = 30 * (forwardGap - 1);
 
     let firstMonths = monthsToNextSign + completedMonths + signGapMonths;
@@ -949,9 +1128,12 @@ function computeAshtamansha(
 /** Recompute placement validation from the source-of-truth stored `houses` (a `ManualHouse[]`).
  *  Older horoscopes persisted stale/invalid `validation` computed under earlier rules, so the view
  *  recomputes it at render time from the actual house placements. */
-export function synthesizeValidation(
-    manualHousePlacements: { lagna: number; navamsaLagna?: number; houses?: ManualHouse[]; navamsaHouses?: ManualHouse[] | null },
-): PlacementValidation {
+export function synthesizeValidation(manualHousePlacements: {
+    lagna: number;
+    navamsaLagna?: number;
+    houses?: ManualHouse[];
+    navamsaHouses?: ManualHouse[] | null;
+}): PlacementValidation {
     const houseOfPlanet: Record<number, number> = {};
     for (const house of manualHousePlacements.houses ?? []) {
         for (const planet of house.planets) houseOfPlanet[planet] = house.houseNumber;
@@ -960,8 +1142,7 @@ export function synthesizeValidation(
     for (const house of manualHousePlacements.navamsaHouses ?? []) {
         navamsaPlacements[house.houseNumber] = house.planets;
     }
-    const navamsaActive =
-        !!manualHousePlacements.navamsaLagna && Object.keys(navamsaPlacements).length > 0;
+    const navamsaActive = !!manualHousePlacements.navamsaLagna && Object.keys(navamsaPlacements).length > 0;
     return validatePlacements(houseOfPlanet, navamsaPlacements, navamsaActive);
 }
 
@@ -970,7 +1151,12 @@ export function synthesizeValidation(
  *  horoscope from its stored `manualHousePlacements` and persisted planets. Render-time recomputation
  *  is needed because older horoscopes stored `0`/`[]` defaults for these fields. */
 export function synthesizeOtherDetails(
-    manualHousePlacements: { lagna: number; lagnaDegree?: number; navamsaLagna?: number; navamsaHouses?: ManualHouse[] | null },
+    manualHousePlacements: {
+        lagna: number;
+        lagnaDegree?: number;
+        navamsaLagna?: number;
+        navamsaHouses?: ManualHouse[] | null;
+    },
     planets: AstroPlanet[],
 ): Pick<
     CalculationResult,
@@ -982,6 +1168,9 @@ export function synthesizeOtherDetails(
     | "ashtamanshaPlanets"
     | "atmakaraka"
     | "isAscendantWargoththama"
+    | "isAscendantGandantha"
+    | "isAscendantGandamula"
+    | "isAscendantPushkara"
     | "wargoththamaPlanets"
     | "gandanthaPlanets"
     | "gandamulaPlanets"
@@ -999,6 +1188,7 @@ export function synthesizeOtherDetails(
     const ascNavamsaLagna = manualHousePlacements.navamsaLagna ?? ascNavamsaSign;
     const hasNavamsa = !!manualHousePlacements.navamsaHouses?.length;
     const houses = buildWholeSignHouses(lagna);
+    const ascNakshatra = computeAscendantNakshatra(manualHousePlacements);
     return {
         lord22ndDrekkana: computeDrekkanaLord(lagna, ascDegree),
         lord64thNavamsa: computeNavamsaLord(lagna, ascDegree),
@@ -1008,6 +1198,9 @@ export function synthesizeOtherDetails(
         ashtamanshaPlanets: hasNavamsa ? computeAshtamansha(lagna, ascNavamsaLagna, houses, planets) : [],
         atmakaraka: computeAtmakaraka(planets),
         isAscendantWargoththama: computeAscWargoththama(lagna, ascNavamsaSign),
+        isAscendantGandantha: computeAscendantGandantha(ascNakshatra.id, ascNakshatra.pada),
+        isAscendantGandamula: computeAscendantGandamula(ascNakshatra.id, ascNakshatra.pada),
+        isAscendantPushkara: computeAscendantPushkara(lagna, ascNavamsaSign),
         wargoththamaPlanets: computeWargoththama(planets),
         gandanthaPlanets: computeGandantha(planets),
         gandamulaPlanets: computeGandamula(planets),
@@ -1017,4 +1210,16 @@ export function synthesizeOtherDetails(
 
 function computeAscWargoththama(ascSign: number, ascNavamsaSign: number): boolean {
     return ascSign === ascNavamsaSign;
+}
+
+function computeAscendantGandantha(ascNakshatra: number, ascPada: number): boolean {
+    return GANDANTHA_NAKSHATRAS.has(ascNakshatra) && ascPada === 4;
+}
+
+function computeAscendantGandamula(ascNakshatra: number, ascPada: number): boolean {
+    return GANDAMULA_NAKSHATRAS.has(ascNakshatra) && ascPada === 1;
+}
+
+function computeAscendantPushkara(ascSign: number, ascNavamsaSign: number): boolean {
+    return PUSHKARA_NAVAMSA_SIGNS[ascSign]?.includes(ascNavamsaSign) ?? false;
 }

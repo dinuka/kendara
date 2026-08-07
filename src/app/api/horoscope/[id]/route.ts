@@ -100,9 +100,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
         const currentShani = getCurrentShani(lagna);
 
         if (shani && currentShani && calculatedDetails.derivedRanges) {
-            const navamsaIndex = shani.navamsaSign
-                ? navamsaIndexForSign(shani.sign, shani.navamsaSign)
-                : 1;
+            const navamsaIndex = shani.navamsaSign ? navamsaIndexForSign(shani.sign, shani.navamsaSign) : 1;
             calculatedDetails.derivedRanges.ageRanges = deriveAgeRanges(
                 navamsaIndex,
                 currentShani.degree,

@@ -6,6 +6,23 @@ export const ENGLISH_YOGA = ["yoga", "yogas", "yogic"];
 export const ASCENDANT_WORDS = ["ලග්නයේ", "ලග්නය", "ලග්න", "ascendant", "lagna"];
 export const DOSHA_WORDS = ["දෝෂය", "දෝෂ", "dosha", "doshas"];
 
+// Words that refer to the Navamsa (D9) chart itself — a sign paired with one of
+// these words (e.g. "Mesha lagna Mesha Navanshaka") means the navamsa lagna sign,
+// distinct from PLANET_ROLE_WORDS.navamsa (the 64th Navamsa lord).
+export const NAVAMSA_WORDS = [
+    "නවාංශකා",
+    "නවාංශක",
+    "නවාංශය",
+    "නවාංශ",
+    "නවාම්ශ",
+    "navamsa",
+    "navamsha",
+    "navanshaka",
+    "navamsaka",
+    "navansaka",
+    "navamshaka",
+];
+
 export type PlanetRoleKey =
     | "ashtamansha"
     | "nidhanamsha"

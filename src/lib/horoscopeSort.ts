@@ -16,7 +16,10 @@ const readHoroscopeSort = (): HoroscopeSort => {
         if (stored) {
             const parsed: Partial<HoroscopeSort> = JSON.parse(stored);
             return {
-                sortBy: parsed.sortBy && SORT_BY_VALUES.includes(parsed.sortBy) ? parsed.sortBy : DEFAULT_HOROSCOPE_SORT.sortBy,
+                sortBy:
+                    parsed.sortBy && SORT_BY_VALUES.includes(parsed.sortBy)
+                        ? parsed.sortBy
+                        : DEFAULT_HOROSCOPE_SORT.sortBy,
                 sortDir: parsed.sortDir === "desc" ? "desc" : "asc",
             };
         }

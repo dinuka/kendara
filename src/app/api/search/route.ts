@@ -10,6 +10,7 @@ import { House, findHouse } from "@/lib/astrology";
 import { PLANET_NAMES, PlanetaryStrength, STRENGTH_LABELS, ZODIAC_SIGN_NAMES } from "@/lib/astrologyEnums";
 import { connectDB } from "@/lib/db";
 import logger from "@/lib/logger";
+import { deriveNavamsaLagnaFromDegree } from "@/lib/manualChart";
 import { getAnonymousPlaceholder } from "@/lib/privacy";
 import { generateEmbedding } from "@/lib/search/embedding";
 import { ensureCollection, searchPoints } from "@/lib/search/qdrant";
@@ -24,6 +25,7 @@ import {
     ASCENDANT_WORDS,
     DOSHA_WORDS,
     ENGLISH_YOGA,
+    NAVAMSA_WORDS,
     PLANET_ROLE_WORDS,
     PlanetRoleKey,
     SINHALA_YOGA,
@@ -31,6 +33,7 @@ import {
 
 type ExactCondition =
     | { type: "ascendant"; sign: number }
+    | { type: "navamsa_ascendant"; sign: number }
     | { type: "planet_in_house"; planet: number; house: number }
     | { type: "nakshatra"; nakshatra: number }
     | { type: "planet_strength"; planet: number; strength: PlanetaryStrength }
@@ -216,6 +219,78 @@ const getPlanetStrengthPairs = (query: string): Array<{ planet: number; strength
     return pairs;
 };
 
+// Pairs a sign word with the trigger word (ascendant/navamsa) it refers to, so a query like
+// "Mesha lagna Mesha Navanshaka" yields navamsa_ascendant=Mesha (the sign nearest to the
+// navamsa word) alongside ascendant=Mesha. Returns null when no trigger word or sign appears.
+const getSignMatchNear = (query: string, triggerWords: string[]): number | null => {
+    const q = stripJoiners(query.toLowerCase());
+
+    const triggerSet = new Set(triggerWords.map((w) => stripJoiners(w.toLowerCase())));
+
+    const signValueByWord = new Map<string, number>();
+    for (const [word, value] of Object.entries(ZODIAC_SIGN_NAMES)) {
+        signValueByWord.set(stripJoiners(word.toLowerCase()), value);
+    }
+
+    const triggerOccurrences: number[] = [];
+    const triggerRe = new RegExp(buildRegexSource([...triggerSet]), "g");
+    for (const m of q.matchAll(triggerRe)) {
+        if (typeof m.index === "number") triggerOccurrences.push(m.index);
+    }
+    if (triggerOccurrences.length === 0) return null;
+
+    const signOccurrences: Array<{ index: number; value: number }> = [];
+    const signRe = new RegExp(buildRegexSource([...signValueByWord.keys()]), "g");
+    for (const m of q.matchAll(signRe)) {
+        const value = signValueByWord.get(m[0]);
+        if (value !== undefined && typeof m.index === "number") {
+            signOccurrences.push({ index: m.index, value });
+        }
+    }
+    if (signOccurrences.length === 0) return null;
+
+    let best: { dist: number; value: number } | null = null;
+    for (const triggerIndex of triggerOccurrences) {
+        for (const s of signOccurrences) {
+            const dist = Math.abs(s.index - triggerIndex);
+            if (best === null || dist < best.dist) {
+                best = { dist, value: s.value };
+            }
+        }
+    }
+    return best ? best.value : null;
+};
+
+const getNavamsaSignMatch = (query: string): number | null => getSignMatchNear(query, NAVAMSA_WORDS);
+
+// Resolves the Navamsa (D9) lagna sign of a horoscope. Manual horoscopes store it directly in
+// `manualHousePlacements.navamsaLagna` (or derive it from lagna + lagnaDegree); auto-calculated
+// ones derive it from the birth ascendant's sign + degree within sign. Returns null when unknown.
+const getNavamsaLagnaSign = (calculatedDetails: Record<string, unknown> | null): number | null => {
+    if (!calculatedDetails) return null;
+
+    const manual = calculatedDetails.manualHousePlacements as Record<string, unknown> | undefined;
+    if (manual && typeof manual === "object") {
+        const navamsaLagna = manual.navamsaLagna;
+        if (typeof navamsaLagna === "number" && navamsaLagna >= 1 && navamsaLagna <= 12) {
+            return navamsaLagna;
+        }
+        const lagna = manual.lagna;
+        const lagnaDegree = manual.lagnaDegree;
+        if (typeof lagna === "number" && typeof lagnaDegree === "number") {
+            return deriveNavamsaLagnaFromDegree(lagna, lagnaDegree);
+        }
+        return null;
+    }
+
+    const ascendant = calculatedDetails.ascendant as Record<string, unknown> | undefined;
+    if (ascendant && typeof ascendant.sign === "number" && typeof ascendant.degree === "number") {
+        return deriveNavamsaLagnaFromDegree(ascendant.sign, ascendant.degree);
+    }
+
+    return null;
+};
+
 // A planet's house for search matching is the cusp-based house (same value shown in the
 // planets table), not the stored whole-sign house (p.house, relative to the ascendant sign).
 // Falls back to the stored house when cusp boundaries are unavailable.
@@ -343,11 +418,9 @@ const getExactMatch = (query: string): ExactMatch => {
     }
 
     if (hasAscendantWord) {
-        for (const [word, signValue] of Object.entries(ZODIAC_SIGN_NAMES)) {
-            if (q.includes(stripJoiners(word.toLowerCase()))) {
-                conditions.push({ type: "ascendant", sign: signValue });
-                break;
-            }
+        const ascendantSignValue = getSignMatchNear(query, ASCENDANT_WORDS);
+        if (ascendantSignValue !== null) {
+            conditions.push({ type: "ascendant", sign: ascendantSignValue });
         }
 
         for (const [word, planetValue] of Object.entries(PLANET_NAMES)) {
@@ -355,6 +428,11 @@ const getExactMatch = (query: string): ExactMatch => {
                 conditions.push({ type: "planet_in_house", planet: planetValue, house: 1 });
             }
         }
+    }
+
+    const navamsaSignValue = getNavamsaSignMatch(query);
+    if (navamsaSignValue !== null) {
+        conditions.push({ type: "navamsa_ascendant", sign: navamsaSignValue });
     }
 
     for (const [planetValue, house] of explicitHouseByPlanet) {
@@ -431,6 +509,10 @@ const getAstroKeywords = (query: string): string[] => {
         }
     }
 
+    if (getNavamsaSignMatch(query) !== null) {
+        keywords.push("navamsa_ascendant");
+    }
+
     for (const w of DOSHA_WORDS) {
         if (q.includes(w)) {
             keywords.push("dosha");
@@ -488,6 +570,17 @@ const scoreHoroscope = (
                     }
                 }
             }
+        }
+    }
+
+    const navamsaSignValue = getNavamsaSignMatch(query);
+    if (navamsaSignValue !== null) {
+        const navamsaLagnaSign = getNavamsaLagnaSign(calculatedDetails);
+        if (navamsaLagnaSign === navamsaSignValue) {
+            score += 1.0;
+            const signWord =
+                Object.entries(ZODIAC_SIGN_NAMES).find(([, v]) => v === navamsaSignValue)?.[0] || navamsaSignValue;
+            matchedConditions.push(`navamsa_ascendant=${signWord}`);
         }
     }
 
@@ -698,6 +791,12 @@ export async function POST(req: NextRequest) {
                             case "ascendant": {
                                 const asc = calculatedDetails?.ascendant as Record<string, unknown> | undefined;
                                 return !!asc && asc.sign === condition.sign;
+                            }
+                            case "navamsa_ascendant": {
+                                return (
+                                    getNavamsaLagnaSign(calculatedDetails as Record<string, unknown> | null) ===
+                                    condition.sign
+                                );
                             }
                             case "planet_in_house": {
                                 const planets = calculatedDetails?.planets as

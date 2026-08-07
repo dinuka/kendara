@@ -6,6 +6,8 @@ import {
     PLANET_LABELS_SI,
     STRENGTH_DISPLAY_EN,
     STRENGTH_DISPLAY_SI,
+    THITHI_LABELS_EN,
+    THITHI_LABELS_SI,
     ZODIAC_SIGN_LABELS_EN,
     ZODIAC_SIGN_LABELS_SI,
 } from "@/lib/astrologyEnums";
@@ -33,6 +35,9 @@ const textPartsEn = (calc: CalculationResult): string[] => {
         NAKSHATRA_LABELS_EN[calc.nakshatra.ascendantNakshatra.id] ||
         `Nakshatra ${calc.nakshatra.ascendantNakshatra.id}`;
     parts.push(`Ascendant nakshatra: ${ascNak}, pada ${calc.nakshatra.ascendantNakshatra.pada}.`);
+
+    const thithiName = THITHI_LABELS_EN[calc.thithi] || `Thithi ${calc.thithi}`;
+    parts.push(`Thithi: ${thithiName} (${calc.thithi}).`);
 
     const houseLords = calc.houses.map((h) => {
         const lordName = PLANET_LABELS_EN[h.lord] || `Planet ${h.lord}`;
@@ -117,6 +122,9 @@ const textPartsSi = (calc: CalculationResult): string[] => {
         NAKSHATRA_LABELS_SI[calc.nakshatra.ascendantNakshatra.id] ||
         `Nakshatra ${calc.nakshatra.ascendantNakshatra.id}`;
     parts.push(`ලග්න නක්ෂත්‍රය: ${ascNak}, පාද ${calc.nakshatra.ascendantNakshatra.pada}.`);
+
+    const thithiName = THITHI_LABELS_SI[calc.thithi] || `Thithi ${calc.thithi}`;
+    parts.push(`තිති: ${thithiName} (${calc.thithi}).`);
 
     const houseLords = calc.houses.map((h) => {
         const lordName = PLANET_LABELS_SI[h.lord] || `Planet ${h.lord}`;

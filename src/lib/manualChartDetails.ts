@@ -1,5 +1,5 @@
 import type { Ascendant, CalculationResult, Planet } from "@/lib/astrology";
-import { navamsaSign } from "@/lib/astrology";
+import { computeThithiFromPlanets, navamsaSign } from "@/lib/astrology";
 import { PlanetaryStrength } from "@/lib/astrologyEnums";
 import { computeCurrentPlanets } from "@/lib/currentPlanets";
 import {
@@ -9,6 +9,7 @@ import {
     type ManualHousePlacements,
     SIGN_LORD,
     buildWholeSignHouses,
+    calculateManualDashas,
     computeAscendantNakshatra,
     computeMoonNakshatra,
     navamsaLagnaOptions,
@@ -125,9 +126,7 @@ export function synthesizeAscendant(lagna: number): Ascendant {
  *  keeps `lagnaDegree: null` / `navamsaLagna: null` — which render-time `!== undefined` checks (and
  *  older records) treat as present. The render layer normalizes null away too, but storage should
  *  stay clean for new writes. */
-export function sanitizeManualHousePlacements(
-    placements: ManualHousePlacements,
-): ManualHousePlacements {
+export function sanitizeManualHousePlacements(placements: ManualHousePlacements): ManualHousePlacements {
     const clean: ManualHousePlacements = { ...placements };
     if (clean.lagnaDegree === undefined) delete clean.lagnaDegree;
     if (clean.navamsaLagna === undefined) delete clean.navamsaLagna;
@@ -151,9 +150,7 @@ export function getCurrentShani(lagna: number): CurrentShani | null {
  *  (toBirthChartData, generateChartSvg) work unchanged for manual horoscopes. */
 export function synthesizePlanets(result: ManualChartResult): Planet[] {
     return result.planetsTable.map((row) => {
-        const degree = row.navamsa
-            ? (row.navamsa.degreeRangeStart + row.navamsa.degreeRangeEnd) / 2
-            : 0;
+        const degree = row.navamsa ? (row.navamsa.degreeRangeStart + row.navamsa.degreeRangeEnd) / 2 : 0;
         const { nakshatra, pada } = row.navamsa
             ? { nakshatra: row.navamsa.nakshatra, pada: row.navamsa.pada }
             : { nakshatra: 1, pada: 1 };
@@ -176,16 +173,16 @@ export function synthesizePlanets(result: ManualChartResult): Planet[] {
 }
 
 /** Build a full `CalculationResult`-shaped object from the manual result so the existing
- *  `CalculatedDetails` document and BIRTH chart records can reuse the standard pipeline. */
-export function synthesizeCalculation(result: ManualChartResult): CalculationResult {
+ *  `CalculatedDetails` document and BIRTH chart records can reuse the standard pipeline. Dashas are
+ *  derived from the Moon's nakshatra + pada (see `calculateManualDashas`); when a `birthDate` is
+ *  provided the dasha dates are anchored to it, otherwise the sequence is duration-only. */
+export function synthesizeCalculation(result: ManualChartResult, birthDate?: Date | null): CalculationResult {
     const { manualHousePlacements } = result;
     const lagna = manualHousePlacements.lagna;
     const planets = synthesizePlanets(result);
     const moon = planets.find((p) => p.name === 2);
     const ascendantNakshatra = computeAscendantNakshatra(manualHousePlacements);
-    const moonNakshatra = moon
-        ? computeMoonNakshatra(moon.sign, moon.navamsaSign)
-        : { id: 1, pada: 1, lord: 9 };
+    const moonNakshatra = moon ? computeMoonNakshatra(moon.sign, moon.navamsaSign) : { id: 1, pada: 1, lord: 9 };
     return {
         ascendant: synthesizeAscendant(lagna),
         houses: buildWholeSignHouses(lagna),
@@ -194,16 +191,8 @@ export function synthesizeCalculation(result: ManualChartResult): CalculationRes
             moonNakshatra,
             ascendantNakshatra,
         },
-        dashas: {
-            mahadasha: [],
-            currentPeriod: {
-                mahadashaLord: 1,
-                antardashaLord: 1,
-                vidasaLord: null,
-                sukshamaLord: null,
-                pranaLord: null,
-            },
-        },
+        thithi: computeThithiFromPlanets(planets),
+        dashas: calculateManualDashas(moonNakshatra.id, moonNakshatra.pada, birthDate),
         ...synthesizeOtherDetails(manualHousePlacements, planets),
         yogas: [],
         doshas: { doshas: [] },
@@ -212,7 +201,10 @@ export function synthesizeCalculation(result: ManualChartResult): CalculationRes
 
 /** Build a `CalculationResult`-shaped object for the Navamsa (D9) chart. Returns null when no
  *  navamsa placements were entered. D9 lagna is the entered Navamsa Lagna. */
-export function synthesizeNavamsaCalculation(result: ManualChartResult): CalculationResult | null {
+export function synthesizeNavamsaCalculation(
+    result: ManualChartResult,
+    birthDate?: Date | null,
+): CalculationResult | null {
     const { manualHousePlacements } = result;
     if (!manualHousePlacements.navamsaHouses || manualHousePlacements.navamsaHouses.length === 0) {
         return null;
@@ -238,7 +230,7 @@ export function synthesizeNavamsaCalculation(result: ManualChartResult): Calcula
             });
         }
     }
-    const base = synthesizeCalculation(result);
+    const base = synthesizeCalculation(result, birthDate);
     return {
         ...base,
         ascendant: synthesizeAscendant(navamsaLagna),

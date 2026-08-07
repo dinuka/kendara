@@ -187,7 +187,7 @@ export default function ManualChartEditor({
                 method: mode === "create" ? "POST" : "PUT",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                    name: mode === "create" ? name : undefined,
+                    name: name.trim() ? name : undefined,
                     birthDate: birthDateValid ? birthDate : undefined,
                     lagna,
                     lagnaDegree: degreeValid ? parsedDegree : undefined,

@@ -100,6 +100,7 @@ const MOCK_CALC: CalculationResult = {
         moonNakshatra: { id: 7, pada: 3, lord: 5 },
         ascendantNakshatra: { id: 1, pada: 2, lord: 3 },
     },
+    thithi: 15,
     dashas: {
         mahadasha: [
             {
@@ -169,6 +170,10 @@ describe("textContent - English", () => {
     test("includes nakshatra", () => {
         expect(textEn).toContain("Moon nakshatra: Punarvasu");
         expect(textEn).toContain("Ascendant nakshatra: Ashwini");
+    });
+
+    test("includes thithi", () => {
+        expect(textEn).toContain("Thithi: Purnima (15)");
     });
 
     test("includes house lords", () => {
@@ -243,6 +248,10 @@ describe("textContent - Sinhala", () => {
         expect(textSi).toContain("අශ්විනි");
     });
 
+    test("includes thithi in Sinhala", () => {
+        expect(textSi).toContain("තිති: පුර පසළොස්වක (15)");
+    });
+
     test("includes house lords in Sinhala", () => {
         expect(textSi).toContain("භාව අධිපති");
     });
@@ -269,6 +278,7 @@ describe("textContent - edge cases", () => {
             moonNakshatra: { id: 1, pada: 1, lord: 3 },
             ascendantNakshatra: { id: 1, pada: 1, lord: 3 },
         },
+        thithi: 1,
         dashas: {
             mahadasha: [],
             currentPeriod: {

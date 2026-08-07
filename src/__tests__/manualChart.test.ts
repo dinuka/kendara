@@ -5,13 +5,13 @@ import {
     BIRTH_TIME_RANGES,
     buildBhavaHouses,
     buildWholeSignHouses,
+    calculateManualDashas,
     compute,
-    computeAspects,
     computeAscendantNakshatra,
+    computeAspects,
     computeConjunctions,
     computeMoonNakshatra,
     deriveAgeRanges,
-    manualPlacementsToInput,
     deriveBirthDateCandidates,
     deriveBirthDateRange,
     deriveBirthMonthRange,
@@ -21,6 +21,7 @@ import {
     deriveNavamsaLagnaFromDegree,
     derivePlanetsTable,
     deriveRanges,
+    manualPlacementsToInput,
     navamsaLagnaOptions,
     placementsToMap,
     synthesizeValidation,
@@ -437,13 +438,10 @@ describe("derived birth ranges config tables (UT-CH-060..075)", () => {
     });
     test("U070b fused birth date range rolls end candidate over month boundary", () => {
         // Month range March (3) – April, candidates 27 & 36 -> March 27 – April 5.
-        const range = deriveBirthDateRange(
-            { start: { month: 3, day: 15 }, end: { month: 4, day: 15 } },
-            [
-                { navamsaIndex: 5, candidateDay: 27, reasoning: "27" },
-                { navamsaIndex: 5, candidateDay: 36, reasoning: "36" },
-            ],
-        );
+        const range = deriveBirthDateRange({ start: { month: 3, day: 15 }, end: { month: 4, day: 15 } }, [
+            { navamsaIndex: 5, candidateDay: 27, reasoning: "27" },
+            { navamsaIndex: 5, candidateDay: 36, reasoning: "36" },
+        ]);
         expect(range).toEqual({
             start: { month: 3, day: 27 },
             end: { month: 4, day: 5 },
@@ -675,7 +673,7 @@ describe("buildBhavaHouses", () => {
         const houses = buildBhavaHouses(1, 10);
         houses.forEach((h, i) => {
             const mid = (h.middleSign - 1) * 30 + h.middleDegree;
-            expect((mid % 360 + 360) % 360).toBe((10 + i * 30) % 360);
+            expect(((mid % 360) + 360) % 360).toBe((10 + i * 30) % 360);
         });
     });
     test("W005 each bhava house spans 30 degrees centered on its middle (cusps = midAbs ± 15)", () => {
@@ -719,5 +717,65 @@ describe("buildBhavaHouses", () => {
         const end = (h1.endSign - 1) * 30 + h1.endDegree;
         expect(start).toBeCloseTo(200, 5);
         expect(end).toBeCloseTo(230, 5);
+    });
+});
+
+describe("calculateManualDashas (UT-CH-090..094)", () => {
+    test("U090 Mula pada 2 starts a Ketu mahadasha with the correct balance", () => {
+        // Mula = nakshatra 19, lord Ketu (7y). Pada 2 -> 1.5 pada-arcs elapsed (60%).
+        // Balance = 7 * (1 - 1.5/4) = 4.375 years.
+        const dashas = calculateManualDashas(19, 2);
+        const md = dashas.mahadasha;
+        expect(md).toHaveLength(9);
+        expect(md[0].planet).toBe(9);
+        expect(md[0].remainingYearsAtBirth).toBeCloseTo(4.375, 5);
+        expect(md[0].durationYears).toBeCloseTo(4.375, 5);
+        expect(md[0].startDate).toBe("");
+        expect(md[0].endDate).toBe("");
+    });
+    test("U091 mahadasha sequence follows the Vimshottari 9-lord cycle", () => {
+        const dashas = calculateManualDashas(19, 2);
+        const planets = dashas.mahadasha.map((m) => m.planet);
+        expect(planets).toEqual([9, 6, 1, 2, 3, 8, 5, 7, 4]);
+    });
+    test("U092 mahadasha years total the remaining Vimshottari lifetime (120 minus pre-birth elapsed)", () => {
+        // Mula pada 2: balance 4.375y (Ketu), then 20+6+10+7+18+16+19+17 = 113 full years.
+        // 2.625y elapsed before birth, so the displayed sequence sums to 117.375, not 120.
+        const dashas = calculateManualDashas(19, 2);
+        const total = dashas.mahadasha.reduce((sum, m) => sum + m.durationYears, 0);
+        expect(total).toBeCloseTo(117.375, 5);
+    });
+    test("U093 Ashwini pada 1 balance: Ketu 7 * (1 - 0.5/4) = 6.125 years", () => {
+        const dashas = calculateManualDashas(1, 1);
+        expect(dashas.mahadasha[0].planet).toBe(9);
+        expect(dashas.mahadasha[0].remainingYearsAtBirth).toBeCloseTo(6.125, 5);
+    });
+    test("U094 dateful dashas anchor the first mahadasha to the birth date", () => {
+        const birthDate = new Date("1990-06-15T00:00:00Z");
+        const dashas = calculateManualDashas(19, 2, birthDate);
+        const md = dashas.mahadasha;
+        expect(md[0].startDate).toBe("1990-06-15");
+        expect(md[0].remainingYearsAtBirth).toBeCloseTo(4.375, 5);
+        expect(md[md.length - 1].endDate).not.toBe("");
+        // currentPeriod is the dasha running today (mirrors the auto pipeline).
+        const now = new Date();
+        const running = md.find((m) => now >= new Date(m.startDate) && now < new Date(m.endDate));
+        expect(dashas.currentPeriod.mahadashaLord).toBe(running?.planet ?? md[0].planet);
+        expect(dashas.currentPeriod.antardashaLord).not.toBeNull();
+    });
+    test("U095 dateless dashas report the birth mahadasha as current", () => {
+        const dashas = calculateManualDashas(19, 2);
+        expect(dashas.currentPeriod.mahadashaLord).toBe(9);
+        expect(dashas.currentPeriod.antardashaLord).toBe(3);
+    });
+    test("U096 dateless dashas still carry relative start ages from birth", () => {
+        const dashas = calculateManualDashas(19, 2);
+        const md = dashas.mahadasha;
+        expect(md[0].startAge).toBeCloseTo(0, 5);
+        expect(md[1].startAge).toBeCloseTo(4.375, 5);
+        expect(md[2].startAge).toBeCloseTo(24.375, 5);
+        expect(md[md.length - 1].startAge).toBeCloseTo(100.375, 5);
+        expect(md[0].antardasha[0].startAge).toBeCloseTo(0, 5);
+        expect(md[0].antardasha[1].startAge).toBeCloseTo(0.408, 2);
     });
 });

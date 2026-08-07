@@ -70,9 +70,18 @@ export default function AntardashaAccordion({
                 <span className="text-gray-700 font-medium">{getPlanetName(antardasha.planet)}</span>
                 <span className="text-xs text-gray-400 ml-1">{getDashaLevelName("antardasha")}</span>
                 <span className="text-gray-400 ml-auto text-xs">
-                    {antardasha.startDate} &mdash; {antardasha.endDate}
+                    {antardasha.startDate ? (
+                        <>
+                            {antardasha.startDate} &mdash; {antardasha.endDate}
+                            <span className="text-gray-500 ml-1">(age {Math.floor(antardasha.startAge)}y)</span>
+                        </>
+                    ) : (
+                        <>
+                            age
+                            <span className="text-gray-500 ml-1">({Math.floor(antardasha.startAge)}y)</span>
+                        </>
+                    )}
                 </span>
-                <span className="text-gray-500 ml-1 text-xs">(age {Math.floor(antardasha.startAge)}y)</span>
                 <span className="text-gray-400 whitespace-nowrap text-xs">
                     {formatMonthDuration(antardasha.durationMonths)}
                 </span>

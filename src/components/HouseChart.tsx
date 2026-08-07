@@ -150,7 +150,14 @@ function ringLabel(
     );
 }
 
-export function HouseChart({ planets, houses, ascendant, horoscopeId, ascNavamsaNum, ascAbsDeg: ascAbsDegOverride }: HouseChartProps) {
+export function HouseChart({
+    planets,
+    houses,
+    ascendant,
+    horoscopeId,
+    ascNavamsaNum,
+    ascAbsDeg: ascAbsDegOverride,
+}: HouseChartProps) {
     const { t } = useI18n();
     const [zoom, setZoom] = useState(1);
     const [selectedAbsDeg, setSelectedAbsDeg] = useState<number | null>(null);

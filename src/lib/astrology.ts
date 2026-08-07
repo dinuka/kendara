@@ -33,6 +33,72 @@ export function navamsaSign(sourceSign: number, navamsaNum: number): number {
     return ((sourceSign - 1 + offset + navamsaNum - 1) % 12) + 1;
 }
 
+/** Gandamula (ගණ්ඩමූල): planets in the 1st pada of Ashwini, Magha, or Mula nakshatras. */
+const GANDAMULA_NAKSHATRAS = new Set([1, 10, 19]);
+const GANDAMULA_PADA = 1;
+
+/** Gandantha (ගණ්ඩාන්ත): planets in the 4th pada of Ashlesha, Jyestha, or Revati nakshatras. */
+const GANDANTHA_NAKSHATRAS = new Set([9, 18, 27]);
+const GANDANTHA_PADA = 4;
+
+/** Pushkara navamsa target signs keyed by birth-chart sign (1-12). */
+const PUSHKARA_NAVAMSA_SIGNS: Record<number, number[]> = {
+    1: [7, 9],
+    2: [2, 12],
+    3: [2, 12],
+    4: [4, 6],
+    5: [7, 9],
+    6: [2, 12],
+    7: [2, 12],
+    8: [4, 6],
+    9: [7, 9],
+    10: [2, 12],
+    11: [2, 12],
+    12: [4, 6],
+};
+
+export interface AscendantSpecialFlags {
+    isAscendantGandantha: boolean;
+    isAscendantGandamula: boolean;
+    isAscendantPushkara: boolean;
+}
+
+/** Derive the lagna's Gandantha/Gandamula/Pushkara flags from the stored ascendant sign + degree and
+ *  the ascendant's nakshatra (id + pada). Used for render-time display so older CalculatedDetails
+ *  documents that predate these fields still render correct tags. */
+export function computeAscendantSpecialFlags(
+    ascSign: number,
+    ascDegree: number,
+    ascNakshatra: number,
+    ascPada: number,
+): AscendantSpecialFlags {
+    return {
+        isAscendantGandantha: GANDANTHA_NAKSHATRAS.has(ascNakshatra) && ascPada === GANDANTHA_PADA,
+        isAscendantGandamula: GANDAMULA_NAKSHATRAS.has(ascNakshatra) && ascPada === GANDAMULA_PADA,
+        isAscendantPushkara:
+            PUSHKARA_NAVAMSA_SIGNS[ascSign]?.includes(navamsaSign(ascSign, Math.floor(ascDegree / (30 / 9)) + 1)) ??
+            false,
+    };
+}
+
+/** Thithi (තිති) of the Moon: the 1-30 lunar day number derived from the Sun–Moon elongation.
+ *  Each tithi spans 12° of elongation (Moon 1° ahead of Sun ≈ 1/30th of the synodic cycle).
+ *  Standard formula used for auto horoscopes (exact ephemeris longitudes). */
+export function computeThithi(sunLongitude: number, moonLongitude: number): number {
+    const elongation = (((moonLongitude - sunLongitude) % 360) + 360) % 360;
+    return Math.floor(elongation / 12) + 1;
+}
+
+/** Thithi computed from the stored Sun/Moon planets (their absolute degrees). Used for manual
+ *  horoscopes where only the navamsa-midpoint degree is known, and as a render-time fallback for
+ *  older CalculatedDetails documents that predate the `thithi` field. */
+export function computeThithiFromPlanets(planets: Pick<Planet, "name" | "absoluteDegree">[]): number {
+    const sun = planets.find((p) => p.name === 1);
+    const moon = planets.find((p) => p.name === 2);
+    if (!sun || !moon) return 1;
+    return computeThithi(sun.absoluteDegree, moon.absoluteDegree);
+}
+
 export function formatDashaDuration(years: number, months: number, days: number): string {
     const parts: string[] = [];
     if (years > 0) parts.push(`${years} year${years > 1 ? "s" : ""}`);
@@ -226,6 +292,8 @@ export interface CalculationResult {
     houses: House[];
     planets: Planet[];
     nakshatra: NakshatraInfo;
+    /** Thithi (තිති) of the Moon, 1-30 (see computeThithi). */
+    thithi: number;
     dashas: DashaInfo;
     lord22ndDrekkana: number;
     lord64thNavamsa: number;
@@ -235,6 +303,9 @@ export interface CalculationResult {
     ashtamanshaPlanets: number[];
     atmakaraka: number;
     isAscendantWargoththama: boolean;
+    isAscendantGandantha: boolean;
+    isAscendantGandamula: boolean;
+    isAscendantPushkara: boolean;
     wargoththamaPlanets: number[];
     gandanthaPlanets: number[];
     gandamulaPlanets: number[];

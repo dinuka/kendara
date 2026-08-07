@@ -332,9 +332,7 @@ describe("search: planet_in_house uses cusp-based house", () => {
 
         expect(body.results).toHaveLength(1);
         expect(body.queryUnderstanding.mode).toBe("exact_planet_in_house");
-        expect(body.queryUnderstanding.exactMatch).toEqual([
-            { type: "planet_in_house", planet: 3, house: 1 },
-        ]);
+        expect(body.queryUnderstanding.exactMatch).toEqual([{ type: "planet_in_house", planet: 3, house: 1 }]);
     });
 
     test("කුජ 12 does NOT match when cusp-based house is 1", async () => {
@@ -466,8 +464,6 @@ describe("search: combined planet-strength conditions (AND logic)", () => {
 
         expect(body.results).toHaveLength(1);
         expect(body.queryUnderstanding.mode).toBe("exact_planet_strength");
-        expect(body.queryUnderstanding.exactMatch).toEqual([
-            { type: "planet_strength", planet: 3, strength: 1 },
-        ]);
+        expect(body.queryUnderstanding.exactMatch).toEqual([{ type: "planet_strength", planet: 3, strength: 1 }]);
     });
 });

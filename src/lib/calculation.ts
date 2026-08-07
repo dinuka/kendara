@@ -16,6 +16,7 @@ import {
     Prana,
     Sukshama,
     Vidasa,
+    computeThithi,
     navamsaSign,
 } from "@/lib/astrology";
 import { PlanetaryStrength } from "@/lib/astrologyEnums";
@@ -381,6 +382,7 @@ export function calculateHoroscope(
     });
 
     const sunLong = positions.Su.longitude;
+    const moonLong = positions.Mo.longitude;
 
     const sunOrb = (planetaryOrbs["1"] ?? 15) / 2;
 
@@ -441,6 +443,7 @@ export function calculateHoroscope(
             moonNakshatra: { id: moonNakshatra, pada: moonPada, lord: nakshatraLords[moonNakshatra - 1] },
             ascendantNakshatra: { id: ascNakshatra, pada: ascPada, lord: nakshatraLords[ascNakshatra - 1] },
         },
+        thithi: computeThithi(sunLong, moonLong),
         dashas,
         lord22ndDrekkana: computeDrekkanaLord(ascSign, ascLong % 30),
         lord64thNavamsa: computeNavamsaLord(ascSign, ascLong % 30),
@@ -450,6 +453,9 @@ export function calculateHoroscope(
         ashtamanshaPlanets: computeAshtamansha(ascSign, ascLong % 30, houses, planetDetails),
         atmakaraka: computeAtmakaraka(planetDetails),
         isAscendantWargoththama: computeAscendantWargoththama(ascSign, ascLong % 30),
+        isAscendantGandantha: computeAscendantGandantha(ascNakshatra, ascPada),
+        isAscendantGandamula: computeAscendantGandamula(ascNakshatra, ascPada),
+        isAscendantPushkara: computeAscendantPushkara(ascSign, ascLong % 30),
         wargoththamaPlanets: computeWargoththama(planetDetails),
         gandanthaPlanets: computeGandantha(planetDetails),
         gandamulaPlanets: computeGandamula(planetDetails),
@@ -489,6 +495,24 @@ function computeAscendantWargoththama(ascSign: number, ascDegree: number): boole
     const ascNavamsaNum = Math.floor(ascDegree / (30 / 9)) + 1;
     const ascNavamsaSign = navamsaSign(ascSign, ascNavamsaNum);
     return ascSign === ascNavamsaSign;
+}
+
+/** Gandantha lagna (ගණ්ඩාන්ත ලග්න): the ascendant in the 4th pada of Ashlesha, Jyestha, or Revati. */
+function computeAscendantGandantha(ascNakshatra: number, ascPada: number): boolean {
+    return GANDANTHA_NAKSHATRAS.has(ascNakshatra) && ascPada === GANDANTHA_PADA;
+}
+
+/** Gandamula lagna (ගණ්ඩමූල ලග්න): the ascendant in the 1st pada of Ashwini, Magha, or Mula. */
+function computeAscendantGandamula(ascNakshatra: number, ascPada: number): boolean {
+    return GANDAMULA_NAKSHATRAS.has(ascNakshatra) && ascPada === GANDAMULA_PADA;
+}
+
+/** Pushkara lagna (පුෂ්කර ලග්න): the ascendant's navamsa (D9) sign falls in the Pushkara group
+ *  assigned to its birth-chart sign. */
+function computeAscendantPushkara(ascSign: number, ascDegree: number): boolean {
+    const ascNavamsaNum = Math.floor(ascDegree / (30 / 9)) + 1;
+    const ascNavamsaSign = navamsaSign(ascSign, ascNavamsaNum);
+    return PUSHKARA_NAVAMSA_SIGNS[ascSign]?.includes(ascNavamsaSign) ?? false;
 }
 
 /** Wargoththama planets: a planet is Wargoththama when its birth-chart sign equals its navamsa sign. */
@@ -710,24 +734,14 @@ function computeSubPeriods(
 
         if (remainingFromStart <= 0.0001) break;
 
-        if (ai === adPlanets.length - 1) {
-            // Last AD fills to parent end
-            const adStart = new Date(currentDate);
-            const adStartAge = yearsBetween(birthDate, adStart);
-            adList.push({
-                planet: adLord,
-                startDate: toISODate(adStart),
-                endDate: toISODate(endDate),
-                durationMonths: Math.round(yearsBetween(adStart, endDate) * 12),
-                vidasa: [],
-                startAge: adStartAge,
-            });
-            break;
-        }
+        // Last AD fills to parent end
+        const isLastAd = ai === adPlanets.length - 1;
 
         // First AD (containing birth): start = birth, end = theoretical end or capped
         let adEnd: Date;
-        if (ai === 0) {
+        if (isLastAd) {
+            adEnd = new Date(endDate);
+        } else if (ai === 0) {
             const theoreticalEnd = addYearsToDate(new Date(startDate), adFullDuration);
             adEnd = theoreticalEnd < endDate ? theoreticalEnd : new Date(endDate);
         } else {
@@ -740,7 +754,7 @@ function computeSubPeriods(
         const adDurationYears = yearsBetween(adStart, adEnd);
         const adMonths = Math.round(adDurationYears * 12);
 
-        if (adMonths < 1) {
+        if (adMonths < 1 && !isLastAd) {
             currentDate = new Date(adEnd);
             continue;
         }
@@ -799,9 +813,11 @@ function computeSubPeriods(
                 }
             }
 
+            const vdProportionYears = isLastAd ? adDurationYears : adFullDuration;
+
             for (let vi = 0; vi < remainingVdCount; vi++) {
                 const vdLord = vdPlanets[vi];
-                const vdYears = (adFullDuration * getPlanetYears(vdLord)) / TOTAL_VIMSHOTTARI_YEARS;
+                const vdYears = (vdProportionYears * getPlanetYears(vdLord)) / TOTAL_VIMSHOTTARI_YEARS;
                 const vdDays =
                     firstVdRemainingDays !== null && vi === 0 ? firstVdRemainingDays : fractionToDays(vdYears);
 

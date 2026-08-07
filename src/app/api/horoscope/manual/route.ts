@@ -70,7 +70,7 @@ export async function POST(req: NextRequest) {
     });
     logger.info("manual horoscope saved: id=%s", horoscope.id);
 
-    const synth = synthesizeCalculation(result);
+    const synth = synthesizeCalculation(result, birthDate);
     await CalculatedDetails.create({
         horoscope: { id: horoscope.id },
         ...synth,
@@ -78,7 +78,7 @@ export async function POST(req: NextRequest) {
         derivedRanges: result.derivedRanges,
     });
 
-    const navSynth = synthesizeNavamsaCalculation(result);
+    const navSynth = synthesizeNavamsaCalculation(result, birthDate);
     const chartTypes = navSynth ? [ChartType.BIRTH, ChartType.NAVAMSA_D9] : [ChartType.BIRTH];
     const chartDocs = chartTypes.map((type) => {
         const chartSource = type === ChartType.NAVAMSA_D9 && navSynth ? navSynth : synth;

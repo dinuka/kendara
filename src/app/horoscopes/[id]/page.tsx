@@ -4,10 +4,9 @@ import { BirthChart } from "@/components/BirthChart";
 import CalculatedChartBadge from "@/components/CalculatedChartBadge";
 import ConfirmDeleteModal from "@/components/ConfirmDeleteModal";
 import DashaSection from "@/components/Dasha/DashaSection";
-import DerivedRangesSection from "@/components/ManualChart/DerivedRanges";
 import { HouseChart } from "@/components/HouseChart";
+import DerivedRangesSection from "@/components/ManualChart/DerivedRanges";
 import ManualChartEditor from "@/components/ManualChart/ManualChartEditor";
-import ValidationBadges from "@/components/ManualChart/ValidationBadges";
 import PrivacyBadge from "@/components/PrivacyBadge";
 import PrivacyToggle from "@/components/PrivacyToggle";
 import { useI18n } from "@/hooks/useI18n";
@@ -15,15 +14,33 @@ import { useSession } from "next-auth/react";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
+import ValidationBadges from "@/components/ManualChart/ValidationBadges";
 import type { Ascendant, CalculationResult, Dashas, House, Planet } from "@/lib/astrology";
-import { findHouse, formatDegree, navamsaSign } from "@/lib/astrology";
+import {
+    computeAscendantSpecialFlags,
+    computeThithiFromPlanets,
+    findHouse,
+    formatDegree,
+    navamsaSign,
+} from "@/lib/astrology";
 import { PlanetaryStrength } from "@/lib/astrologyEnums";
 import { getChartData, toBirthChartData } from "@/lib/chartDataTransform";
 import type { ChartInput } from "@/lib/chartDataTransform";
 import { ALL_CHART_TYPES, ChartType } from "@/lib/chartTypes";
 import { formatDate } from "@/lib/date";
 import { readHoroscopeSort } from "@/lib/horoscopeSort";
-import { buildBhavaHouses, buildWholeSignHouses, computeAscendantNakshatra, computeMoonNakshatra, deriveBirthTimeRange, formatNavamsaDegreeRange, navamsaIndexForSign, synthesizeOtherDetails, synthesizeValidation } from "@/lib/manualChart";
+import {
+    buildBhavaHouses,
+    buildWholeSignHouses,
+    calculateManualDashas,
+    computeAscendantNakshatra,
+    computeMoonNakshatra,
+    deriveBirthTimeRange,
+    formatNavamsaDegreeRange,
+    navamsaIndexForSign,
+    synthesizeOtherDetails,
+    synthesizeValidation,
+} from "@/lib/manualChart";
 import type { DerivedRanges, ManualHouse, ManualHousePlacements } from "@/lib/manualChart";
 
 const STRENGTH_TRANSLATION_KEYS: Record<PlanetaryStrength, string> = {
@@ -123,6 +140,7 @@ export default function HoroscopeDetailPage() {
                 moonNakshatra?: { id: number; pada: number; lord: number };
                 ascendantNakshatra?: { id: number; pada: number; lord: number };
             };
+            thithi: number;
             dashas: unknown;
             lord22ndDrekkana: number;
             lord64thNavamsa: number;
@@ -132,6 +150,9 @@ export default function HoroscopeDetailPage() {
             ashtamanshaPlanets: number[];
             atmakaraka: number;
             isAscendantWargoththama: boolean;
+            isAscendantGandantha: boolean;
+            isAscendantGandamula: boolean;
+            isAscendantPushkara: boolean;
             wargoththamaPlanets: number[];
             gandanthaPlanets: number[];
             gandamulaPlanets: number[];
@@ -265,19 +286,17 @@ export default function HoroscopeDetailPage() {
                     // null -> undefined once so every derived value uses the same source of truth.
                     const mhp = {
                         ...d.calculatedDetails.manualHousePlacements,
-                        lagnaDegree:
-                            d.calculatedDetails.manualHousePlacements.lagnaDegree ?? undefined,
-                        navamsaLagna:
-                            d.calculatedDetails.manualHousePlacements.navamsaLagna ?? undefined,
+                        lagnaDegree: d.calculatedDetails.manualHousePlacements.lagnaDegree ?? undefined,
+                        navamsaLagna: d.calculatedDetails.manualHousePlacements.navamsaLagna ?? undefined,
                     };
+                    const moon = (d.calculatedDetails.planets as Planet[]).find((p) => p.name === 2);
+                    const moonNakshatra = moon ? computeMoonNakshatra(moon.sign, moon.navamsaSign) : undefined;
+                    const birthDate = d.horoscope?.birthDate ? new Date(d.horoscope.birthDate) : null;
                     d = {
                         ...d,
                         calculatedDetails: {
                             ...d.calculatedDetails,
-                            ...synthesizeOtherDetails(
-                                mhp,
-                                d.calculatedDetails.planets,
-                            ),
+                            ...synthesizeOtherDetails(mhp, d.calculatedDetails.planets),
                             manualHousePlacements: {
                                 ...mhp,
                                 validation: synthesizeValidation(mhp),
@@ -289,22 +308,15 @@ export default function HoroscopeDetailPage() {
                             nakshatra: {
                                 ...d.calculatedDetails.nakshatra,
                                 ascendantNakshatra: computeAscendantNakshatra(mhp),
-                                moonNakshatra: (() => {
-                                    const moon = (d.calculatedDetails.planets as Planet[]).find(
-                                        (p) => p.name === 2,
-                                    );
-                                    return moon
-                                        ? computeMoonNakshatra(moon.sign, moon.navamsaSign)
-                                        : undefined;
-                                })(),
+                                moonNakshatra,
                             },
+                            dashas: moonNakshatra
+                                ? calculateManualDashas(moonNakshatra.id, moonNakshatra.pada, birthDate)
+                                : (d.calculatedDetails.dashas as Dashas),
+                            thithi: computeThithiFromPlanets(d.calculatedDetails.planets as Planet[]),
                             derivedRanges: (() => {
-                                const stored = d.calculatedDetails.derivedRanges as
-                                    | DerivedRanges
-                                    | undefined;
-                                const ravi = (d.calculatedDetails.planets as Planet[]).find(
-                                    (p) => p.name === 1,
-                                );
+                                const stored = d.calculatedDetails.derivedRanges as DerivedRanges | undefined;
+                                const ravi = (d.calculatedDetails.planets as Planet[]).find((p) => p.name === 1);
                                 const birthTimeRange = ravi ? deriveBirthTimeRange(ravi.house) : null;
                                 return {
                                     ...stored,
@@ -446,8 +458,16 @@ export default function HoroscopeDetailPage() {
     const getPlanetName = (id: number): string => t(`astrology.planetNames.${id}`);
     const getSignName = (id: number): string => t(`astrology.signNames.${id}`);
     const getNakshatraName = (id: number): string => t(`astrology.nakshatraNames.${id}`);
+    const getThithiName = (id: number): string => t(`astrology.thithiNames.${id}`);
     const getPadaFormat = (pada: number): string => t("astrology.padaFormat", { pada: String(pada) });
     const getDashaLevelName = (level: string): string => t(`astrology.dashaLevels.${level}`);
+
+    /** Thithi of the Moon, with a render-time fallback for older CalculatedDetails documents that
+     *  predate the `thithi` field (recomputed from the stored Sun/Moon planets). */
+    const getThithi = (): number => {
+        if (typeof calculatedDetails?.thithi === "number") return calculatedDetails.thithi;
+        return computeThithiFromPlanets(calculatedDetails?.planets ?? []);
+    };
 
     const getNavamsaSign = (sign: number, degree: number): number => {
         const navamsaNum = Math.floor(degree / (30 / 9)) + 1;
@@ -565,7 +585,8 @@ export default function HoroscopeDetailPage() {
      *  manual horoscopes, so planet lines point at the middle of the navamsa wedge (the stored
      *  `calculatedDetails.planets` use the segment start, written when the chart was created). */
     const getManualAdjustedPlanets = (): Planet[] => {
-        if (horoscope.source !== "manual" || !calculatedDetails?.manualHousePlacements) return calculatedDetails?.planets ?? [];
+        if (horoscope.source !== "manual" || !calculatedDetails?.manualHousePlacements)
+            return calculatedDetails?.planets ?? [];
         return calculatedDetails.planets.map((p) => {
             const index = navamsaIndexForSign(p.sign, p.navamsaSign ?? p.sign);
             const arc = 30 / 9;
@@ -1173,10 +1194,7 @@ export default function HoroscopeDetailPage() {
                                             {getSignName(calculatedDetails.ascendant.sign)} (
                                             {getPlanetName(calculatedDetails.ascendant.lord)}){" "}
                                             {isManualNoBirthDate
-                                                ? formatNavamsaDegreeRange(
-                                                      getAscMidRange().start,
-                                                      getAscMidRange().end,
-                                                  )
+                                                ? formatNavamsaDegreeRange(getAscMidRange().start, getAscMidRange().end)
                                                 : formatDegree(calculatedDetails.ascendant.degree)}
                                         </p>
                                         <p className="text-sm text-gray-600">
@@ -1184,11 +1202,72 @@ export default function HoroscopeDetailPage() {
                                             ({getPlanetName(calculatedDetails.nakshatra.ascendantNakshatra?.lord ?? 0)}){" "}
                                             {getPadaFormat(calculatedDetails.nakshatra.ascendantNakshatra?.pada ?? 1)}
                                         </p>
-                                        {calculatedDetails.isAscendantWargoththama && (
-                                            <p className="mt-2 inline-flex items-center gap-1 text-xs text-indigo-700 bg-indigo-50 border border-indigo-200 rounded px-2 py-0.5">
-                                                {t("astrology.wargoththamaLabel")}
-                                            </p>
-                                        )}
+                                        {(() => {
+                                            const ascNak = calculatedDetails.nakshatra?.ascendantNakshatra;
+                                            const recomputedAscFlags = computeAscendantSpecialFlags(
+                                                calculatedDetails.ascendant.sign,
+                                                calculatedDetails.ascendant.degree,
+                                                ascNak?.id ?? 0,
+                                                ascNak?.pada ?? 1,
+                                            );
+                                            const ascFlags = {
+                                                isAscendantGandantha:
+                                                    calculatedDetails.isAscendantGandantha ??
+                                                    recomputedAscFlags.isAscendantGandantha,
+                                                isAscendantGandamula:
+                                                    calculatedDetails.isAscendantGandamula ??
+                                                    recomputedAscFlags.isAscendantGandamula,
+                                                isAscendantPushkara:
+                                                    calculatedDetails.isAscendantPushkara ??
+                                                    recomputedAscFlags.isAscendantPushkara,
+                                            };
+                                            const ascTags: {
+                                                key: string;
+                                                text: string;
+                                                strikethrough?: boolean;
+                                            }[] = [];
+                                            if (calculatedDetails.isAscendantWargoththama) {
+                                                const crossed =
+                                                    ascFlags.isAscendantGandantha || ascFlags.isAscendantGandamula;
+                                                ascTags.push({
+                                                    key: "wargoththama",
+                                                    text: t("astrology.wargoththamaLabel"),
+                                                    strikethrough: crossed,
+                                                });
+                                            }
+                                            if (ascFlags.isAscendantGandantha)
+                                                ascTags.push({
+                                                    key: "gandanta",
+                                                    text: t("astrology.gandantaLabel"),
+                                                });
+                                            if (ascFlags.isAscendantGandamula)
+                                                ascTags.push({
+                                                    key: "gandamula",
+                                                    text: t("astrology.gandamulaLabel"),
+                                                });
+                                            if (ascFlags.isAscendantPushkara)
+                                                ascTags.push({
+                                                    key: "pushkara",
+                                                    text: t("astrology.pushkaraLabel"),
+                                                });
+                                            if (ascTags.length === 0) return null;
+                                            return (
+                                                <p className="mt-2 flex flex-wrap gap-1">
+                                                    {ascTags.map((tag) => (
+                                                        <span
+                                                            key={tag.key}
+                                                            className={`inline-flex items-center gap-1 text-xs rounded px-2 py-0.5 border ${
+                                                                tag.key === "wargoththama"
+                                                                    ? "text-indigo-700 bg-indigo-50 border-indigo-200"
+                                                                    : "text-gray-600 bg-gray-100 border-gray-200"
+                                                            } ${tag.strikethrough ? "line-through" : ""}`}
+                                                        >
+                                                            {tag.text}
+                                                        </span>
+                                                    ))}
+                                                </p>
+                                            );
+                                        })()}
                                     </div>
                                     <div className="bg-gray-50 rounded p-3">
                                         <h4 className="font-semibold text-sm text-indigo-700 uppercase tracking-wide mb-2">
@@ -1198,6 +1277,9 @@ export default function HoroscopeDetailPage() {
                                             {getNakshatraName(calculatedDetails.nakshatra.moonNakshatra?.id ?? 0)} (
                                             {getPlanetName(calculatedDetails.nakshatra.moonNakshatra?.lord ?? 0)}){" "}
                                             {getPadaFormat(calculatedDetails.nakshatra.moonNakshatra?.pada ?? 1)}
+                                        </p>
+                                        <p className="text-sm mt-1 text-gray-600">
+                                            {t("astrology.thithi")}: {getThithiName(getThithi())} ({getThithi()})
                                         </p>
                                     </div>
                                 </div>
@@ -1281,14 +1363,14 @@ export default function HoroscopeDetailPage() {
                                                                   )}
                                                         </td>
                                                         <td className="py-1 pr-3">
-{planetsInHouse.length > 0
-                                                                        ? planetsInHouse
-                                                                              .map(
-                                                                                  (p) =>
-                                                                                      `${getPlanetName(p.name)} (${manualRange ? getPlanetDegreeRange(p) : formatDegree(p.degree)})`,
-                                                                              )
-                                                                              .join(", ")
-                                                                        : "—"}
+                                                            {planetsInHouse.length > 0
+                                                                ? planetsInHouse
+                                                                      .map(
+                                                                          (p) =>
+                                                                              `${getPlanetName(p.name)} (${manualRange ? getPlanetDegreeRange(p) : formatDegree(p.degree)})`,
+                                                                      )
+                                                                      .join(", ")
+                                                                : "—"}
                                                         </td>
                                                         <td className="py-1 pr-3">
                                                             {aspectsToHouse.length > 0
@@ -1336,7 +1418,9 @@ export default function HoroscopeDetailPage() {
                                                 <th className="py-1 pr-3">{t("astrology.strength")}</th>
                                                 <th className="py-1 pr-3">{t("astrology.house")}</th>
                                                 <th className="py-1 pr-3">{t("astrology.navamsa")}</th>
-                                                <th className="py-1 pr-3">{t("astrology.navamsa")} {t("astrology.strength")}</th>
+                                                <th className="py-1 pr-3">
+                                                    {t("astrology.navamsa")} {t("astrology.strength")}
+                                                </th>
                                                 <th className="py-1 pr-3">
                                                     {t("astrology.nakshatra")} ({t("astrology.pada")})
                                                 </th>
@@ -1346,31 +1430,226 @@ export default function HoroscopeDetailPage() {
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            {[...calculatedDetails.planets].sort((a, b) => a.name - b.name).map((p) => {
-                                                const displayHouse =
-                                                    horoscope.source === "manual"
-                                                        ? p.house
-                                                        : (findHouse(p.absoluteDegree, calculatedDetails.houses) ?? p.house);
-                                                const conjunct = calculatedDetails.planets
-                                                    .filter((q) => q.name !== p.name)
-                                                    .filter((q) => {
-                                                        const dist = Math.abs(p.absoluteDegree - q.absoluteDegree);
-                                                        const angularDist = Math.min(dist, 360 - dist);
-                                                        return angularDist < (orbMap[p.name] ?? 0);
-                                                    })
-                                                    .map((q) => {
-                                                        let diff = q.absoluteDegree - p.absoluteDegree;
-                                                        if (diff > 180) diff -= 360;
-                                                        if (diff < -180) diff += 360;
-                                                        const sign = diff >= 0 ? "+" : "-";
-                                                        const absDiff = Math.abs(diff);
-                                                        const totalVikala = Math.round(absDiff * 3600);
-                                                        const anshaka = Math.floor(totalVikala / 3600);
-                                                        const kala = Math.floor((totalVikala % 3600) / 60);
-                                                        const vikala = totalVikala % 60;
-                                                        return `${getPlanetName(q.name)} (${sign}${String(anshaka).padStart(2, "0")}:${String(kala).padStart(2, "0")}:${String(vikala).padStart(2, "0")})`;
-                                                    });
-                                                const aspects = horoscope.source === "manual"
+                                            {[...calculatedDetails.planets]
+                                                .sort((a, b) => a.name - b.name)
+                                                .map((p) => {
+                                                    const displayHouse =
+                                                        horoscope.source === "manual"
+                                                            ? p.house
+                                                            : (findHouse(p.absoluteDegree, calculatedDetails.houses) ??
+                                                              p.house);
+                                                    const conjunct = calculatedDetails.planets
+                                                        .filter((q) => q.name !== p.name)
+                                                        .filter((q) => {
+                                                            const dist = Math.abs(p.absoluteDegree - q.absoluteDegree);
+                                                            const angularDist = Math.min(dist, 360 - dist);
+                                                            return angularDist < (orbMap[p.name] ?? 0);
+                                                        })
+                                                        .map((q) => {
+                                                            let diff = q.absoluteDegree - p.absoluteDegree;
+                                                            if (diff > 180) diff -= 360;
+                                                            if (diff < -180) diff += 360;
+                                                            const sign = diff >= 0 ? "+" : "-";
+                                                            const absDiff = Math.abs(diff);
+                                                            const totalVikala = Math.round(absDiff * 3600);
+                                                            const anshaka = Math.floor(totalVikala / 3600);
+                                                            const kala = Math.floor((totalVikala % 3600) / 60);
+                                                            const vikala = totalVikala % 60;
+                                                            return `${getPlanetName(q.name)} (${sign}${String(anshaka).padStart(2, "0")}:${String(kala).padStart(2, "0")}:${String(vikala).padStart(2, "0")})`;
+                                                        });
+                                                    const aspects =
+                                                        horoscope.source === "manual"
+                                                            ? getManualAspects(p)
+                                                            : p.aspects
+                                                                  .filter((a) => a.aspectType !== 0)
+                                                                  .map((a) => {
+                                                                      const q = calculatedDetails.planets.find(
+                                                                          (x) => x.name === a.planetName,
+                                                                      );
+                                                                      if (!q) return "";
+                                                                      const exactPoint =
+                                                                          (p.absoluteDegree + a.aspectType) % 360;
+                                                                      let diff = exactPoint - q.absoluteDegree;
+                                                                      if (diff > 180) diff -= 360;
+                                                                      if (diff < -180) diff += 360;
+                                                                      if (Math.abs(diff) > (orbMap[p.name] ?? 0) / 2)
+                                                                          return "";
+                                                                      const sign = diff >= 0 ? "+" : "-";
+                                                                      const absDiff = Math.abs(diff);
+                                                                      const totalVikala = Math.round(absDiff * 3600);
+                                                                      const anshaka = Math.floor(totalVikala / 3600);
+                                                                      const kala = Math.floor(
+                                                                          (totalVikala % 3600) / 60,
+                                                                      );
+                                                                      const vikala = totalVikala % 60;
+                                                                      return `${getPlanetName(a.planetName)} (${sign}${String(anshaka).padStart(2, "0")}:${String(kala).padStart(2, "0")}:${String(vikala).padStart(2, "0")})`;
+                                                                  })
+                                                                  .filter(Boolean);
+                                                    const tags: {
+                                                        key: string;
+                                                        text: string;
+                                                        strikethrough?: boolean;
+                                                    }[] = [];
+                                                    if (p.combustion)
+                                                        tags.push({
+                                                            key: "combustion",
+                                                            text: t("astrology.combustLabel"),
+                                                        });
+                                                    if (calculatedDetails.lord22ndDrekkana === p.name)
+                                                        tags.push({
+                                                            key: "drekkana",
+                                                            text: t("astrology.drekkanaLordLabel"),
+                                                        });
+                                                    if (calculatedDetails.lord64thNavamsa === p.name)
+                                                        tags.push({
+                                                            key: "navamsa",
+                                                            text: t("astrology.navamsaLordLabel"),
+                                                        });
+                                                    if (calculatedDetails.atmakaraka === p.name)
+                                                        tags.push({
+                                                            key: "atmakaraka",
+                                                            text: t("astrology.atmakarakaLabel"),
+                                                        });
+                                                    if (calculatedDetails.marakaPlanets?.includes(p.name))
+                                                        tags.push({ key: "maraka", text: t("astrology.marakaLabel") });
+                                                    if (calculatedDetails.badhakaPlanet?.includes(p.name))
+                                                        tags.push({
+                                                            key: "badhaka",
+                                                            text: t("astrology.badhakaLabel"),
+                                                        });
+                                                    if (calculatedDetails.nidhanamshaPlanets?.includes(p.name))
+                                                        tags.push({
+                                                            key: "nidhanamsha",
+                                                            text: t("astrology.nidhanamshaLabel"),
+                                                        });
+                                                    if (calculatedDetails.ashtamanshaPlanets?.includes(p.name))
+                                                        tags.push({
+                                                            key: "ashtamansha",
+                                                            text: t("astrology.ashtamanshaLabel"),
+                                                        });
+                                                    if (calculatedDetails.wargoththamaPlanets?.includes(p.name)) {
+                                                        const crossed =
+                                                            calculatedDetails.gandanthaPlanets?.includes(p.name) ||
+                                                            calculatedDetails.gandamulaPlanets?.includes(p.name);
+                                                        tags.push({
+                                                            key: "wargoththama",
+                                                            text: t("astrology.wargoththamaLabel"),
+                                                            strikethrough: crossed,
+                                                        });
+                                                    }
+                                                    if (calculatedDetails.gandanthaPlanets?.includes(p.name))
+                                                        tags.push({
+                                                            key: "gandanta",
+                                                            text: t("astrology.gandantaLabel"),
+                                                        });
+                                                    if (calculatedDetails.gandamulaPlanets?.includes(p.name))
+                                                        tags.push({
+                                                            key: "gandamula",
+                                                            text: t("astrology.gandamulaLabel"),
+                                                        });
+                                                    if (calculatedDetails.pushkaraPlanets?.includes(p.name))
+                                                        tags.push({
+                                                            key: "pushkara",
+                                                            text: t("astrology.pushkaraLabel"),
+                                                        });
+                                                    return (
+                                                        <tr key={p.name} className="border-b border-gray-50">
+                                                            <td className="py-1 pr-3 font-medium">
+                                                                {p.retrograde && p.name !== 8 && p.name !== 9
+                                                                    ? `(${getPlanetName(p.name)})`
+                                                                    : getPlanetName(p.name)}
+                                                            </td>
+                                                            <td className="py-1 pr-3">
+                                                                {getSignName(p.sign)} (
+                                                                {isManualNoBirthDate
+                                                                    ? getPlanetDegreeRange(p)
+                                                                    : formatDegree(p.degree)}
+                                                                )
+                                                            </td>
+                                                            <td className="py-1 pr-3">
+                                                                {t(
+                                                                    `astrology.${STRENGTH_TRANSLATION_KEYS[getStrength(p.strength)] ?? "neutral"}`,
+                                                                )}
+                                                            </td>
+                                                            <td className="py-1 pr-3">{displayHouse}</td>
+                                                            <td className="py-1 pr-3">{getSignName(p.navamsaSign)}</td>
+                                                            <td className="py-1 pr-3">
+                                                                {t(
+                                                                    `astrology.${STRENGTH_TRANSLATION_KEYS[getStrength(p.navamsaStrength)] ?? "neutral"}`,
+                                                                )}
+                                                            </td>
+                                                            <td className="py-1 pr-3 text-gray-600">
+                                                                {getNakshatraName(p.nakshatra) || p.nakshatra} ({p.pada}
+                                                                )
+                                                            </td>
+                                                            <td className="py-1 pr-3">
+                                                                {conjunct.length > 0 ? conjunct.join(", ") : "—"}
+                                                            </td>
+                                                            <td className="py-1 pr-3">
+                                                                {aspects.length > 0 ? aspects.join(", ") : "—"}
+                                                            </td>
+                                                            <td className="py-1 pr-3">
+                                                                {tags.length > 0 ? (
+                                                                    <span className="flex flex-wrap gap-1">
+                                                                        {tags.map((tag) => (
+                                                                            <span
+                                                                                key={tag.key}
+                                                                                className={`text-[10px] leading-tight px-1 rounded bg-gray-100 text-gray-600 whitespace-nowrap ${
+                                                                                    tag.strikethrough
+                                                                                        ? "line-through"
+                                                                                        : ""
+                                                                                }`}
+                                                                            >
+                                                                                {tag.text}
+                                                                            </span>
+                                                                        ))}
+                                                                    </span>
+                                                                ) : (
+                                                                    "—"
+                                                                )}
+                                                            </td>
+                                                        </tr>
+                                                    );
+                                                })}
+                                        </tbody>
+                                    </table>
+                                </div>
+
+                                {/* Mobile: card view */}
+                                <div className="block sm:hidden space-y-2">
+                                    {[...calculatedDetails.planets]
+                                        .sort((a, b) => a.name - b.name)
+                                        .map((p) => {
+                                            const isExpanded = expandedPlanets.has(p.name);
+                                            const isRetrograde = p.retrograde && p.name !== 8 && p.name !== 9;
+                                            const displayHouse =
+                                                horoscope.source === "manual"
+                                                    ? p.house
+                                                    : (findHouse(p.absoluteDegree, calculatedDetails.houses) ??
+                                                      p.house);
+
+                                            const conjunct = calculatedDetails.planets
+                                                .filter((q) => q.name !== p.name)
+                                                .filter((q) => {
+                                                    const dist = Math.abs(p.absoluteDegree - q.absoluteDegree);
+                                                    const angularDist = Math.min(dist, 360 - dist);
+                                                    return angularDist < (orbMap[p.name] ?? 0);
+                                                })
+                                                .map((q) => {
+                                                    let diff = q.absoluteDegree - p.absoluteDegree;
+                                                    if (diff > 180) diff -= 360;
+                                                    if (diff < -180) diff += 360;
+                                                    const sign = diff >= 0 ? "+" : "-";
+                                                    const absDiff = Math.abs(diff);
+                                                    const totalVikala = Math.round(absDiff * 3600);
+                                                    const anshaka = Math.floor(totalVikala / 3600);
+                                                    const kala = Math.floor((totalVikala % 3600) / 60);
+                                                    const vikala = totalVikala % 60;
+                                                    return `${getPlanetName(q.name)} (${sign}${String(anshaka).padStart(2, "0")}:${String(kala).padStart(2, "0")}:${String(vikala).padStart(2, "0")})`;
+                                                });
+
+                                            const aspects =
+                                                horoscope.source === "manual"
                                                     ? getManualAspects(p)
                                                     : p.aspects
                                                           .filter((a) => a.aspectType !== 0)
@@ -1379,7 +1658,8 @@ export default function HoroscopeDetailPage() {
                                                                   (x) => x.name === a.planetName,
                                                               );
                                                               if (!q) return "";
-                                                              const exactPoint = (p.absoluteDegree + a.aspectType) % 360;
+                                                              const exactPoint =
+                                                                  (p.absoluteDegree + a.aspectType) % 360;
                                                               let diff = exactPoint - q.absoluteDegree;
                                                               if (diff > 180) diff -= 360;
                                                               if (diff < -180) diff += 360;
@@ -1393,303 +1673,104 @@ export default function HoroscopeDetailPage() {
                                                               return `${getPlanetName(a.planetName)} (${sign}${String(anshaka).padStart(2, "0")}:${String(kala).padStart(2, "0")}:${String(vikala).padStart(2, "0")})`;
                                                           })
                                                           .filter(Boolean);
-                                                const tags: { key: string; text: string; strikethrough?: boolean }[] =
-                                                    [];
-                                                if (p.combustion)
-                                                    tags.push({ key: "combustion", text: t("astrology.combustLabel") });
-                                                if (calculatedDetails.lord22ndDrekkana === p.name)
-                                                    tags.push({
-                                                        key: "drekkana",
-                                                        text: t("astrology.drekkanaLordLabel"),
-                                                    });
-                                                if (calculatedDetails.lord64thNavamsa === p.name)
-                                                    tags.push({
-                                                        key: "navamsa",
-                                                        text: t("astrology.navamsaLordLabel"),
-                                                    });
-                                                if (calculatedDetails.atmakaraka === p.name)
-                                                    tags.push({
-                                                        key: "atmakaraka",
-                                                        text: t("astrology.atmakarakaLabel"),
-                                                    });
-                                                if (calculatedDetails.marakaPlanets?.includes(p.name))
-                                                    tags.push({ key: "maraka", text: t("astrology.marakaLabel") });
-                                                if (calculatedDetails.badhakaPlanet?.includes(p.name))
-                                                    tags.push({ key: "badhaka", text: t("astrology.badhakaLabel") });
-                                                if (calculatedDetails.nidhanamshaPlanets?.includes(p.name))
-                                                    tags.push({
-                                                        key: "nidhanamsha",
-                                                        text: t("astrology.nidhanamshaLabel"),
-                                                    });
-                                                if (calculatedDetails.ashtamanshaPlanets?.includes(p.name))
-                                                    tags.push({
-                                                        key: "ashtamansha",
-                                                        text: t("astrology.ashtamanshaLabel"),
-                                                    });
-                                                if (calculatedDetails.wargoththamaPlanets?.includes(p.name)) {
-                                                    const crossed =
-                                                        calculatedDetails.gandanthaPlanets?.includes(p.name) ||
-                                                        calculatedDetails.gandamulaPlanets?.includes(p.name);
-                                                    tags.push({
-                                                        key: "wargoththama",
-                                                        text: t("astrology.wargoththamaLabel"),
-                                                        strikethrough: crossed,
-                                                    });
-                                                }
-                                                if (calculatedDetails.gandanthaPlanets?.includes(p.name))
-                                                    tags.push({ key: "gandanta", text: t("astrology.gandantaLabel") });
-                                                if (calculatedDetails.gandamulaPlanets?.includes(p.name))
-                                                    tags.push({
-                                                        key: "gandamula",
-                                                        text: t("astrology.gandamulaLabel"),
-                                                    });
-                                                if (calculatedDetails.pushkaraPlanets?.includes(p.name))
-                                                    tags.push({ key: "pushkara", text: t("astrology.pushkaraLabel") });
-                                                return (
-                                                    <tr key={p.name} className="border-b border-gray-50">
-                                                        <td className="py-1 pr-3 font-medium">
-                                                            {p.retrograde && p.name !== 8 && p.name !== 9
-                                                                ? `(${getPlanetName(p.name)})`
-                                                                : getPlanetName(p.name)}
-                                                        </td>
-                                                        <td className="py-1 pr-3">
-                                                            {getSignName(p.sign)} ({isManualNoBirthDate ? getPlanetDegreeRange(p) : formatDegree(p.degree)})
-                                                        </td>
-                                                        <td className="py-1 pr-3">
-                                                            {t(
-                                                                `astrology.${STRENGTH_TRANSLATION_KEYS[getStrength(p.strength)] ?? "neutral"}`,
-                                                            )}
-                                                        </td>
-                                                        <td className="py-1 pr-3">{displayHouse}</td>
-                                                        <td className="py-1 pr-3">
-                                                            {getSignName(p.navamsaSign)}
-                                                        </td>
-                                                        <td className="py-1 pr-3">
-                                                            {t(
-                                                                `astrology.${STRENGTH_TRANSLATION_KEYS[getStrength(p.navamsaStrength)] ?? "neutral"}`,
-                                                            )}
-                                                        </td>
-                                                        <td className="py-1 pr-3 text-gray-600">
-                                                            {getNakshatraName(p.nakshatra) || p.nakshatra} ({p.pada})
-                                                        </td>
-                                                        <td className="py-1 pr-3">
-                                                            {conjunct.length > 0 ? conjunct.join(", ") : "—"}
-                                                        </td>
-                                                        <td className="py-1 pr-3">
-                                                            {aspects.length > 0 ? aspects.join(", ") : "—"}
-                                                        </td>
-                                                        <td className="py-1 pr-3">
-                                                            {tags.length > 0 ? (
-                                                                <span className="flex flex-wrap gap-1">
-                                                                    {tags.map((tag) => (
-                                                                        <span
-                                                                            key={tag.key}
-                                                                            className={`text-[10px] leading-tight px-1 rounded bg-gray-100 text-gray-600 whitespace-nowrap ${
-                                                                                tag.strikethrough ? "line-through" : ""
-                                                                            }`}
-                                                                        >
-                                                                            {tag.text}
-                                                                        </span>
-                                                                    ))}
-                                                                </span>
-                                                            ) : (
-                                                                "—"
-                                                            )}
-                                                        </td>
-                                                    </tr>
-                                                );
-                                            })}
-                                        </tbody>
-                                    </table>
-                                </div>
 
-                                {/* Mobile: card view */}
-                                <div className="block sm:hidden space-y-2">
-                                    {[...calculatedDetails.planets].sort((a, b) => a.name - b.name).map((p) => {
-                                        const isExpanded = expandedPlanets.has(p.name);
-                                        const isRetrograde = p.retrograde && p.name !== 8 && p.name !== 9;
-                                        const displayHouse =
-                                            horoscope.source === "manual"
-                                                ? p.house
-                                                : (findHouse(p.absoluteDegree, calculatedDetails.houses) ?? p.house);
+                                            const tags: { key: string; text: string; strikethrough?: boolean }[] = [];
+                                            if (p.combustion)
+                                                tags.push({ key: "combustion", text: t("astrology.combustLabel") });
+                                            if (calculatedDetails.lord22ndDrekkana === p.name)
+                                                tags.push({ key: "drekkana", text: t("astrology.drekkanaLordLabel") });
+                                            if (calculatedDetails.lord64thNavamsa === p.name)
+                                                tags.push({ key: "navamsa", text: t("astrology.navamsaLordLabel") });
+                                            if (calculatedDetails.atmakaraka === p.name)
+                                                tags.push({ key: "atmakaraka", text: t("astrology.atmakarakaLabel") });
+                                            if (calculatedDetails.marakaPlanets?.includes(p.name))
+                                                tags.push({ key: "maraka", text: t("astrology.marakaLabel") });
+                                            if (calculatedDetails.badhakaPlanet?.includes(p.name))
+                                                tags.push({ key: "badhaka", text: t("astrology.badhakaLabel") });
+                                            if (calculatedDetails.nidhanamshaPlanets?.includes(p.name))
+                                                tags.push({
+                                                    key: "nidhanamsha",
+                                                    text: t("astrology.nidhanamshaLabel"),
+                                                });
+                                            if (calculatedDetails.ashtamanshaPlanets?.includes(p.name))
+                                                tags.push({
+                                                    key: "ashtamansha",
+                                                    text: t("astrology.ashtamanshaLabel"),
+                                                });
+                                            if (calculatedDetails.wargoththamaPlanets?.includes(p.name)) {
+                                                const crossed =
+                                                    calculatedDetails.gandanthaPlanets?.includes(p.name) ||
+                                                    calculatedDetails.gandamulaPlanets?.includes(p.name);
+                                                tags.push({
+                                                    key: "wargoththama",
+                                                    text: t("astrology.wargoththamaLabel"),
+                                                    strikethrough: crossed,
+                                                });
+                                            }
+                                            if (calculatedDetails.gandanthaPlanets?.includes(p.name))
+                                                tags.push({ key: "gandanta", text: t("astrology.gandantaLabel") });
+                                            if (calculatedDetails.gandamulaPlanets?.includes(p.name))
+                                                tags.push({ key: "gandamula", text: t("astrology.gandamulaLabel") });
+                                            if (calculatedDetails.pushkaraPlanets?.includes(p.name))
+                                                tags.push({ key: "pushkara", text: t("astrology.pushkaraLabel") });
 
-                                        const conjunct = calculatedDetails.planets
-                                            .filter((q) => q.name !== p.name)
-                                            .filter((q) => {
-                                                const dist = Math.abs(p.absoluteDegree - q.absoluteDegree);
-                                                const angularDist = Math.min(dist, 360 - dist);
-                                                return angularDist < (orbMap[p.name] ?? 0);
-                                            })
-                                            .map((q) => {
-                                                let diff = q.absoluteDegree - p.absoluteDegree;
-                                                if (diff > 180) diff -= 360;
-                                                if (diff < -180) diff += 360;
-                                                const sign = diff >= 0 ? "+" : "-";
-                                                const absDiff = Math.abs(diff);
-                                                const totalVikala = Math.round(absDiff * 3600);
-                                                const anshaka = Math.floor(totalVikala / 3600);
-                                                const kala = Math.floor((totalVikala % 3600) / 60);
-                                                const vikala = totalVikala % 60;
-                                                return `${getPlanetName(q.name)} (${sign}${String(anshaka).padStart(2, "0")}:${String(kala).padStart(2, "0")}:${String(vikala).padStart(2, "0")})`;
-                                            });
+                                            const STRENGTH_COLORS: Record<string, string> = {
+                                                athiUchcha: "text-green-700 font-semibold",
+                                                exalted: "text-green-700 font-semibold",
+                                                athiNeecha: "text-red-600",
+                                                debilitated: "text-red-600",
+                                                moolatrikona: "text-indigo-600 font-semibold",
+                                                ownSign: "text-indigo-600 font-semibold",
+                                            };
+                                            const resolvedStrength = getStrength(p.strength);
+                                            const strengthClass =
+                                                STRENGTH_COLORS[STRENGTH_TRANSLATION_KEYS[resolvedStrength]] ||
+                                                "text-gray-600";
 
-                                        const aspects = horoscope.source === "manual"
-                                            ? getManualAspects(p)
-                                            : p.aspects
-                                                  .filter((a) => a.aspectType !== 0)
-                                                  .map((a) => {
-                                                      const q = calculatedDetails.planets.find(
-                                                          (x) => x.name === a.planetName,
-                                                      );
-                                                      if (!q) return "";
-                                                      const exactPoint = (p.absoluteDegree + a.aspectType) % 360;
-                                                      let diff = exactPoint - q.absoluteDegree;
-                                                      if (diff > 180) diff -= 360;
-                                                      if (diff < -180) diff += 360;
-                                                      if (Math.abs(diff) > (orbMap[p.name] ?? 0) / 2) return "";
-                                                      const sign = diff >= 0 ? "+" : "-";
-                                                      const absDiff = Math.abs(diff);
-                                                      const totalVikala = Math.round(absDiff * 3600);
-                                                      const anshaka = Math.floor(totalVikala / 3600);
-                                                      const kala = Math.floor((totalVikala % 3600) / 60);
-                                                      const vikala = totalVikala % 60;
-                                                      return `${getPlanetName(a.planetName)} (${sign}${String(anshaka).padStart(2, "0")}:${String(kala).padStart(2, "0")}:${String(vikala).padStart(2, "0")})`;
-                                                  })
-                                                  .filter(Boolean);
-
-                                        const tags: { key: string; text: string; strikethrough?: boolean }[] = [];
-                                        if (p.combustion)
-                                            tags.push({ key: "combustion", text: t("astrology.combustLabel") });
-                                        if (calculatedDetails.lord22ndDrekkana === p.name)
-                                            tags.push({ key: "drekkana", text: t("astrology.drekkanaLordLabel") });
-                                        if (calculatedDetails.lord64thNavamsa === p.name)
-                                            tags.push({ key: "navamsa", text: t("astrology.navamsaLordLabel") });
-                                        if (calculatedDetails.atmakaraka === p.name)
-                                            tags.push({ key: "atmakaraka", text: t("astrology.atmakarakaLabel") });
-                                        if (calculatedDetails.marakaPlanets?.includes(p.name))
-                                            tags.push({ key: "maraka", text: t("astrology.marakaLabel") });
-                                        if (calculatedDetails.badhakaPlanet?.includes(p.name))
-                                            tags.push({ key: "badhaka", text: t("astrology.badhakaLabel") });
-                                        if (calculatedDetails.nidhanamshaPlanets?.includes(p.name))
-                                            tags.push({ key: "nidhanamsha", text: t("astrology.nidhanamshaLabel") });
-                                        if (calculatedDetails.ashtamanshaPlanets?.includes(p.name))
-                                            tags.push({ key: "ashtamansha", text: t("astrology.ashtamanshaLabel") });
-                                        if (calculatedDetails.wargoththamaPlanets?.includes(p.name)) {
-                                            const crossed =
-                                                calculatedDetails.gandanthaPlanets?.includes(p.name) ||
-                                                calculatedDetails.gandamulaPlanets?.includes(p.name);
-                                            tags.push({
-                                                key: "wargoththama",
-                                                text: t("astrology.wargoththamaLabel"),
-                                                strikethrough: crossed,
-                                            });
-                                        }
-                                        if (calculatedDetails.gandanthaPlanets?.includes(p.name))
-                                            tags.push({ key: "gandanta", text: t("astrology.gandantaLabel") });
-                                        if (calculatedDetails.gandamulaPlanets?.includes(p.name))
-                                            tags.push({ key: "gandamula", text: t("astrology.gandamulaLabel") });
-                                        if (calculatedDetails.pushkaraPlanets?.includes(p.name))
-                                            tags.push({ key: "pushkara", text: t("astrology.pushkaraLabel") });
-
-                                        const STRENGTH_COLORS: Record<string, string> = {
-                                            athiUchcha: "text-green-700 font-semibold",
-                                            exalted: "text-green-700 font-semibold",
-                                            athiNeecha: "text-red-600",
-                                            debilitated: "text-red-600",
-                                            moolatrikona: "text-indigo-600 font-semibold",
-                                            ownSign: "text-indigo-600 font-semibold",
-                                        };
-                                        const resolvedStrength = getStrength(p.strength);
-                                        const strengthClass =
-                                            STRENGTH_COLORS[STRENGTH_TRANSLATION_KEYS[resolvedStrength]] ||
-                                            "text-gray-600";
-
-                                        return (
-                                            <div key={p.name} className="border rounded overflow-hidden">
-                                                <button
-                                                    onClick={() => {
-                                                        setExpandedPlanets((prev) => {
-                                                            const next = new Set(prev);
-                                                            if (next.has(p.name)) {
-                                                                next.delete(p.name);
-                                                            } else {
-                                                                next.add(p.name);
-                                                            }
-                                                            return next;
-                                                        });
-                                                    }}
-                                                    className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50 transition-colors text-left"
-                                                >
-                                                    <span className="font-medium whitespace-nowrap">
-                                                        {PLANET_SYMBOLS[p.name]} {getPlanetName(p.name)}
-                                                    </span>
-                                                    {isRetrograde && (
-                                                        <span className="text-amber-600 bg-amber-50 text-[10px] rounded px-1 leading-tight">
-                                                            {t("astrology.retrograde")}
+                                            return (
+                                                <div key={p.name} className="border rounded overflow-hidden">
+                                                    <button
+                                                        onClick={() => {
+                                                            setExpandedPlanets((prev) => {
+                                                                const next = new Set(prev);
+                                                                if (next.has(p.name)) {
+                                                                    next.delete(p.name);
+                                                                } else {
+                                                                    next.add(p.name);
+                                                                }
+                                                                return next;
+                                                            });
+                                                        }}
+                                                        className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50 transition-colors text-left"
+                                                    >
+                                                        <span className="font-medium whitespace-nowrap">
+                                                            {PLANET_SYMBOLS[p.name]} {getPlanetName(p.name)}
                                                         </span>
-                                                    )}
-                                                    <span className="text-gray-600 whitespace-nowrap">
-                                                        {getSignName(p.sign)}
-                                                    </span>
-                                                    <span className={`whitespace-nowrap ${strengthClass}`}>
-                                                        {t(
-                                                            `astrology.${STRENGTH_TRANSLATION_KEYS[resolvedStrength] ?? "neutral"}`,
+                                                        {isRetrograde && (
+                                                            <span className="text-amber-600 bg-amber-50 text-[10px] rounded px-1 leading-tight">
+                                                                {t("astrology.retrograde")}
+                                                            </span>
                                                         )}
-                                                    </span>
-                                                    <span className="text-gray-600 whitespace-nowrap">
-                                                        {t("astrology.house")} {displayHouse}
-                                                    </span>
-                                                    <span className="text-gray-500 whitespace-nowrap">
-                                                        {getNakshatraName(p.nakshatra) || p.nakshatra} ({p.pada})
-                                                    </span>
-                                                    {tags.length > 0 && (
-                                                        <div className="flex gap-1 shrink-0 flex-wrap">
-                                                            {tags.map((tag) => (
-                                                                <span
-                                                                    key={tag.key}
-                                                                    className={`text-[10px] leading-tight px-1 rounded bg-gray-100 text-gray-600 ${
-                                                                        tag.strikethrough ? "line-through" : ""
-                                                                    }`}
-                                                                >
-                                                                    {tag.text}
-                                                                </span>
-                                                            ))}
-                                                        </div>
-                                                    )}
-                                                    <span className="ml-auto text-gray-400 shrink-0">
-                                                        {isExpanded ? "▼" : "▶"}
-                                                    </span>
-                                                </button>
-                                                {isExpanded && (
-                                                    <div className="border-t px-3 py-2 space-y-1.5 text-xs text-gray-600 bg-gray-50">
-                                                        <p>
-                                                            <span className="font-medium text-gray-700">
-                                                                {t("astrology.degree")}:
-                                                            </span>{" "}
-                                                            {formatDegree(p.degree)}
-                                                        </p>
-                                                        {conjunct.length > 0 && (
-                                                            <p>
-                                                                <span className="font-medium text-gray-700">
-                                                                    {t("astrology.conjunctions")}:
-                                                                </span>{" "}
-                                                                {conjunct.join(", ")}
-                                                            </p>
-                                                        )}
-                                                        {aspects.length > 0 && (
-                                                            <p>
-                                                                <span className="font-medium text-gray-700">
-                                                                    {t("astrology.aspects")}:
-                                                                </span>{" "}
-                                                                {aspects.join(", ")}
-                                                            </p>
-                                                        )}
+                                                        <span className="text-gray-600 whitespace-nowrap">
+                                                            {getSignName(p.sign)}
+                                                        </span>
+                                                        <span className={`whitespace-nowrap ${strengthClass}`}>
+                                                            {t(
+                                                                `astrology.${STRENGTH_TRANSLATION_KEYS[resolvedStrength] ?? "neutral"}`,
+                                                            )}
+                                                        </span>
+                                                        <span className="text-gray-600 whitespace-nowrap">
+                                                            {t("astrology.house")} {displayHouse}
+                                                        </span>
+                                                        <span className="text-gray-500 whitespace-nowrap">
+                                                            {getNakshatraName(p.nakshatra) || p.nakshatra} ({p.pada})
+                                                        </span>
                                                         {tags.length > 0 && (
-                                                            <div className="flex flex-wrap gap-1 pt-0.5">
+                                                            <div className="flex gap-1 shrink-0 flex-wrap">
                                                                 {tags.map((tag) => (
                                                                     <span
                                                                         key={tag.key}
-                                                                        className={`bg-white border rounded px-1.5 py-0.5 text-gray-600 ${
+                                                                        className={`text-[10px] leading-tight px-1 rounded bg-gray-100 text-gray-600 ${
                                                                             tag.strikethrough ? "line-through" : ""
                                                                         }`}
                                                                     >
@@ -1698,21 +1779,63 @@ export default function HoroscopeDetailPage() {
                                                                 ))}
                                                             </div>
                                                         )}
-                                                        <p>
-                                                            <span className="font-medium text-gray-700">
-                                                                {t("astrology.navamsaka")}:
-                                                            </span>{" "}
-                                                            {getSignName(p.navamsaSign)} (
-                                                            {t(
-                                                                `astrology.${STRENGTH_TRANSLATION_KEYS[getStrength(p.navamsaStrength)] ?? "neutral"}`,
+                                                        <span className="ml-auto text-gray-400 shrink-0">
+                                                            {isExpanded ? "▼" : "▶"}
+                                                        </span>
+                                                    </button>
+                                                    {isExpanded && (
+                                                        <div className="border-t px-3 py-2 space-y-1.5 text-xs text-gray-600 bg-gray-50">
+                                                            <p>
+                                                                <span className="font-medium text-gray-700">
+                                                                    {t("astrology.degree")}:
+                                                                </span>{" "}
+                                                                {formatDegree(p.degree)}
+                                                            </p>
+                                                            {conjunct.length > 0 && (
+                                                                <p>
+                                                                    <span className="font-medium text-gray-700">
+                                                                        {t("astrology.conjunctions")}:
+                                                                    </span>{" "}
+                                                                    {conjunct.join(", ")}
+                                                                </p>
                                                             )}
-                                                            )
-                                                        </p>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        );
-                                    })}
+                                                            {aspects.length > 0 && (
+                                                                <p>
+                                                                    <span className="font-medium text-gray-700">
+                                                                        {t("astrology.aspects")}:
+                                                                    </span>{" "}
+                                                                    {aspects.join(", ")}
+                                                                </p>
+                                                            )}
+                                                            {tags.length > 0 && (
+                                                                <div className="flex flex-wrap gap-1 pt-0.5">
+                                                                    {tags.map((tag) => (
+                                                                        <span
+                                                                            key={tag.key}
+                                                                            className={`bg-white border rounded px-1.5 py-0.5 text-gray-600 ${
+                                                                                tag.strikethrough ? "line-through" : ""
+                                                                            }`}
+                                                                        >
+                                                                            {tag.text}
+                                                                        </span>
+                                                                    ))}
+                                                                </div>
+                                                            )}
+                                                            <p>
+                                                                <span className="font-medium text-gray-700">
+                                                                    {t("astrology.navamsaka")}:
+                                                                </span>{" "}
+                                                                {getSignName(p.navamsaSign)} (
+                                                                {t(
+                                                                    `astrology.${STRENGTH_TRANSLATION_KEYS[getStrength(p.navamsaStrength)] ?? "neutral"}`,
+                                                                )}
+                                                                )
+                                                            </p>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            );
+                                        })}
                                 </div>
                             </section>
 
