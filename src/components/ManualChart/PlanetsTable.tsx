@@ -27,6 +27,7 @@ const OTHER_KEYS: Record<string, string> = {
     lord22ndDrekkana: "lord22ndDrekkana",
     lord64thNavamsa: "lord64thNavamsa",
     atmakaraka: "atmakaraka",
+    maranakaraka: "maranakaraka",
 };
 
 export default function PlanetsTable({ result }: PlanetsTableProps) {

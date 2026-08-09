@@ -987,7 +987,7 @@ const SearchResultCard = ({
                                                 let diff = exactPoint - (q.absoluteDegree as number);
                                                 if (diff > 180) diff -= 360;
                                                 if (diff < -180) diff += 360;
-                                                if (Math.abs(diff) > (ORB_MAP[pName] ?? 0) / 2) return "";
+                                                if (Math.abs(diff) > (ORB_MAP[pName] ?? 0)) return "";
                                                 return `${t(`astrology.planetNames.${a.planetName as number}`)} (${formatDegDiff(diff)})`;
                                             })
                                             .filter(Boolean) as string[];
@@ -1016,6 +1016,8 @@ const SearchResultCard = ({
                                             tags.push({ key: "navamsa", text: t("astrology.navamsaLordLabel") });
                                         if ((cd!.atmakaraka as number) === pName)
                                             tags.push({ key: "atmakaraka", text: t("astrology.atmakarakaLabel") });
+                                        if ((cd!.maranakaraka as number) === pName)
+                                            tags.push({ key: "maranakaraka", text: t("astrology.maranakarakaLabel") });
                                         if (((cd!.marakaPlanets as number[]) || []).includes(pName))
                                             tags.push({ key: "maraka", text: t("astrology.marakaLabel") });
                                         if (((cd!.badhakaPlanet as number[]) || []).includes(pName))

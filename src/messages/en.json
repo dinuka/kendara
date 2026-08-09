@@ -216,7 +216,7 @@
         "english": "English",
         "saved": "Settings saved",
         "planetaryOrbs": "Planetary Orbs (Rāśmi)",
-        "orbDescription": "Set the maximum orb of influence for each planet in aspects and conjunctions. Only aspects within half this value will be shown.",
+        "orbDescription": "Set the maximum orb of influence for each planet in aspects and conjunctions.",
         "resetDefaults": "Reset to defaults"
     },
     "astrology": {
@@ -232,6 +232,7 @@
         "drekkanaLordLabel": "22nd Drekkana Lord",
         "navamsaLordLabel": "64th Navamsa Lord",
         "atmakarakaLabel": "Atmakaraka",
+        "maranakarakaLabel": "Maranakaraka",
         "marakaLabel": "Maraka",
         "badhakaLabel": "Badhaka",
         "nidhanamshaLabel": "Nidhanamsha",
@@ -541,6 +542,7 @@
         "lord22ndDrekkana": "22nd Drekkana Lord",
         "lord64thNavamsa": "64th Navamsa Lord",
         "atmakaraka": "Atmakaraka",
+        "maranakaraka": "Maranakaraka",
         "navamsaNotApplicable": "Dasha data not available.",
         "removePlanet": "Remove {planet}",
         "months": {

@@ -18,6 +18,7 @@ import ValidationBadges from "@/components/ManualChart/ValidationBadges";
 import type { Ascendant, CalculationResult, Dashas, House, Planet } from "@/lib/astrology";
 import {
     computeAscendantSpecialFlags,
+    computeMaranakaraka,
     computePanchaPakshi,
     computeThithiFromPlanets,
     findHouse,
@@ -151,6 +152,7 @@ export default function HoroscopeDetailPage() {
             nidhanamshaPlanets: number[];
             ashtamanshaPlanets: number[];
             atmakaraka: number;
+            maranakaraka: number;
             isAscendantWargoththama: boolean;
             isAscendantGandantha: boolean;
             isAscendantGandamula: boolean;
@@ -354,6 +356,15 @@ export default function HoroscopeDetailPage() {
     if (!data) return <div className="text-center py-20 text-gray-400">{t("common.error")}</div>;
 
     const { horoscope, calculatedDetails } = data;
+
+    // Maranakaraka uses the cusp-based calculated house (findHouse), the same house shown in the
+    // chart. Auto horoscopes stored before this fix may carry a stale value computed from the
+    // whole-sign house, so recompute it at render time from planets + houses. Manual horoscopes
+    // already get the correct value (entered house) from synthesizeOtherDetails.
+    const resolvedMaranakaraka =
+        calculatedDetails?.planets && calculatedDetails?.houses && horoscope.source !== "manual"
+            ? computeMaranakaraka(calculatedDetails.planets, calculatedDetails.houses)
+            : (calculatedDetails?.maranakaraka ?? 0);
 
     const handleDelete = async () => {
         setDeleting(true);
@@ -666,7 +677,7 @@ export default function HoroscopeDetailPage() {
                 const nearest = [0, 60, 90, 120, 180].reduce((prev, curr) =>
                     Math.abs(rawDist - curr) < Math.abs(rawDist - prev) ? curr : prev,
                 );
-                if (nearest === 0 || Math.abs(rawDist - nearest) > orb / 2) return null;
+                if (nearest === 0 || Math.abs(rawDist - nearest) > orb) return null;
                 let diff = x.absoluteDegree - p.absoluteDegree;
                 if (diff > 180) diff -= 360;
                 if (diff < -180) diff += 360;
@@ -1340,7 +1351,7 @@ export default function HoroscopeDetailPage() {
                                                             houseMidAbs,
                                                         ),
                                                     }))
-                                                    .filter((a) => Math.abs(a.diff) <= (orbMap[a.planet.name] ?? 0) / 2)
+                                                    .filter((a) => Math.abs(a.diff) <= (orbMap[a.planet.name] ?? 0))
                                                     .sort((a, b) => Math.abs(a.diff) - Math.abs(b.diff));
                                                 return (
                                                     <tr key={h.houseNumber} className="border-b border-gray-50">
@@ -1488,7 +1499,7 @@ export default function HoroscopeDetailPage() {
                                                                       let diff = exactPoint - q.absoluteDegree;
                                                                       if (diff > 180) diff -= 360;
                                                                       if (diff < -180) diff += 360;
-                                                                      if (Math.abs(diff) > (orbMap[p.name] ?? 0) / 2)
+                                                                      if (Math.abs(diff) > (orbMap[p.name] ?? 0))
                                                                           return "";
                                                                       const sign = diff >= 0 ? "+" : "-";
                                                                       const absDiff = Math.abs(diff);
@@ -1525,6 +1536,11 @@ export default function HoroscopeDetailPage() {
                                                         tags.push({
                                                             key: "atmakaraka",
                                                             text: t("astrology.atmakarakaLabel"),
+                                                        });
+                                                    if (resolvedMaranakaraka === p.name)
+                                                        tags.push({
+                                                            key: "maranakaraka",
+                                                            text: t("astrology.maranakarakaLabel"),
                                                         });
                                                     if (calculatedDetails.marakaPlanets?.includes(p.name))
                                                         tags.push({ key: "maraka", text: t("astrology.marakaLabel") });
@@ -1679,7 +1695,7 @@ export default function HoroscopeDetailPage() {
                                                               let diff = exactPoint - q.absoluteDegree;
                                                               if (diff > 180) diff -= 360;
                                                               if (diff < -180) diff += 360;
-                                                              if (Math.abs(diff) > (orbMap[p.name] ?? 0) / 2) return "";
+                                                              if (Math.abs(diff) > (orbMap[p.name] ?? 0)) return "";
                                                               const sign = diff >= 0 ? "+" : "-";
                                                               const absDiff = Math.abs(diff);
                                                               const totalVikala = Math.round(absDiff * 3600);
@@ -1699,6 +1715,11 @@ export default function HoroscopeDetailPage() {
                                                 tags.push({ key: "navamsa", text: t("astrology.navamsaLordLabel") });
                                             if (calculatedDetails.atmakaraka === p.name)
                                                 tags.push({ key: "atmakaraka", text: t("astrology.atmakarakaLabel") });
+                                            if (resolvedMaranakaraka === p.name)
+                                                tags.push({
+                                                    key: "maranakaraka",
+                                                    text: t("astrology.maranakarakaLabel"),
+                                                });
                                             if (calculatedDetails.marakaPlanets?.includes(p.name))
                                                 tags.push({ key: "maraka", text: t("astrology.marakaLabel") });
                                             if (calculatedDetails.badhakaPlanet?.includes(p.name))

@@ -1,4 +1,4 @@
-import { navamsaSign } from "@/lib/astrology";
+import { computeMaranakaraka, navamsaSign } from "@/lib/astrology";
 import type {
     Antardasha,
     Planet as AstroPlanet,
@@ -721,6 +721,9 @@ export function derivePlanetsTable(input: PlanetsTableInput): ManualPlanetRow[] 
     const ascDegree = 0;
     const lord22ndDrekkana = computeDrekkanaLord(lagna, ascDegree);
     const lord64thNavamsa = computeNavamsaLord(lagna, ascDegree);
+    const maranakaraka = computeMaranakaraka(
+        Object.entries(houseOfPlanet).map(([name, house]) => ({ name: Number(name), house, absoluteDegree: 0 })),
+    );
     let atmakaraka: number | null = null;
     if (navamsaEnrichment.length > 0) {
         let maxAbs = -1;
@@ -741,6 +744,7 @@ export function derivePlanetsTable(input: PlanetsTableInput): ManualPlanetRow[] 
             if (lord22ndDrekkana === planet) other.push("lord22ndDrekkana");
             if (lord64thNavamsa === planet) other.push("lord64thNavamsa");
             if (atmakaraka === planet) other.push("atmakaraka");
+            if (maranakaraka === planet) other.push("maranakaraka");
             return {
                 planet,
                 sign,
@@ -1167,6 +1171,7 @@ export function synthesizeOtherDetails(
     | "nidhanamshaPlanets"
     | "ashtamanshaPlanets"
     | "atmakaraka"
+    | "maranakaraka"
     | "isAscendantWargoththama"
     | "isAscendantGandantha"
     | "isAscendantGandamula"
@@ -1197,6 +1202,7 @@ export function synthesizeOtherDetails(
         nidhanamshaPlanets: hasNavamsa ? computeNidhanamsha(lagna, ascNavamsaLagna, houses, planets) : [],
         ashtamanshaPlanets: hasNavamsa ? computeAshtamansha(lagna, ascNavamsaLagna, houses, planets) : [],
         atmakaraka: computeAtmakaraka(planets),
+        maranakaraka: computeMaranakaraka(planets),
         isAscendantWargoththama: computeAscWargoththama(lagna, ascNavamsaSign),
         isAscendantGandantha: computeAscendantGandantha(ascNakshatra.id, ascNakshatra.pada),
         isAscendantGandamula: computeAscendantGandamula(ascNakshatra.id, ascNakshatra.pada),

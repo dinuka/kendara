@@ -216,7 +216,7 @@
         "english": "English",
         "saved": "සැකසුම් සුරකින ලදී",
         "planetaryOrbs": "ග්‍රහ රාශ්මි (Orbs)",
-        "orbDescription": "එක් එක් ග්‍රහයා සඳහා දෘෂ්ටි වල උපරිම අන්තරය සකසන්න. මෙම අගයෙන් භාගයක් තුළ ඇති දෘෂ්ටි පමණක් පෙන්වනු ඇත.",
+        "orbDescription": "එක් එක් ග්‍රහයා සඳහා දෘෂ්ටි වල උපරිම අන්තරය සකසන්න.",
         "resetDefaults": "පෙරනිමියට යළි සකසන්න"
     },
     "astrology": {
@@ -232,6 +232,7 @@
         "drekkanaLordLabel": "22 දෙ.ධි",
         "navamsaLordLabel": "64 න.ධි",
         "atmakarakaLabel": "ආත්මකාරක",
+        "maranakarakaLabel": "මරණකාරක",
         "marakaLabel": "මාරක",
         "badhakaLabel": "බාධක",
         "nidhanamshaLabel": "නිධනාම්ශ",
@@ -541,6 +542,7 @@
         "lord22ndDrekkana": "22වන ද්‍රෙක්කාණ අධිපති",
         "lord64thNavamsa": "64වන නවාංශක අධිපති",
         "atmakaraka": "ආත්මකාරක",
+        "maranakaraka": "මරණකාරක",
         "navamsaNotApplicable": "දශා දත්ත නොමැත.",
         "removePlanet": "{planet} ඉවත් කරන්න",
         "months": {

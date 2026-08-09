@@ -7,6 +7,9 @@
   - Should mark from the Check box check and uncheck.
   - User should possible to check and uncheck if he want. Because some values can't calculate by the system.
   - The system should save the user updated values automatically.  
+  - User should possible see the reason for checked or unchecked.
+    - As example, checkbox in Sthana bala should show a tool tip as Uchcha.
+    - checkbox in Kala bala - tool tip has Because of conjunction with Skukla Chandra, etc...
 - අනුපාතය is (sum of true values) / 6. Should show as (3/6) no need to divide
 
 ## ස්ථාන බල
@@ -33,7 +36,7 @@
   - Ravi, Guru, Sikuru has Kala bala for Day time.
   - Budha, Guru, Sikuru has Kala bala if Chandra in the Shukla paksha.
   - Ravi, Kuja, Shani has Kala bala if Chandra in the Krushna paksha.
-- TODO
+- Need to calculate the load of Hora, Panchama and Sukshama. Then those loads has Kala bala. (cannot calculate for manually calculated horoscopes)
 
 ## දිග් බලය
 

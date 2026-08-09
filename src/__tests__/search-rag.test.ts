@@ -132,6 +132,7 @@ const MOCK_CALC: CalculationResult = {
     nidhanamshaPlanets: [5],
     ashtamanshaPlanets: [2],
     atmakaraka: 5,
+    maranakaraka: 2,
     isAscendantWargoththama: false,
     wargoththamaPlanets: [4],
     gandanthaPlanets: [],
@@ -198,6 +199,10 @@ describe("textContent - English", () => {
 
     test("includes atmakaraka", () => {
         expect(textEn).toContain("Atmakaraka: Jupiter");
+    });
+
+    test("includes maranakaraka", () => {
+        expect(textEn).toContain("Maranakaraka: Moon");
     });
 
     test("includes badhaka and maraka planets", () => {
@@ -268,6 +273,10 @@ describe("textContent - Sinhala", () => {
     test("includes dosha in Sinhala", () => {
         expect(textSi).toContain("දෝෂ");
     });
+
+    test("includes maranakaraka in Sinhala", () => {
+        expect(textSi).toContain("මරණකාරක: සඳු");
+    });
 });
 
 describe("textContent - edge cases", () => {
@@ -298,6 +307,7 @@ describe("textContent - edge cases", () => {
         nidhanamshaPlanets: [],
         ashtamanshaPlanets: [],
         atmakaraka: 1,
+        maranakaraka: 0,
         isAscendantWargoththama: false,
         wargoththamaPlanets: [],
         gandanthaPlanets: [],

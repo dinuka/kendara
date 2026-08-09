@@ -242,6 +242,32 @@ export function findHouse(absoluteDegree: number, houses: House[]): number | nul
     return null;
 }
 
+/** Maranakaraka (මරණකාරක) rule: planet -> house whose occupancy makes Chandra the Maranakaraka. */
+const MARANAKARAKA_RULE: Record<number, number> = {
+    2: 8,
+    8: 9,
+    7: 1,
+    1: 5,
+    6: 6,
+    3: 7,
+    4: 4,
+    5: 3,
+};
+
+/** Maranakaraka (මරණකාරක): Chandra (Moon, 2) when any maranakaraka rule holds, else 0. Uses the
+ *  cusp-based calculated house (findHouse) when `houses` are provided — the same house shown in the
+ *  chart — falling back to the whole-sign `planet.house` otherwise (manual charts, where the entered
+ *  house is the source of truth). */
+export function computeMaranakaraka(
+    planets: Array<Pick<Planet, "name" | "house" | "absoluteDegree">>,
+    houses?: House[],
+): number {
+    return planets.some((p) => {
+        const house = houses ? (findHouse(p.absoluteDegree, houses) ?? p.house) : p.house;
+        return MARANAKARAKA_RULE[p.name] === house;
+    }) ? 2 : 0;
+}
+
 export interface Ascendant {
     sign: number;
     degree: number;
@@ -343,6 +369,9 @@ export interface CalculationResult {
     nidhanamshaPlanets: number[];
     ashtamanshaPlanets: number[];
     atmakaraka: number;
+    /** Maranakaraka (මරණකාරක): Chandra (Moon, 2) when any of the maranakaraka conditions hold,
+     *  else 0 (see computeMaranakaraka). Uses the cusp-based calculated house for auto charts. */
+    maranakaraka: number;
     isAscendantWargoththama: boolean;
     isAscendantGandantha: boolean;
     isAscendantGandamula: boolean;

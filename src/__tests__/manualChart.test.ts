@@ -224,6 +224,24 @@ describe("derivePlanetsTable (UT-CH-040..045)", () => {
         });
         expect(rows.flatMap((r) => r.other)).not.toContain("atmakaraka");
     });
+    test("U048 maranakaraka shows on Moon row when Moon in 8th house", () => {
+        const rows = derivePlanetsTable({
+            lagna: 1,
+            houseOfPlanet: { [Planet.MOON]: 8, [Planet.SUN]: 1 },
+        });
+        const moon = rows.find((r) => r.planet === Planet.MOON)!;
+        expect(moon.other).toContain("maranakaraka");
+        const sun = rows.find((r) => r.planet === Planet.SUN)!;
+        expect(sun.other).not.toContain("maranakaraka");
+    });
+    test("U048a maranakaraka from Rahu in 9th house", () => {
+        const rows = derivePlanetsTable({
+            lagna: 1,
+            houseOfPlanet: { [Planet.RAHU]: 9, [Planet.MOON]: 4 },
+        });
+        const moon = rows.find((r) => r.planet === Planet.MOON)!;
+        expect(moon.other).toContain("maranakaraka");
+    });
     test("U044 strength is sign-based, not always Sama", () => {
         const rows = derivePlanetsTable({ lagna: 1, houseOfPlanet: { [Planet.MOON]: 1 } });
         expect(rows[0].strength).toBe(PlanetaryStrength.SAMA);

@@ -16,6 +16,7 @@ import {
     Prana,
     Sukshama,
     Vidasa,
+    computeMaranakaraka,
     computePanchaPakshi,
     computeThithi,
     navamsaSign,
@@ -385,7 +386,7 @@ export function calculateHoroscope(
     const sunLong = positions.Su.longitude;
     const moonLong = positions.Mo.longitude;
 
-    const sunOrb = (planetaryOrbs["1"] ?? 15) / 2;
+    const sunOrb = planetaryOrbs["1"] ?? 15;
 
     for (let i = 0; i < planetDetails.length; i++) {
         planetDetails[i].combustion =
@@ -456,6 +457,7 @@ export function calculateHoroscope(
         nidhanamshaPlanets: computeNidhanamsha(ascSign, ascLong % 30, houses, planetDetails),
         ashtamanshaPlanets: computeAshtamansha(ascSign, ascLong % 30, houses, planetDetails),
         atmakaraka: computeAtmakaraka(planetDetails),
+        maranakaraka: computeMaranakaraka(planetDetails, houses),
         isAscendantWargoththama: computeAscendantWargoththama(ascSign, ascLong % 30),
         isAscendantGandantha: computeAscendantGandantha(ascNakshatra, ascPada),
         isAscendantGandamula: computeAscendantGandamula(ascNakshatra, ascPada),
@@ -623,6 +625,9 @@ function computeAtmakaraka(planets: Planet[]): number {
     return atmakaraka;
 }
 
+/** Maranakaraka (මරණකාරක) is computed by the shared computeMaranakaraka in astrology.ts, which uses
+ *  the cusp-based calculated house (findHouse) — the same house shown in the chart — rather than the
+ *  whole-sign `planet.house`, which can differ for unequal houses. */
 function addYearsToDate(date: Date, years: number): Date {
     const d = new Date(date);
     const y = Math.floor(years);
