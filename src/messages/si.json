@@ -128,7 +128,7 @@
             "bookmarkRemove": "පොත්යොමුව ඉවත් කරන්න",
             "bookmarkAdd": "පොත්යොමුව",
             "noChartData": "සටහන් දත්ත නොමැත",
-            "signAtDegree": "රාශිය {sign}, {degree}° \u00B7 අධිපති: ග්‍රහයා {lord}",
+            "signAtDegree": "රාශිය {sign}, {degree}° · අධිපති: ග්‍රහයා {lord}",
             "moonNakshatra": "චන්ද්‍ර: නැකත {id}",
             "ascNakshatra": "ලග්න: නැකත {id}",
             "malefic": "පාප",
@@ -142,7 +142,7 @@
             "excellent": "ඉතා හොඳ",
             "strong": "ශක්තිමත්",
             "moderate": "මධ්‍යස්ථ",
-            "ariaLabel": "ගැළපුම් ලකුණු: {pct} ප්\u200Dරතිශතය"
+            "ariaLabel": "ගැළපුම් ලකුණු: {pct} ප්‍රතිශතය"
         },
         "conditions": {
             "ascendant": "ලග්නය {sign}",
@@ -182,8 +182,8 @@
         "dashas": {
             "noData": "දත්ත නොමැත",
             "currentMD": "වත්මන්: මහා දශා අධිපති {lord}",
-            "currentAD": "\u00B7 අන්තර් දශා අධිපති {lord}",
-            "currentVidasa": "\u00B7 විදශා අධිපති {lord}",
+            "currentAD": "· අන්තර් දශා අධිපති {lord}",
+            "currentVidasa": "· විදශා අධිපති {lord}",
             "planet": "ග්‍රහයා {id}",
             "active": "සක්‍රීය"
         },
@@ -198,8 +198,8 @@
             "shodasha-vargas": "වර්ග"
         },
         "pagination": {
-            "previous": "\u2190 පෙර",
-            "next": "ඊළඟ \u2192",
+            "previous": "← පෙර",
+            "next": "ඊළඟ →",
             "pageOf": "පිටුව {page} / {totalPages} (මුළු {total})"
         }
     },
@@ -217,7 +217,79 @@
         "saved": "සැකසුම් සුරකින ලදී",
         "planetaryOrbs": "ග්‍රහ රාශ්මි (Orbs)",
         "orbDescription": "එක් එක් ග්‍රහයා සඳහා දෘෂ්ටි වල උපරිම අන්තරය සකසන්න.",
-        "resetDefaults": "පෙරනිමියට යළි සකසන්න"
+        "resetDefaults": "පෙරනිමියට යළි සකසන්න",
+        "planetAspects": "ග්‍රහ දෘෂ්ටි",
+        "planetAspectsDescription": "සෑම ග්‍රහයෙක්ම දෘෂ්ටි කරන ගෘහ සහ කෝණ තෝරන්න. සකසන ලද ගෘහ සම්පූර්ණ ගෘහ අංක ලෙස යොදනු ලැබේ; ඇතුළත් කිරීමක් නොමැති ග්‍රහයෝ පෙරනිමි (ග්‍රහයාගේ ගෘහයෙන් ගණනය කළ) නීති භාවිතා කරති.",
+        "customize": "අභිරුචිකරණය",
+        "houses": "ගෘහ",
+        "degrees": "අංශක",
+        "resetPlanet": "ග්‍රහයා යළි සකසන්න",
+        "rashiAspects": "රාශි දෘෂ්ඨි",
+        "rashiAspectsDescription": "මෙය ක්‍රියාත්මක වූ විට, රාශියක ඇති ග්‍රහයෙක් එය රාශි දෘෂ්ටි කරන රාශිවල ගෘහ සහ ග්‍රහයන්ටද දෘෂ්ටි කරයි (චර→ස්ථිර, ස්ථිර→චර, උභය→උභය, ආසන්නම රාශිය හැර). පහත තනි රාශි අක්‍රිය කිරීමෙන් ඒවා බැහැර කරන්න.",
+        "enable": "ක්‍රියාත්මක කරන්න",
+        "aspectingSigns": "දෘෂ්ටි කරන රාශි",
+        "disableSign": "මෙම රාශිය සඳහා රාශි දෘෂ්ටි අක්‍රිය කිරීමට ක්ලික් කරන්න",
+        "housesColon": "ගෘහ",
+        "degreesColon": "අංශක",
+        "planetAspectsSelectionDescription": "සෑම ග්‍රහයෙක්ම දෘෂ්ටි කරන ගෘහ සහ කෝණ තෝරන්න. ගෘහයක් (H) තේරීමෙන් එහි යුගල කෝණය H×30 ද තේරේ (උදා: ගෘහ 7 → 210°); කෝණයක් තේරීමෙන් එහි යුගල ගෘහය ද තේරේ. පෙරනිමි ග්‍රහයෝ පද්ධති පෙරනිමි අගයන් පෙන්වයි.",
+        "customStatus": "අභිරුචි",
+        "defaultStatus": "පෙරනිමි",
+        "enabled": "ක්‍රියාත්මකයි",
+        "disabled": "අක්‍රියයි",
+        "collapse": "හකුළන්න",
+        "unsavedChanges": "සුරැකීමට ඇති වෙනස්කම්",
+        "errSave": "සැකසුම් සුරැකීමට නොහැකි විය",
+        "resetConfirmTitle": "පෙරනිමියට යළි සකසන්නද?",
+        "resetConfirmBody": "මෙය අංශ තුනම පද්ධති පෙරනිමි අගයන්ට යළි සකසයි. යෙදවීමට සුරකින්න.",
+        "system": {
+            "version": "අනුවාදය",
+            "updatedBy": "විසින් යාවත්කාලීන කරන ලදී",
+            "updatedAt": "යාවත්කාලීන කළේ",
+            "lastRecalculated": "අවසන් වරට නැවත ගණනය කළේ",
+            "neverRecalculated": "කිසි දිනෙක නැත",
+            "managedByAdminTitle": "පද්ධති-පුළුල් සැකසුම්",
+            "managedByAdminBody": "මෙම ජ්‍යෝතිෂ සැකසුම් පද්ධතියටම පොදු වන අතර පරිපාලක විසින් කළමනාකරණය කරනු ලැබේ. සියලුම කේන්දර ගණනය කෙරෙන්නේ මෙම පොදු අගයන් භාවිතයෙනි.",
+            "saveRecalcStarted": "සැකසුම් සුරැකිණි — නැවත ගණනය කිරීම ආරම්භ විය"
+        },
+        "recalc": {
+            "title": "නැවත ගණනය කිරීම",
+            "neverRun": "තවම කිසිදු නැවත ගණනය කිරීමක් සිදු වී නැත.",
+            "neverRunHint": "සැකසුම් වෙනස් කිරීම් සුරැකීම සියලුම කේන්දර නැවත ගණනය කරයි.",
+            "running": "නැවත ගණනය කරමින්…",
+            "processedOf": "කේන්දර {total} න් {processed} ක්",
+            "succeeded": "සාර්ථකයි",
+            "failed": "අසාර්ථකයි",
+            "completed": "සම්පූර්ණයි",
+            "runFailed": "නැවත ගණනය කිරීම අසාර්ථකයි: {error}",
+            "settingsVersion": "සැකසුම් අනුවාදය {version}",
+            "updatesAutomatically": "ස්වයංක්‍රීයව යාවත්කාලීන වේ",
+            "viewFailed": "අසාර්ථක කේන්දර {count} ක් බලන්න",
+            "hideFailed": "අසාර්ථක කේන්දර සඟවන්න",
+            "retryFailed": "අසාර්ථක ඒවා නැවත උත්සාහ කරන්න",
+            "runFull": "සම්පූර්ණ නැවත ගණනය කරන්න",
+            "inProgress": "නැවත ගණනය කිරීමක් ක්‍රියාත්මක වේ. එය අවසන් වූ පසු සුරැකීම නැවත ලබා ගත හැක.",
+            "total": "මුළු"
+        },
+        "conflict": {
+            "title": "සැකසුම් වෙනත් පරිපාලකයෙකු විසින් වෙනස් කර ඇත.",
+            "body": "ඔබගේ පිටපත යල් පැන ගොස් ඇත (අනුවාදය {version}).",
+            "reload": "වත්මන් සැකසුම් නැවත පූරණය කරන්න",
+            "discardConfirmTitle": "සුරැකීමට ඇති වෙනස්කම් ඉවත දමන්නද?",
+            "discardConfirmBody": "නැවත පූරණය කිරීම ඔබගේ සුරැකීමට ඇති වෙනස්කම් ඉවත දමයි."
+        },
+        "audit": {
+            "title": "සැකසුම් වෙනස්කම් ඉතිහාසය",
+            "empty": "තවම සැකසුම් වෙනස්කම් සටහන් වී නැත.",
+            "versionFromTo": "v{from} → v{to}",
+            "fieldPlanetaryOrbs": "ග්‍රහ රාශ්මි",
+            "fieldPlanetAspects": "ග්‍රහ දෘෂ්ටි",
+            "fieldRashiAspects": "රාශි දෘෂ්ටි"
+        },
+        "history": {
+            "title": "නැවත ගණනය කිරීම් ඉතිහාසය",
+            "empty": "තවම නැවත ගණනය කිරීම් නොමැත.",
+            "settingsVersion": "සැකසුම් v{version}"
+        }
     },
     "astrology": {
         "ascendant": "ලග්නය",
@@ -227,6 +299,36 @@
         "thithi": "තිති",
         "panchaPakshi": "පංච පක්ෂී",
         "aspects": "දෘෂ්ටි",
+        "aspectReason": {
+            "infoGlyph": "දෘෂ්ඨි හේතුව පෙන්වන්න"
+        },
+        "aspectAngles": {
+            "30": "අර්ධ ෂඩ්කෝණ",
+            "60": "ෂඩ්කෝණ",
+            "90": "චතුරස්‍ර",
+            "120": "ත්‍රිකෝණ",
+            "150": "ක්වින්කන්ක්ස්",
+            "180": "විරුද්ධ",
+            "210": "රාශි 7 දෘෂ්ටිය",
+            "240": "රාශි 8 දෘෂ්ටිය",
+            "270": "රාශි 9 දෘෂ්ටිය",
+            "300": "රාශි 10 දෘෂ්ටිය",
+            "330": "රාශි 11 දෘෂ්ටිය"
+        },
+        "drishti": {
+            "label": "ග්‍රහ දෘෂ්ඨි",
+            "rashiLabel": "රාශි දෘෂ්ඨි",
+            "line": "{prefix} {house} ({angle}) ({delta})",
+            "lineNoHouse": "{prefix} ({angle}) ({delta})",
+            "lineMulti": "{prefix} {house} ({angle})",
+            "lineMultiNoHouse": "{prefix} ({angle})",
+            "rashiLine": "{rashiLabel} {aspectingSign} {arrow} {aspectedSign}",
+            "rashiLineWithDelta": "{rashiLabel} {aspectingSign} {arrow} {aspectedSign} ({delta})",
+            "deltaFooter": "Δ {delta}",
+            "arrow": "→",
+            "rashiVerbAria": "දකී",
+            "delta": "{sign}{dd}:{mm}:{ss}"
+        },
         "strengthsSpecialLords": "බල සහ විශේෂ අධිපතිවරු",
         "combustLabel": "අස්ථ",
         "drekkanaLordLabel": "22 දෙ.ධි",
@@ -520,7 +622,6 @@
         "birthTime": "උපන් වේලාව",
         "birthMonth": "උපන් මාසය",
         "birthDates": "උපන් දිනයන්",
-        "birthDate": "උපන් දිනය",
         "ages": "වයස්",
         "estimateDisclaimer": "මේවා ඇතුළත් කළ ලග්නය අනුව ඇස්තමේන්තුගත පරාසයන් වන අතර නියම උපන් තොරතුරු නොවේ.",
         "placeRaviFirst": "මුලින් රවි තබන්න",
@@ -577,6 +678,7 @@
         "delete": "මකන්න",
         "confirm": "තහවුරු කරන්න",
         "back": "ආපසු",
+        "retry": "නැවත උත්සාහ කරන්න",
         "previous": "පෙර",
         "next": "ඊළඟ",
         "page_of": "පිටුව {page} / {total}"

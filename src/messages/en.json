@@ -128,7 +128,7 @@
             "bookmarkRemove": "Remove bookmark",
             "bookmarkAdd": "Bookmark",
             "noChartData": "No chart data available",
-            "signAtDegree": "Sign {sign} at {degree}° \u00B7 Lord: Planet {lord}",
+            "signAtDegree": "Sign {sign} at {degree}° · Lord: Planet {lord}",
             "moonNakshatra": "Moon: Nakshatra {id}",
             "ascNakshatra": "Asc: Nakshatra {id}",
             "malefic": "Malefic",
@@ -182,8 +182,8 @@
         "dashas": {
             "noData": "No data available",
             "currentMD": "Current: MD Lord {lord}",
-            "currentAD": "\u00B7 AD Lord {lord}",
-            "currentVidasa": "\u00B7 Vidasa Lord {lord}",
+            "currentAD": "· AD Lord {lord}",
+            "currentVidasa": "· Vidasa Lord {lord}",
             "planet": "Planet {id}",
             "active": "Active"
         },
@@ -198,8 +198,8 @@
             "shodasha-vargas": "Vargas"
         },
         "pagination": {
-            "previous": "\u2190 Previous",
-            "next": "Next \u2192",
+            "previous": "← Previous",
+            "next": "Next →",
             "pageOf": "Page {page} of {totalPages} ({total} total)"
         }
     },
@@ -217,7 +217,79 @@
         "saved": "Settings saved",
         "planetaryOrbs": "Planetary Orbs (Rāśmi)",
         "orbDescription": "Set the maximum orb of influence for each planet in aspects and conjunctions.",
-        "resetDefaults": "Reset to defaults"
+        "resetDefaults": "Reset to defaults",
+        "planetAspects": "Planet Aspects",
+        "planetAspectsDescription": "Choose the houses and aspect degrees each planet uses. Configured houses are applied as absolute house numbers; planets without an entry use the system defaults (offsets from the planet's house plus degree matching).",
+        "customize": "Customize",
+        "houses": "Houses",
+        "degrees": "Degrees",
+        "resetPlanet": "Reset planet",
+        "rashiAspects": "Rashi Aspects (රාශි දෘෂ්ඨි)",
+        "rashiAspectsDescription": "When enabled, a planet in a sign also aspects the houses and planets of the rashis it rashi-aspects (Chara→Thira, Thira→Chara, Ubaya→Ubaya, nearest rashi excluded). Turn off individual aspecting signs below to exclude them.",
+        "enable": "Enable",
+        "aspectingSigns": "Aspecting signs",
+        "disableSign": "Click to disable rashi aspects for this sign",
+        "housesColon": "Houses",
+        "degreesColon": "Degrees",
+        "planetAspectsSelectionDescription": "Pick which houses and aspect angles each planet aspects. Selecting a house (H) also selects its paired angle H×30 (e.g. house 7 → 210°), and selecting an angle selects its paired house. Default planets show the system defaults — customize them to override.",
+        "customStatus": "Custom",
+        "defaultStatus": "Default",
+        "enabled": "Enabled",
+        "disabled": "Disabled",
+        "collapse": "Collapse",
+        "unsavedChanges": "Unsaved changes",
+        "errSave": "Could not save settings",
+        "resetConfirmTitle": "Reset to defaults?",
+        "resetConfirmBody": "This resets all three sections to the system defaults. Save to apply.",
+        "system": {
+            "version": "Version",
+            "updatedBy": "Updated by",
+            "updatedAt": "Updated",
+            "lastRecalculated": "Last recalculated",
+            "neverRecalculated": "never",
+            "managedByAdminTitle": "System-wide settings",
+            "managedByAdminBody": "These astrology settings are system-wide and managed by the administrator. All horoscopes are calculated with these shared values.",
+            "saveRecalcStarted": "Settings saved — recalculation started"
+        },
+        "recalc": {
+            "title": "Recalculation",
+            "neverRun": "No recalculation has been run yet.",
+            "neverRunHint": "Saving settings changes will recalculate every horoscope.",
+            "running": "Recalculating…",
+            "processedOf": "{processed} of {total} horoscopes",
+            "succeeded": "Succeeded",
+            "failed": "Failed",
+            "completed": "Completed",
+            "runFailed": "Recalculation failed: {error}",
+            "settingsVersion": "Settings version {version}",
+            "updatesAutomatically": "Updates automatically",
+            "viewFailed": "View {count} failed horoscopes",
+            "hideFailed": "Hide failed horoscopes",
+            "retryFailed": "Retry failed",
+            "runFull": "Run full recalc",
+            "inProgress": "A recalculation is in progress. Saving resumes when it completes.",
+            "total": "Total"
+        },
+        "conflict": {
+            "title": "Settings were changed by another administrator.",
+            "body": "Your copy is out of date (version {version}).",
+            "reload": "Reload current settings",
+            "discardConfirmTitle": "Discard your unsaved changes?",
+            "discardConfirmBody": "Reloading discards your unsaved changes."
+        },
+        "audit": {
+            "title": "Audit log",
+            "empty": "No settings changes recorded yet.",
+            "versionFromTo": "v{from} → v{to}",
+            "fieldPlanetaryOrbs": "planetaryOrbs",
+            "fieldPlanetAspects": "planetAspects",
+            "fieldRashiAspects": "rashiAspects"
+        },
+        "history": {
+            "title": "Recalculation history",
+            "empty": "No recalculation runs yet.",
+            "settingsVersion": "Settings v{version}"
+        }
     },
     "astrology": {
         "ascendant": "Ascendant (Lagna)",
@@ -227,6 +299,36 @@
         "thithi": "Thithi",
         "panchaPakshi": "Pancha Pakshi",
         "aspects": "Aspects",
+        "aspectReason": {
+            "infoGlyph": "Show aspect reason"
+        },
+        "aspectAngles": {
+            "30": "Semisextile",
+            "60": "Sextile",
+            "90": "Square",
+            "120": "Trine",
+            "150": "Quincunx",
+            "180": "Opposition",
+            "210": "Sesquiquadrate (7 signs)",
+            "240": "Trine (8 signs)",
+            "270": "Square (9 signs)",
+            "300": "Sextile (10 signs)",
+            "330": "Semisextile (11 signs)"
+        },
+        "drishti": {
+            "label": "Planet drishti",
+            "rashiLabel": "Rashi drishti",
+            "line": "{prefix} {house} ({angle}) ({delta})",
+            "lineNoHouse": "{prefix} ({angle}) ({delta})",
+            "lineMulti": "{prefix} {house} ({angle})",
+            "lineMultiNoHouse": "{prefix} ({angle})",
+            "rashiLine": "{rashiLabel} {aspectingSign} {arrow} {aspectedSign}",
+            "rashiLineWithDelta": "{rashiLabel} {aspectingSign} {arrow} {aspectedSign} ({delta})",
+            "deltaFooter": "Δ {delta}",
+            "arrow": "→",
+            "rashiVerbAria": "aspects",
+            "delta": "{sign}{dd}:{mm}:{ss}"
+        },
         "strengthsSpecialLords": "Strengths & Special Lords",
         "combustLabel": "Combust",
         "drekkanaLordLabel": "22nd Drekkana Lord",
@@ -520,7 +622,6 @@
         "birthTime": "Birth time",
         "birthMonth": "Birth month",
         "birthDates": "Birth dates",
-        "birthDate": "Birth date",
         "ages": "Ages",
         "estimateDisclaimer": "These are probable ranges based on the entered chart, not exact birth details.",
         "placeRaviFirst": "Place Ravi first",
@@ -577,6 +678,7 @@
         "delete": "Delete",
         "confirm": "Confirm",
         "back": "Back",
+        "retry": "Retry",
         "previous": "Previous",
         "next": "Next",
         "page_of": "Page {page} of {total}"

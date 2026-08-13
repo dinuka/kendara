@@ -9,13 +9,14 @@ import DerivedRangesSection from "@/components/ManualChart/DerivedRanges";
 import ManualChartEditor from "@/components/ManualChart/ManualChartEditor";
 import PrivacyBadge from "@/components/PrivacyBadge";
 import PrivacyToggle from "@/components/PrivacyToggle";
+import AspectChip from "@/components/aspects/AspectChip";
 import { useI18n } from "@/hooks/useI18n";
 import { useSession } from "next-auth/react";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
 import ValidationBadges from "@/components/ManualChart/ValidationBadges";
-import type { Ascendant, CalculationResult, Dashas, House, Planet } from "@/lib/astrology";
+import type { Ascendant, Aspect, CalculationResult, Dashas, House, Planet } from "@/lib/astrology";
 import {
     computeAscendantSpecialFlags,
     computeMaranakaraka,
@@ -44,6 +45,7 @@ import {
     synthesizeValidation,
 } from "@/lib/manualChart";
 import type { DerivedRanges, ManualHouse, ManualHousePlacements } from "@/lib/manualChart";
+import { computeManualPlanetAspects } from "@/lib/planetAspects";
 
 const STRENGTH_TRANSLATION_KEYS: Record<PlanetaryStrength, string> = {
     [PlanetaryStrength.ATHI_UCHCHA]: "athiUchcha",
@@ -663,33 +665,17 @@ export default function HoroscopeDetailPage() {
         };
     };
 
-    /** Aspected planet labels for a manual horoscope, computed from the synthesized (navamsa-midpoint)
-     *  degrees using the same Vedic aspect angles (60/90/120/180) and orbs as auto horoscopes. */
-    const getManualAspects = (p: Planet): string[] => {
+    /** Aspected planet `Aspect[]` for a manual horoscope row. Records computed at save time are
+     *  already stored on `p.aspects` (with `reasons`, incl. rashi drishti where enabled); older
+     *  records that predate the aspects-aware engine are re-derived at render time from the
+     *  synthesized (navamsa-midpoint) degrees using the same shared pure module as auto charts.
+     *  Conjunction records (aspectType 0) are excluded — they render in the Conjunctions column. */
+    const getManualAspects = (p: Planet): Aspect[] => {
         if (horoscope.source !== "manual" || !calculatedDetails?.planets.length) return [];
+        if (p.aspects.length > 0) return p.aspects.filter((a) => a.aspectType !== 0);
         const planets = getManualAdjustedPlanets();
-        const orb = orbMap[p.name] ?? 0;
-        return planets
-            .filter((x) => x.name !== p.name)
-            .map((x) => {
-                const dist = Math.abs(p.absoluteDegree - x.absoluteDegree);
-                const rawDist = Math.min(dist, 360 - dist);
-                const nearest = [0, 60, 90, 120, 180].reduce((prev, curr) =>
-                    Math.abs(rawDist - curr) < Math.abs(rawDist - prev) ? curr : prev,
-                );
-                if (nearest === 0 || Math.abs(rawDist - nearest) > orb) return null;
-                let diff = x.absoluteDegree - p.absoluteDegree;
-                if (diff > 180) diff -= 360;
-                if (diff < -180) diff += 360;
-                const sign = diff >= 0 ? "+" : "-";
-                const absDiff = Math.abs(diff);
-                const totalVikala = Math.round(absDiff * 3600);
-                const anshaka = Math.floor(totalVikala / 3600);
-                const kala = Math.floor((totalVikala % 3600) / 60);
-                const vikala = totalVikala % 60;
-                return `${getPlanetName(x.name)} (${sign}${String(anshaka).padStart(2, "0")}:${String(kala).padStart(2, "0")}:${String(vikala).padStart(2, "0")})`;
-            })
-            .filter((v): v is string => v !== null);
+        if (planets.length === 0) return [];
+        return (computeManualPlanetAspects(planets)[p.name] ?? []).filter((a) => a.aspectType !== 0);
     };
 
     /** Surya Lagna / Chandra Lagna chart data. Auto horoscopes have these precomputed and stored on
@@ -1400,25 +1386,42 @@ export default function HoroscopeDetailPage() {
                                                                 : "—"}
                                                         </td>
                                                         <td className="py-1 pr-3">
-                                                            {aspectsToHouse.length > 0
-                                                                ? aspectsToHouse
-                                                                      .map((a) => {
-                                                                          const sign = a.diff >= 0 ? "+" : "-";
-                                                                          const absDiff = Math.abs(a.diff);
-                                                                          const totalVikala = Math.round(
-                                                                              absDiff * 3600,
-                                                                          );
-                                                                          const anshaka = Math.floor(
-                                                                              totalVikala / 3600,
-                                                                          );
-                                                                          const kala = Math.floor(
-                                                                              (totalVikala % 3600) / 60,
-                                                                          );
-                                                                          const vikala = totalVikala % 60;
-                                                                          return `${getPlanetName(a.planet.name)} (${sign}${String(anshaka).padStart(2, "0")}:${String(kala).padStart(2, "0")}:${String(vikala).padStart(2, "0")})`;
-                                                                      })
-                                                                      .join(", ")
-                                                                : "—"}
+                                                            {aspectsToHouse.length > 0 ? (
+                                                                <div className="flex flex-wrap gap-1">
+                                                                    {aspectsToHouse.map((a) => {
+                                                                        const record: Aspect = {
+                                                                            planetName: a.planet.name,
+                                                                            aspectType: a.aspectType,
+                                                                            planetAbsoluteDegree:
+                                                                                a.planet.absoluteDegree,
+                                                                            degreeGap: Math.abs(a.diff),
+                                                                            exactAspectDegree: a.aspectType,
+                                                                            isBeneficial:
+                                                                                a.aspectType === 60 ||
+                                                                                a.aspectType === 120,
+                                                                            delta: a.diff,
+                                                                            reasons: [
+                                                                                {
+                                                                                    type: "planetary",
+                                                                                    angle: a.aspectType,
+                                                                                    delta: a.diff,
+                                                                                },
+                                                                            ],
+                                                                        };
+                                                                        return (
+                                                                            <AspectChip
+                                                                                key={a.planet.name}
+                                                                                aspect={record}
+                                                                                planetLabel={`${PLANET_SYMBOLS[a.planet.name] ?? ""} ${getPlanetName(a.planet.name)}`.trim()}
+                                                                                aspectingSign={a.planet.sign}
+                                                                                house={h.houseNumber}
+                                                                            />
+                                                                        );
+                                                                    })}
+                                                                </div>
+                                                            ) : (
+                                                                "—"
+                                                            )}
                                                         </td>
                                                     </tr>
                                                 );
@@ -1484,34 +1487,23 @@ export default function HoroscopeDetailPage() {
                                                             const vikala = totalVikala % 60;
                                                             return `${getPlanetName(q.name)} (${sign}${String(anshaka).padStart(2, "0")}:${String(kala).padStart(2, "0")}:${String(vikala).padStart(2, "0")})`;
                                                         });
-                                                    const aspects =
+                                                    const aspectRecords: Aspect[] =
                                                         horoscope.source === "manual"
                                                             ? getManualAspects(p)
                                                             : p.aspects
                                                                   .filter((a) => a.aspectType !== 0)
-                                                                  .map((a) => {
+                                                                  .filter((a) => {
                                                                       const q = calculatedDetails.planets.find(
                                                                           (x) => x.name === a.planetName,
                                                                       );
-                                                                      if (!q) return "";
+                                                                      if (!q) return false;
                                                                       const exactPoint =
                                                                           (p.absoluteDegree + a.aspectType) % 360;
                                                                       let diff = exactPoint - q.absoluteDegree;
                                                                       if (diff > 180) diff -= 360;
                                                                       if (diff < -180) diff += 360;
-                                                                      if (Math.abs(diff) > (orbMap[p.name] ?? 0))
-                                                                          return "";
-                                                                      const sign = diff >= 0 ? "+" : "-";
-                                                                      const absDiff = Math.abs(diff);
-                                                                      const totalVikala = Math.round(absDiff * 3600);
-                                                                      const anshaka = Math.floor(totalVikala / 3600);
-                                                                      const kala = Math.floor(
-                                                                          (totalVikala % 3600) / 60,
-                                                                      );
-                                                                      const vikala = totalVikala % 60;
-                                                                      return `${getPlanetName(a.planetName)} (${sign}${String(anshaka).padStart(2, "0")}:${String(kala).padStart(2, "0")}:${String(vikala).padStart(2, "0")})`;
-                                                                  })
-                                                                  .filter(Boolean);
+                                                                      return Math.abs(diff) <= (orbMap[p.name] ?? 0);
+                                                                  });
                                                     const tags: {
                                                         key: string;
                                                         text: string;
@@ -1618,7 +1610,20 @@ export default function HoroscopeDetailPage() {
                                                                 {conjunct.length > 0 ? conjunct.join(", ") : "—"}
                                                             </td>
                                                             <td className="py-1 pr-3">
-                                                                {aspects.length > 0 ? aspects.join(", ") : "—"}
+                                                                {aspectRecords.length > 0 ? (
+                                                                    <div className="flex flex-wrap gap-1">
+                                                                        {aspectRecords.map((a) => (
+                                                                            <AspectChip
+                                                                                key={a.planetName}
+                                                                                aspect={a}
+                                                                                planetLabel={`${PLANET_SYMBOLS[a.planetName] ?? ""} ${getPlanetName(a.planetName)}`.trim()}
+                                                                                aspectingSign={p.sign}
+                                                                            />
+                                                                        ))}
+                                                                    </div>
+                                                                ) : (
+                                                                    "—"
+                                                                )}
                                                             </td>
                                                             <td className="py-1 pr-3">
                                                                 {tags.length > 0 ? (
@@ -1680,31 +1685,23 @@ export default function HoroscopeDetailPage() {
                                                     return `${getPlanetName(q.name)} (${sign}${String(anshaka).padStart(2, "0")}:${String(kala).padStart(2, "0")}:${String(vikala).padStart(2, "0")})`;
                                                 });
 
-                                            const aspects =
+                                            const aspectRecords: Aspect[] =
                                                 horoscope.source === "manual"
                                                     ? getManualAspects(p)
                                                     : p.aspects
                                                           .filter((a) => a.aspectType !== 0)
-                                                          .map((a) => {
+                                                          .filter((a) => {
                                                               const q = calculatedDetails.planets.find(
                                                                   (x) => x.name === a.planetName,
                                                               );
-                                                              if (!q) return "";
+                                                              if (!q) return false;
                                                               const exactPoint =
                                                                   (p.absoluteDegree + a.aspectType) % 360;
                                                               let diff = exactPoint - q.absoluteDegree;
                                                               if (diff > 180) diff -= 360;
                                                               if (diff < -180) diff += 360;
-                                                              if (Math.abs(diff) > (orbMap[p.name] ?? 0)) return "";
-                                                              const sign = diff >= 0 ? "+" : "-";
-                                                              const absDiff = Math.abs(diff);
-                                                              const totalVikala = Math.round(absDiff * 3600);
-                                                              const anshaka = Math.floor(totalVikala / 3600);
-                                                              const kala = Math.floor((totalVikala % 3600) / 60);
-                                                              const vikala = totalVikala % 60;
-                                                              return `${getPlanetName(a.planetName)} (${sign}${String(anshaka).padStart(2, "0")}:${String(kala).padStart(2, "0")}:${String(vikala).padStart(2, "0")})`;
-                                                          })
-                                                          .filter(Boolean);
+                                                              return Math.abs(diff) <= (orbMap[p.name] ?? 0);
+                                                          });
 
                                             const tags: { key: string; text: string; strikethrough?: boolean }[] = [];
                                             if (p.combustion)
@@ -1836,12 +1833,21 @@ export default function HoroscopeDetailPage() {
                                                                     {conjunct.join(", ")}
                                                                 </p>
                                                             )}
-                                                            {aspects.length > 0 && (
+                                                            {aspectRecords.length > 0 && (
                                                                 <p>
                                                                     <span className="font-medium text-gray-700">
                                                                         {t("astrology.aspects")}:
                                                                     </span>{" "}
-                                                                    {aspects.join(", ")}
+                                                                    <span className="inline-flex flex-wrap gap-1">
+                                                                        {aspectRecords.map((a) => (
+                                                                            <AspectChip
+                                                                                key={a.planetName}
+                                                                                aspect={a}
+                                                                                planetLabel={`${PLANET_SYMBOLS[a.planetName] ?? ""} ${getPlanetName(a.planetName)}`.trim()}
+                                                                                aspectingSign={p.sign}
+                                                                            />
+                                                                        ))}
+                                                                    </span>
                                                                 </p>
                                                             )}
                                                             {tags.length > 0 && (

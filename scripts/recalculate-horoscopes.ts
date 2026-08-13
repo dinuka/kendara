@@ -1,30 +1,32 @@
 import mongoose from "mongoose";
 
+import { CalculatedDetails } from "../src/models/CalculatedDetails";
+import { Chart } from "../src/models/Chart";
+import { Horoscope } from "../src/models/Horoscope";
+
+import { getCalculationSettings } from "../src/lib/astrologySettings";
 import { calculateHoroscope } from "../src/lib/calculation";
 import { getChartData, isLeanChartType, toBirthChartData } from "../src/lib/chartDataTransform";
 import { generateChartSvg } from "../src/lib/chartRenderer";
 import { ALL_CHART_TYPES } from "../src/lib/chartTypes";
 import { connectDB } from "../src/lib/db";
 import logger from "../src/lib/logger";
-import { CalculatedDetails } from "../src/models/CalculatedDetails";
-import { Chart } from "../src/models/Chart";
-import { Horoscope } from "../src/models/Horoscope";
-import { User } from "../src/models/User";
 
 import { recalculateCalculatedHoroscope } from "./recalculate-calculated-horoscopes";
 
 /** Recomputes CalculatedDetails and Chart docs for every existing horoscope, using the same
  *  calculateHoroscope/getChartData/generateChartSvg pipeline as the PUT /api/horoscope/[id]
  *  recalculation path for auto horoscopes and the compute/synthesize manual pipeline (delegated to
- *  recalculateCalculatedHoroscope) for calculated (manual) horoscopes. Needed because fixes to the
- *  calculation logic (e.g. the whole-sign house fix) only apply to horoscopes calculated after the
- *  fix — existing records keep stale data until explicitly recalculated. */
+ *  recalculateCalculatedHoroscope) for calculated (manual) horoscopes. Uses the system-wide
+ *  calculation settings (US-SAS-006) for every horoscope. Needed because fixes to the calculation
+ *  logic (e.g. the whole-sign house fix) only apply to horoscopes calculated after the fix —
+ *  existing records keep stale data until explicitly recalculated. */
 async function migrate() {
     await connectDB();
 
     logger.info("starting horoscope recalculation...");
 
-    const orbsByOwnerId = new Map<string, Record<string, number>>();
+    const { planetaryOrbs, planetAspects, rashiAspects } = await getCalculationSettings();
 
     const cursor = Horoscope.find().cursor();
 
@@ -35,20 +37,14 @@ async function migrate() {
         const id = horoscope._id.toString();
         try {
             if (horoscope.source === "manual") {
-                await recalculateCalculatedHoroscope(horoscope);
-                updated++;
-                logger.info("recalculated calculated horoscope id=%s", id);
+                if (await recalculateCalculatedHoroscope(horoscope)) {
+                    updated++;
+                    logger.info("recalculated calculated horoscope id=%s", id);
+                }
                 continue;
             }
 
-            let planetaryOrbs = orbsByOwnerId.get(horoscope.owner.id);
-            if (!planetaryOrbs) {
-                const user = await User.findOne({ googleId: horoscope.owner.id }).lean();
-                planetaryOrbs = (user?.planetaryOrbs ?? {}) as Record<string, number>;
-                orbsByOwnerId.set(horoscope.owner.id, planetaryOrbs);
-            }
-
-            const calculated = calculateHoroscope(horoscope, planetaryOrbs);
+            const calculated = calculateHoroscope(horoscope, planetaryOrbs, planetAspects, rashiAspects);
 
             await CalculatedDetails.findOneAndUpdate({ "horoscope.id": id }, { ...calculated }, { upsert: true });
 

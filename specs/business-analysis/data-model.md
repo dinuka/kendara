@@ -12,14 +12,60 @@
 | name | String | Display name |
 | role | Enum(student, super-admin) | System role |
 | preferredLanguage | Enum(si, en) | UI language (si=Sinhala, en=English) |
+| planetaryOrbs | JSON | DEPRECATED — legacy per-user Planetary Orbs setting (`Record<string, number>` keyed by numeric Planet enum string, e.g., `"1": 15`). No longer read for calculations; the system-wide `AstrologySettings.planetaryOrbs` is the source of truth (see [AstrologySettings](#astrologysettings)). Existing values are ignored |
+| planetAspects | JSON | DEPRECATED — legacy per-user "Planets Aspects houses and degrees" (දෘෂ්ඨි) setting (see [PlanetAspects (System Setting)](#planetaspects-system-setting)). No longer read; existing values are ignored |
+| rashiAspects | JSON | DEPRECATED — legacy per-user "Rashi Aspects" (රාශි දෘෂ්ඨි) setting (see [RashiAspects (System Setting)](#rashiaspects-system-setting)). No longer read; existing values are ignored |
 | createdAt | DateTime | Account created |
 | updatedAt | DateTime | Last updated |
+
+**Notes:**
+- **Migration (2026-08-12):** the three astrological calculation settings (`planetaryOrbs`, `planetAspects`, `rashiAspects`) moved from per-user to system-wide. The fields remain on the `User` document only as inert legacy data — calculations never read them. The system-wide `AstrologySettings` document is the single source of truth (see US-SAS-006). Removal of the legacy fields is a cleanup migration and is optional (they are simply ignored).
 
 **Relationships**:
 
 - User 1---* Horoscope (owner)
 - User 1---* Metadata (creator)
 - User 1---* Location (creator)
+- User 1---1 AstrologySettings (last updated by, via `updatedBy` — optional)
+
+### AstrologySettings
+
+**System-wide (shared) astrological calculation settings** — a single source of truth for the whole system. Replaces the per-user `planetaryOrbs` / `planetAspects` / `rashiAspects` settings formerly stored on each `User`. View/update restricted to Super Admin; students view the values read-only. An update triggers a full recalculation of ALL horoscopes' `CalculatedDetails`.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| id | String | Fixed singleton key — this collection holds exactly one document (`id: "system"`) |
+| planetaryOrbs | JSON | System-wide Planetary Orbs setting — `Record<string, number>` keyed by numeric Planet enum string (e.g., `"1": 15`); the orb tolerance used when calculating aspects. Defaults `{"1":15,"2":12,"3":8,"4":7,"5":9,"6":7,"7":9,"8":0,"9":0}` |
+| planetAspects | JSON | System-wide "Planets Aspects houses and degrees" (දෘෂ්ඨි) setting — see [PlanetAspects (System Setting)](#planetaspects-system-setting) structure |
+| rashiAspects | JSON | System-wide "Rashi Aspects" (රාශි දෘෂ්ඨි) setting — see [RashiAspects (System Setting)](#rashiaspects-system-setting) structure |
+| updatedBy | Object | `{ id: UUID }` — reference to the User (super-admin) who last updated the settings |
+| updatedAt | DateTime | When the settings were last updated |
+| lastRecalculatedAt | DateTime | When the full recalculation of all `CalculatedDetails` last completed for the current settings |
+| recalcStatus | JSON | Optional — status/progress/result of the latest (or in-flight) full recalculation run, see [RecalculationStatus](#recalculationstatus) structure |
+| version | Integer | Optional — monotonically increasing revision counter bumped on every settings update; used for optimistic locking and to make the recalculation idempotent per settings snapshot |
+
+**Business rules:**
+- **Single-document collection**: exactly one system-wide `AstrologySettings` document exists (fixed `id`); it holds the shared values for the whole system
+- **Seeded on first boot**: if the document is absent, it is created with the default values (see [Defaults](#astrologysettings-defaults)) — seeding is idempotent (US-SAS-007)
+- **Super-admin-only writes**: only `role: "super-admin"` users may create/update the document; student or non-admin write attempts are rejected (403), unauthenticated attempts are rejected (401) (US-SAS-008)
+- **All-or-nothing updates**: a settings update is fully validated before persist — a single invalid field rejects the whole payload with no partial save (US-SAS-002)
+- **Update triggers full recalculation**: every successful update bumps `version`, sets `updatedBy`/`updatedAt`, and triggers a background job that recomputes ALL horoscopes' `CalculatedDetails` — both `source: "auto"` and `source: "manual"` (US-SAS-003)
+- **Idempotent rerun**: rerunning the recalculation for the same `version` is a no-op; the job is resumable and reports progress plus per-run success/failure counts; a failing horoscope does not abort the run or corrupt other snapshots (US-SAS-004)
+- **Read-only for students**: students read the shared values (read-only) — e.g. via `GET /api/settings` or the settings UI; they can never write them (US-SAS-005)
+- **Source of truth**: fresh calculations (auto and manual) always use these system-wide values; legacy per-user copies on `User` are ignored (US-SAS-006)
+
+<a name="astrologysettings-defaults"></a>
+**Defaults** (seeded on a fresh system):
+
+| Setting | Default |
+|---------|---------|
+| planetaryOrbs | `{"1":15,"2":12,"3":8,"4":7,"5":9,"6":7,"7":9,"8":0,"9":0}` |
+| planetAspects | `{}` (empty map — every planet uses the per-planet default aspect houses/degrees, see [PlanetAspects (System Setting)](#planetaspects-system-setting)) |
+| rashiAspects | `{ "enabled": false, "overrides": {} }` |
+
+**Relationships**:
+
+- AstrologySettings 1---1 User (last updated by, via `updatedBy`)
 
 ### Horoscope
 
@@ -85,6 +131,8 @@
 **Notes:**
 - `manualHousePlacements` and `derivedRanges` are only present on horoscopes with `source: "manual"` (no ephemeris calculation)
 - For `source: "auto"` horoscopes, these fields are absent; for `source: "manual"` horoscopes, ephemeris-derived fields (dashas, vargas) may be absent
+- Both aspect mechanisms (Planet Aspects houses + degrees, and Rashi Aspects when enabled) are computed for **both** `source: "auto"` and `source: "manual"` horoscopes; the manual chart feeds the same pure aspect functions via each planet's stored or fallback-derived degree (see [ManualHousePlacements](#manualhouseplacements))
+- The bulk recalculation job (triggered by an `AstrologySettings` update) overwrites the computed fields of every stored snapshot using the current system-wide settings. For `source: "auto"` horoscopes it re-runs `calculateHoroscope` from the stored birth details; for `source: "manual"` horoscopes it recomputes from the stored `manualHousePlacements` — which is the single source of truth for the manual chart and is **never overwritten** by the job (US-SAS-009)
 
 **Relationships**:
 
@@ -281,6 +329,18 @@ All enums use numeric values for easy i18n. Display names are mapped separately 
 | 11 | Aquarius | කුම්භ |
 | 12 | Pisces | මීන |
 
+### Rashi Category
+
+Every Zodiac Sign belongs to exactly one fixed category. Used by the Rashi Aspects (රාශි දෘෂ්ඨි) setting to determine which rashis a sign aspects (see [RashiAspects (System Setting)](#rashiaspects-system-setting)). The setting itself is system-wide (see [AstrologySettings](#astrologysettings)); the category mapping is identical for every calculation.
+
+| Category | Signs (ZodiacSign enum) | Sinhala |
+|----------|-------------------------|---------|
+| Chara (movable) | 1, 4, 7, 10 | මේෂ, කටක, තුලා, මකර |
+| Thira (fixed) | 2, 5, 8, 11 | වෘෂභ, සිංහ, වෘශ්චික, කුම්භ |
+| Ubaya (dual) | 3, 6, 9, 12 | මිථුන, කන්‍යා, ධනු, මීන |
+
+**Rashi-aspect rule summary:** Chara rashis aspect other Thira rashis except the nearest (adjacent) one; Thira rashis aspect other Chara rashis except the nearest (adjacent) one; Ubaya rashis aspect other Ubaya rashis excluding the nearest (tie-break rule in the RashiAspects structure). The full authoritative 12-row lookup is in [Rashi Aspects Rules](#rashi-aspect-rules).
+
 ### Nakshatra
 
 | Value | English | Sinhala |
@@ -332,10 +392,22 @@ All enums use numeric values for easy i18n. Display names are mapped separately 
 | Value | Name |
 |-------|------|
 | 0 | Conjunction |
+| 30 | Semisextile |
 | 60 | Sextile |
 | 90 | Square |
 | 120 | Trine |
+| 150 | Quincunx |
 | 180 | Opposition |
+| 210 | Sesquiquadrate (Quincunx, 6 signs) |
+| 240 | Trine (8 signs) |
+| 270 | Square (9 signs) |
+| 300 | Sextile (10 signs) |
+| 330 | Semisextile (11 signs) |
+
+**Notes:**
+- `0` remains reserved for Conjunction (co-location), which is not part of the configurable aspects setting
+- The aspects setting (see [PlanetAspects (System Setting)](#planetaspects-system-setting)) allows any multiple of 30 from 30 to 330 as a configurable aspect degree per planet — `aspectType` / `exactAspectDegree` on a planet's aspects can therefore be any of these values (including non-classical angles such as 210, 240, 270, 300, 330)
+- Display names for the non-classical angles are descriptive placeholders; the numeric degree value is the source of truth for calculation
 
 ## JSON Structures
 
@@ -414,6 +486,134 @@ All enums use numeric values for easy i18n. Display names are mapped separately 
 
 **Note:** `degreeGap` = longitudinal distance between two planets minus the nearest major aspect angle (Conjunction 0°, Sextile 60°, Square 90°, Trine 120°, Opposition 180°). Maximum valid `degreeGap` is < 30° — beyond this, the aspect is not considered effective. In the example above, Sun (12.5°) to Mercury (75.0°) has a raw distance of 62.5°, and the nearest major aspect is Sextile (60°), so `degreeGap` = 2.5°.
 
+**Note (aspects setting):** The candidate aspect angles considered for each planet are NOT fixed — they come from the system-wide [PlanetAspects (System Setting)](#planetaspects-system-setting) `degrees` list for that planet (any multiple of 30 in 30–330, e.g. 60/180/240). The orb tolerance that decides whether an aspect is effective uses the system-wide `planetaryOrbs` value for the aspecting planet (see [AstrologySettings](#astrologysettings)). `aspectType` / `exactAspectDegree` reflect the configured degree value.
+
+<a name="planetaspects-user-setting"></a><a name="planetaspects-system-setting"></a>
+### PlanetAspects (System Setting)
+
+System-wide (shared) aspects setting "Planets Aspects houses and degrees" (ප්ලැනට් ඇස්පෙක්ට්ස් හවුස් ඇන්ඩ් ඩිග්රීස්). Stored on the single system-wide `AstrologySettings` document as the `planetAspects` field, following the `planetaryOrbs` Record convention keyed by numeric Planet enum string (see [AstrologySettings](#astrologysettings)). It defines, for each planet, which houses it aspects and which aspect degree angles are used in house/planet aspect calculation. The values are shared by the whole system (managed by Super Admin) and apply to every calculation — **this section was previously documented as a per-user setting; it is now system-wide** (2026-08-12, US-SAS-001/002/005). The section heading was renamed from "PlanetAspects (User Setting)" — the old `#planetaspects-user-setting` anchor is kept working via the anchor tags above.
+
+```json
+{
+    "1": { "houses": [3, 5, 7, 9, 10], "degrees": [60, 90, 120, 180] },
+    "3": { "houses": [4, 5, 7, 8, 9], "degrees": [60, 90, 120, 180] },
+    "7": { "houses": [3, 5, 7, 9, 10], "degrees": [60, 180, 240] }
+}
+```
+
+**Field meanings (per planet entry):**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| houses | JSON | Array of integers 1-12 — the houses this planet aspects. Non-empty; each value unique; ascending order |
+| degrees | JSON | Array of aspect degree values — multiples of 30 from 30 to 330 (30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330). Non-empty; each value unique; ascending order |
+
+**Notes:**
+- Keyed by numeric Planet enum string (`"1"`…`"9"`), same convention as `planetaryOrbs`; a planet absent from the map uses the system defaults (see defaults below)
+- `planetName` is implied by the record key — it is not stored redundantly; the form selects the planet by English/Sinhala name mapped to the numeric Planet enum
+
+**Defaults:** when a planet has no entry, the system uses the default aspect houses per planet (see table below) and default aspect degrees `[60, 90, 120, 180]` (unchanged). For an unconfigured planet the default houses are applied as **offsets from the planet's whole-sign house**, and the default degrees additionally drive degree-based house-aspect matching (a planet aspects a house when an aspect point derived from its degrees falls within the planet's orb of the house's absolute middle degree) — the aspected-houses set is the **union** of both arms (see US-PA-005 / architect D4). This union applies to **both** `source: "auto"` and `source: "manual"` horoscopes; on manual charts the degree arm uses each planet's stored or fallback-derived degree (see [ManualHousePlacements](#manualhouseplacements)) against the house's whole-sign sign midpoint `(sign−1)*30+15` as the house-middle reference. Default aspect houses:
+
+| Planet enum | Planet | Name (SI) | Default aspect houses |
+|-------------|--------|-----------|------------------------|
+| 1 | SUN | ඉර | 3, 5, 7, 9, 10 |
+| 2 | MOON | සඳු | 3, 5, 7, 9, 10 |
+| 3 | MARS | කුජ | 4, 5, 7, 8, 9 |
+| 4 | MERCURY | බුද | 4, 5, 7, 8, 9 |
+| 5 | JUPITER | ගුරු | 5, 7, 9 |
+| 6 | VENUS | සිකුරු | 5, 7, 9 |
+| 7 | SATURN | ශනි | 3, 5, 7, 9, 10 |
+| 8 | RAHU | රාහු | 5, 7, 9 |
+| 9 | KETU | කේතු | 5, 7, 9 |
+
+These defaults replace the previously documented table (Mars 4/8/12, Jupiter 5/9/11, Saturn 3/7/10, Rahu/Kethu 5/9, all others 7th-house full aspect; Sun/Moon/Mercury/Venus under "others").
+
+- **Calculation effect:** adding/updating a planet's `houses` or `degrees` changes that planet's house aspects and planet aspects. Because the setting is system-wide, any change triggers the full recalculation of ALL horoscopes' `CalculatedDetails` (both sources) — not just the next calculation (see [AstrologySettings](#astrologysettings) business rules, US-SAS-003)
+- **Planetary Orbs:** the orb tolerance used when matching planets against the configured degree values is the system-wide `planetaryOrbs` per-planet value from the same `AstrologySettings` document (unchanged values, now shared; see [AstrologySettings](#astrologysettings))
+
+**Validation rules:**
+
+| Field | Allowed values | Rules |
+|-------|----------------|-------|
+| houses | 1-12 | Each value MUST be an integer in 1-12; duplicates rejected; at least one house required |
+| degrees | 30-330 (step 30) | Each value MUST be a multiple of 30 within 30-330 (i.e. 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330); duplicates rejected; at least one degree required |
+
+- Values outside the allowed set are rejected with a localized validation error (no partial save)
+- An empty `houses` or `degrees` array is invalid — the planet's setting cannot be emptied to nothing
+
+<a name="rashiaspects-user-setting"></a><a name="rashiaspects-system-setting"></a>
+### RashiAspects (System Setting)
+
+System-wide (shared) "Rashi Aspects" (රාශි දෘෂ්ඨි) setting. Stored on the single system-wide `AstrologySettings` document as the `rashiAspects` field, following the `planetAspects` JSON-map pattern (see [AstrologySettings](#astrologysettings)). The rashi-aspect **rules themselves are fixed system rules** — identical for every calculation; the setting only controls **whether** the rules are applied to house/planet aspect calculations, plus any per-sign opt-outs. See [Rashi Aspects Rules](#rashi-aspect-rules) for the authoritative 12-row lookup. The values are shared by the whole system (managed by Super Admin) — **this section was previously documented as a per-user setting; it is now system-wide** (2026-08-12, US-SAS-001/002/005). The section heading was renamed from "RashiAspects (User Setting)" — the old `#rashiaspects-user-setting` anchor is kept working via the anchor tags above.
+
+```json
+{
+    "enabled": true,
+    "overrides": {
+        "1": { "enabled": false },
+        "8": { "enabled": false }
+    }
+}
+```
+
+**Field meanings:**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| enabled | Boolean | Master switch — `true` applies the fixed rashi-aspect rules to house/planet aspect calculation; `false` (default) leaves aspect calculation unchanged (Planet Aspects setting only) |
+| overrides | JSON | Optional Record keyed by numeric ZodiacSign enum string (`"1"`…`"12"`), each value `{ "enabled": false }` — disables rashi drishti for that specific **aspecting sign**. A sign absent from the map follows the global `enabled` state. Empty object `{}` = no overrides |
+
+**Notes:**
+- Default `rashiAspects` = `{ "enabled": false, "overrides": {} }` — aspect calculation is unchanged until a Super Admin enables Rashi Aspects system-wide (backward compatible with existing charts/snapshots)
+- The rashi-aspect rules are **not stored** in `AstrologySettings` — they are fixed system rules; the setting only switches them on/off
+- `overrides` is optional and phase-gated: v1 may ship the `enabled` toggle only; per-sign overrides are added only if the domain confirms a need (see Open Questions in the Rashi Aspects user stories)
+
+<a name="rashi-aspect-rules-fixed-system-rules"></a>
+#### Rashi Aspects Rules (fixed system rules, applied when `enabled = true`)
+
+Each rashi belongs to exactly one category and aspects rashis of a specific target category, excluding its nearest rashi (see [Rashi Category](#rashi-category)):
+
+| Aspecting sign | Category | Aspected signs (numeric ZodiacSign) | Excluded (nearest) |
+|----------------|----------|--------------------------------------|--------------------|
+| මේෂ Aries (1) | Chara | 5, 8, 11 | වෘෂභ Taurus (2) |
+| කටක Cancer (4) | Chara | 2, 8, 11 | සිංහ Leo (5) |
+| තුලා Libra (7) | Chara | 2, 5, 11 | වෘශ්චික Scorpio (8) |
+| මකර Capricorn (10) | Chara | 2, 5, 8 | කුම්භ Aquarius (11) |
+| වෘෂභ Taurus (2) | Thira | 4, 7, 10 | මේෂ Aries (1) |
+| සිංහ Leo (5) | Thira | 1, 7, 10 | කටක Cancer (4) |
+| වෘශ්චික Scorpio (8) | Thira | 1, 4, 10 | තුලා Libra (7) |
+| කුම්භ Aquarius (11) | Thira | 1, 4, 7 | මකර Capricorn (10) |
+| මිථුන Gemini (3) | Ubaya | 6, 9 | මීන Pisces (12) |
+| කන්‍යා Virgo (6) | Ubaya | 3, 12 | ධනු Sagittarius (9) |
+| ධනු Sagittarius (9) | Ubaya | 3, 6 | මීන Pisces (12) |
+| මීන Pisces (12) | Ubaya | 3, 6 | ධනු Sagittarius (9) |
+
+**Nearest-rashi exclusion (precise rule):**
+- **Chara → Thira**: aspect every Thira sign EXCEPT the one adjacent to the aspecting sign (±1 in the zodiac). The two categories strictly alternate around the zodiac, so the excluded sign is the unique Thira sign at the minimum zodiacal arc distance (always the adjacent one). Example: මේෂ Aries (1) aspects සිංහ Leo (5), වෘශ්චික Scorpio (8), කුම්භ Aquarius (11) but NOT වෘෂභ Taurus (2).
+- **Thira → Chara**: aspect every Chara sign EXCEPT the one adjacent to the aspecting sign. Example: වෘෂභ Taurus (2) aspects කටක Cancer (4), තුලා Libra (7), මකර Capricorn (10) but NOT මේෂ Aries (1).
+- **Ubaya → Ubaya**: aspect the other Ubaya signs excluding the nearest. Because Ubaya signs are 3 apart, every Ubaya sign has a **two-way tie** for nearest (e.g. මිථුන Gemini (3) is 3 signs from both කන්‍යා Virgo (6) and මීන Pisces (12)); the tie is resolved by excluding the rashi with the **higher sign number** (the one closer to Pisces/12). So මිථුන Gemini aspects කන්‍යා Virgo (6) and ධනු Sagittarius (9) and excludes මීන Pisces (12) — matches `docs/rash_aspects.md`. The tie-break outcome for කන්‍යා/ධනු/මීන as aspecting signs is not pinned by the source doc — flagged as an open question for domain confirmation.
+
+**Application to house and planet aspects (when `enabled = true`):**
+- **Both chart sources (clarified 2026-08-11):** rashi drishti applies to `source: "auto"` AND `source: "manual"` horoscopes. On manual charts the whole-sign house/planet `sign` supplies the rashi candidate set exactly as on auto charts, and the degree + orb ("rashmi") check uses each planet's stored or fallback-derived degree (see [ManualHousePlacements](#manualhouseplacements)); the house-middle reference for the manual house-aspect check is the house's whole-sign sign midpoint `(sign−1)*30+15` (open question: whether bhava cusps should be used when a `lagnaDegree` is recorded)
+- **House aspects:** a planet in sign S aspects every house whose whole-sign `sign` is in S's aspected-signs set (the houses of the aspected rashis)
+- **Planet aspects:** a planet in sign S aspects every other planet whose `sign` is in S's aspected-signs set
+- **Degree + orb still apply** (as in other aspect calculations): the aspect is effective only when the aspected body/house-middle degree is within the aspecting planet's orb ("rashmi") — the system-wide `planetaryOrbs` value for the aspecting planet (see [AstrologySettings](#astrologysettings)) — of the relevant aspect point derived from the aspecting planet's degree; the degree gap (`+dd:mm:ss`) is reported in the reason line
+- Rashi-aspect reasons **combine with** (union) the Planet-Aspects-setting reasons for the same aspected house/planet; each distinct reason is retained and rendered on its own line
+
+**Two-line aspect-reason output (multiple reasons per aspect):**
+
+An aspect (house or planet) may have more than one reason. Each reason renders as its own tooltip line. Example from `docs/rash_aspects.md`:
+
+```
+ග්‍රහ දෘෂ්ඨි 7 (180) (+02:05:00)
+රාශි දෘෂ්ඨි මේෂ රාශිය මිථුනය දකී (+02:05:00)
+```
+
+- Line 1 — planetary drishti reason (existing single-line format; `ග්‍රහ දෘෂ්ඨි` / `Planet drishti`)
+- Line 2+ — rashi drishti reason(s): `රාශි දෘෂ්ඨි {aspectingSign} රාශිය {aspectedSign} දකී ({delta})` ("Rashi drishti: {aspectingSign} rashi looks at {aspectedSign}"); the source doc also shows the shorter form `රාශි දෘෂ්ඨි {sign} ({delta})` — see Open Questions for which template applies
+- Reason lines are composed in the UI from numeric fields + i18n keys, never stored as text
+- To distinguish reasons, the aspect output should carry a per-entry reason/source marker (e.g. `"planetary" | "rashi"` or a `reasons[]` list) — exact shape to be decided in the Architecture phase (see Open Questions)
+
 ### ManualHousePlacements
 
 Stored on a manually-entered horoscope (`source: "manual"`). This is the **single source of truth** for the manual chart — the planets table and all derived values are recomputed from it, never stored independently.
@@ -421,6 +621,11 @@ Stored on a manually-entered horoscope (`source: "manual"`). This is the **singl
 ```json
 {
   "lagna": 1,
+  "lagnaDegree": 5.0,
+  "planetDegrees": {
+    "1": 12.5,
+    "4": 20.25
+  },
   "houses": [
     {
       "houseNumber": 1,
@@ -454,9 +659,14 @@ Stored on a manually-entered horoscope (`source: "manual"`). This is the **singl
 - `houses` always has exactly 12 entries (house 1–12), one per house
 - `sign` uses the numeric ZodiacSign enum; `planets` uses the numeric Planet enum
 - `planets` may be empty (no planet placed); a planet appears exactly once across all houses
-- `aspects` (per-house) lists which planets aspect this house, derived from the special-aspect rules (Mars 4/8/12, Jupiter 5/9/11, Saturn 3/7/10, Rahu/Kethu 5/9, others 7th-house full aspect)
+- `aspects` (per-house) lists which planets aspect this house. For manual charts the aspected-houses set is the **union of both arms**, exactly as on auto charts (see [PlanetAspects (System Setting)](#planetaspects-system-setting)): the explicit `houses` arm (configured list as **absolute** house numbers, or the default aspect-house rules per planet — SUN/MOON/SATURN 3,5,7,9,10; MARS/MERCURY 4,5,7,8,9; JUPITER/VENUS/RAHU/KETU 5,7,9 — applied as offsets from the planet's own house) **plus** the degree arm (each planet's degree vs. the aspected house's whole-sign sign midpoint `(sign−1)*30+15` within the planet's orb). When the system-wide Rashi Aspects setting is enabled, houses whose whole-sign `sign` is in the planet's rashi-aspect set are aspected too (see [RashiAspects (System Setting)](#rashiaspects-system-setting))
+- `lagnaDegree` (optional) — ascendant degree within the birth sign (0 ≤ d < 30); drives the bhava-cusp/degree estimates on the manual chart
+- `planetDegrees` (optional) — per-planet degree **within the planet's birth sign** (0 ≤ d < 30), keyed by numeric Planet enum string (`"1"`…`"9"`), following the embedded-Record convention of the (now system-wide) `planetaryOrbs`/`planetAspects` settings. Drives the degree-based arms of the aspect settings on manual charts (planet-to-planet aspects, the house-aspect degree arm, and the rashi-aspect degree+orb check)
+- **Fallback degree for a planet with no `planetDegrees` entry:** derived deterministically, mirroring the existing degree-estimation pattern on manual charts (navamsa segment midpoint when the planet's navamsa sign is recorded, else the sign midpoint `15°`). Entered degrees always take precedence; the derived fallback keeps the aspect functions pure and deterministic
 - `navamsaHouses` is optional; present only when the student enters Navamsa placements directly (no separate Navamsa Lagna field — house signs derived whole-sign from the placements)
 - `validation` is advisory (non-blocking) and persisted for display on later visits
+
+**Aspect application — both chart sources (clarified 2026-08-11):** both aspect mechanisms (Planet Aspects houses + degrees and Rashi Aspects) apply to **BOTH** `source: "manual"` and `source: "auto"` horoscopes. The manual chart feeds the same pure aspect functions as the auto chart, using each planet's stored or fallback-derived degree (`planetDegrees`). See `20260809-2133-planet-aspects.md` (US-PA-005 / US-PA-006) and `20260810-0800-rashi-aspects.md` (US-RA-004 / US-RA-005).
 
 ### DerivedRanges
 
@@ -747,6 +957,8 @@ User (1) ---< (N) SavedFilter
 User (1) ---< (N) SearchHistory
 User (1) ---< (N) SearchBookmark
 User (1) ---< (N) Location
+
+AstrologySettings (1) --- (1) User (last updated by, via updatedBy)
 
 Location (1) ---< (N) Horoscope
 

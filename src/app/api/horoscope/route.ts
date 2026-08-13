@@ -5,8 +5,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { CalculatedDetails } from "@/models/CalculatedDetails";
 import { Chart } from "@/models/Chart";
 import { Horoscope } from "@/models/Horoscope";
-import { User } from "@/models/User";
 
+import { getCalculationSettings } from "@/lib/astrologySettings";
 import { calculateHoroscope } from "@/lib/calculation";
 import { getChartData, isLeanChartType, toBirthChartData } from "@/lib/chartDataTransform";
 import { generateChartSvg } from "@/lib/chartRenderer";
@@ -70,11 +70,11 @@ export async function POST(req: NextRequest) {
     });
     logger.info("horoscope saved: id=%s", horoscope.id);
 
-    const user = await User.findOne({ googleId: session.user.id }).lean();
-    const planetaryOrbs = (user?.planetaryOrbs ?? {}) as Record<string, number>;
+    // US-SAS-006: every calculation reads the system-wide settings — the single source of truth.
+    const { planetaryOrbs, planetAspects, rashiAspects } = await getCalculationSettings();
 
     logger.info("running astrological calculation...");
-    const calculated = calculateHoroscope(horoscope, planetaryOrbs);
+    const calculated = calculateHoroscope(horoscope, planetaryOrbs, planetAspects, rashiAspects);
 
     logger.info("saving calculated details...");
     await CalculatedDetails.create({

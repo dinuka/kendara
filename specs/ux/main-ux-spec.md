@@ -1,7 +1,7 @@
 # Kendara — Main UX Specification
 
 **Date:** 2026-07-15 12:30
-**Last Updated:** 2026-07-27 21:15
+**Last Updated:** 2026-08-13 (rev: System-Wide Astrology Settings — the three settings (Orbs / Planet Aspects / Rashi Aspects) are now system-wide on the same `/settings` page: super-admin edits + sees version metadata, recalculation progress, and audit/history; students view read-only with a "managed by the administrator" notice; see `specs/ux/20260813-1000-system-astrology-settings.md`)
 **Author:** UX (BMAD)
 **Based on:** specs/business-analysis/actors.md, specs/business-analysis/data-model.md, specs/business-analysis/20260714-1255-user-stories.md, specs/architecture/overview.md, specs/architecture/20260715-0746-architecture-spec.md, docs/spec.md
 
@@ -19,6 +19,10 @@ Kendara is a bilingual (Sinhala/English) astrology study web app for students to
 > **Search UX:** The Search Horoscope feature has a dedicated UX spec at `specs/ux/20260727-2100-search-horoscope.md` covering RAG-based natural language search, config panel, result cards, history, saved searches, bookmarks, export, and all associated states/accessibility/responsive behavior. The summary below references that spec for full details.
 
 > **Calculated Horoscope UX:** The Calculated Chart (manual entry) feature has a dedicated UX spec at `specs/ux/20260805-1514-calculated-horoscope.md` covering the mode toggle, house table editor, navamsa editor, live validation badges, derived planets table, probable birth-range derivation, and detail-page integration for `source: "manual"` horoscopes.
+
+> **Planet Aspects UX:** The Planet Aspects houses and degrees (දෘෂ්ඨි) settings feature has a dedicated UX spec at `specs/ux/20260809-2215-planet-aspects.md` covering the per-planet house (1–12) and degree (30–330 step 30) chip selectors, Default-vs-Custom status pills, absolute-vs-offset house semantics, staged save with unsaved-changes indicator, reset-to-defaults, validation rules, and the data-only horoscope detail view updates (planets/houses table aspect columns).
+
+> **System Astrology Settings UX:** The System-Wide Astrology Settings feature (Orbs / Planet Aspects / Rashi Aspects moved to a single system-wide document) has a dedicated UX spec at `specs/ux/20260813-1000-system-astrology-settings.md`. The same `/settings` page serves both roles: **super-admin** edits the three sections (single bulk Save, `version` optimistic lock), sees a metadata strip (version / updated-by / last recalculated), a live recalculation status panel (polling + retry-failed), and collapsible audit-log / recalc-history panels; **students** view the full sections **read-only** with a "managed by the administrator" notice and no edit affordances. Admin metadata is never exposed to students.
 
 ---
 
@@ -333,6 +337,26 @@ Search → Results load →
     → Owner/Admin/Share link recipient: see actual name in detail view
 ```
 
+### Flow 13: Configure Planet Aspects (දෘෂ්ඨි)
+
+```
+Settings → "Planets Aspects houses and degrees" section →
+  → All 9 planet rows load from GET /api/settings (planetAspects + planetaryOrbs) →
+  → Unconfigured planets show the authoritative 9-planet defaults (gray [Default] pill);
+     configured planets show stored values (indigo [Custom] pill) →
+  → Expand a planet row (or use the jump-to-planet select on desktop) →
+  → Toggle house chips (1–12) and degree chips (30–330 step 30) →
+  → Status pill flips Default → Custom; "● Unsaved changes (n planets)" indicator appears →
+  → Save →
+    → Client validates (every customized planet has ≥1 house and ≥1 degree) →
+    → PUT /api/settings { planetAspects: { "1": { houses: [...], degrees: [...] } } } →
+    → Success toast + green "Settings saved"; dirty indicator clears →
+  → Next horoscope calculation uses the new values; owner-auto detail views re-derive
+     planets[].aspects / houses[].aspectingPlanets on refresh (data-only, no chart changes)
+```
+
+> Full spec: `specs/ux/20260809-2215-planet-aspects.md`
+
 ## Responsive Breakpoints
 
 | Breakpoint | Width | Layout |
@@ -463,6 +487,24 @@ Search → Results load →
 - **Derived ranges**: Read-only card with birth time/month/date/age probable ranges + estimate disclaimer
 - **Detail page**: `source: "manual"` horoscopes show a "Calculated Chart" badge, an "Edit Chart" button, dual birth+navamsa charts, and "not available" empty states for dasha/varga data
 
+### Planet Aspects Setting (දෘෂ්ඨි)
+
+> **Superseded (2026-08-13):** the three settings (including Planet Aspects) are now **system-wide** — editable by super-admin only, read-only for students, on the same `/settings` page. See `specs/ux/20260813-1000-system-astrology-settings.md`. The interactions below describe the editor surface that super-admins still use; for students the same sections render read-only (pills + values, no chips/expand/Reset, no Save).
+
+> Full spec: `specs/ux/20260809-2215-planet-aspects.md`
+
+- **Placement**: Settings page, below the Planetary Orbs section, inside the same card, separated by `<hr>`; keeps the page's per-section Save pattern (orbs section untouched)
+- **List**: All 9 planets always listed (collapsed rows); summary columns = Status pill + Houses + Degrees; jump-to-planet select on desktop/tablet (`role="select"`, EN/SI names)
+- **Status pill semantics**: `[Custom]` (indigo) = stored entry, houses are ABSOLUTE house numbers; `[Default]` (gray) = authoritative 9-planet table, houses are OFFSETS from the planet's house in each horoscope — communicates the absolute-vs-offset asymmetry
+- **Expanded row editor**: House chip group (1–12) + Degree chip group (30–330 step 30) — `role="group"` per group, chips are `<button aria-pressed>`; structural range validation (impossible to enter out-of-domain values)
+- **Degree labels**: Numeric degree is source of truth; non-classical angles (210, 240, 270, 300, 330) render "N°" with label in tooltip/aria on all screens, full "60° Sextile" style labels on lg+ screens
+- **Save behavior**: Staged, reversible — edits marked with amber "● Unsaved changes (n planets)" indicator; Save enabled only when dirty; saving spinner + `aria-busy`; success = green "Settings saved" + toast
+- **Validation**: ≥1 house and ≥1 degree per customized planet; inline errors under the offending group (`role="alert"` + `aria-describedby`), Save disabled until fixed, focus moves to first offending row
+- **Reset**: Per-planet Reset (staged, no modal — reversible) and "Reset all to defaults" (confirmation modal, destructive tone, `aria-modal` + focus trap); reset on an already-default row → info toast
+- **Error/loading**: Loading = skeleton rows; load error = inline banner + Retry; save error = section banner with localized message, no partial save
+- **Horoscope view impact (data-only)**: Owner-auto detail views re-derive `planets[].aspects` / `houses[].aspectingPlanets` on refresh (pure, no migration); planets table Aspects chips render **planet names only** (`{Planet}` — glyph + localized name, e.g. `සිකුරු / Venus` — no angle/delta inline) and each chip shows a hover/focus/tap **aspect tooltip** (`AspectReasonTooltip` — compact reason lines: a single reason keeps the inline signed delta, e.g. SI `ග්‍රහ දෘෂ්ඨි 7 (180) (+02:05:00)` / EN `Planet drishti 7 (180) (+02:05:00)`, while ≥2 reasons (e.g. planetary + rashi drishti) render one line per reason plus a single shared `Δ {delta}` footer so the delta appears exactly once, e.g. SI `ග්‍රහ දෘෂ්ඨි 7 (180)` + `රාශි දෘෂ්ඨි මේෂ → මිථුන` + `Δ +02:05:00`; see `specs/ux/20260809-2215-planet-aspects.md` §8.1.1); houses table Aspects chips render localized planet names with the same tooltip; charts/art, exports, shared views, and search cards unchanged in v1
+- **Accessibility**: chips keyboard-focusable with `aria-pressed`; status pills never color-only; 40px touch targets; `Esc` closes expanded row/modal; `beforeunload` guard on dirty navigation
+
 ### Search Input
 
 > Full spec: `specs/ux/20260727-2100-search-horoscope.md` §4
@@ -558,6 +600,7 @@ Search → Results load →
 | Dasha data not available | "Dasha data not available." | "දශා දත්ත නොමැත." | (No action — inline message only) |
 | Birth details incomplete for dashas | "Complete birth details to calculate dashas." | "දශා ගණනය කිරීමට උපන් තොරතුරු සම්පූර්ණ කරන්න." | Link to edit horoscope |
 | Current planets calculation failed | "Unable to load current planetary positions. Please try again." | "වත්මන් ග්‍රහ පිහිටීම් පූරණය කළ නොහැක. නැවත උත්සාහ කරන්න." | "Retry" button |
+| Aspects setting load failed | "Could not load your aspects setting. Please try again." | "ඔබගේ දෘෂ්ඨි සැකසුම පූරණය කළ නොහැක. නැවත උත්සාහ කරන්න." | "Retry" button |
 | Private horoscope page (non-owner) | "Horoscope not found" | "ලග්නය හමු නොවීය" | (404 — no action; prevents existence probing) |
 | Privacy toggle save error | "Failed to update privacy settings. Please try again." | "රහස්‍යතා සැකසුම් යාවත්කාලීන කිරීම අසාර්ථකයි. නැවත උත්සාහ කරන්න." | "Retry" link |
 | **Search: No query entered** | "Type a natural language query to search horoscopes." | "ලග්න සොයන්න ස්වාභාවික භාෂා වාක්‍යයක් ටයිප් කරන්න." | Show suggestions + recent history |
@@ -658,6 +701,8 @@ Search → Results load →
 | `specs/ux/20260727-1926-privacy-settings.md` | Horoscope privacy settings UX specification |
 | `specs/ux/20260727-2100-search-horoscope.md` | Search Horoscope (RAG-based) UX specification |
 | `specs/ux/20260805-1514-calculated-horoscope.md` | Calculated Horoscope (manual entry) UX specification |
+| `specs/ux/20260809-2215-planet-aspects.md` | Planet Aspects houses and degrees (දෘෂ්ඨි) settings UX specification |
+| `specs/ux/20260813-1000-system-astrology-settings.md` | System-wide astrology settings UX specification (role-gated `/settings`: admin edit + recalc progress + audit/history; student read-only) |
 | `src/components/PrivacyToggle.tsx` | PrivacyToggle component (isPublic + displayName toggles) |
 | `src/components/PrivacyBadge.tsx` | Privacy status badge (Public / Private / Name Hidden) |
 | `src/components/ManualChart/` | Manual Chart editor components (ModeToggle, HouseTableEditor, NavamsaHouseTableEditor, PlanetPicker, ValidationBadges, PlanetsTable, DerivedRanges, ManualChartEditor, ManualChartDetailPanel) |

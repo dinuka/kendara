@@ -15,6 +15,8 @@ import {
     navamsaLagnaOptions,
     synthesizeOtherDetails,
 } from "@/lib/manualChart";
+import { computePlanetAspects } from "@/lib/planetAspects";
+import { DEFAULT_RASHI_ASPECTS, mergeRashiIntoPlanetAspects } from "@/lib/rashiAspects";
 
 export type ManualChartPayload = { ok: true; value: ManualChartInput } | { ok: false; error: string };
 
@@ -180,6 +182,18 @@ export function synthesizeCalculation(result: ManualChartResult, birthDate?: Dat
     const { manualHousePlacements } = result;
     const lagna = manualHousePlacements.lagna;
     const planets = synthesizePlanets(result);
+    const options = result.aspectOptions;
+    // Planet-to-planet aspects for manual charts reuse the shared degree/yoga arm plus rashi drishti
+    // (UT-AS-252/253). Absolute degrees come from the synthesized navamsa-midpoint fallback.
+    const aspectsByPlanet = mergeRashiIntoPlanetAspects(
+        computePlanetAspects(planets, options?.planetAspects, options?.planetaryOrbs),
+        planets,
+        options?.planetaryOrbs,
+        options?.rashiAspects ?? DEFAULT_RASHI_ASPECTS,
+    );
+    for (const p of planets) {
+        p.aspects = aspectsByPlanet[p.name] ?? [];
+    }
     const moon = planets.find((p) => p.name === 2);
     const ascendantNakshatra = computeAscendantNakshatra(manualHousePlacements);
     const moonNakshatra = moon ? computeMoonNakshatra(moon.sign, moon.navamsaSign) : { id: 1, pada: 1, lord: 9 };

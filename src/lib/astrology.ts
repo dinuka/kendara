@@ -173,6 +173,20 @@ export function formatDegree(deg: number): string {
     return `${String(anshaka).padStart(2, "0")}:${String(kala).padStart(2, "0")}:${String(vikala).padStart(2, "0")}`;
 }
 
+export interface AspectReason {
+    /** Source of the drishti: the Planet-Aspects setting ("planetary") or the fixed Rashi
+     *  Chara/Thira/Ubaya rules ("rashi"). Each distinct reason renders as its own tooltip line. */
+    type: "planetary" | "rashi";
+    /** Matched angle for this reason (planetary: the nearest configured/default degree; rashi:
+     *  `30` × the zodiacal sign-gap). */
+    angle: number;
+    /** Signed delta (degrees) of the aspected target relative to this reason's aspect point.
+     *  Positive when the target is ahead (east) of the aspect point. Display only. */
+    delta: number;
+    /** For rashi reasons: the aspected whole-sign that triggered the reason. */
+    aspectedSign?: number;
+}
+
 export interface Aspect {
     planetName: number;
     aspectType: number;
@@ -180,6 +194,11 @@ export interface Aspect {
     degreeGap: number;
     exactAspectDegree: number;
     isBeneficial: boolean;
+    /** Signed delta of the aspected planet relative to the aspect point (degrees) — for tooltip
+     *  reason lines. Optional; present on records produced by the aspects-aware engine. */
+    delta?: number;
+    /** Distinct drishti reasons (planetary first, then rashi). Optional; absent on legacy records. */
+    reasons?: AspectReason[];
 }
 
 export interface CurrentPlanetRecord {
@@ -224,6 +243,8 @@ export interface House {
     endLord: number;
     sign: number;
     lord: number;
+    /** Planets that aspect this house (degree-based union). Auto charts only; absent on legacy docs. */
+    aspectingPlanets?: number[];
 }
 
 /** Determines the house a longitude falls into using the actual cusp-boundary ranges
@@ -265,7 +286,9 @@ export function computeMaranakaraka(
     return planets.some((p) => {
         const house = houses ? (findHouse(p.absoluteDegree, houses) ?? p.house) : p.house;
         return MARANAKARAKA_RULE[p.name] === house;
-    }) ? 2 : 0;
+    })
+        ? 2
+        : 0;
 }
 
 export interface Ascendant {

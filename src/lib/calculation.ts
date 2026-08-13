@@ -6,7 +6,6 @@ import { IHoroscope } from "@/models/Horoscope";
 import {
     Antardasha,
     Ascendant,
-    Aspect,
     CalculationResult,
     CurrentPeriod,
     DashaInfo,
@@ -23,6 +22,13 @@ import {
 } from "@/lib/astrology";
 import { PlanetaryStrength } from "@/lib/astrologyEnums";
 import logger from "@/lib/logger";
+import { type PlanetAspectsMap, computePlanetAspects } from "@/lib/planetAspects";
+import {
+    DEFAULT_RASHI_ASPECTS,
+    type RashiAspectsSetting,
+    computeHouseAspectsByHouseWithRashi,
+    mergeRashiIntoPlanetAspects,
+} from "@/lib/rashiAspects";
 
 const GRAHA_MAP: Record<string, number> = {
     Su: 1,
@@ -128,8 +134,6 @@ const SIGN_LORD: Record<number, number> = {
     11: 7,
     12: 5,
 };
-
-const ASPECT_TYPES = [0, 60, 90, 120, 180];
 
 function getNakshatraId(name: string): number {
     const idx = NAKSHATRA_NAMES.indexOf(name);
@@ -258,6 +262,8 @@ const DEFAULT_ORBS: Record<string, number> = {
 export function calculateHoroscope(
     data: IHoroscope,
     planetaryOrbs: Record<string, number> = DEFAULT_ORBS,
+    planetAspects?: PlanetAspectsMap,
+    rashiAspects?: RashiAspectsSetting,
 ): CalculationResult {
     logger.info({ name: data.name, ayanamsha: data.ayanamsha }, "starting horoscope calculation");
 
@@ -395,28 +401,31 @@ export function calculateHoroscope(
                 : Math.abs(planetDetails[i].absoluteDegree - sunLong) < sunOrb ||
                   Math.abs(planetDetails[i].absoluteDegree - sunLong + 360) < sunOrb ||
                   Math.abs(planetDetails[i].absoluteDegree - sunLong - 360) < sunOrb;
+    }
 
-        const aspects: Aspect[] = [];
-        for (let j = 0; j < planetDetails.length; j++) {
-            if (i === j) continue;
-            const dist = Math.abs(planetDetails[i].absoluteDegree - planetDetails[j].absoluteDegree);
-            const rawDist = Math.min(dist, 360 - dist);
-            const nearestAspect = ASPECT_TYPES.reduce((prev, curr) =>
-                Math.abs(rawDist - curr) < Math.abs(rawDist - prev) ? curr : prev,
-            );
-            const gap = Math.abs(rawDist - nearestAspect);
-            if (gap < 30) {
-                aspects.push({
-                    planetName: planetDetails[j].name,
-                    aspectType: nearestAspect,
-                    planetAbsoluteDegree: planetDetails[j].absoluteDegree,
-                    degreeGap: +gap.toFixed(2),
-                    exactAspectDegree: nearestAspect,
-                    isBeneficial: nearestAspect === 60 || nearestAspect === 120,
-                });
-            }
-        }
-        planetDetails[i].aspects = aspects;
+    // ASPECTS — planet drishti (degree/yoga arms + rashi drishti), per-planet orbs respected.
+    // Waxing-in-place approach: planetary reasons first, rashi reasons appended (UT-RA-141/142/143).
+    const aspectSettings = rashiAspects ?? DEFAULT_RASHI_ASPECTS;
+    const planetAspectsByPlanet = mergeRashiIntoPlanetAspects(
+        computePlanetAspects(planetDetails, planetAspects, planetaryOrbs),
+        planetDetails,
+        planetaryOrbs,
+        aspectSettings,
+    );
+    for (const p of planetDetails) {
+        p.aspects = planetAspectsByPlanet[p.name] ?? [];
+    }
+
+    // HOUSE ASPECTS — planets aspecting each house (Planet-Aspects arms ∪ rashi arm) → houses[].aspectingPlanets.
+    const aspectingByHouse = computeHouseAspectsByHouseWithRashi(
+        planetDetails,
+        houses,
+        planetAspects,
+        planetaryOrbs,
+        aspectSettings,
+    );
+    for (const h of houses) {
+        h.aspectingPlanets = aspectingByHouse[h.houseNumber] ?? [];
     }
 
     for (const p of planetDetails) {

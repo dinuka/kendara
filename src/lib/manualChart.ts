@@ -9,6 +9,12 @@ import type {
     Mahadasha,
 } from "@/lib/astrology";
 import { Planet, PlanetaryStrength } from "@/lib/astrologyEnums";
+import { type PlanetAspectsMap, computeManualHouseAspects, derivePlanetAbsoluteDegree } from "@/lib/planetAspects";
+import {
+    DEFAULT_RASHI_ASPECTS,
+    type RashiAspectsSetting,
+    computeHouseAspectsByPlanetWithRashi,
+} from "@/lib/rashiAspects";
 
 export type ValidationStatus = "valid" | "invalid" | "incomplete" | "skipped";
 
@@ -95,6 +101,19 @@ export interface CurrentShani {
     degree: number;
 }
 
+export interface ManualAspectOptions {
+    /** Per-planet aspect settings (houses/degrees). Omitted → defaults. */
+    planetAspects?: PlanetAspectsMap;
+    /** Per-planet stored absolute-degree-in-sign (0-30) for the degree arm on manual charts. */
+    planetDegrees?: Record<string, number>;
+    /** Per-planet aspect orbs. Omitted → DEFAULT_ORBS. */
+    planetaryOrbs?: Record<string, number>;
+    /** Rashi (zodiacal-sign) drishti settings. Omitted → DEFAULT_RASHI_ASPECTS. */
+    rashiAspects?: RashiAspectsSetting;
+    /** Planet → navamsa (D9) sign, used as the deterministic degree fallback within the birth sign. */
+    navamsaSigns?: Record<number, number>;
+}
+
 export interface ManualChartInput {
     lagna: number;
     houses: Record<number, number[]>;
@@ -104,6 +123,8 @@ export interface ManualChartInput {
     /** Navamsa (D9) Lagna — required to enter the navamsa chart; drives navamsa house signs. */
     navamsaLagna?: number;
     navamsaHouses?: Record<number, number[]>;
+    /** Aspect settings consumed during derivation (settings tab). */
+    aspectOptions?: ManualAspectOptions;
 }
 
 export interface ManualChartResult {
@@ -111,6 +132,7 @@ export interface ManualChartResult {
     planetsTable: ManualPlanetRow[];
     navamsaEnrichment: NavamsaEnrichment[];
     derivedRanges: DerivedRanges;
+    aspectOptions?: ManualAspectOptions;
 }
 
 export const SIGN_LORD: Record<number, number> = {
@@ -136,24 +158,51 @@ export function deriveHouseSigns(lagna: number): number[] {
     return Array.from({ length: 12 }, (_, i) => ((lagna - 1 + i) % 12) + 1);
 }
 
-const ASPECT_HOUSES: Record<number, number[]> = {
-    [Planet.MARS]: [4, 8, 12],
-    [Planet.JUPITER]: [5, 9, 11],
-    [Planet.SATURN]: [3, 7, 10],
-    [Planet.RAHU]: [5, 9],
-    [Planet.KETU]: [5, 9],
-};
-
-/** Vedic special aspects: Mars 4/8/12, Jupiter 5/9/11, Saturn 3/7/10, Rahu/Ketu 5/9,
- *  all other planets only the 7th-house full aspect. Returns planet -> aspected house numbers. */
-export function computeAspects(houseOfPlanet: Record<number, number>): Record<number, number[]> {
-    const result: Record<number, number[]> = {};
-    for (const [planetKey, house] of Object.entries(houseOfPlanet)) {
+/** Manual-chart planet → aspected houses: the union of the Planet-Aspects arms (explicit/offset
+ *  houses ∪ degree arm against whole-sign sign midpoints) and the rashi (zodiacal-sign) arm. Pure
+ *  delegation to the shared modules — no duplicated matching logic. `houseSigns` is the lagna-derived
+ *  whole-sign house → sign list. */
+export function computeAspects(
+    houseOfPlanet: Record<number, number>,
+    houseSigns: number[],
+    options: ManualAspectOptions = {},
+): Record<number, number[]> {
+    const base = computeManualHouseAspects(
+        houseOfPlanet,
+        houseSigns,
+        options.planetDegrees,
+        options.planetAspects,
+        options.planetaryOrbs,
+        options.navamsaSigns,
+    );
+    const planets = Object.entries(houseOfPlanet).map(([planetKey, house]) => {
         const planet = Number(planetKey);
-        const offsets = ASPECT_HOUSES[planet] ?? [7];
-        result[planet] = offsets.map((o) => ((house - 1 + o - 1) % 12) + 1);
-    }
-    return result;
+        const sign = houseSigns[house - 1];
+        return {
+            name: planet,
+            house,
+            sign,
+            absoluteDegree: derivePlanetAbsoluteDegree(
+                planet,
+                sign,
+                options.navamsaSigns?.[planet],
+                options.planetDegrees?.[String(planet)],
+            ),
+        };
+    });
+    const houses = houseSigns.map((sign, i) => ({
+        houseNumber: i + 1,
+        sign,
+        middleSign: sign,
+        middleDegree: 15,
+    }));
+    return computeHouseAspectsByPlanetWithRashi(
+        planets,
+        houses,
+        options.planetAspects,
+        options.planetaryOrbs,
+        options.rashiAspects ?? DEFAULT_RASHI_ASPECTS,
+    );
 }
 
 /** Planets co-located in the same house are conjunct. Returns planet -> partner planets. */
@@ -201,13 +250,17 @@ export function manualPlacementsToInput(placements: ManualHousePlacements): Manu
     };
 }
 
-export function buildHouses(lagna: number, houseOfPlanet: Record<number, number>): ManualHouse[] {
+export function buildHouses(
+    lagna: number,
+    houseOfPlanet: Record<number, number>,
+    options?: ManualAspectOptions,
+): ManualHouse[] {
     const houseSigns = deriveHouseSigns(lagna);
     const planetsByHouse: Record<number, number[]> = {};
     for (const [planetKey, house] of Object.entries(houseOfPlanet)) {
         (planetsByHouse[house] ??= []).push(Number(planetKey));
     }
-    const aspectsByPlanet = computeAspects(houseOfPlanet);
+    const aspectsByPlanet = computeAspects(houseOfPlanet, houseSigns, options);
     const aspectingPlanetsByHouse: Record<number, number[]> = {};
     for (const [planetKey, houses] of Object.entries(aspectsByPlanet)) {
         const planet = Number(planetKey);
@@ -701,16 +754,17 @@ export interface PlanetsTableInput {
     lagna: number;
     houseOfPlanet: Record<number, number>;
     navamsaEnrichment?: NavamsaEnrichment[];
+    aspectOptions?: ManualAspectOptions;
 }
 
 /** Derive the read-only planets table from house placements. Sign comes from the house, strength is
  *  sign-based (exaltation/debilitation/moolatrikona/own/friend/enemy/sama at degree 0), conjunctions/aspects
  *  from the shared rules, and "Other" carries the 22nd Drekkana Lord / 64th Navamsa Lord / Atmakaraka tags. */
 export function derivePlanetsTable(input: PlanetsTableInput): ManualPlanetRow[] {
-    const { lagna, houseOfPlanet, navamsaEnrichment = [] } = input;
+    const { lagna, houseOfPlanet, navamsaEnrichment = [], aspectOptions } = input;
     const houseSigns = deriveHouseSigns(lagna);
     const conjunctions = computeConjunctions(houseOfPlanet);
-    const aspectsByPlanet = computeAspects(houseOfPlanet);
+    const aspectsByPlanet = computeAspects(houseOfPlanet, houseSigns, aspectOptions);
     const planetsByHouse: Record<number, number[]> = {};
     for (const [planetKey, house] of Object.entries(houseOfPlanet)) {
         (planetsByHouse[house] ??= []).push(Number(planetKey));
@@ -881,34 +935,49 @@ export function deriveRanges(
 export function compute(input: ManualChartInput, currentShani?: CurrentShani | null): ManualChartResult {
     const houseOfPlanet = placementsToMap(input.houses);
     const houseSigns = deriveHouseSigns(input.lagna);
-    const houses = buildHouses(input.lagna, houseOfPlanet);
-    const validation = validatePlacements(houseOfPlanet, input.navamsaHouses, !!input.navamsaLagna);
+    const aspectOptions = input.aspectOptions;
 
     let navamsaHouses: ManualHouse[] = [];
     let navamsaEnrichment: NavamsaEnrichment[] = [];
     const navamsaLagna = input.navamsaLagna;
-    if (
+    const navamsaActive =
         navamsaLagna &&
         navamsaLagna >= 1 &&
         navamsaLagna <= 12 &&
         input.navamsaHouses &&
-        Object.keys(input.navamsaHouses).length > 0
-    ) {
-        const navHouseOfPlanet = placementsToMap(input.navamsaHouses);
-        navamsaHouses = buildHouses(navamsaLagna, navHouseOfPlanet);
-        const navHouseSigns = deriveHouseSigns(navamsaLagna);
+        Object.keys(input.navamsaHouses).length > 0;
+    const navHouseOfPlanet = navamsaActive ? placementsToMap(input.navamsaHouses ?? {}) : undefined;
+    const navHouseSigns = navamsaActive ? deriveHouseSigns(navamsaLagna as number) : undefined;
+
+    // Resolve navamsa-sign fallback for the aspect degree arm, then thread through both charts.
+    let navamsaSigns: Record<number, number> | undefined;
+    if (navamsaActive && navHouseOfPlanet && navHouseSigns) {
+        navamsaSigns = {};
+        for (const [planetKey, navHouse] of Object.entries(navHouseOfPlanet)) {
+            navamsaSigns[Number(planetKey)] = navHouseSigns[navHouse - 1];
+        }
         const planetBirthSigns: Record<number, number> = {};
         for (const [planetKey, house] of Object.entries(houseOfPlanet)) {
             planetBirthSigns[Number(planetKey)] = houseSigns[house - 1];
         }
-        const planetNavamsaSigns: Record<number, number> = {};
-        for (const [planetKey, navHouse] of Object.entries(navHouseOfPlanet)) {
-            planetNavamsaSigns[Number(planetKey)] = navHouseSigns[navHouse - 1];
-        }
-        navamsaEnrichment = deriveNavamsaData(planetBirthSigns, planetNavamsaSigns);
+        navamsaEnrichment = deriveNavamsaData(planetBirthSigns, navamsaSigns);
+    }
+    const resolvedOptions: ManualAspectOptions | undefined = aspectOptions
+        ? { ...aspectOptions, ...(navamsaSigns ? { navamsaSigns } : {}) }
+        : undefined;
+
+    const houses = buildHouses(input.lagna, houseOfPlanet, resolvedOptions);
+    const validation = validatePlacements(houseOfPlanet, input.navamsaHouses, !!navamsaLagna);
+    if (navamsaActive && navHouseOfPlanet) {
+        navamsaHouses = buildHouses(navamsaLagna as number, navHouseOfPlanet, resolvedOptions);
     }
 
-    const planetsTable = derivePlanetsTable({ lagna: input.lagna, houseOfPlanet, navamsaEnrichment });
+    const planetsTable = derivePlanetsTable({
+        lagna: input.lagna,
+        houseOfPlanet,
+        navamsaEnrichment,
+        aspectOptions: resolvedOptions,
+    });
     const derivedRanges = deriveRanges(input.lagna, houseOfPlanet, navamsaEnrichment, currentShani);
 
     return {
@@ -923,6 +992,7 @@ export function compute(input: ManualChartInput, currentShani?: CurrentShani | n
         planetsTable,
         navamsaEnrichment,
         derivedRanges,
+        aspectOptions: resolvedOptions,
     };
 }
 

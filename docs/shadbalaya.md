@@ -48,3 +48,7 @@
 ## නෛසර්ගික බලය
 
 - If planet is not Maranakaraka then that plant has Naisargika Bala
+
+## දෘෂ්ඨි බලය
+
+- User will update manually. Because some values can't calculate by the system.

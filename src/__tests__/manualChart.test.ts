@@ -165,20 +165,26 @@ describe("validatePlacements planet count (both charts need 9 planets)", () => {
 });
 
 describe("computeAspects / computeConjunctions (UT-CH-030..037)", () => {
-    test("U030 Mars aspects houses 4/8/12 from itself", () => {
-        expect(computeAspects({ [Planet.MARS]: 1 })[Planet.MARS]).toEqual([4, 8, 12]);
+    // Whole-sign house signs for Aries lagna: house N carries sign N, so planet abs degree =
+    // sign midpoint (sign-1)*30 + 15 with no navamsa/degree fallback. Expected values are the
+    // union of the explicit offsets arm and the degree arm (60/90/120/180 within the planet's orb).
+    // Rashi drishti is disabled here (it is enabled by default) so these stay planet-arm-only.
+    const HS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+    const NO_RASHI = { rashiAspects: { enabled: false, overrides: {} } };
+    test("U030 Mars in house 1 aspects [4,5,6,7,8,9,10] (offsets 4/5/7/8/9 + degree arm)", () => {
+        expect(computeAspects({ [Planet.MARS]: 1 }, HS, NO_RASHI)[Planet.MARS]).toEqual([4, 5, 6, 7, 8, 9, 10]);
     });
-    test("U031 Jupiter aspects houses 5/9/11 from house 3", () => {
-        expect(computeAspects({ [Planet.JUPITER]: 3 })[Planet.JUPITER]).toEqual([7, 11, 1]);
+    test("U031 Jupiter in house 3 aspects [7,9,11] (offsets 5/7/9 + degree arm)", () => {
+        expect(computeAspects({ [Planet.JUPITER]: 3 }, HS, NO_RASHI)[Planet.JUPITER]).toEqual([7, 9, 11]);
     });
-    test("U032 Saturn aspects 3/7/10 from house 5", () => {
-        expect(computeAspects({ [Planet.SATURN]: 5 })[Planet.SATURN]).toEqual([7, 11, 2]);
+    test("U032 Saturn in house 5 aspects [1,2,3,7,8,9,11] (offsets 3/5/7/9/10 + degree arm)", () => {
+        expect(computeAspects({ [Planet.SATURN]: 5 }, HS, NO_RASHI)[Planet.SATURN]).toEqual([1, 2, 3, 7, 8, 9, 11]);
     });
-    test("U033 Moon 7th-house full aspect", () => {
-        expect(computeAspects({ [Planet.MOON]: 1 })[Planet.MOON]).toEqual([7]);
+    test("U033 Moon in house 1 aspects [3,4,5,7,9,10,11] (offsets 3/5/7/9/10 + degree arm)", () => {
+        expect(computeAspects({ [Planet.MOON]: 1 }, HS, NO_RASHI)[Planet.MOON]).toEqual([3, 4, 5, 7, 9, 10, 11]);
     });
-    test("U034 Rahu aspects 5/9 from house 4", () => {
-        expect(computeAspects({ [Planet.RAHU]: 4 })[Planet.RAHU]).toEqual([8, 12]);
+    test("U034 Rahu in house 4 aspects [8,10,12] (offsets 5/7/9 + degree arm)", () => {
+        expect(computeAspects({ [Planet.RAHU]: 4 }, HS, NO_RASHI)[Planet.RAHU]).toEqual([8, 10, 12]);
     });
     test("U035 conjunction same house", () => {
         const c = computeConjunctions({ [Planet.SUN]: 1, [Planet.MARS]: 1 });
@@ -189,8 +195,8 @@ describe("computeAspects / computeConjunctions (UT-CH-030..037)", () => {
         expect(c[Planet.SUN]).toEqual([]);
         expect(c[Planet.MARS]).toEqual([]);
     });
-    test("U037 wrap Saturn house 12 aspects", () => {
-        expect(computeAspects({ [Planet.SATURN]: 12 })[Planet.SATURN]).toEqual([2, 6, 9]);
+    test("U037 wrap Saturn in house 12 aspects [2,3,4,6,8,9,10] (offsets + degree arm)", () => {
+        expect(computeAspects({ [Planet.SATURN]: 12 }, HS, NO_RASHI)[Planet.SATURN]).toEqual([2, 3, 4, 6, 8, 9, 10]);
     });
 });
 
@@ -273,7 +279,7 @@ describe("derivePlanetsTable (UT-CH-040..045)", () => {
     test("U046 aspects column lists planets, not houses", () => {
         const rows = derivePlanetsTable({
             lagna: 1,
-            houseOfPlanet: { [Planet.MARS]: 1, [Planet.JUPITER]: 8, [Planet.SUN]: 12 },
+            houseOfPlanet: { [Planet.MARS]: 1, [Planet.JUPITER]: 8, [Planet.SUN]: 9 },
         });
         const mars = rows.find((r) => r.planet === Planet.MARS)!;
         expect(mars.house).toBe(1);

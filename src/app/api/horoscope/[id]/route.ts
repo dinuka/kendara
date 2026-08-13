@@ -6,8 +6,8 @@ import { CalculatedDetails } from "@/models/CalculatedDetails";
 import { Chart } from "@/models/Chart";
 import { Horoscope } from "@/models/Horoscope";
 import { Metadata } from "@/models/Metadata";
-import { User } from "@/models/User";
 
+import { getCalculationSettings } from "@/lib/astrologySettings";
 import { calculateHoroscope } from "@/lib/calculation";
 import { getChartData, isLeanChartType, toBirthChartData } from "@/lib/chartDataTransform";
 import { generateChartSvg } from "@/lib/chartRenderer";
@@ -151,11 +151,8 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 
     if (needsRecalc) {
         logger.info("calculation fields changed, recalculating horoscope id=%s", id);
-        const user = await User.findOne({
-            googleId: session.user.id,
-        }).lean();
-        const planetaryOrbs = (user?.planetaryOrbs ?? {}) as Record<string, number>;
-        const calculated = calculateHoroscope(horoscope, planetaryOrbs);
+        const { planetaryOrbs, planetAspects, rashiAspects } = await getCalculationSettings();
+        const calculated = calculateHoroscope(horoscope, planetaryOrbs, planetAspects, rashiAspects);
 
         await CalculatedDetails.findOneAndUpdate({ "horoscope.id": id }, { ...calculated }, { upsert: true });
 

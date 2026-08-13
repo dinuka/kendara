@@ -126,6 +126,30 @@
 - Horoscopes are flagged `source: "manual"` (vs `"auto"` for ephemeris-calculated); manual horoscopes reuse the existing privacy/search/share features and show "not available" empty states for ephemeris-dependent data (dashas, varga charts)
 - Full spec: `specs/architecture/20260805-1514-calculated-horoscope.md`
 
+### 6. Per-User Planet Aspects (දෘෂ්ඨි) Setting
+
+- A per-user setting **"Planets Aspects houses and degrees"** lets each student configure, per planet, which **houses** the planet aspects (integers 1–12) and which **degree** angles are aspect candidates (multiples of 30 in 30–330) — the degree angles drive both planet-to-planet matching and degree-based house-aspect matching.
+- Stored on the `User` document as `planetAspects` (`Record<string, { houses: number[], degrees: number[] }>` keyed by numeric Planet enum string), mirroring the existing `planetaryOrbs` per-user settings pattern and managed via `GET`/`PUT /api/settings`.
+- Aspect calculation is driven by the setting: **`degrees` and `houses` jointly drive house aspects** and `degrees` (plus conjunction `0`) drive planet-to-planet aspects. House aspects on auto charts are **degree-based** — each planet's aspect points (`absoluteDegree ± d` for each configured/default `d`, wrapped to 360°) are matched against each house's absolute middle degree `(middleSign − 1) * 30 + middleDegree` within the aspecting planet's orb — **unioned** with the explicitly configured `houses` list (houses directly aspected). For unconfigured planets, default degrees `[60, 90, 120, 180]` are matched against house middles with default orbs and the **default aspect houses** apply as offsets from the planet's house — SUN/MOON/SATURN 3,5,7,9,10; MARS/MERCURY 4,5,7,8,9; JUPITER/VENUS/RAHU/KETU 5,7,9 (the new authoritative Default Aspect Houses table, replacing the old Mars 4/8/12 / Jupiter 5/9/11 / Saturn 3/7/10 / Rahu-Ketu 5/9 / others-7th table; see full spec §6.1) — so behavior is sensible and unchanged-in-spirit until a student customizes. The orb tolerance is the aspecting planet's `planetaryOrbs` value (replacing the former fixed `degreeGap < 30`); there is no `degree ÷ 30` → house mapping.
+- The logic lives in a new pure shared module `src/lib/planetAspects.ts` (defaults, validation, `computePlanetAspects`, `computeHouseAspects*`), consumed by the auto calculation engine (`src/lib/calculation.ts`), the manual chart derivation (`src/lib/manualChart.ts`), the settings API, and the owner's view-time aspect re-derivation.
+- Aspects are **data-only**: chart SVG art (positional) is unaffected; rendered charts regenerate only when a horoscope is recalculated.
+- Shared/public horoscope aspects are **computed once from the owner's setting at calculation time** and stored in `CalculatedDetails` — other viewers see the stored snapshot. The owner's own detail view re-derives aspects purely from stored degrees/houses (no ephemeris) so a setting change is reflected on next refresh without a migration/backfill.
+- Auto charts gain a new house-aspect output: `calculatedDetails.houses[].aspectingPlanets` (which planets aspect each house), computed degree-based as the union of each planet's explicitly configured `houses` and its aspect points matched against the house's absolute middle degree within the planet's orb — mirroring the manual chart's per-house `aspects` list. Per the 2026-08-11 clarification, **both aspect mechanisms apply to both chart sources**: manual charts run the same union (explicit `houses` arm ∪ degree arm, plus Rashi Aspects when enabled) fed by each planet's stored or fallback-derived degree (`ManualHousePlacements.planetDegrees`, else navamsa segment midpoint / sign midpoint 15°), with the house's whole-sign sign midpoint `(sign−1)*30+15` as the manual house-middle reference.
+- Full spec: `specs/architecture/20260809-2145-planet-aspects.md`
+
+### Planet Aspects Setting Flow
+
+```
+User → Settings → "Planets Aspects houses and degrees" →
+  → Select planet (EN/SI name → Planet enum) → edit houses (1-12) / degrees (30-330 step 30) →
+  → PUT /api/settings { planetAspects: { "1": { houses: [3,7,10], degrees: [60,180,240] } } } →
+  → Server validates (session → 401; strict payload validation → 400, no partial save) →
+  → $set user.planetAspects (omit a key = reset that planet to defaults) →
+  → No migration/backfill of existing CalculatedDetails →
+  → Next calculations (create / recalc on birth-detail edit / manual-chart save) use the new setting
+  → Owner's own horoscope detail view re-derives aspects at view time (pure, no ephemeris)
+```
+
 ### Toggle Privacy Setting Flow
 
 ```
@@ -357,6 +381,13 @@ User → Click "Login with Google" →
 | GET | /api/admin/user | List users |
 | PATCH | /api/admin/user/:id | Update user role/status |
 
+### Settings
+
+| Method | Route | Description |
+|--------|-------|-------------|
+| GET | /api/settings | Get current user's settings — returns `{ planetaryOrbs, planetAspects }` (`planetAspects` is the raw stored map; absent planets use defaults) |
+| PUT | /api/settings | Update current user's settings — body `{ planetaryOrbs?, planetAspects? }`; validates `planetAspects` strictly (keys `"1"`–`"9"`, houses ints 1–12 unique/non-empty, degrees multiples of 30 in 30–330 unique/non-empty) with no partial save; omit a planet key (or send `{}`) to reset to defaults |
+
 ## Database Schema
 
 ### MongoDB Collections
@@ -371,6 +402,8 @@ User → Click "Login with Google" →
   name: string,
   role: "student" | "super-admin",
   preferredLanguage: "si" | "en",
+  planetaryOrbs: object,        // per-user orb tolerance (Record keyed by Planet enum string); also the orb used for aspect matching
+  planetAspects: object,        // per-user "Planets Aspects houses and degrees" setting (Record<string, { houses: number[], degrees: number[] }> keyed by Planet enum string)
   createdAt: Date,
   updatedAt: Date
 }
@@ -406,7 +439,7 @@ User → Click "Login with Google" →
   id: UUID (string),
   horoscope: { id: UUID },
   ascendant: { sign: number, degree: number, lord: number },
-  houses: [{ houseNumber, startDegree, middleDegree, endDegree, sign, lord }],
+  houses: [{ houseNumber, startDegree, middleDegree, endDegree, sign, lord, aspectingPlanets? }],
   planets: [{ name, sign, degree, house, nakshatra, pada, strength, aspects, ... }],
   nakshatra: { moonNakshatra: {}, ascendantNakshatra: {} },
   dashas: {
@@ -636,6 +669,7 @@ User → Click "Login with Google" →
 - Ephemeris data access is read-only and does not require authentication scoping beyond the standard session check
 - Manual chart payloads (`source: "manual"` + `PUT /api/horoscope/:id/manual-chart`) are strictly validated server-side (numeric enums, house range 1–12, no duplicate planets) and are owner-only writes
 - Derived birth ranges (time/month/date/age) are read-only outputs computed from user-entered sign/placement data — no user-controlled degree/time input is accepted for range derivation
+- Per-user settings (`planetaryOrbs`, `planetAspects`) are scoped to the owning session (`/api/settings` uses `getServerSession` and writes by `session.user.email`/`googleId`); `planetAspects` payloads are strictly validated server-side (numeric-only, bounded ranges, no partial save) and non-owners always receive the stored aspect snapshot — owner-specific view-time aspect re-derivation runs only under an ownership check
 
 ### Privacy & Access Control
 

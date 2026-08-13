@@ -48,11 +48,17 @@
   - Open horoscope detail from search result
   - Create a horoscope from an already-calculated chart by entering the Lagna instead of birth details
   - Enter planet placements manually into the derived 12-house table
+  - Enter an optional per-planet degree (0-30° within the planet's sign) when placing planets on a manual chart — the degree enables the full aspect logic (planet-to-planet aspects, the house-aspect degree arm, and the rashi-aspect degree+orb check) on the manual chart; a planet without an entered degree uses the engine's derived fallback degree
   - Trigger validation of Budha (Mercury), Sikuru (Venus), and Rahu/Kethu placements against Ravi (Sun)
   - View the derived planets table (Planet, Sign, Str, House, Conjunctions, Aspects, Other)
   - Enter the Navamsa (D9) Lagna to view the Navamsa house table and enrich the planets table
   - View derived probable birth ranges: birth time (from Ravi's house), birth month (from Ravi's sign), birth date candidates (from Ravi's degree range), and age ranges (from Shani's position)
   - Save and manage manually-entered horoscopes with the existing search, share, metadata, and privacy features
+  - View the shared system astrology settings (Planetary Orbs, "Planets Aspects houses and degrees" (ප්ලැනට් ඇස්පෙක්ට්ස් හවුස් ඇන්ඩ් ඩිග්රීස්), "Rashi Aspects" (රාශි දෘෂ්ඨි)) read-only — these are system-wide values managed exclusively by Super Admin; students cannot configure or reset them
+  - View house aspects and planet aspects recomputed according to the system-wide aspect houses/degrees and Planetary Orbs — on both auto (birth-time) and manually-entered horoscopes
+  - View the "Rashi Aspects" (රාශි දෘෂ්ඨි) setting and its Chara/Thira/Ubaya rashi-aspect logic (Chara rashis look at Thira rashis, Thira rashis look at Chara rashis, Ubaya rashis look at Ubaya rashis, nearest rashi excluded) — system-wide and read-only
+  - View house aspects and planet aspects recomputed to include rashi drishti when the system-wide Rashi Aspects setting is enabled (a planet in a sign aspects the houses of the aspected rashis and the planets in those rashis) — on both auto (birth-time) and manually-entered horoscopes
+  - View all reasons for an aspect in the tooltip — the planetary drishti line and each rashi drishti line (multiple lines when an aspect has more than one reason)
 - **Authentication**: Google SSO (auto-assigned)
 
 ## 2. Super Admin
@@ -66,6 +72,9 @@
   - View all locations (public and private)
   - Delete any public location
   - Manage users (activate/deactivate, assign roles)
+  - View and update the three system-wide astrology settings (Planetary Orbs, "Planets Aspects houses and degrees", "Rashi Aspects")
+  - Trigger a full recalculation of ALL horoscopes' `CalculatedDetails` (both `source: "auto"` and `source: "manual"`) after a system settings change, and view the recalculation progress and result (success/failure counts)
+  - View the audit trail of astrology-settings changes and recalculation runs
   - Full system access
 - **Authentication**: Google SSO (manually assigned)
 
@@ -94,8 +103,16 @@
   - Log search queries for analytics and system monitoring
   - Derive the 12 house signs from an entered Lagna (whole-sign, mod-12)
   - Validate manual planet placements (Budha, Sikuru, Rahu/Kethu rules against Ravi)
-  - Compute aspects (Drishti) and conjunctions from manual house placements
+  - Compute aspects (Drishti) and conjunctions from manual house placements using each planet's stored or derived fallback degree, so the full aspect logic (explicit-houses arm + degree arm, planet-to-planet aspects) applies to manual charts exactly as to auto charts
+  - Derive a deterministic fallback degree for manual-chart planets without an entered degree (navamsa segment midpoint when known, else sign midpoint 15°)
   - Derive the planets table (Planet, Sign, Str, House, Conjunctions, Aspects, Other) including 22nd Drekkana Lord, 64th Navamsa Lord, and Atmakaraka
   - Derive the Navamsa (D9) house table from an entered Navamsa Lagna
   - Enrich the planets table with Navamsa, Navamsa Strength, Degree range, and Nakshatra (Pada)
   - Derive probable birth time/month/date/age ranges from Ravi's and Shani's placements
+  - Calculate house aspects and planet aspects using the system-wide aspects setting degree values per planet
+  - Apply the system-wide Planetary Orbs values as the orb tolerance when calculating aspects
+  - Apply the fixed Chara/Thira/Ubaya rashi-aspect rules (Chara→Thira, Thira→Chara, Ubaya→Ubaya, nearest rashi excluded) as an additional source of house/planet aspects when the system-wide "Rashi Aspects" (රාශි දෘෂ්ඨි) setting is enabled
+  - Include rashi-drishti targets using the aspecting planet's degree and its system-wide planetary orbs value ("rashmi") as the orb tolerance, matching other aspect calculations
+  - Emit every reason for an aspect (planetary drishti and one line per rashi drishti) so the UI renders the tooltip as multiple lines
+  - Read the three astrology settings (Planetary Orbs, Planet Aspects, Rashi Aspects) from the single system-wide `AstrologySettings` document as the source of truth for ALL calculations (auto and manual); legacy per-user copies on the `User` document are ignored
+  - Run the bulk recalculation job when the system-wide astrology settings change: idempotent and resumable, processes all horoscopes in batches, tracks and reports progress with per-run success/failure counts, and never corrupts stored data on partial failure

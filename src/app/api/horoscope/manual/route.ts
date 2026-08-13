@@ -6,6 +6,7 @@ import { CalculatedDetails } from "@/models/CalculatedDetails";
 import { Chart } from "@/models/Chart";
 import { Horoscope } from "@/models/Horoscope";
 
+import { getCalculationSettings } from "@/lib/astrologySettings";
 import { getChartData, isLeanChartType, toBirthChartData } from "@/lib/chartDataTransform";
 import { generateChartSvg } from "@/lib/chartRenderer";
 import { ChartType } from "@/lib/chartTypes";
@@ -51,6 +52,15 @@ export async function POST(req: NextRequest) {
     }
 
     const currentShani = getCurrentShani(parsed.value.lagna);
+
+    // Thread the system-wide aspect settings (Planet Aspects + Rashi Aspects) into the manual chart
+    // derivation — the manual houses/table then use the same union (explicit ∪ degree ∪ rashi).
+    const { planetaryOrbs, planetAspects, rashiAspects } = await getCalculationSettings();
+    parsed.value.aspectOptions = {
+        planetaryOrbs,
+        planetAspects,
+        rashiAspects,
+    };
     const result = compute(parsed.value, currentShani);
 
     let birthDate: Date | undefined;

@@ -342,3 +342,76 @@
 | IDOR / UUID guessing | Verify non-owner accessing private horoscope returns 404 (not 403). Verify non-existent UUID returns 404. Verify no timing side-channel on UUID existence. |
 | XSS in query input | Test `<script>`, `onerror=`, `javascript:` payloads in search query. Verify stored safely in search history. Verify no XSS in any rendered output (result cards, history list, etc.). |
 | LLM prompt injection | Test query containing "Ignore previous instructions" / "System prompt: ...". Verify no prompt leakage. Verify query is parsed as astrological search, not executed as instructions. |
+
+## Planet Aspects (ග්‍රහ දෘෂ්ඨි) & Rashi Aspects (රාශි දෘෂ්ඨි) — Testing Considerations
+
+> Full test plan: `specs/qa/20260810-1245-planet-rashi-aspects-test-plan.md`
+
+Two related features are in scope: the per-user **Planet Aspects houses and degrees** setting (`User.planetAspects` — configured per-planet aspect houses and degree angles that drive house/planet aspect calculation with `planetaryOrbs` as the orb tolerance) and the per-user **Rashi Aspects** setting (`User.rashiAspects` — an on/off switch for the fixed Chara/Thira/Ubaya sign-to-sign drishti rules, composed as an additional union source of house/planet aspects). The calculation output must carry enough per-reason source data for the tooltip to render one line per reason (planetary + rashi) with the signed delta exactly once.
+
+### Settings Payload Validation
+
+| Consideration | Strategy |
+|---------------|----------|
+| Houses must be integers 1–12 | Unit-test the pure `validatePlanetAspectsPayload` (new `src/lib/planetAspects.ts`): 0/13/3.5 rejected; 1 and 12 accepted (closed range boundaries); non-number rejected |
+| Degrees must be multiples of 30 in 30–330 | 0/15/45/360 rejected; 30 and 330 accepted (boundaries); the full set 30,60,90,120,150,180,210,240,270,300,330 accepted — incl. extended non-classical angles 210/240/270/300/330 |
+| Uniqueness | Duplicate houses or duplicate degrees within a planet rejected |
+| Non-empty | Empty `houses` and empty `degrees` arrays rejected — a planet cannot be emptied to nothing (≥1 house + ≥1 degree required) |
+| Key domain | Only keys `"1"`–`"9"` (numeric Planet enum strings) accepted; `"0"`/`"10"`/non-planet keys rejected |
+| All-or-nothing | A single invalid entry rejects the WHOLE payload — nothing partially saved (server returns 400; stored setting unchanged) |
+| Normalization | Out-of-order arrays normalized to ascending on storage |
+
+### Pure-Function Calculation Tests (`src/lib/planetAspects.ts`, `src/lib/manualChart.ts`)
+
+| Consideration | Strategy |
+|---------------|----------|
+| Defaults resolution | New authoritative 9-planet table — SUN/MOON/SATURN 3,5,7,9,10; MARS/MERCURY 4,5,7,8,9; JUPITER/VENUS/RAHU/KETU 5,7,9 — every planet 1–9 resolves a default, so the legacy `?? [7]` "others" fallback is unreachable; default degrees `[60,90,120,180]` for all planets |
+| Offsets-from-house semantics | Default aspect houses resolve relative to the planet's whole-sign house `((house−1+offset−1)%12)+1` (auto + manual); configured `houses` apply as **absolute** house numbers |
+| Planet-to-planet matching | Only the planet's configured `degrees` (+ conjunction 0) are candidates; orb = `planetaryOrbs[aspectingPlanet]` with inclusive `degreeGap <= orb`; orb=0 still records an exact match; equal-distance tie-break prefers the smaller angle; extended angles (210/240/270/300/330) recorded with correct `aspectType`/`exactAspectDegree` |
+| Degree-based house aspects (auto) | Aspect points `abs ± d` in BOTH directions with mod-360 wrap (planet 350° + 60° → 50°); house matched via absolute middle `(middleSign−1)*30 + middleDegree` within the planet's orb of any aspect point; orb boundary at the house middle inclusive (`≤`), rejected just beyond; result = union of the explicit `houses` arm and the degree arm, deduplicated + sorted; legacy house without a usable `middleDegree` skips the degree arm (explicit arm still applies) |
+| Manual degree arm + fallback (both sources — 2026-08-11) | Manual charts run the SAME two arms (explicit `houses` ∪ degree arm) plus rashi when enabled, feeding the shared pure functions with each planet's absolute degree = entered `ManualHousePlacements.planetDegrees` (0 ≤ d < 30, keys `"1"`–`"9"`) else the deterministic fallback (navamsa segment midpoint when the navamsa sign is recorded, else sign midpoint 15°); the manual house-middle reference is the whole-sign sign midpoint `(sign−1)*30+15` (open: bhava cusps when a `lagnaDegree` is recorded — flagged); entered degrees always take precedence |
+| Rashi rule encoding | Chara→Thira, Thira→Chara, Ubaya→Ubaya with nearest-rashi exclusion; full 12-row lookup matches the authoritative table (Aries excl Taurus; Taurus excl Aries; Gemini excl Pisces); zodiac wrap 12↔1; self-exclusion; aspected set never empty; deterministic pure derivation |
+| Rashi composition | Rashi drishti unions with the Planet-Aspects-setting reasons; degree + orb (`planetaryOrbs` as "rashmi") always govern effectiveness for both house and planet rashi aspects; houses/planets in non-aspected signs get no rashi reason; manual charts use whole-sign signs for the candidate set and stored/fallback degrees for the degree+orb check |
+| Setting disabled | `rashiAspects.enabled=false` (the default) leaves output identical to Planet-Aspects-only — backward compatible |
+
+### Settings API Round-Trips (`GET`/`PUT /api/settings`)
+
+| Consideration | Strategy |
+|---------------|----------|
+| GET shape | Returns `{ planetaryOrbs, planetAspects, rashiAspects }`; unconfigured `planetAspects` returned as `{}` (planets absent ⇒ defaults) |
+| PUT valid | `{ planetAspects: {...} }` and/or `{ planetaryOrbs }` and/or `{ rashiAspects: { enabled } }` persisted atomically; echoed back in the response |
+| PUT rejections | 400 for invalid houses/degrees/keys/duplicates/empty arrays; no partial save — a `GET` after a 400 reflects the pre-existing state |
+| Reset | Omit a planet's key to reset that planet; `planetAspects: {}` bulk-resets to defaults (US-PA-007); `rashiAspects` reset → `{ enabled: false, overrides: {} }` (US-RA-007) |
+| Auth | Unauthenticated GET/PUT → 401 |
+
+### Owner View Re-Derivation (no migration)
+
+| Consideration | Strategy |
+|---------------|----------|
+| Setting change reflects on owner view | Owner (BOTH `source:"auto"` and `source:"manual"`) → `GET /api/horoscope/[id]` re-derives `planets[].aspects` and `houses[].aspectingPlanets` (auto, from stored absolute degrees/middles) or the per-house `aspects`/`planets[].aspects` (manual, from stored `planetDegrees` or fallback-derived degrees + whole-sign sign midpoints) with the CURRENT `planetAspects` + `planetaryOrbs` (+ `rashiAspects` when enabled) — pure, not persisted |
+| Non-owner snapshot | Non-owner/share/search/export always receive the stored `CalculatedDetails` snapshot computed from the owner's setting at calculation time — unchanged artifacts |
+| No migration | Saving the setting never rewrites stored `CalculatedDetails`; legacy auto charts lacking `aspectingPlanets` render empty and re-derive for the owner only; legacy manual charts (no `planetDegrees`) re-derive via fallback degrees for the owner only; shared/non-owner views always show the stored snapshot |
+| Recalc path | `POST /api/horoscope` / `PUT /api/horoscope/[id]` / `PUT /api/horoscope/[id]/manual-chart` apply the latest setting and persist fresh aspects; the manual-chart path also accepts/validates `planetDegrees` |
+
+### Tooltip Multi-Line Rendering (§8.1.1)
+
+| Consideration | Strategy |
+|---------------|----------|
+| Single planetary reason | `{label} {house} ({angle}) ({delta})` — SI `ග්‍රහ දෘෂ්ඨි 7 (180) (+02:05:00)` / EN `Planet drishti 7 (180) (+02:05:00)`; `{house}` omitted for conjunction/legacy (`{label} (0) ({delta})`) |
+| Single rashi reason | `{rashiLabel} {aspectingSign} → {aspectedSign} ({delta})` — SI `රාශි දෘෂ්ඨි මේෂ → මිථුන (+02:05:00)` / EN `Rashi drishti Aries → Gemini (+02:05:00)` (no matched angle on rashi lines) |
+| Multi-reason | ≥2 reasons render one line per reason WITHOUT deltas plus a single hairline-separated `Δ {delta}` footer — the signed delta appears EXACTLY once (never per line); test both `planetary + 1 rashi` and `planetary + 2 rashi` cases |
+| Ordering | Planetary reason line(s) render before rashi reason line(s) |
+| Table chips | Aspects chips render the aspecting planet's NAME ONLY — no angle/delta text outside the tooltip |
+| Accessibility | `aria-describedby` on the chip → `role="tooltip"`; `title` fallback carries the SAME full text (delta exactly once); footer and reason lines are real text nodes (screen reader announces the delta once); `→` announced via sr-only localized verb `astrology.drishti.rashiVerbAria` (EN `aspects` / SI `දකී`) |
+
+### Golden-Data Regeneration (New Defaults + Orb Semantics)
+
+| Consideration | Strategy |
+|---------------|----------|
+| Orb semantic change | Replacing the fixed `gap < 30` cutoff with per-planet `planetaryOrbs` as the aspect orb alters existing default-path aspect outputs (Rahu/Ketu at orb 0 become strict exact-matches; other planets' default orbs 7–15 are tighter than 30) |
+| New default table | The new 9-planet default aspect-houses table replaces the old MARS 4/8/12/JUPITER 5/9/11/SATURN 3/7/10/RAHU 5,9/KETU 5,9/others 7 table → house-aspect golden outputs change |
+| New house-aspect output | Auto charts previously computed NO house aspects; now `houses[].aspectingPlanets` is populated degree-based for every auto chart — surfacing new data on existing owned auto charts is a visible behavior change (Architect §11/§13) |
+| Manual-chart aspect output | Manual per-house `aspects` are now the union (explicit ∪ degree, plus rashi) — not list-only; fixture per degree source: entered `planetDegrees`, fallback navamsa midpoint, fallback sign midpoint 15°, rashi-on; assert cross-source parity with the auto golden for matching degrees |
+| Regeneration recipe | Re-freeze golden fixtures that assert `planets[].aspects`/`houses[].aspectingPlanets` (calculation.test.ts, birthChart.test.ts, search textContent if it includes aspects) for a fixed birth chart against the NEW engine; store era-versioned fixtures (e.g. `fixtures/aspects-default-2026-08.json`); add a golden assertion that fails loudly if defaults change again; add separate goldens for rashi enabled/disabled |
+| Extended angles | New values 210/240/270/300/330 may appear in `aspectType`/`exactAspectDegree`; require display labels in both locales (§2.2 UX table) and confirm the 210° "7 signs" vs "6 signs" discrepancy with BA/PM |
+| Rashi golden dependence | Final golden expectations for rashi output depend on open decisions (Ubaya tie-break for Virgo/Sagittarius/Pisces, per-reason vs shared `degreeGap`, mobile reason marker shape) — regenerate goldens AFTER those are resolved (see test plan "What cannot be tested") |

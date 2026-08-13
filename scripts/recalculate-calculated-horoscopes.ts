@@ -18,12 +18,15 @@ import {
 /** Recomputed the stored `CalculatedDetails` and `Chart` docs for one calculated (manual) horoscope,
  *  replaying the POST /api/horoscope/manual pipeline from the persisted `manualHousePlacements`
  *  (the source of truth): `compute()` → `synthesizeCalculation()` / `synthesizeNavamsaCalculation()`
- *  → chart docs. Mirrors the auto path in `recalculate-horoscopes.ts` for `source === "manual"`. */
-export async function recalculateCalculatedHoroscope(horoscope: IHoroscope): Promise<void> {
+ *  → chart docs. Mirrors the auto path in `recalculate-horoscopes.ts` for `source === "manual"`.
+ *  Returns `false` when the horoscope has no stored `manualHousePlacements` to recompute from —
+ *  the caller counts that as a skip, not a failure. */
+export async function recalculateCalculatedHoroscope(horoscope: IHoroscope): Promise<boolean> {
     const id = horoscope._id.toString();
     const existing = await CalculatedDetails.findOne({ "horoscope.id": id }).lean();
     if (!existing?.manualHousePlacements) {
-        throw new Error("manual horoscope has no manualHousePlacements to recompute from");
+        logger.warn("skipping calculated horoscope id=%s: no manualHousePlacements to recompute from", id);
+        return false;
     }
     const input = manualPlacementsToInput(existing.manualHousePlacements);
     const currentShani = getCurrentShani(input.lagna);
@@ -56,33 +59,39 @@ export async function recalculateCalculatedHoroscope(horoscope: IHoroscope): Pro
         };
     });
     await Chart.insertMany(chartDocs);
+    return true; // recomputed
 }
 
-/** Recomputes every calculated (manual) horoscope in the database. */
-export async function recalculateCalculatedHoroscopes(): Promise<{ updated: number; failed: number }> {
+/** Recomputes every calculated (manual) horoscope in the database.
+ *  `skipped` counts manual horoscopes with no stored `manualHousePlacements` to recompute from. */
+export async function recalculateCalculatedHoroscopes(): Promise<{ updated: number; failed: number; skipped: number }> {
     let updated = 0;
     let failed = 0;
+    let skipped = 0;
 
     const cursor = Horoscope.find({ source: "manual" }).cursor();
     for (let horoscope = await cursor.next(); horoscope != null; horoscope = await cursor.next()) {
         const id = horoscope._id.toString();
         try {
-            await recalculateCalculatedHoroscope(horoscope);
-            updated++;
+            if (await recalculateCalculatedHoroscope(horoscope)) {
+                updated++;
+            } else {
+                skipped++;
+            }
         } catch (err) {
             failed++;
             logger.error("failed to recalculate calculated horoscope id=%s: %s", id, (err as Error).message);
         }
     }
 
-    return { updated, failed };
+    return { updated, failed, skipped };
 }
 
 async function main() {
     await connectDB();
     logger.info("starting calculated (manual) horoscope recalculation...");
-    const { updated, failed } = await recalculateCalculatedHoroscopes();
-    logger.info("calculated recalculation complete: %d updated, %d failed", updated, failed);
+    const { updated, failed, skipped } = await recalculateCalculatedHoroscopes();
+    logger.info("calculated recalculation complete: %d updated, %d skipped, %d failed", updated, skipped, failed);
     process.exit(failed > 0 ? 1 : 0);
 }
 

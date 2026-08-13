@@ -6,6 +6,7 @@ import { CalculatedDetails } from "@/models/CalculatedDetails";
 import { Chart } from "@/models/Chart";
 import { Horoscope } from "@/models/Horoscope";
 
+import { getCalculationSettings } from "@/lib/astrologySettings";
 import { getChartData, isLeanChartType, toBirthChartData } from "@/lib/chartDataTransform";
 import { generateChartSvg } from "@/lib/chartRenderer";
 import { ChartType } from "@/lib/chartTypes";
@@ -69,6 +70,10 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     }
 
     const currentShani = getCurrentShani(parsed.value.lagna);
+    // System-wide aspect settings (US-SAS-006): the same union source as auto charts. The legacy
+    // per-user copies on the User document are deprecated and never read.
+    const { planetaryOrbs, planetAspects, rashiAspects } = await getCalculationSettings();
+    parsed.value.aspectOptions = { planetaryOrbs, planetAspects, rashiAspects };
     const result = compute(parsed.value, currentShani);
 
     const synth = synthesizeCalculation(result, birthDate);

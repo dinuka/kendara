@@ -15,16 +15,16 @@ export interface ICalculatedDetails extends Document, CalculationResult {
 
 const PranaSchema = new Schema({
     planet: { type: Number, required: true },
-    startDate: { type: String, required: true },
-    endDate: { type: String, required: true },
+    startDate: { type: String },
+    endDate: { type: String },
     durationHours: { type: Number, required: true },
     startAge: { type: Number, required: true },
 });
 
 const SukshamaSchema = new Schema({
     planet: { type: Number, required: true },
-    startDate: { type: String, required: true },
-    endDate: { type: String, required: true },
+    startDate: { type: String },
+    endDate: { type: String },
     durationDays: { type: Number, required: true },
     prana: { type: [PranaSchema], default: [] },
     startAge: { type: Number, required: true },
@@ -32,8 +32,8 @@ const SukshamaSchema = new Schema({
 
 const VidasaSchema = new Schema({
     planet: { type: Number, required: true },
-    startDate: { type: String, required: true },
-    endDate: { type: String, required: true },
+    startDate: { type: String },
+    endDate: { type: String },
     durationDays: { type: Number, required: true },
     sukshama: { type: [SukshamaSchema], default: [] },
     startAge: { type: Number, required: true },
@@ -41,8 +41,8 @@ const VidasaSchema = new Schema({
 
 const AntardashaSchema = new Schema({
     planet: { type: Number, required: true },
-    startDate: { type: String, required: true },
-    endDate: { type: String, required: true },
+    startDate: { type: String },
+    endDate: { type: String },
     durationMonths: { type: Number, required: true },
     vidasa: { type: [VidasaSchema], default: [] },
     startAge: { type: Number, required: true },
@@ -50,8 +50,8 @@ const AntardashaSchema = new Schema({
 
 const MahadashaSchema = new Schema({
     planet: { type: Number, required: true },
-    startDate: { type: String, required: true },
-    endDate: { type: String, required: true },
+    startDate: { type: String },
+    endDate: { type: String },
     durationYears: { type: Number, required: true },
     remainingYearsAtBirth: { type: Number, required: true },
     antardasha: { type: [AntardashaSchema], default: [] },
