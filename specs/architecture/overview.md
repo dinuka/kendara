@@ -137,6 +137,16 @@
 - Auto charts gain a new house-aspect output: `calculatedDetails.houses[].aspectingPlanets` (which planets aspect each house), computed degree-based as the union of each planet's explicitly configured `houses` and its aspect points matched against the house's absolute middle degree within the planet's orb — mirroring the manual chart's per-house `aspects` list. Per the 2026-08-11 clarification, **both aspect mechanisms apply to both chart sources**: manual charts run the same union (explicit `houses` arm ∪ degree arm, plus Rashi Aspects when enabled) fed by each planet's stored or fallback-derived degree (`ManualHousePlacements.planetDegrees`, else navamsa segment midpoint / sign midpoint 15°), with the house's whole-sign sign midpoint `(sign−1)*30+15` as the manual house-middle reference.
 - Full spec: `specs/architecture/20260809-2145-planet-aspects.md`
 
+### 7. Shad Bala (ෂඩ් බලය) — Six-Strengths Table
+
+- A per-planet ෂඩ් බලය table in the calculations tab: 8 columns (ග්රහයා, ස්ථාන බල, චේෂ්ටා බලය, කාල බලය, දිග් බලය, දෘෂ්ඨි බලය, නෛසර්ගික බලය, අනුපාතය), 9 rows, with checkbox toggles and reason tooltips per bala.
+- Each bala is a Boolean computed from stored chart data (`planets` + `houses`) by a pure shared module `src/lib/shadBalaya.ts` (`computeShadBalaya(planets, houses, ctx)`) — no ephemeris, no I/O — so the same module runs server-side at calculation time and client-side for legacy-document lazy recompute. Results are stored on `CalculatedDetails.shadbalaya` (keyed by numeric Planet enum string `"1"`…`"9"`); the ratio `(n/6)` is derived at render time, never stored.
+- Rules: Sthana = checked unless Neecha AND enemy-sign together; Cheshta = Uttarayana (sign-based for both sources), Shukla paksha Moon, same-sign Shukla-Chandra conjunction, Vakra, planet-war (deferred); Kala = day/night (Sun-in-houses-7-12 rule), paksha conditions, varga loads (deferred); Dig = 1st/10th/4th/7th directional houses (Rahu/Ketu never); Naisargika = present unless Maranakaraka; Drishti = manual only.
+- Students may toggle any bala; toggles persist with `overridden: true` and are **preserved across the AstrologySettings full recalculation** (`mergeShadBalaya(computed, stored)` keeps `overridden: true` entries, recomputes the rest — mirroring `manualHousePlacements`).
+- Toggles write via `PATCH /api/horoscope/:id/shadbalaya` (owner or super-admin; 403 otherwise; 401 unauthenticated) with a client-side 500 ms debounce, last-write-wins, optimistic UI, and rollback toast on failure. Non-owner/share-link views render read-only.
+- Tooltips reuse the AspectChip/AspectTooltip pattern and are composed from i18n keys + numeric enum params (never stored localized text), resolved per locale in `si`/`en`.
+- Full spec: `specs/architecture/20260813-2011-shadbalaya-architecture.md`
+
 ### Planet Aspects Setting Flow
 
 ```
@@ -226,6 +236,24 @@ User → Open Horoscope Form → Select "Calculated Chart" mode →
     → Server re-derives and persists → client reconciles
 ```
 
+### Shad Bala Toggle Flow
+
+```
+User → Horoscope Detail → Calculations tab → ෂඩ් බලය table →
+  → Computed balas stored on CalculatedDetails.shadbalaya at calculation time
+    (auto pipeline / manual synthesizeCalculation via src/lib/shadBalaya.ts)
+  → Legacy docs without shadbalaya: recomputed lazily at render from planets + houses,
+    persisted on next toggle (no migration/backfill)
+  → Student checks/unchecks a bala (optimistic UI + ratio (n/6) updates instantly) →
+  → Debounced 500ms PATCH /api/horoscope/:id/shadbalaya { planet, bala, value } →
+    → Server validates session (owner or super-admin; 401/403 otherwise) →
+    → $set shadbalaya.<planet>.<bala>.value + .overridden=true →
+    → Failure → revert checkbox + error toast
+  → AstrologySettings full recalculation: mergeShadBalaya(computed, stored) keeps
+    overridden:true entries, recomputes the rest → overrides never wiped
+  → Non-owners / share links render the table read-only
+```
+
 ### Search Flow
 
 ```
@@ -313,6 +341,7 @@ User → Click "Login with Google" →
 | PUT | /api/horoscope/:id | Update horoscope |
 | DELETE | /api/horoscope/:id | Delete horoscope (own) |
 | PATCH | /api/horoscope/:id/privacy | Toggle public/private and/or show/hide name — body: `{ isPublic?: boolean, displayName?: boolean }` |
+| PATCH | /api/horoscope/:id/shadbalaya | Toggle a Shad Bala bala — body: `{ planet, bala, value }` (owner or super-admin; stores `overridden: true`; 401/403/404/400 otherwise) |
 | PUT | /api/horoscope/:id/manual-chart | Update a manual horoscope's chart — body: `{ lagna, houses, navamsaHouses }` (owner-only; 409 on `source: "auto"`) |
 | GET | /api/horoscope/:id/dasha | Get dasha timeline data (returns dashas JSON from CalculatedDetails) — optional standalone endpoint; data also available via GET /api/horoscope/:id |
 
@@ -491,6 +520,9 @@ User → Click "Login with Google" →
   doshas: { doshas: [...] },
   manualHousePlacements?: object,   // source="manual": { lagna, houses, navamsaLagna, navamsaHouses?, validation }
   derivedRanges?: object,           // source="manual": { birthTimeRange, birthMonthRange, birthDateCandidates, ageRanges }
+  shadbalaya?: object,              // ෂඩ් බලය six-strengths per planet (Record keyed by Planet enum string "1"-"9");
+                                    // each bala: { value: boolean, overridden: boolean, reasons: [{ key, params? }] };
+                                    // overridden:true entries are preserved across the AstrologySettings recalculation
   createdAt: Date
 }
 ```
@@ -670,6 +702,7 @@ User → Click "Login with Google" →
 - Manual chart payloads (`source: "manual"` + `PUT /api/horoscope/:id/manual-chart`) are strictly validated server-side (numeric enums, house range 1–12, no duplicate planets) and are owner-only writes
 - Derived birth ranges (time/month/date/age) are read-only outputs computed from user-entered sign/placement data — no user-controlled degree/time input is accepted for range derivation
 - Per-user settings (`planetaryOrbs`, `planetAspects`) are scoped to the owning session (`/api/settings` uses `getServerSession` and writes by `session.user.email`/`googleId`); `planetAspects` payloads are strictly validated server-side (numeric-only, bounded ranges, no partial save) and non-owners always receive the stored aspect snapshot — owner-specific view-time aspect re-derivation runs only under an ownership check
+- Shad Bala writes (`PATCH /api/horoscope/:id/shadbalaya`) are strictly validated server-side (planet integer 1–9, bala in the allowed six-key set, boolean value) and authorized to the owner or a super-admin only (401 unauthenticated, 403 otherwise); non-owner/share-link views render read-only and any mutation attempt is rejected regardless of what the UI shows; `overridden` entries are never rewritten by the recalculation job
 
 ### Privacy & Access Control
 

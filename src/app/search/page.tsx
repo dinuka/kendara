@@ -13,10 +13,12 @@ import {
     PLANET_COLORS,
     PLANET_SYMBOLS,
     computeAscendantSpecialFlags,
+    computeMaranakaraka,
     findHouse,
     formatDegree,
     formatYearDuration,
     navamsaSign,
+    normalizeMaranakaraka,
 } from "@/lib/astrology";
 import { PlanetaryStrength } from "@/lib/astrologyEnums";
 import { toBirthChartData } from "@/lib/chartDataTransform";
@@ -543,6 +545,11 @@ const SearchResultCard = ({
     const [expandedPlanets, setExpandedPlanets] = useState<Set<number>>(new Set());
     const h = result.horoscope;
     const cd = h.calculatedDetails as Record<string, unknown> | undefined;
+    // Maranakaraka recomputed from the lagna chart (never D9); legacy docs stored a single planet.
+    const maranakarakaPlanets =
+        cd?.planets && cd?.houses
+            ? computeMaranakaraka(cd.planets as Planet[], cd.houses as House[])
+            : normalizeMaranakaraka(cd?.maranakaraka as number | number[] | undefined);
     const charts = h.charts as Record<string, unknown> | undefined;
     const ascData = cd?.ascendant as Record<string, unknown> | undefined;
     const ascSign = ascData?.sign as number | undefined;
@@ -1016,7 +1023,7 @@ const SearchResultCard = ({
                                             tags.push({ key: "navamsa", text: t("astrology.navamsaLordLabel") });
                                         if ((cd!.atmakaraka as number) === pName)
                                             tags.push({ key: "atmakaraka", text: t("astrology.atmakarakaLabel") });
-                                        if ((cd!.maranakaraka as number) === pName)
+                                        if (maranakarakaPlanets.includes(pName))
                                             tags.push({ key: "maranakaraka", text: t("astrology.maranakarakaLabel") });
                                         if (((cd!.marakaPlanets as number[]) || []).includes(pName))
                                             tags.push({ key: "maraka", text: t("astrology.marakaLabel") });

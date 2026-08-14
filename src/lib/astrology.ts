@@ -1,4 +1,5 @@
 import { PanchaPakshi, PlanetaryStrength } from "./astrologyEnums";
+import type { ShadBalaya } from "./shadBalaya";
 
 export const PLANET_SYMBOLS: Record<number, string> = {
     1: "\u2609",
@@ -32,6 +33,34 @@ export function navamsaSign(sourceSign: number, navamsaNum: number): number {
     const offset = NAVAMSA_OFFSET[(sourceSign - 1) % 3];
     return ((sourceSign - 1 + offset + navamsaNum - 1) % 12) + 1;
 }
+
+/** Natural friends, keyed by planet (1-9), values are sign-lord planets. Shared by the strength
+ *  calculators (calculation/currentPlanets/manualChart) and the Shad Bala enemy-sign helper. */
+export const NATURAL_FRIENDS: Record<number, number[]> = {
+    1: [2, 3, 5],
+    2: [1, 4],
+    3: [1, 2, 5],
+    4: [1, 6],
+    5: [1, 2, 3],
+    6: [4, 7],
+    7: [4, 6],
+    8: [],
+    9: [],
+};
+
+/** Natural enemies, keyed by planet (1-9), values are sign-lord planets. Shared by the strength
+ *  calculators (calculation/currentPlanets/manualChart) and the Shad Bala enemy-sign helper. */
+export const NATURAL_ENEMIES: Record<number, number[]> = {
+    1: [6, 7],
+    2: [],
+    3: [4],
+    4: [2],
+    5: [4, 6],
+    6: [1, 2],
+    7: [1, 2, 3],
+    8: [],
+    9: [],
+};
 
 /** Gandamula (ගණ්ඩමූල): planets in the 1st pada of Ashwini, Magha, or Mula nakshatras. */
 const GANDAMULA_NAKSHATRAS = new Set([1, 10, 19]);
@@ -263,7 +292,7 @@ export function findHouse(absoluteDegree: number, houses: House[]): number | nul
     return null;
 }
 
-/** Maranakaraka (මරණකාරක) rule: planet -> house whose occupancy makes Chandra the Maranakaraka. */
+/** Maranakaraka (මරණකාරක) rule: planet -> house whose occupancy makes THAT planet the Maranakaraka. */
 const MARANAKARAKA_RULE: Record<number, number> = {
     2: 8,
     8: 9,
@@ -275,20 +304,31 @@ const MARANAKARAKA_RULE: Record<number, number> = {
     5: 3,
 };
 
-/** Maranakaraka (මරණකාරක): Chandra (Moon, 2) when any maranakaraka rule holds, else 0. Uses the
- *  cusp-based calculated house (findHouse) when `houses` are provided — the same house shown in the
- *  chart — falling back to the whole-sign `planet.house` otherwise (manual charts, where the entered
- *  house is the source of truth). */
+/** Maranakaraka (මරණකාරක): every planet occupying its designated house — Chandra in the 8th, Rahu in
+ *  the 9th, Shani in the 1st, Ravi in the 5th, Shukra in the 6th, Kuja in the 7th, Budha in the 4th,
+ *  Guru in the 3rd — is itself the Maranakaraka (never Chandra by default). Uses the cusp-based
+ *  calculated house (findHouse) when `houses` are provided — the same house shown in the chart —
+ *  falling back to the whole-sign `planet.house` otherwise (manual charts, where the entered house
+ *  is the source of truth). Checks the lagna (rasi) chart only — never D9. Returns an empty array
+ *  when no rule holds. */
 export function computeMaranakaraka(
     planets: Array<Pick<Planet, "name" | "house" | "absoluteDegree">>,
     houses?: House[],
-): number {
-    return planets.some((p) => {
-        const house = houses ? (findHouse(p.absoluteDegree, houses) ?? p.house) : p.house;
-        return MARANAKARAKA_RULE[p.name] === house;
-    })
-        ? 2
-        : 0;
+): number[] {
+    return planets
+        .filter((p) => {
+            const house = houses ? (findHouse(p.absoluteDegree, houses) ?? p.house) : p.house;
+            return MARANAKARAKA_RULE[p.name] === house;
+        })
+        .map((p) => p.name)
+        .sort((a, b) => a - b);
+}
+
+/** Normalize a stored maranakaraka — legacy docs hold a single planet (`0` = none, or `n`), new docs
+ *  hold `number[]` — into an array. Zero is never a planet, so it is dropped. */
+export function normalizeMaranakaraka(value: number | number[] | null | undefined): number[] {
+    if (Array.isArray(value)) return value.filter((v): v is number => v > 0);
+    return typeof value === "number" && value > 0 ? [value] : [];
 }
 
 export interface Ascendant {
@@ -392,9 +432,9 @@ export interface CalculationResult {
     nidhanamshaPlanets: number[];
     ashtamanshaPlanets: number[];
     atmakaraka: number;
-    /** Maranakaraka (මරණකාරක): Chandra (Moon, 2) when any of the maranakaraka conditions hold,
-     *  else 0 (see computeMaranakaraka). Uses the cusp-based calculated house for auto charts. */
-    maranakaraka: number;
+    /** Maranakaraka (මරණකාරක): the planets occupying their designated death houses, each tagged as
+     *  Maranakaraka (see computeMaranakaraka). Uses the cusp-based calculated house for auto charts. */
+    maranakaraka: number[];
     isAscendantWargoththama: boolean;
     isAscendantGandantha: boolean;
     isAscendantGandamula: boolean;
@@ -403,6 +443,9 @@ export interface CalculationResult {
     gandanthaPlanets: number[];
     gandamulaPlanets: number[];
     pushkaraPlanets: number[];
+    /** Shad Bala (ෂඩ් බලය) six strengths per planet (see src/lib/shadBalaya.ts). Optional because
+     *  legacy CalculatedDetails documents predate the field and are lazily recomputed at render. */
+    shadbalaya?: ShadBalaya;
     yogas: unknown[];
     doshas: DoshaInfo;
 }

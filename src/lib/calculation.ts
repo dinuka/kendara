@@ -11,6 +11,8 @@ import {
     DashaInfo,
     House,
     Mahadasha,
+    NATURAL_ENEMIES,
+    NATURAL_FRIENDS,
     Planet,
     Prana,
     Sukshama,
@@ -29,6 +31,7 @@ import {
     computeHouseAspectsByHouseWithRashi,
     mergeRashiIntoPlanetAspects,
 } from "@/lib/rashiAspects";
+import { computeShadBalaya, deriveDay } from "@/lib/shadBalaya";
 
 const GRAHA_MAP: Record<string, number> = {
     Su: 1,
@@ -198,30 +201,6 @@ const MOOLATRIKONA_RANGE: Record<number, MoolatrikonaRange | null> = {
     5: { sign: 9, start: 0, end: 10 },
     6: { sign: 7, start: 0, end: 15 },
     7: { sign: 11, start: 0, end: 20 },
-};
-
-const NATURAL_FRIENDS: Record<number, number[]> = {
-    1: [2, 3, 5],
-    2: [1, 4],
-    3: [1, 2, 5],
-    4: [1, 6],
-    5: [1, 2, 3],
-    6: [4, 7],
-    7: [4, 6],
-    8: [],
-    9: [],
-};
-
-const NATURAL_ENEMIES: Record<number, number[]> = {
-    1: [6, 7],
-    2: [],
-    3: [4],
-    4: [2],
-    5: [4, 6],
-    6: [1, 2],
-    7: [1, 2, 3],
-    8: [],
-    9: [],
 };
 
 function computePlanetStrength(planet: number, sign: number, degree: number): PlanetaryStrength {
@@ -447,6 +426,17 @@ export function calculateHoroscope(
     const dashas = calculateDashas(positions.Mo.longitude, moonNakshatra, nakshatraLords[moonNakshatra - 1], birthDate);
 
     const thithi = computeThithi(sunLong, moonLong);
+    const maranakaraka = computeMaranakaraka(planetDetails, houses);
+
+    // Shad Bala computed once at calculation time so new CalculatedDetails docs carry the table;
+    // legacy docs without the field are lazily recomputed (and merged with stored overrides) at
+    // render in the horoscope detail page. Day/night uses the Sun-cusp-house rule (see deriveDay).
+    const shadbalaya = computeShadBalaya(planetDetails, houses, {
+        source: "auto",
+        thithi,
+        day: deriveDay(planetDetails, houses),
+        maranakaraka,
+    });
 
     return {
         ascendant,
@@ -466,7 +456,8 @@ export function calculateHoroscope(
         nidhanamshaPlanets: computeNidhanamsha(ascSign, ascLong % 30, houses, planetDetails),
         ashtamanshaPlanets: computeAshtamansha(ascSign, ascLong % 30, houses, planetDetails),
         atmakaraka: computeAtmakaraka(planetDetails),
-        maranakaraka: computeMaranakaraka(planetDetails, houses),
+        maranakaraka,
+        shadbalaya,
         isAscendantWargoththama: computeAscendantWargoththama(ascSign, ascLong % 30),
         isAscendantGandantha: computeAscendantGandantha(ascNakshatra, ascPada),
         isAscendantGandamula: computeAscendantGandamula(ascNakshatra, ascPada),

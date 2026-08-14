@@ -499,7 +499,101 @@
         },
         "padaFormat": "{pada} Pada",
         "viewDetails": "View details",
-        "less": "Less"
+        "less": "Less",
+        "shadbalaya": {
+            "title": "Shad Bala (ෂඩ් බලය)",
+            "columns": {
+                "planet": "Planet",
+                "sthanaBala": "Sthana Bala",
+                "cheshtaBala": "Cheshta Bala",
+                "kalaBala": "Kala Bala",
+                "digBala": "Dig Bala",
+                "drishtiBala": "Drishti Bala",
+                "naisargikaBala": "Naisargika Bala",
+                "ratio": "Ratio"
+            },
+            "ratioFormat": "({n}/6)",
+            "balaNames": {
+                "sthanaBala": "Sthana Bala",
+                "cheshtaBala": "Cheshta Bala",
+                "kalaBala": "Kala Bala",
+                "digBala": "Dig Bala",
+                "drishtiBala": "Drishti Bala",
+                "naisargikaBala": "Naisargika Bala"
+            },
+            "tooltip": {
+                "checked": "✓ Checked because:",
+                "unchecked": "✗ Unchecked because:"
+            },
+            "reason": {
+                "manual": "Set manually — the system cannot calculate this bala"
+            },
+            "sthana": {
+                "reason": {
+                    "uchcha": "Exalted (Uchcha)",
+                    "athiUchcha": "Deeply exalted (Athi Uchcha)",
+                    "moolatrikona": "Moolatrikona",
+                    "ownSign": "Own sign",
+                    "mitra": "Friend sign (Mitra)",
+                    "sama": "Neutral sign (Sama)",
+                    "shatru": "Enemy sign (Shatru)",
+                    "neecheShatru": "Debilitated (Neecha) in the enemy sign {sign}",
+                    "debilitated": "Debilitated (Neecha) in {sign}"
+                }
+            },
+            "cheshta": {
+                "reason": {
+                    "uttarayana": "Sun in Uttarayana",
+                    "uttarayanaSign": "Sun in Makara/Kumba/Meena/Mesha/Wrushaba (Uttarayana sign)",
+                    "shuklaPaksha": "Moon in Shukla Paksha",
+                    "krushnaPaksha": "Moon not in Shukla Paksha",
+                    "shuklaChandra": "Conjunction with a Shukla-paksha Chandra",
+                    "vakra": "Retrograde (Vakra)",
+                    "warWinner": "Planet-war winner"
+                }
+            },
+            "kala": {
+                "reason": {
+                    "day": "Day birth",
+                    "night": "Night birth",
+                    "shuklaPaksha": "Moon in Shukla Paksha",
+                    "krushnaPaksha": "Moon in Krishna Paksha",
+                    "vargaLoad": "Hora/Panchama/Sukshama varga load"
+                }
+            },
+            "dig": {
+                "reason": {
+                    "house": "Planet in the {house} house"
+                }
+            },
+            "drishti": {
+                "reason": {
+                    "manual": "Set manually — the system cannot calculate Drishti bala"
+                }
+            },
+            "naisargika": {
+                "reason": {
+                    "notMaranakaraka": "Not the Maranakaraka",
+                    "maranakaraka": "Maranakaraka (in house {house})"
+                }
+            },
+            "override": {
+                "footer": "Set manually — kept through recalculation",
+                "ariaShort": "set manually",
+                "title": "Set manually — kept through recalculation",
+                "hint": "The dot (•) marks a bala you set manually — it is kept through recalculation."
+            },
+            "checkbox": {
+                "ariaChecked": "{planet} {bala} — checked",
+                "ariaUnchecked": "{planet} {bala} — unchecked"
+            },
+            "ratioAria": "{planet} — {n} of 6 balas",
+            "infoGlyph": "Show Shad Bala reason",
+            "readOnlyNotice": "Read-only — view only",
+            "toast": {
+                "saveError": "Failed to save Shad Bala. Please try again."
+            }
+        }
     },
     "locations": {
         "title": "Locations",

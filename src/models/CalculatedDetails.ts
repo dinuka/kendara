@@ -95,7 +95,11 @@ const CalculatedDetailsSchema = new Schema<ICalculatedDetails>({
     gandamulaPlanets: [Number],
     pushkaraPlanets: [Number],
     atmakaraka: Number,
-    maranakaraka: Number,
+    /** Maranakaraka planets (each planet in its designated death house; empty when none). Legacy
+     *  docs stored a single planet (`0` = none) — mongoose wraps scalars into an array; `0` is
+     *  dropped by normalizeMaranakaraka at read time. */
+    maranakaraka: [Number],
+    shadbalaya: { type: Schema.Types.Mixed },
     yogas: [{ type: Schema.Types.Mixed }],
     doshas: { type: Schema.Types.Mixed },
     manualHousePlacements: { type: Schema.Types.Mixed },

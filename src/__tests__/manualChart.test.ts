@@ -240,13 +240,15 @@ describe("derivePlanetsTable (UT-CH-040..045)", () => {
         const sun = rows.find((r) => r.planet === Planet.SUN)!;
         expect(sun.other).not.toContain("maranakaraka");
     });
-    test("U048a maranakaraka from Rahu in 9th house", () => {
+    test("U048a maranakaraka from Rahu in 9th house tags Rahu, not Moon", () => {
         const rows = derivePlanetsTable({
             lagna: 1,
             houseOfPlanet: { [Planet.RAHU]: 9, [Planet.MOON]: 4 },
         });
+        const rahu = rows.find((r) => r.planet === Planet.RAHU)!;
+        expect(rahu.other).toContain("maranakaraka");
         const moon = rows.find((r) => r.planet === Planet.MOON)!;
-        expect(moon.other).toContain("maranakaraka");
+        expect(moon.other).not.toContain("maranakaraka");
     });
     test("U044 strength is sign-based, not always Sama", () => {
         const rows = derivePlanetsTable({ lagna: 1, houseOfPlanet: { [Planet.MOON]: 1 } });

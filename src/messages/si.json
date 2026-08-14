@@ -499,7 +499,101 @@
         },
         "padaFormat": "{pada} වෙනි පාදය",
         "viewDetails": "විස්තර බලන්න",
-        "less": "අඩුවෙන්"
+        "less": "අඩුවෙන්",
+        "shadbalaya": {
+            "title": "ෂඩ් බලය",
+            "columns": {
+                "planet": "ග්‍රහයා",
+                "sthanaBala": "ස්ථාන බල",
+                "cheshtaBala": "චේෂ්ටා බලය",
+                "kalaBala": "කාල බලය",
+                "digBala": "දිග් බලය",
+                "drishtiBala": "දෘෂ්ඨි බලය",
+                "naisargikaBala": "නෛසර්ගික බලය",
+                "ratio": "අනුපාතය"
+            },
+            "ratioFormat": "({n}/6)",
+            "balaNames": {
+                "sthanaBala": "ස්ථාන බල",
+                "cheshtaBala": "චේෂ්ටා බලය",
+                "kalaBala": "කාල බලය",
+                "digBala": "දිග් බලය",
+                "drishtiBala": "දෘෂ්ඨි බලය",
+                "naisargikaBala": "නෛසර්ගික බලය"
+            },
+            "tooltip": {
+                "checked": "✓ සලකුණු කළේ මන්ද:",
+                "unchecked": "✗ සලකුණු නොකළේ මන්ද:"
+            },
+            "reason": {
+                "manual": "අතින් සකසන්න — පද්ධතියට මෙම බලය ගණනය කළ නොහැක"
+            },
+            "sthana": {
+                "reason": {
+                    "uchcha": "උච්ච",
+                    "athiUchcha": "අති උච්ච",
+                    "moolatrikona": "මූලත්රිකෝණ",
+                    "ownSign": "ස්වක්ෂේත්‍ර",
+                    "mitra": "මිත්‍ර රාශිය",
+                    "sama": "සම රාශිය",
+                    "shatru": "සතුරු රාශිය",
+                    "neecheShatru": "සතුරු රාශියක නීච — {sign}",
+                    "debilitated": "නීච — {sign}"
+                }
+            },
+            "cheshta": {
+                "reason": {
+                    "uttarayana": "රවි උත්තරායණයේ",
+                    "uttarayanaSign": "රවි මකර/කුම්භ/මීන/මේෂ/වෘෂභ රාශිවල (උත්තරායණ)",
+                    "shuklaPaksha": "සඳු ශුක්ල පක්ෂයේ",
+                    "krushnaPaksha": "සඳු ශුක්ල පක්ෂයේ නොවේ",
+                    "shuklaChandra": "ශුක්ල පක්ෂ චන්ද්‍රයා සමඟ සංයෝගය",
+                    "vakra": "වක්‍ර",
+                    "warWinner": "ග්‍රහ යුද්ධයේ ජයග්‍රාහකයා"
+                }
+            },
+            "kala": {
+                "reason": {
+                    "day": "දිවා උපත",
+                    "night": "රාත්‍රි උපත",
+                    "shuklaPaksha": "සඳු ශුක්ල පක්ෂයේ",
+                    "krushnaPaksha": "සඳු කෘෂ්ණ පක්ෂයේ",
+                    "vargaLoad": "හෝරා/පංචම/සූක්ෂම වර්ග භාරය"
+                }
+            },
+            "dig": {
+                "reason": {
+                    "house": "ග්‍රහයා {house} භාවයේ"
+                }
+            },
+            "drishti": {
+                "reason": {
+                    "manual": "අතින් සකසන්න — පද්ධතියට දෘෂ්ඨි බලය ගණනය කළ නොහැක"
+                }
+            },
+            "naisargika": {
+                "reason": {
+                    "notMaranakaraka": "මරණකාරක නොවේ",
+                    "maranakaraka": "මරණකාරක — {house} භාවයේ"
+                }
+            },
+            "override": {
+                "footer": "අතින් සකසන ලද — නැවත ගණනය කිරීමේදී රඳවා ගැනේ",
+                "ariaShort": "අතින් සකසන ලද",
+                "title": "අතින් සකසන ලද",
+                "hint": "තිත (•) යනු ඔබ අතින් සකසන ලද බලයකි — නැවත ගණනය කිරීමේදී එය රඳවා ගැනේ."
+            },
+            "checkbox": {
+                "ariaChecked": "{planet} {bala} — සලකුණු කර ඇත",
+                "ariaUnchecked": "{planet} {bala} — සලකුණු කර නැත"
+            },
+            "ratioAria": "{planet} — බල 6 න් {n} ක්",
+            "infoGlyph": "බල හේතුව පෙන්වන්න",
+            "readOnlyNotice": "කියවීමට පමණි — බැලීමට පමණි",
+            "toast": {
+                "saveError": "ෂඩ් බලය සුරැකීමට අසමත් විය. නැවත උත්සාහ කරන්න."
+            }
+        }
     },
     "locations": {
         "title": "ස්ථාන",

@@ -122,17 +122,20 @@
 | badhakaPlanet | String | Badhaka planet |
 | marakaPlanets | JSON | Maraka planets — see [MarakaPlanets](#marakaplanets) structure |
 | atmakaraka | String | Atmakaraka planet |
+| maranakaraka | JSON | Maranakaraka planets (`number[]`, numeric Planet enums) — each planet occupying its designated death house (lagna chart only, never D9); legacy docs stored a single `0`/`n` and are normalized at read time |
 | yogas | JSON | Yoga formations — see [Yogas](#yogas) structure |
 | doshas | JSON | Dosha calculations — see [Doshas](#doshas) structure |
 | manualHousePlacements | JSON | Manual chart input for `source: "manual"` horoscopes — see [ManualHousePlacements](#manualhouseplacements) structure |
 | derivedRanges | JSON | Derived probable birth ranges for manual horoscopes — see [DerivedRanges](#derivedranges) structure |
+| shadbalaya | JSON | Shad Bala (ෂඩ් බලය) — the six strengths per planet (Sthana, Cheshta, Kala, Dig, Drishti, Naisargika) with tooltip reasons and user overrides — see [ShadBalaya](#shadbalaya) structure |
 | createdAt | DateTime | Record created |
 
 **Notes:**
 - `manualHousePlacements` and `derivedRanges` are only present on horoscopes with `source: "manual"` (no ephemeris calculation)
 - For `source: "auto"` horoscopes, these fields are absent; for `source: "manual"` horoscopes, ephemeris-derived fields (dashas, vargas) may be absent
+- `shadbalaya` is stored for **both** `source: "auto"` and `source: "manual"` horoscopes. For manual horoscopes the balas the system cannot derive are left unset until the student sets them manually (Drishti bala always; Cheshta Uttarayana/planet-war states and Kala varga loads on manual charts) — see [ShadBalaya](#shadbalaya)
 - Both aspect mechanisms (Planet Aspects houses + degrees, and Rashi Aspects when enabled) are computed for **both** `source: "auto"` and `source: "manual"` horoscopes; the manual chart feeds the same pure aspect functions via each planet's stored or fallback-derived degree (see [ManualHousePlacements](#manualhouseplacements))
-- The bulk recalculation job (triggered by an `AstrologySettings` update) overwrites the computed fields of every stored snapshot using the current system-wide settings. For `source: "auto"` horoscopes it re-runs `calculateHoroscope` from the stored birth details; for `source: "manual"` horoscopes it recomputes from the stored `manualHousePlacements` — which is the single source of truth for the manual chart and is **never overwritten** by the job (US-SAS-009)
+- The bulk recalculation job (triggered by an `AstrologySettings` update) overwrites the computed fields of every stored snapshot using the current system-wide settings. For `source: "auto"` horoscopes it re-runs `calculateHoroscope` from the stored birth details; for `source: "manual"` horoscopes it recomputes from the stored `manualHousePlacements` — which is the single source of truth for the manual chart and is **never overwritten** by the job (US-SAS-009). The same job recomputes `shadbalaya`, but a bala flagged `overridden: true` (a user's manual checkbox toggle) is **never overwritten** — the user's value is preserved exactly as `manualHousePlacements` is never overwritten (US-SB-013)
 
 **Relationships**:
 
@@ -839,6 +842,91 @@ Computed (and persisted) probable birth ranges derived from Ravi's and Shani's p
   }
 ]
 ```
+
+### ShadBalaya
+
+ෂඩ් බලය (Shad Bala) — the six strengths of each planet: Sthana (ස්ථාන බල), Cheshta (චේෂ්ටා බලය), Kala (කාල බලය), Dig (දිග් බලය), Drishti (දෘෂ්ඨි බලය), Naisargika (නෛසර්ගික බලය). Stored on `CalculatedDetails` as the `shadbalaya` field, keyed by numeric Planet enum string (`"1"`…`"9"`) following the `planetaryOrbs`/`planetAspects` Record convention. Each planet entry holds one per-bala object carrying the effective `value` (Boolean), whether the student manually toggled it (`overridden`), and the `reasons` used to compose the checkbox tooltip. The අනුපාතය (ratio) column is **not stored** — it is derived at render time as `count of true values / 6`, displayed as `(n/6)`.
+
+```json
+{
+  "1": {
+    "sthanaBala": {
+      "value": true,
+      "overridden": false,
+      "reasons": [{ "key": "shadbalaya.sthana.reason.uchcha" }]
+    },
+    "cheshtaBala": {
+      "value": true,
+      "overridden": false,
+      "reasons": [{ "key": "shadbalaya.cheshta.reason.uttarayana" }]
+    },
+    "kalaBala": {
+      "value": true,
+      "overridden": false,
+      "reasons": [{ "key": "shadbalaya.kala.reason.day" }]
+    },
+    "digBala": {
+      "value": true,
+      "overridden": false,
+      "reasons": [{ "key": "shadbalaya.dig.reason.house", "params": { "house": 10 } }]
+    },
+    "drishtiBala": {
+      "value": true,
+      "overridden": true,
+      "reasons": [{ "key": "shadbalaya.drishti.reason.manual" }]
+    },
+    "naisargikaBala": {
+      "value": true,
+      "overridden": false,
+      "reasons": [{ "key": "shadbalaya.naisargika.reason.notMaranakaraka" }]
+    }
+  },
+  "2": {
+    "sthanaBala": {
+      "value": false,
+      "overridden": false,
+      "reasons": [{ "key": "shadbalaya.sthana.reason.neecheShatru", "params": { "strength": -1, "sign": 10 } }]
+    },
+    "cheshtaBala": {
+      "value": false,
+      "overridden": false,
+      "reasons": [{ "key": "shadbalaya.cheshta.reason.krushnaPaksha" }]
+    },
+    "naisargikaBala": {
+      "value": false,
+      "overridden": false,
+      "reasons": [{ "key": "shadbalaya.naisargika.reason.maranakaraka", "params": { "house": 8 } }]
+    }
+  }
+}
+```
+
+**Field meanings:**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| sthanaBala / cheshtaBala / kalaBala / digBala / drishtiBala / naisargikaBala | Object | Per-bala entry for one planet (each object has `value`, `overridden`, `reasons`) |
+| value | Boolean | Effective bala state — `true` = checkbox checked (planet has the bala); `false` = unchecked. Reflects the user's value once `overridden` is set |
+| overridden | Boolean | `true` when the student manually toggled `value`. The AstrologySettings recalculation job preserves this value and never recomputes it — mirroring `manualHousePlacements`, which is never overwritten (US-SB-013) |
+| reasons | JSON | Array of reason objects used to compose the checkbox tooltip. A single bala may carry several reasons (e.g. Cheshta for both Vakra and a Shukla-paksha Chandra conjunction). Empty `[]` when the bala is not system-computed and has not been toggled (e.g. Drishti bala before the student sets it) |
+
+**Reason object (`reasons[]` entries):**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| key | String | i18n message key (e.g. `shadbalaya.sthana.reason.uchcha`, `shadbalaya.kala.reason.shuklaChandra`) — resolved per locale (si/en) at render time, never stored as localized text |
+| params | JSON | Optional map of numeric enum fields used as template parameters by the i18n message, e.g. `{ "planet": 3 }`, `{ "house": 10 }`, `{ "sign": 10 }`, `{ "strength": -1 }` |
+
+**Notes:**
+- All numeric fields follow existing enum conventions: planet = numeric `Planet` (1-9), house = 1-12, sign = numeric `ZodiacSign`, strength = numeric `PlanetaryStrength`
+- **Sthana bala** (ස්ථාන බල): `true` unless the planet is in a Shatru (enemy) sign (strength `-0.1`); the Neecha-and-Shatru combination (strength `-1`/`-1.25` in an enemy sign) also removes the bala with the dedicated `neecheShatru` reason, while Neecha-but-not-Shatru stays `true` with the `debilitated` reason; Uchcha/Own-sign/Moolatrikona planets are `true` (reason e.g. "Uchcha")
+- **Cheshta bala** (චේෂ්ටා බලය): `true` when any of — Ravi in Uttarayana (auto only); Ravi in Makara/Kumba/Meena/Mesha/Wrushaba (manual fallback); Moon in Shukla paksha; Kuja/Buda/Sikuru/Guru/Shani combined with a Shukla-paksha Chandra (Rahu/Ketu excluded); planet is Vakra — for Rahu/Ketu their natural retrograde is NOT vakra, only the opposite (direct) motion is; planet won a planet war (holds until 48h after the war; auto only)
+- **Kala bala** (කාල බලය): `true` when any of — Chandra/Kuja/Shani for a night birth; Ravi/Guru/Sikuru for a day birth (Ravi's day condition is suppressed while Moon is in Shukla paksha — Ravi then has no Kala bala); Budha/Guru/Sikuru/Rahu when Moon is in Shukla paksha; Kuja/Shani/Rahu when Moon is in Krushna paksha (Ravi is not in the Krushna list — his only Kala source is a Krushna-paksha day birth); planets carrying Hora/Panchama/Sukshama varga loads (auto only — not calculable for manual horoscopes)
+- **Dig bala** (දිග් බලය): `true` only when Guru/Budha is in 1st, Kuja/Ravi in 10th, Chandra/Shukra in 4th, or Shani in 7th house. Rahu (8) and Ketu (9) have no mapping — their `digBala` is always `false` with an empty `reasons` array (or omitted)
+- **Drishti bala** (දෘෂ්ඨි බලය): never computed by the system — `value` stays `false` with the manual reason until the student toggles it, on both chart sources
+- **Naisargika bala** (නෛසර්ගික බලය): `true` for every planet except a Maranakaraka planet — the planet occupying its designated death house (Chandra in 8th, Rahu in 9th, Shani in 1st, Ravi in 5th, Shukra in 6th, Kuja in 7th, Budha in 4th, Guru in 3rd; lagna/rasi chart only, never D9; multiple planets can qualify — `computeMaranakaraka` in `src/lib/astrology.ts`, rule documented in `docs/done/maranakaraka.md`). `CalculatedDetails.maranakaraka` is `number[]`.
+- The house used for Dig/Sthana/Naisargika evaluation is the cusp-based calculated house on auto charts and the entered house on manual charts (the same house shown in the chart)
+- On a full recalculation (AstrologySettings change), every bala with `overridden: false` is recomputed from the current chart data; every bala with `overridden: true` keeps the stored user value
 
 ### Doshas
 

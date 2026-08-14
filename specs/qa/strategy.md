@@ -415,3 +415,57 @@ Two related features are in scope: the per-user **Planet Aspects houses and degr
 | Regeneration recipe | Re-freeze golden fixtures that assert `planets[].aspects`/`houses[].aspectingPlanets` (calculation.test.ts, birthChart.test.ts, search textContent if it includes aspects) for a fixed birth chart against the NEW engine; store era-versioned fixtures (e.g. `fixtures/aspects-default-2026-08.json`); add a golden assertion that fails loudly if defaults change again; add separate goldens for rashi enabled/disabled |
 | Extended angles | New values 210/240/270/300/330 may appear in `aspectType`/`exactAspectDegree`; require display labels in both locales (§2.2 UX table) and confirm the 210° "7 signs" vs "6 signs" discrepancy with BA/PM |
 | Rashi golden dependence | Final golden expectations for rashi output depend on open decisions (Ubaya tie-break for Virgo/Sagittarius/Pisces, per-reason vs shared `degreeGap`, mobile reason marker shape) — regenerate goldens AFTER those are resolved (see test plan "What cannot be tested") |
+
+## Shad Bala (ෂඩ් බලය) — Testing Considerations
+
+> Full test plan: `specs/qa/20260813-2052-shadbalaya-test-plan.md`
+
+The Shad Bala feature (US-SB-001…014) adds a 8-column × 9-row ෂඩ් බලය table to the calculations tab: six per-planet bala checkboxes (Sthana, Cheshta, Kala, Dig, Drishti, Naisargika) with reason tooltips, an `(n/6)` ratio column, optimistic toggles with 500 ms debounced auto-save via `PATCH /api/horoscope/[id]/shadbalaya`, and `overridden: true` semantics that survive the AstrologySettings full recalculation. New pure module `src/lib/shadBalaya.ts` (`computeShadBalaya(planets, houses, ctx)` + `mergeShadBalaya(computed, stored)`), new `CalculatedDetails.shadbalaya` Map field, new `ShadBalaTable.tsx` client component.
+
+### Scope of Shad Bala testing
+
+| Level | Scope | Key files |
+|-------|-------|-----------|
+| Unit (Jest, pure) | Per-bala rules for both `source: "auto"` and `source: "manual"`; enemy-sign helper; paksha boundary; merge semantics | `src/lib/shadBalaya.ts` (new), `src/__tests__/shadBalaya.test.ts` (new) |
+| Integration / API | `PATCH /api/horoscope/[id]/shadbalaya` auth (401/403/404/400), sparse-write on legacy docs, super-admin path; recalculation merge | `src/app/api/horoscope/[id]/shadbalaya/route.ts` (new), `src/lib/recalculationJob.ts` |
+| Component / UI | Table render (8 cols × 9 rows, desktop table + mobile cards), optimistic toggle → debounce → PATCH → revert+toast on failure, override dot, tooltip states, read-only mode, legacy no-flicker render | `src/components/ShadBalaTable.tsx` (new), `src/app/horoscopes/[id]/page.tsx` |
+| E2E | Manual test scripts (no Playwright installed — flagged as Developer/PM decision) | — |
+| Bilingual | `astrology.shadbalaya.*` key parity SI/EN, reason params resolution, no hardcoded strings | `src/messages/en.json`, `src/messages/si.json` |
+
+### Key risk areas (prioritised)
+
+1. **Sthana enemy-sign detection** — `computePlanetStrength` collapses a debilitated planet to `NEECHA` before the enemy check, so `p.strength` can never report `SHATRU` for it. The Sthana rule needs a **separate** `NATURAL_ENEMIES[p.name]?.includes(SIGN_LORD[p.sign])` check. NOTE: `NATURAL_ENEMIES` is **not exported** from `src/lib/manualChart.ts` today (only `SIGN_LORD` is) — Developer must export it or add a shared map (architect spec says both are exported; verified false).
+2. **Override preservation across recalculation** — `recalculateOne` in `src/lib/recalculationJob.ts` currently overwrites `CalculatedDetails` wholesale (auto and manual paths); `mergeShadBalaya(computed, existing.shadbalaya)` must be applied before every persist (job + both recalc scripts + PATCH route must never touch `overridden: true` entries).
+3. **Sparse records from the PATCH route** — first toggle on a legacy document writes only `shadbalaya.<planet>.<bala>.*`; `mergeShadBalaya` must tolerate per-bala partial planet entries and fill the other 53 cells from computed at render.
+4. **Debounce / navigation race** — 500 ms per-key last-write-wins debounce; UX recommends a keep-alive flush on unmount, the architect marks it unnecessary — QA verifies no silently-lost last toggle (flag in test plan §What cannot be tested).
+5. **Deferred v1 conditions** — planet-war Cheshta (no graha-yuddha module), Hora/Panchama/Sukshama varga-load Kala (formula unconfirmed), Drishti (never computed): all render unchecked with the manual reason and remain toggleable.
+6. **Legacy documents** — no migration: page lazily recomputes Shad Bala at render (`getThithi()` / `resolvedMaranakaraka` pattern) — must never flash an all-unchecked table.
+
+### Environment & data setup
+
+| Item | Setup |
+|------|-------|
+| Unit fixtures | Minimal `planet(name, house, absoluteDegree, sign, strength, retrograde)` helper + `ctx { source, thithi, day, maranakaraka }`; known-bala fixtures (see test plan §8) — e.g. Sun(1) in Libra sign 7 strength NEECHA → Sthana false (`neecheShatru`); Moon(2) in house 8 → Naisargika false (`maranakaraka {house:8}`); Saturn(7) in Aries sign 1 strength NEECHA → Sthana false (second enemy combo) |
+| API tests | Mocked `getServerSession` + mocked `connectDB` (reuse `auth.test.ts`/`privacy.test.ts` patterns); assert the exact `$set` dotted paths and that no computation runs in the route |
+| Recalc tests | Extend `recalculationJob.test.ts` mock style: `mergeShadBalaya` called with computed + stored; `overridden: true` balas keep stored value, `overridden: false` recomputed |
+| E2E/manual | Two owned horoscopes (auto with birth time + location, manual without birth time), one non-owned public horoscope, one share link; SI + EN sessions; network-throttle for failure paths |
+| Golden integration | `calculateHoroscope(baseData)` (1990-06-15 08:30 Colombo) must now include `shadbalaya` with 9 planet keys × 6 balas, Drishti `false` everywhere — add to `calculation.test.ts` |
+
+### Shad Bala acceptance-criteria traceability
+
+| User story | QA test IDs (see test plan) |
+|-----------|------------------------------|
+| US-SB-001 | UT-SB-001/056/066, IT-SB-100/106/109, UI-SB-140/141/142/143/144/145, E2E-SB-160/161, RE-SB-220 |
+| US-SB-002 | UT-SB-001..010, UI-SB-150, E2E-SB-162 |
+| US-SB-003 | UT-SB-011..024, UI-SB-150, E2E-SB-163 |
+| US-SB-004 | UT-SB-025..038, E2E-SB-164, RE-SB-219 |
+| US-SB-005 | UT-SB-039..046, E2E-SB-165, RE-SB-210 |
+| US-SB-006 | UT-SB-047..054, E2E-SB-166 |
+| US-SB-007 | UT-SB-055/057, E2E-SB-167 |
+| US-SB-008 | IT-SB-100..112, UI-SB-146/147/148/149, E2E-SB-168/169/170, RE-SB-213/214/217/221/222 |
+| US-SB-009 | UI-SB-150/151/152/153, AX-SB-192/193, BI-SB-181/182 |
+| US-SB-010 | UI-SB-154, RE-SB-211/212 |
+| US-SB-011 | BI-SB-180..185, RE-SB-218 |
+| US-SB-012 | UT-SB-012/013/037/038/064, E2E-SB-161, RE-SB-219 |
+| US-SB-013 | IT-SB-120..127, E2E-SB-171, RE-SB-220/221 |
+| US-SB-014 | IT-SB-101/102/103, UI-SB-145, AX-SB-193, E2E-SB-172, RE-SB-216 |

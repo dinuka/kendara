@@ -11,6 +11,7 @@ import { generateChartSvg } from "../src/lib/chartRenderer";
 import { ALL_CHART_TYPES } from "../src/lib/chartTypes";
 import { connectDB } from "../src/lib/db";
 import logger from "../src/lib/logger";
+import { mergeShadBalaya } from "../src/lib/shadBalaya";
 
 import { recalculateCalculatedHoroscope } from "./recalculate-calculated-horoscopes";
 
@@ -46,7 +47,16 @@ async function migrate() {
 
             const calculated = calculateHoroscope(horoscope, planetaryOrbs, planetAspects, rashiAspects);
 
-            await CalculatedDetails.findOneAndUpdate({ "horoscope.id": id }, { ...calculated }, { upsert: true });
+            const existing = await CalculatedDetails.findOne({ "horoscope.id": id }).lean();
+
+            await CalculatedDetails.findOneAndUpdate(
+                { "horoscope.id": id },
+                {
+                    ...calculated,
+                    shadbalaya: mergeShadBalaya(calculated.shadbalaya ?? {}, existing?.shadbalaya),
+                },
+                { upsert: true },
+            );
 
             await Chart.deleteMany({ "horoscope.id": id });
 

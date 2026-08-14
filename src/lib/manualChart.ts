@@ -1,4 +1,4 @@
-import { computeMaranakaraka, navamsaSign } from "@/lib/astrology";
+import { NATURAL_ENEMIES, NATURAL_FRIENDS, computeMaranakaraka, navamsaSign } from "@/lib/astrology";
 import type {
     Antardasha,
     Planet as AstroPlanet,
@@ -409,30 +409,6 @@ const MOOLATRIKONA_RANGE: Record<number, { sign: number; start: number; end: num
     7: { sign: 11, start: 0, end: 20 },
 };
 
-const NATURAL_FRIENDS: Record<number, number[]> = {
-    1: [2, 3, 5],
-    2: [1, 4],
-    3: [1, 2, 5],
-    4: [1, 6],
-    5: [1, 2, 3],
-    6: [4, 7],
-    7: [4, 6],
-    8: [],
-    9: [],
-};
-
-const NATURAL_ENEMIES: Record<number, number[]> = {
-    1: [6, 7],
-    2: [],
-    3: [4],
-    4: [2],
-    5: [4, 6],
-    6: [1, 2],
-    7: [1, 2, 3],
-    8: [],
-    9: [],
-};
-
 /** Sign-based planetary strength (exaltation/debilitation/moolatrikona/own sign/friend/enemy/sama).
  *  Degree is only used for the deep exaltation/debilitation nuance; default 0 means "somewhere in the sign". */
 export function computePlanetStrength(planet: number, sign: number, degree = 0): PlanetaryStrength {
@@ -798,7 +774,7 @@ export function derivePlanetsTable(input: PlanetsTableInput): ManualPlanetRow[] 
             if (lord22ndDrekkana === planet) other.push("lord22ndDrekkana");
             if (lord64thNavamsa === planet) other.push("lord64thNavamsa");
             if (atmakaraka === planet) other.push("atmakaraka");
-            if (maranakaraka === planet) other.push("maranakaraka");
+            if (maranakaraka.includes(planet)) other.push("maranakaraka");
             return {
                 planet,
                 sign,

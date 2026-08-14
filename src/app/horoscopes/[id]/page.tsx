@@ -10,6 +10,7 @@ import ManualChartEditor from "@/components/ManualChart/ManualChartEditor";
 import PrivacyBadge from "@/components/PrivacyBadge";
 import PrivacyToggle from "@/components/PrivacyToggle";
 import AspectChip from "@/components/aspects/AspectChip";
+import ShadBalaTable from "@/components/shadbalaya/ShadBalaTable";
 import { useI18n } from "@/hooks/useI18n";
 import { useSession } from "next-auth/react";
 import { useParams, useRouter } from "next/navigation";
@@ -25,6 +26,7 @@ import {
     findHouse,
     formatDegree,
     navamsaSign,
+    normalizeMaranakaraka,
 } from "@/lib/astrology";
 import { PlanetaryStrength } from "@/lib/astrologyEnums";
 import { getChartData, toBirthChartData } from "@/lib/chartDataTransform";
@@ -46,6 +48,7 @@ import {
 } from "@/lib/manualChart";
 import type { DerivedRanges, ManualHouse, ManualHousePlacements } from "@/lib/manualChart";
 import { computeManualPlanetAspects } from "@/lib/planetAspects";
+import { type ShadBalaya, computeShadBalaya, deriveDay, mergeShadBalaya } from "@/lib/shadBalaya";
 
 const STRENGTH_TRANSLATION_KEYS: Record<PlanetaryStrength, string> = {
     [PlanetaryStrength.ATHI_UCHCHA]: "athiUchcha",
@@ -154,7 +157,7 @@ export default function HoroscopeDetailPage() {
             nidhanamshaPlanets: number[];
             ashtamanshaPlanets: number[];
             atmakaraka: number;
-            maranakaraka: number;
+            maranakaraka: number[];
             isAscendantWargoththama: boolean;
             isAscendantGandantha: boolean;
             isAscendantGandamula: boolean;
@@ -163,6 +166,7 @@ export default function HoroscopeDetailPage() {
             gandanthaPlanets: number[];
             gandamulaPlanets: number[];
             pushkaraPlanets: number[];
+            shadbalaya?: ShadBalaya;
             yogas: unknown[];
             doshas: { doshas: unknown[] };
             manualHousePlacements?: ManualHousePlacements;
@@ -359,14 +363,13 @@ export default function HoroscopeDetailPage() {
 
     const { horoscope, calculatedDetails } = data;
 
-    // Maranakaraka uses the cusp-based calculated house (findHouse), the same house shown in the
-    // chart. Auto horoscopes stored before this fix may carry a stale value computed from the
-    // whole-sign house, so recompute it at render time from planets + houses. Manual horoscopes
-    // already get the correct value (entered house) from synthesizeOtherDetails.
+    // Maranakaraka is recomputed at render from planets + houses (lagna chart only — never D9) so
+    // legacy stored values (a single "any rule → Moon=2") don't stick. Every planet in its
+    // designated death house is a Maranakaraka, so multiple planets can qualify.
     const resolvedMaranakaraka =
-        calculatedDetails?.planets && calculatedDetails?.houses && horoscope.source !== "manual"
+        calculatedDetails?.planets && calculatedDetails?.houses
             ? computeMaranakaraka(calculatedDetails.planets, calculatedDetails.houses)
-            : (calculatedDetails?.maranakaraka ?? 0);
+            : normalizeMaranakaraka(calculatedDetails?.maranakaraka);
 
     const handleDelete = async () => {
         setDeleting(true);
@@ -494,6 +497,25 @@ export default function HoroscopeDetailPage() {
         if (typeof calculatedDetails?.thithi === "number") return calculatedDetails.thithi;
         return computeThithiFromPlanets(calculatedDetails?.planets ?? []);
     };
+
+    /** Shad Bala (ෂඩ් බලය) table, recomputed at render time for legacy CalculatedDetails documents
+     *  that predate the field, then merged with any stored student overrides (sticky — kept through
+     *  recalculation). Manual charts derive only the subset of rules that use entered data. */
+    const resolvedShadbalaya =
+        calculatedDetails?.planets && calculatedDetails?.houses
+            ? mergeShadBalaya(
+                  computeShadBalaya(calculatedDetails.planets, calculatedDetails.houses, {
+                      source: horoscope.source === "manual" ? "manual" : "auto",
+                      thithi: getThithi(),
+                      day:
+                          horoscope.source !== "manual"
+                              ? deriveDay(calculatedDetails.planets, calculatedDetails.houses)
+                              : undefined,
+                      maranakaraka: resolvedMaranakaraka,
+                  }),
+                  calculatedDetails.shadbalaya,
+              )
+            : undefined;
 
     const getNavamsaSign = (sign: number, degree: number): number => {
         const navamsaNum = Math.floor(degree / (30 / 9)) + 1;
@@ -1529,7 +1551,7 @@ export default function HoroscopeDetailPage() {
                                                             key: "atmakaraka",
                                                             text: t("astrology.atmakarakaLabel"),
                                                         });
-                                                    if (resolvedMaranakaraka === p.name)
+                                                    if (resolvedMaranakaraka.includes(p.name))
                                                         tags.push({
                                                             key: "maranakaraka",
                                                             text: t("astrology.maranakarakaLabel"),
@@ -1712,7 +1734,7 @@ export default function HoroscopeDetailPage() {
                                                 tags.push({ key: "navamsa", text: t("astrology.navamsaLordLabel") });
                                             if (calculatedDetails.atmakaraka === p.name)
                                                 tags.push({ key: "atmakaraka", text: t("astrology.atmakarakaLabel") });
-                                            if (resolvedMaranakaraka === p.name)
+                                            if (resolvedMaranakaraka.includes(p.name))
                                                 tags.push({
                                                     key: "maranakaraka",
                                                     text: t("astrology.maranakarakaLabel"),
@@ -1884,6 +1906,19 @@ export default function HoroscopeDetailPage() {
 
                             {horoscope.source === "manual" && calculatedDetails.derivedRanges && (
                                 <DerivedRangesSection ranges={calculatedDetails.derivedRanges} />
+                            )}
+
+                            {resolvedShadbalaya && (
+                                <ShadBalaTable
+                                    horoscopeId={horoscope._id}
+                                    shadbalaya={resolvedShadbalaya}
+                                    isEditable={
+                                        horoscope.owner?.id === session?.user?.id ||
+                                        session?.user?.role === "super-admin"
+                                    }
+                                    getPlanetName={getPlanetName}
+                                    getSignName={getSignName}
+                                />
                             )}
                         </div>
                     )}

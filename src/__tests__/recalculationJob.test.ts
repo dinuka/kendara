@@ -7,6 +7,7 @@ import { calculateHoroscope } from "@/lib/calculation";
 import { compute, manualPlacementsToInput } from "@/lib/manualChart";
 import { getCurrentShani, sanitizeManualHousePlacements, synthesizeCalculation } from "@/lib/manualChartDetails";
 import { startRecalculation } from "@/lib/recalculationJob";
+import { SHADBALAYA_KEYS, type ShadBalaya, type ShadBalayaPerPlanet } from "@/lib/shadBalaya";
 
 jest.mock("@/models/AstrologySettings", () => ({
     AstrologySettings: {
@@ -69,6 +70,31 @@ function makeDoc(overrides: Record<string, unknown> = {}) {
 
 function mockSnapshot(ids: string[]) {
     mockedCD.find.mockReturnValue({ lean: jest.fn().mockResolvedValue(ids.map((id) => ({ horoscope: { id } }))) });
+}
+
+/** A full computed Shad Bala table with a deterministic pattern (even planets checked). */
+function fullComputedTable(): ShadBalaya {
+    const table: ShadBalaya = {};
+    for (let name = 1; name <= 9; name++) {
+        const key = String(name);
+        const per: ShadBalayaPerPlanet = {} as ShadBalayaPerPlanet;
+        for (const bala of SHADBALAYA_KEYS) {
+            per[bala] = { value: name % 2 === 0, overridden: false, reasons: [{ key: `computed.${bala}` }] };
+        }
+        table[key] = per;
+    }
+    return table;
+}
+
+/** The same table with one cell toggled by the student (overridden: true). */
+function storedOverrideTable(): ShadBalaya {
+    const stored = fullComputedTable();
+    stored["1"].sthanaBala = {
+        value: false,
+        overridden: true,
+        reasons: [{ key: "shadbalaya.sthana.reason.debilitated", params: { sign: 4 } }],
+    };
+    return stored;
 }
 
 /** Each element of `docs` is returned in sequence by every `getAstrologySettings()` call. */
@@ -326,5 +352,68 @@ describe("startRecalculation", () => {
         expect(final["recalcStatus.succeeded"]).toBe(1);
         expect(final["recalcStatus.failed"]).toBe(1);
         expect(final["recalcStatus.failedHoroscopeIds"]).toEqual(["bad"]);
+    });
+
+    test("auto recalculation merges stored Shad Bala overrides into the fresh table (US-SB-013)", async () => {
+        const doc = makeDoc();
+        mockSettingsSequence([doc, doc, doc]);
+        mockSnapshot(["h1"]);
+        mockedHoroscopeFindById.mockResolvedValue({
+            _id: "h1",
+            source: "auto",
+            name: "Test",
+            birthDate: new Date("1990-01-01T00:00:00.000Z"),
+            birthTime: "12:00",
+            latitude: 7,
+            longitude: 80,
+            ayanamsha: "lahiri",
+        });
+        const computed = fullComputedTable();
+        const stored = storedOverrideTable();
+        mockedCalculate.mockReturnValue({ ascendant: { sign: 1, degree: 0 }, houses: [], shadbalaya: computed });
+        mockedCD.findOne.mockReturnValue({ lean: jest.fn().mockResolvedValue({ shadbalaya: stored }) });
+
+        await startRecalculation({ settingsVersion: 1 });
+
+        const saveCall = mockedCD.findOneAndUpdate.mock.calls[0];
+        const merged = saveCall[1].shadbalaya as ShadBalaya;
+        expect(merged["1"].sthanaBala).toEqual(stored["1"].sthanaBala);
+        expect(merged["1"].cheshtaBala).toEqual(computed["1"].cheshtaBala);
+        expect(merged["9"].naisargikaBala).toEqual(computed["9"].naisargikaBala);
+    });
+
+    test("manual recalculation keeps stored Shad Bala overrides (US-SB-013)", async () => {
+        const doc = makeDoc();
+        mockSettingsSequence([doc, doc, doc]);
+        mockSnapshot(["m1"]);
+        mockedHoroscopeFindById.mockResolvedValue({
+            _id: "m1",
+            source: "manual",
+            name: "Manual",
+            birthDate: new Date("1990-01-01T00:00:00.000Z"),
+        });
+        const computed = fullComputedTable();
+        const stored = storedOverrideTable();
+        mockedCD.findOne.mockReturnValue({
+            lean: jest.fn().mockResolvedValue({
+                manualHousePlacements: {
+                    lagna: 1,
+                    houses: [{ houseNumber: 1, sign: 1, planets: [1, 2] }],
+                    validation: {},
+                },
+                shadbalaya: stored,
+            }),
+        });
+        mockedManualPlacementsToInput.mockReturnValue({ lagna: 1, houses: { 1: [1, 2] } });
+        mockedCompute.mockReturnValue({ manualHousePlacements: { lagna: 1 }, derivedRanges: { ageRanges: [] } });
+        mockedSynthesize.mockReturnValue({ ascendant: { sign: 1, degree: 0 }, shadbalaya: computed });
+
+        await startRecalculation({ settingsVersion: 1 });
+
+        const saveCall = mockedCD.findOneAndUpdate.mock.calls[0];
+        const merged = saveCall[1].shadbalaya as ShadBalaya;
+        expect(merged["1"].sthanaBala).toEqual(stored["1"].sthanaBala);
+        expect(merged["1"].kalaBala).toEqual(computed["1"].kalaBala);
+        expect(merged["1"].digBala).toEqual(computed["1"].digBala);
     });
 });

@@ -1,7 +1,7 @@
 # Kendara — Main UX Specification
 
 **Date:** 2026-07-15 12:30
-**Last Updated:** 2026-08-13 (rev: System-Wide Astrology Settings — the three settings (Orbs / Planet Aspects / Rashi Aspects) are now system-wide on the same `/settings` page: super-admin edits + sees version metadata, recalculation progress, and audit/history; students view read-only with a "managed by the administrator" notice; see `specs/ux/20260813-1000-system-astrology-settings.md`)
+**Last Updated:** 2026-08-13 (rev: Shad Bala (ෂඩ් බලය) — the horoscope detail Calculations tab gains a 6-strength × 9-planet checkbox table (Sthana / Cheshta / Kala / Dig / Drishti / Naisargika Bala + ratio `(n/6)`) with per-cell reason tooltips for checked and unchecked states, 500ms-debounced auto-save overrides marked by an indigo dot that survives recalculation, and a read-only mode for non-owners and share links; see `specs/ux/20260813-2030-shadbalaya.md`. Previous rev: System-Wide Astrology Settings — the three settings (Orbs / Planet Aspects / Rashi Aspects) are now system-wide on the same `/settings` page: super-admin edits + sees version metadata, recalculation progress, and audit/history; students view read-only with a "managed by the administrator" notice; see `specs/ux/20260813-1000-system-astrology-settings.md`)
 **Author:** UX (BMAD)
 **Based on:** specs/business-analysis/actors.md, specs/business-analysis/data-model.md, specs/business-analysis/20260714-1255-user-stories.md, specs/architecture/overview.md, specs/architecture/20260715-0746-architecture-spec.md, docs/spec.md
 
@@ -23,6 +23,8 @@ Kendara is a bilingual (Sinhala/English) astrology study web app for students to
 > **Planet Aspects UX:** The Planet Aspects houses and degrees (දෘෂ්ඨි) settings feature has a dedicated UX spec at `specs/ux/20260809-2215-planet-aspects.md` covering the per-planet house (1–12) and degree (30–330 step 30) chip selectors, Default-vs-Custom status pills, absolute-vs-offset house semantics, staged save with unsaved-changes indicator, reset-to-defaults, validation rules, and the data-only horoscope detail view updates (planets/houses table aspect columns).
 
 > **System Astrology Settings UX:** The System-Wide Astrology Settings feature (Orbs / Planet Aspects / Rashi Aspects moved to a single system-wide document) has a dedicated UX spec at `specs/ux/20260813-1000-system-astrology-settings.md`. The same `/settings` page serves both roles: **super-admin** edits the three sections (single bulk Save, `version` optimistic lock), sees a metadata strip (version / updated-by / last recalculated), a live recalculation status panel (polling + retry-failed), and collapsible audit-log / recalc-history panels; **students** view the full sections **read-only** with a "managed by the administrator" notice and no edit affordances. Admin metadata is never exposed to students.
+
+> **Shad Bala UX:** The Shad Bala (ෂඩ් බලය) six-strengths table feature has a dedicated UX spec at `specs/ux/20260813-2030-shadbalaya.md` covering the 8-column × 9-row checkbox table on the Calculations tab (desktop table + mobile card-per-planet), per-cell reason tooltips (checked AND unchecked), the 500ms-debounced auto-save override flow with optimistic UI and rollback, the indigo override dot that survives recalculation, the read-only non-owner/share-link mode with `ⓘ` tooltip access, legacy no-flicker rendering, and the full `astrology.shadbalaya.*` EN/SI key set.
 
 ---
 
@@ -505,6 +507,21 @@ Settings → "Planets Aspects houses and degrees" section →
 - **Horoscope view impact (data-only)**: Owner-auto detail views re-derive `planets[].aspects` / `houses[].aspectingPlanets` on refresh (pure, no migration); planets table Aspects chips render **planet names only** (`{Planet}` — glyph + localized name, e.g. `සිකුරු / Venus` — no angle/delta inline) and each chip shows a hover/focus/tap **aspect tooltip** (`AspectReasonTooltip` — compact reason lines: a single reason keeps the inline signed delta, e.g. SI `ග්‍රහ දෘෂ්ඨි 7 (180) (+02:05:00)` / EN `Planet drishti 7 (180) (+02:05:00)`, while ≥2 reasons (e.g. planetary + rashi drishti) render one line per reason plus a single shared `Δ {delta}` footer so the delta appears exactly once, e.g. SI `ග්‍රහ දෘෂ්ඨි 7 (180)` + `රාශි දෘෂ්ඨි මේෂ → මිථුන` + `Δ +02:05:00`; see `specs/ux/20260809-2215-planet-aspects.md` §8.1.1); houses table Aspects chips render localized planet names with the same tooltip; charts/art, exports, shared views, and search cards unchanged in v1
 - **Accessibility**: chips keyboard-focusable with `aria-pressed`; status pills never color-only; 40px touch targets; `Esc` closes expanded row/modal; `beforeunload` guard on dirty navigation
 
+### Shad Bala Table (ෂඩ් බලය)
+
+> Full spec: `specs/ux/20260813-2030-shadbalaya.md`
+
+- **Placement**: Horoscope detail Calculations tab, immediately after the Planets table section, in the same `bg-white rounded-lg border p-4` card pattern with the existing section-header class; rendered for both `source: "auto"` and `source: "manual"` horoscopes
+- **Layout**: 8 columns (ග්රහයා / ස්ථාන බල / චේෂ්ටා බලය / කාල බලය / දිග් බලය / දෘෂ්ඨි බලය / නෛසර්ගික බලය / අනුපාතය) × 9 planet rows; ratio = `(n/6)` derived at render, never stored; desktop/tablet `hidden sm:block` table (matching the adjacent Planets table), mobile (<640px) card-per-planet with a 3×2 grid of labeled bala checkbox chips
+- **Bala cells**: Native `<input type="checkbox">` (16px, `accent-indigo-600`, visible focus ring) — checked = planet has the bala; deliberately not a custom toggle (dense 54-cell grid, native Space-key activation, free checked-state announcement); mobile chips are full-width `<label>` tap targets ≥ 44px
+- **Reason tooltips**: Every checkbox (checked AND unchecked) opens the aspect-style custom tooltip (150ms hover delay, focus/blur toggle, Esc dismiss, `title` fallback with the full plain text, `max-w-[280px]` EN / `max-w-[320px]` SI, one at a time): bold bala-name heading → "✓ Checked because / ✗ Unchecked because" + one line per stored reason (params like `{sign}`, `{house}` resolved per locale) → optional "Set manually" footer; non-calculable balas (Drishti always; deferred Cheshta/Kala conditions) render unchecked with an explicit manual-reason line
+- **Override indicator**: A bala toggled by the student is stored with `overridden: true` and shown as a small indigo dot (•) in the cell's top-right plus a legend line under the section title; the dot appears optimistically on toggle, is removed on save failure, and persists across reloads and recalculation — even when the toggled value equals the computed value; never color-only (checkbox `aria-label` suffix + tooltip footer line)
+- **Auto-save**: Toggle flips optimistically and the ratio updates instantly; a 500ms per-(planet,bala) debounce (last-write-wins) fires `PATCH /api/horoscope/:id/shadbalaya { planet, bala, value }`; success is silent (the dot is the confirmation — no success toast), failure reverts box + ratio + dot and shows an error toast; pending saves are flushed on navigation (keep-alive)
+- **Read-only mode** (non-owner / share link): identical table with `disabled` checkboxes; a focusable `ⓘ` button per cell (revealed on hover/focus, always keyboard-reachable) opens the same reason tooltip; ratio, dots and tooltips render unchanged; the API rejects any mutation with 403
+- **Legacy documents**: resolved synchronously at render via `mergeShadBalaya(computed, stored)` — first paint is populated (no flicker/shimmer); the first toggle writes a sparse stored record that merges over the computed values
+- **Accessibility**: native checkbox semantics; `aria-label` = planet + bala + state (+ ", set manually" when overridden); tooltip wired via `aria-describedby` → `role="tooltip"`; override dot is decorative (`aria-hidden`); Sinhala tooltips cap at 320px width
+- **i18n**: full `astrology.shadbalaya.*` key set added to both `en.json` and `si.json` (title, column names, bala names, reason lines, override legend/aria, toast, read-only notice); planet names reused from `astrology.planetNames.*`; no hardcoded strings
+
 ### Search Input
 
 > Full spec: `specs/ux/20260727-2100-search-horoscope.md` §4
@@ -703,6 +720,7 @@ Settings → "Planets Aspects houses and degrees" section →
 | `specs/ux/20260805-1514-calculated-horoscope.md` | Calculated Horoscope (manual entry) UX specification |
 | `specs/ux/20260809-2215-planet-aspects.md` | Planet Aspects houses and degrees (දෘෂ්ඨි) settings UX specification |
 | `specs/ux/20260813-1000-system-astrology-settings.md` | System-wide astrology settings UX specification (role-gated `/settings`: admin edit + recalc progress + audit/history; student read-only) |
+| `specs/ux/20260813-2030-shadbalaya.md` | Shad Bala (ෂඩ් බලය) six-strengths table UX specification (checkbox grid + reason tooltips + auto-save overrides + read-only mode) |
 | `src/components/PrivacyToggle.tsx` | PrivacyToggle component (isPublic + displayName toggles) |
 | `src/components/PrivacyBadge.tsx` | Privacy status badge (Public / Private / Name Hidden) |
 | `src/components/ManualChart/` | Manual Chart editor components (ModeToggle, HouseTableEditor, NavamsaHouseTableEditor, PlanetPicker, ValidationBadges, PlanetsTable, DerivedRanges, ManualChartEditor, ManualChartDetailPanel) |

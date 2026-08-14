@@ -59,6 +59,12 @@
   - View the "Rashi Aspects" (රාශි දෘෂ්ඨි) setting and its Chara/Thira/Ubaya rashi-aspect logic (Chara rashis look at Thira rashis, Thira rashis look at Chara rashis, Ubaya rashis look at Ubaya rashis, nearest rashi excluded) — system-wide and read-only
   - View house aspects and planet aspects recomputed to include rashi drishti when the system-wide Rashi Aspects setting is enabled (a planet in a sign aspects the houses of the aspected rashis and the planets in those rashis) — on both auto (birth-time) and manually-entered horoscopes
   - View all reasons for an aspect in the tooltip — the planetary drishti line and each rashi drishti line (multiple lines when an aspect has more than one reason)
+  - View the ෂඩ් බලය (Shad Bala) table in the calculations tab, listing all nine planets with their Sthana, Cheshta, Kala, Dig, Drishti, and Naisargika bala checkboxes plus the Anupatha ratio column
+  - Check/uncheck any bala checkbox on own horoscopes; the change auto-saves without a separate save action
+  - View the reason for each checked or unchecked bala in a tooltip (e.g. "Uchcha" for Sthana, "Because of conjunction with Shukla Chandra" for Kala) — in Sinhala or English
+  - Override any bala the system cannot calculate (e.g. Drishti bala on all horoscopes; Cheshta Uttarayana/planet-war states and Kala varga loads on manual horoscopes)
+  - Persist shad bala overrides so they survive the AstrologySettings full recalculation (never wiped by the recalculation job)
+  - View the Shad Bala table read-only (no checkboxes) on horoscopes owned by others or accessed via a share link
 - **Authentication**: Google SSO (auto-assigned)
 
 ## 2. Super Admin
@@ -116,3 +122,13 @@
   - Emit every reason for an aspect (planetary drishti and one line per rashi drishti) so the UI renders the tooltip as multiple lines
   - Read the three astrology settings (Planetary Orbs, Planet Aspects, Rashi Aspects) from the single system-wide `AstrologySettings` document as the source of truth for ALL calculations (auto and manual); legacy per-user copies on the `User` document are ignored
   - Run the bulk recalculation job when the system-wide astrology settings change: idempotent and resumable, processes all horoscopes in batches, tracks and reports progress with per-run success/failure counts, and never corrupts stored data on partial failure
+  - Compute the ෂඩ් බලය (Shad Bala) six strengths per planet for `source: "auto"` horoscopes and store them in `CalculatedDetails.shadbalaya` (see `20260813-1954-shadbalaya.md`)
+  - Sthana bala: grant unless the planet is in a Shatru (enemy sign) placement — whether alone or combined with Neecha (the Neecha+Shatru combination uses the dedicated `neecheShatru` reason); a Neecha placement in a non-enemy sign keeps the bala
+  - Cheshta bala: Ravi in Uttarayana; Moon in Shukla paksha; Kuja/Buda/Sikuru/Guru/Shani combined with a Shukla-paksha Chandra; any Vakra (retrograde) planet; and the winning planet of a planet war for 48 hours after the war
+  - Kala bala: any one condition suffices — Chandra/Kuja/Shani for a night birth; Ravi/Guru/Sikuru for a day birth (Ravi's day suppressed during Shukla); Budha/Guru/Sikuru/Rahu when Moon is in Shukla paksha; Kuja/Shani/Rahu when Moon is in Krushna paksha; plus planets carrying Hora/Panchama/Sukshama varga loads (auto horoscopes only)
+  - Dig bala: Guru/Budha in 1st house; Kuja/Ravi in 10th house; Chandra/Shukra in 4th house; Shani in 7th house (Rahu/Ketu have no Dig-bala mapping)
+  - Naisargika bala: grant to every planet except a Maranakaraka planet — the planet occupying its designated death house (Chandra in 8th, Rahu in 9th, Shani in 1st, Ravi in 5th, Shukra in 6th, Kuja in 7th, Budha in 4th, Guru in 3rd; lagna chart only, never D9; multiple planets can qualify — `computeMaranakaraka` in `src/lib/astrology.ts`)
+  - Drishti bala: NOT calculated — the checkbox is left unset for the student to set manually on every horoscope, for both sources
+  - Compose each bala's tooltip reason from i18n keys plus numeric enum fields (Planet/ZodiacSign/strength/house) — never store localized text
+  - Persist `shadbalaya` on `CalculatedDetails` and preserve per-bala `overridden` user toggles across the AstrologySettings recalculation job — an overridden value is never recomputed or overwritten, mirroring `manualHousePlacements`
+  - For `source: "manual"` horoscopes: use the sign-based Ravi rule (Makara/Kumba/Meena/Mesha/Wrushaba) instead of Uttarayana, skip the planet-war and varga-load conditions, and leave Drishti (and any other non-derivable bala) unset for the student

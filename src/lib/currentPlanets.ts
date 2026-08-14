@@ -1,6 +1,6 @@
 import swisseph from "swisseph-v2";
 
-import { CurrentPlanetRecord, House, findHouse } from "@/lib/astrology";
+import { CurrentPlanetRecord, House, NATURAL_ENEMIES, NATURAL_FRIENDS, findHouse } from "@/lib/astrology";
 import { COMBUSTION_ORBS, Planet } from "@/lib/astrologyEnums";
 import logger from "@/lib/logger";
 
@@ -77,30 +77,6 @@ const SIGN_LORD: Record<number, number> = {
     10: 7,
     11: 7,
     12: 5,
-};
-
-const NATURAL_FRIENDS: Record<number, number[]> = {
-    1: [2, 3, 5],
-    2: [1, 4],
-    3: [1, 2, 5],
-    4: [1, 6],
-    5: [1, 2, 3],
-    6: [4, 7],
-    7: [4, 6],
-    8: [],
-    9: [],
-};
-
-const NATURAL_ENEMIES: Record<number, number[]> = {
-    1: [6, 7],
-    2: [],
-    3: [4],
-    4: [2],
-    5: [4, 6],
-    6: [1, 2],
-    7: [1, 2, 3],
-    8: [],
-    9: [],
 };
 
 function getNakshatra(longitude: number): { nakshatra: number; pada: number } {

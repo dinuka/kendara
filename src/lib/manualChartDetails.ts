@@ -17,6 +17,7 @@ import {
 } from "@/lib/manualChart";
 import { computePlanetAspects } from "@/lib/planetAspects";
 import { DEFAULT_RASHI_ASPECTS, mergeRashiIntoPlanetAspects } from "@/lib/rashiAspects";
+import { computeShadBalaya } from "@/lib/shadBalaya";
 
 export type ManualChartPayload = { ok: true; value: ManualChartInput } | { ok: false; error: string };
 
@@ -164,7 +165,9 @@ export function synthesizePlanets(result: ManualChartResult): Planet[] {
             house: row.house,
             nakshatra,
             pada,
-            retrograde: false,
+            // Rahu/Ketu are retrograde by nature; mark them so the vakra rule does not fire for
+            // manual charts (their "not computed" default would otherwise look like direct motion).
+            retrograde: row.planet === 8 || row.planet === 9,
             combustion: false,
             strength: row.strength,
             navamsaSign: row.navamsa?.navamsaSign ?? row.sign,
@@ -197,18 +200,29 @@ export function synthesizeCalculation(result: ManualChartResult, birthDate?: Dat
     const moon = planets.find((p) => p.name === 2);
     const ascendantNakshatra = computeAscendantNakshatra(manualHousePlacements);
     const moonNakshatra = moon ? computeMoonNakshatra(moon.sign, moon.navamsaSign) : { id: 1, pada: 1, lord: 9 };
+    const thithi = computeThithiFromPlanets(planets);
+    const houses = buildWholeSignHouses(lagna);
+    const otherDetails = synthesizeOtherDetails(manualHousePlacements, planets);
     return {
         ascendant: synthesizeAscendant(lagna),
-        houses: buildWholeSignHouses(lagna),
+        houses,
         planets,
         nakshatra: {
             moonNakshatra,
             ascendantNakshatra,
         },
-        thithi: computeThithiFromPlanets(planets),
-        panchaPakshi: computePanchaPakshi(moonNakshatra.id, computeThithiFromPlanets(planets)),
+        thithi,
+        panchaPakshi: computePanchaPakshi(moonNakshatra.id, thithi),
         dashas: calculateManualDashas(moonNakshatra.id, moonNakshatra.pada, birthDate),
-        ...synthesizeOtherDetails(manualHousePlacements, planets),
+        ...otherDetails,
+        // Manual charts derive only the subset Shad Bala rules that need stored chart data: Cheshta
+        // (Uttarayana sign, paksha, conjunction, Vakra), Kala (paksha only — day/night has no birth
+        // time), Dig (entered house), Naisargika (stored maranakaraka), Drishti (manual only).
+        shadbalaya: computeShadBalaya(planets, houses, {
+            source: "manual",
+            thithi,
+            maranakaraka: otherDetails.maranakaraka,
+        }),
         yogas: [],
         doshas: { doshas: [] },
     };

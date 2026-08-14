@@ -1,5 +1,6 @@
 import { computeAscendantSpecialFlags, computeMaranakaraka, navamsaSign } from "@/lib/astrology";
 import { calculateHoroscope } from "@/lib/calculation";
+import { SHADBALAYA_KEYS } from "@/lib/shadBalaya";
 
 describe("calculateHoroscope", () => {
     const baseData = {
@@ -148,10 +149,25 @@ describe("calculateHoroscope", () => {
         });
     });
 
-    test("maranakaraka is Moon (2) when present, else 0, and matches the house rule", () => {
+    test("maranakaraka lists planets in their designated death houses, and matches the house rule", () => {
         const result = calculateHoroscope(baseData);
-        expect([0, 2]).toContain(result.maranakaraka);
-        expect(result.maranakaraka).toBe(computeMaranakaraka(result.planets, result.houses));
+        expect(Array.isArray(result.maranakaraka)).toBe(true);
+        expect(result.maranakaraka).toEqual(computeMaranakaraka(result.planets, result.houses));
+    });
+
+    test("shadbalaya covers all nine planets with the six balas; Drishti is never auto-checked (UT-SB-070..074)", () => {
+        const result = calculateHoroscope(baseData);
+        expect(result.shadbalaya).toBeDefined();
+        for (let name = 1; name <= 9; name++) {
+            const perPlanet = result.shadbalaya![String(name)];
+            expect(perPlanet).toBeDefined();
+            for (const bala of SHADBALAYA_KEYS) {
+                expect(typeof perPlanet[bala].value).toBe("boolean");
+                expect(typeof perPlanet[bala].overridden).toBe("boolean");
+                expect(Array.isArray(perPlanet[bala].reasons)).toBe(true);
+            }
+            expect(perPlanet.drishtiBala.value).toBe(false);
+        }
     });
 });
 
@@ -159,34 +175,37 @@ describe("computeMaranakaraka", () => {
     const planet = (name: number, house: number, absoluteDegree: number = 0) => ({ name, house, absoluteDegree });
 
     test("Moon in 8th house -> Moon is Maranakaraka", () => {
-        expect(computeMaranakaraka([planet(2, 8)])).toBe(2);
+        expect(computeMaranakaraka([planet(2, 8)])).toEqual([2]);
     });
-    test("Rahu in 9th house -> Moon is Maranakaraka", () => {
-        expect(computeMaranakaraka([planet(8, 9)])).toBe(2);
+    test("Rahu in 9th house -> Rahu is Maranakaraka", () => {
+        expect(computeMaranakaraka([planet(8, 9)])).toEqual([8]);
     });
-    test("Saturn in 1st house -> Moon is Maranakaraka", () => {
-        expect(computeMaranakaraka([planet(7, 1)])).toBe(2);
+    test("Saturn in 1st house -> Saturn is Maranakaraka", () => {
+        expect(computeMaranakaraka([planet(7, 1)])).toEqual([7]);
     });
-    test("Sun in 5th house -> Moon is Maranakaraka", () => {
-        expect(computeMaranakaraka([planet(1, 5)])).toBe(2);
+    test("Sun in 5th house -> Sun is Maranakaraka", () => {
+        expect(computeMaranakaraka([planet(1, 5)])).toEqual([1]);
     });
-    test("Venus in 6th house -> Moon is Maranakaraka", () => {
-        expect(computeMaranakaraka([planet(6, 6)])).toBe(2);
+    test("Venus in 6th house -> Venus is Maranakaraka", () => {
+        expect(computeMaranakaraka([planet(6, 6)])).toEqual([6]);
     });
-    test("Mars in 7th house -> Moon is Maranakaraka", () => {
-        expect(computeMaranakaraka([planet(3, 7)])).toBe(2);
+    test("Mars in 7th house -> Mars is Maranakaraka", () => {
+        expect(computeMaranakaraka([planet(3, 7)])).toEqual([3]);
     });
-    test("Mercury in 4th house -> Moon is Maranakaraka", () => {
-        expect(computeMaranakaraka([planet(4, 4)])).toBe(2);
+    test("Mercury in 4th house -> Mercury is Maranakaraka", () => {
+        expect(computeMaranakaraka([planet(4, 4)])).toEqual([4]);
     });
-    test("Jupiter in 3rd house -> Moon is Maranakaraka", () => {
-        expect(computeMaranakaraka([planet(5, 3)])).toBe(2);
+    test("Jupiter in 3rd house -> Jupiter is Maranakaraka", () => {
+        expect(computeMaranakaraka([planet(5, 3)])).toEqual([5]);
+    });
+    test("multiple planets in their trigger houses -> all are Maranakaraka", () => {
+        expect(computeMaranakaraka([planet(4, 4), planet(5, 3)])).toEqual([4, 5]);
     });
     test("no matching planet-house combination -> no Maranakaraka", () => {
-        expect(computeMaranakaraka([planet(2, 7), planet(1, 1), planet(8, 1)])).toBe(0);
+        expect(computeMaranakaraka([planet(2, 7), planet(1, 1), planet(8, 1)])).toEqual([]);
     });
     test("a non-trigger planet in a trigger house does not qualify", () => {
-        expect(computeMaranakaraka([planet(9, 8), planet(8, 1), planet(2, 9)])).toBe(0);
+        expect(computeMaranakaraka([planet(9, 8), planet(8, 1), planet(2, 9)])).toEqual([]);
     });
 
     test("uses the cusp-based calculated house, not the whole-sign house", () => {
@@ -223,9 +242,9 @@ describe("computeMaranakaraka", () => {
             },
         ];
         // whole-sign says 8th -> would be Maranakaraka, but cusp house is 7 -> not Maranakaraka
-        expect(computeMaranakaraka([planet(2, 8, 32)], houses)).toBe(0);
+        expect(computeMaranakaraka([planet(2, 8, 32)], houses)).toEqual([]);
         // Moon actually in the 8th cusp house -> Maranakaraka
-        expect(computeMaranakaraka([planet(2, 8, 37)], houses)).toBe(2);
+        expect(computeMaranakaraka([planet(2, 8, 37)], houses)).toEqual([2]);
     });
 });
 

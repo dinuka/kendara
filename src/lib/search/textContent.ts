@@ -74,8 +74,8 @@ const textPartsEn = (calc: CalculationResult): string[] => {
 
     parts.push(`Atmakaraka: ${PLANET_LABELS_EN[calc.atmakaraka] || `Planet ${calc.atmakaraka}`}.`);
     parts.push(
-        calc.maranakaraka
-            ? `Maranakaraka: ${PLANET_LABELS_EN[calc.maranakaraka] || `Planet ${calc.maranakaraka}`}.`
+        calc.maranakaraka.length > 0
+            ? `Maranakaraka: ${calc.maranakaraka.map((p) => PLANET_LABELS_EN[p] || `Planet ${p}`).join(", ")}.`
             : "No Maranakaraka.",
     );
     parts.push(`Badhaka planets: ${calc.badhakaPlanet.map((p) => PLANET_LABELS_EN[p] || `Planet ${p}`).join(", ")}.`);
@@ -166,8 +166,8 @@ const textPartsSi = (calc: CalculationResult): string[] => {
 
     parts.push(`ආත්මකාරක: ${PLANET_LABELS_SI[calc.atmakaraka] || `Planet ${calc.atmakaraka}`}.`);
     parts.push(
-        calc.maranakaraka
-            ? `මරණකාරක: ${PLANET_LABELS_SI[calc.maranakaraka] || `Planet ${calc.maranakaraka}`}.`
+        calc.maranakaraka.length > 0
+            ? `මරණකාරක: ${calc.maranakaraka.map((p) => PLANET_LABELS_SI[p] || `Planet ${p}`).join(", ")}.`
             : "මරණකාරක නැත.",
     );
     parts.push(`බාධක ග්‍රහ: ${calc.badhakaPlanet.map((p) => PLANET_LABELS_SI[p] || `Planet ${p}`).join(", ")}.`);

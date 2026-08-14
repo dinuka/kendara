@@ -14,6 +14,7 @@ import {
     synthesizeCalculation,
     synthesizeNavamsaCalculation,
 } from "../src/lib/manualChartDetails";
+import { mergeShadBalaya } from "../src/lib/shadBalaya";
 
 /** Recomputed the stored `CalculatedDetails` and `Chart` docs for one calculated (manual) horoscope,
  *  replaying the POST /api/horoscope/manual pipeline from the persisted `manualHousePlacements`
@@ -38,6 +39,7 @@ export async function recalculateCalculatedHoroscope(horoscope: IHoroscope): Pro
         { "horoscope.id": id },
         {
             ...synth,
+            shadbalaya: mergeShadBalaya(synth.shadbalaya ?? {}, existing?.shadbalaya),
             manualHousePlacements: sanitizeManualHousePlacements(result.manualHousePlacements),
             derivedRanges: result.derivedRanges,
         },

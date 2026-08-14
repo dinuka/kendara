@@ -15,6 +15,7 @@ import {
 } from "@/lib/manualChartDetails";
 import type { PlanetAspectsMap } from "@/lib/planetAspects";
 import type { RashiAspectsSetting } from "@/lib/rashiAspects";
+import { mergeShadBalaya } from "@/lib/shadBalaya";
 
 export const RECALC_BATCH_SIZE = Number(process.env.RECALC_BATCH_SIZE ?? 100);
 
@@ -190,6 +191,9 @@ async function recalculateOne(
             { "horoscope.id": id },
             {
                 ...synth,
+                // Student toggles (overridden: true) survive recalculation; everything else takes
+                // the freshly-computed value (US-SB-013).
+                shadbalaya: mergeShadBalaya(synth.shadbalaya ?? {}, existing?.shadbalaya),
                 manualHousePlacements: sanitizeManualHousePlacements(result.manualHousePlacements),
                 derivedRanges: result.derivedRanges,
             },
@@ -199,7 +203,15 @@ async function recalculateOne(
     }
 
     const calculated = calculateHoroscope(horoscope, planetaryOrbs, planetAspects, rashiAspects);
-    await CalculatedDetails.findOneAndUpdate({ "horoscope.id": id }, { ...calculated }, { upsert: true });
+    const existing = await CalculatedDetails.findOne({ "horoscope.id": id }).lean();
+    await CalculatedDetails.findOneAndUpdate(
+        { "horoscope.id": id },
+        {
+            ...calculated,
+            shadbalaya: mergeShadBalaya(calculated.shadbalaya ?? {}, existing?.shadbalaya),
+        },
+        { upsert: true },
+    );
 }
 
 async function finalizeRun(
