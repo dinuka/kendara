@@ -78,6 +78,12 @@ const textPartsEn = (calc: CalculationResult): string[] => {
             ? `Maranakaraka: ${calc.maranakaraka.map((p) => PLANET_LABELS_EN[p] || `Planet ${p}`).join(", ")}.`
             : "No Maranakaraka.",
     );
+    // Legacy CalculatedDetails docs predate the yogakaraka field, so guard the read.
+    parts.push(
+        (calc.yogakaraka?.length ?? 0) > 0
+            ? `Yogakaraka: ${(calc.yogakaraka ?? []).map((p) => PLANET_LABELS_EN[p] || `Planet ${p}`).join(", ")}.`
+            : "No Yogakaraka.",
+    );
     parts.push(`Badhaka planets: ${calc.badhakaPlanet.map((p) => PLANET_LABELS_EN[p] || `Planet ${p}`).join(", ")}.`);
     parts.push(`Maraka planets: ${calc.marakaPlanets.map((p) => PLANET_LABELS_EN[p] || `Planet ${p}`).join(", ")}.`);
     parts.push(
@@ -169,6 +175,12 @@ const textPartsSi = (calc: CalculationResult): string[] => {
         calc.maranakaraka.length > 0
             ? `මරණකාරක: ${calc.maranakaraka.map((p) => PLANET_LABELS_SI[p] || `Planet ${p}`).join(", ")}.`
             : "මරණකාරක නැත.",
+    );
+    // Legacy CalculatedDetails docs predate the yogakaraka field, so guard the read.
+    parts.push(
+        (calc.yogakaraka?.length ?? 0) > 0
+            ? `යෝගකාරක: ${(calc.yogakaraka ?? []).map((p) => PLANET_LABELS_SI[p] || `Planet ${p}`).join(", ")}.`
+            : "යෝගකාරක නොමැත.",
     );
     parts.push(`බාධක ග්‍රහ: ${calc.badhakaPlanet.map((p) => PLANET_LABELS_SI[p] || `Planet ${p}`).join(", ")}.`);
     parts.push(`මාරක ග්‍රහ: ${calc.marakaPlanets.map((p) => PLANET_LABELS_SI[p] || `Planet ${p}`).join(", ")}.`);

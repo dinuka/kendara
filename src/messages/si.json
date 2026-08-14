@@ -335,6 +335,7 @@
         "navamsaLordLabel": "64 න.ධි",
         "atmakarakaLabel": "ආත්මකාරක",
         "maranakarakaLabel": "මරණකාරක",
+        "yogakarakaLabel": "යෝගකාරක",
         "marakaLabel": "මාරක",
         "badhakaLabel": "බාධක",
         "nidhanamshaLabel": "නිධනාම්ශ",
@@ -738,6 +739,7 @@
         "lord64thNavamsa": "64වන නවාංශක අධිපති",
         "atmakaraka": "ආත්මකාරක",
         "maranakaraka": "මරණකාරක",
+        "yogakaraka": "යෝගකාරක",
         "navamsaNotApplicable": "දශා දත්ත නොමැත.",
         "removePlanet": "{planet} ඉවත් කරන්න",
         "months": {

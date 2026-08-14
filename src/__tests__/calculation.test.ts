@@ -1,4 +1,4 @@
-import { computeAscendantSpecialFlags, computeMaranakaraka, navamsaSign } from "@/lib/astrology";
+import { computeAscendantSpecialFlags, computeMaranakaraka, computeYogakaraka, navamsaSign } from "@/lib/astrology";
 import { calculateHoroscope } from "@/lib/calculation";
 import { SHADBALAYA_KEYS } from "@/lib/shadBalaya";
 
@@ -155,6 +155,12 @@ describe("calculateHoroscope", () => {
         expect(result.maranakaraka).toEqual(computeMaranakaraka(result.planets, result.houses));
     });
 
+    test("yogakaraka is an array matching computeYogakaraka(ascendant.sign)", () => {
+        const result = calculateHoroscope(baseData);
+        expect(Array.isArray(result.yogakaraka)).toBe(true);
+        expect(result.yogakaraka).toEqual(computeYogakaraka(result.ascendant.sign));
+    });
+
     test("shadbalaya covers all nine planets with the six balas; Drishti is never auto-checked (UT-SB-070..074)", () => {
         const result = calculateHoroscope(baseData);
         expect(result.shadbalaya).toBeDefined();
@@ -245,6 +251,26 @@ describe("computeMaranakaraka", () => {
         expect(computeMaranakaraka([planet(2, 8, 32)], houses)).toEqual([]);
         // Moon actually in the 8th cusp house -> Maranakaraka
         expect(computeMaranakaraka([planet(2, 8, 37)], houses)).toEqual([2]);
+    });
+});
+
+describe("computeYogakaraka", () => {
+    test("Taurus lagna: Saturn owns 9th (Capricorn) and 10th (Aquarius) -> [7]", () => {
+        expect(computeYogakaraka(2)).toEqual([7]);
+    });
+    test("Libra lagna: Saturn owns 4th (Capricorn) and 5th (Aquarius) -> [7]", () => {
+        expect(computeYogakaraka(7)).toEqual([7]);
+    });
+    test("Cancer lagna: Mars owns 5th (Scorpio) and 10th (Aries) -> [3]", () => {
+        expect(computeYogakaraka(4)).toEqual([3]);
+    });
+    test("Aries lagna: no planet owns both a kendra and a trikona -> []", () => {
+        expect(computeYogakaraka(1)).toEqual([]);
+    });
+    test("invalid lagna throws", () => {
+        expect(() => computeYogakaraka(0)).toThrow();
+        expect(() => computeYogakaraka(13)).toThrow();
+        expect(() => computeYogakaraka(NaN)).toThrow();
     });
 });
 

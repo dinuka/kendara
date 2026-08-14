@@ -99,6 +99,7 @@ const CalculatedDetailsSchema = new Schema<ICalculatedDetails>({
      *  docs stored a single planet (`0` = none) — mongoose wraps scalars into an array; `0` is
      *  dropped by normalizeMaranakaraka at read time. */
     maranakaraka: [Number],
+    yogakaraka: [Number],
     shadbalaya: { type: Schema.Types.Mixed },
     yogas: [{ type: Schema.Types.Mixed }],
     doshas: { type: Schema.Types.Mixed },

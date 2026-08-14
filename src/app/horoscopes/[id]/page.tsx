@@ -23,6 +23,7 @@ import {
     computeMaranakaraka,
     computePanchaPakshi,
     computeThithiFromPlanets,
+    computeYogakaraka,
     findHouse,
     formatDegree,
     navamsaSign,
@@ -158,6 +159,7 @@ export default function HoroscopeDetailPage() {
             ashtamanshaPlanets: number[];
             atmakaraka: number;
             maranakaraka: number[];
+            yogakaraka: number[];
             isAscendantWargoththama: boolean;
             isAscendantGandantha: boolean;
             isAscendantGandamula: boolean;
@@ -370,6 +372,12 @@ export default function HoroscopeDetailPage() {
         calculatedDetails?.planets && calculatedDetails?.houses
             ? computeMaranakaraka(calculatedDetails.planets, calculatedDetails.houses)
             : normalizeMaranakaraka(calculatedDetails?.maranakaraka);
+
+    // Yogakaraka depends only on the lagna sign (Kendra 4/7/10 + Trikona 5/9 lordship), so it is
+    // recomputed at render so legacy docs without the stored field still show the tag.
+    const resolvedYogakaraka = calculatedDetails?.ascendant?.sign
+        ? computeYogakaraka(calculatedDetails.ascendant.sign)
+        : (calculatedDetails?.yogakaraka ?? []);
 
     const handleDelete = async () => {
         setDeleting(true);
@@ -1556,6 +1564,11 @@ export default function HoroscopeDetailPage() {
                                                             key: "maranakaraka",
                                                             text: t("astrology.maranakarakaLabel"),
                                                         });
+                                                    if (resolvedYogakaraka.includes(p.name))
+                                                        tags.push({
+                                                            key: "yogakaraka",
+                                                            text: t("astrology.yogakarakaLabel"),
+                                                        });
                                                     if (calculatedDetails.marakaPlanets?.includes(p.name))
                                                         tags.push({ key: "maraka", text: t("astrology.marakaLabel") });
                                                     if (calculatedDetails.badhakaPlanet?.includes(p.name))
@@ -1738,6 +1751,11 @@ export default function HoroscopeDetailPage() {
                                                 tags.push({
                                                     key: "maranakaraka",
                                                     text: t("astrology.maranakarakaLabel"),
+                                                });
+                                            if (resolvedYogakaraka.includes(p.name))
+                                                tags.push({
+                                                    key: "yogakaraka",
+                                                    text: t("astrology.yogakarakaLabel"),
                                                 });
                                             if (calculatedDetails.marakaPlanets?.includes(p.name))
                                                 tags.push({ key: "maraka", text: t("astrology.marakaLabel") });

@@ -250,6 +250,33 @@ describe("derivePlanetsTable (UT-CH-040..045)", () => {
         const moon = rows.find((r) => r.planet === Planet.MOON)!;
         expect(moon.other).not.toContain("maranakaraka");
     });
+    test("U049 yogakaraka shows on Saturn row when Taurus lagna (Saturn owns 9th Capricorn + 10th Aquarius)", () => {
+        const rows = derivePlanetsTable({
+            lagna: 2,
+            houseOfPlanet: { [Planet.SATURN]: 10, [Planet.MOON]: 1 },
+        });
+        const saturn = rows.find((r) => r.planet === Planet.SATURN)!;
+        expect(saturn.other).toContain("yogakaraka");
+        const moon = rows.find((r) => r.planet === Planet.MOON)!;
+        expect(moon.other).not.toContain("yogakaraka");
+    });
+    test("U049a yogakaraka shows on Mars row when Cancer lagna (Mars owns 5th Scorpio + 10th Aries)", () => {
+        const rows = derivePlanetsTable({
+            lagna: 4,
+            houseOfPlanet: { [Planet.MARS]: 10, [Planet.MOON]: 1 },
+        });
+        const mars = rows.find((r) => r.planet === Planet.MARS)!;
+        expect(mars.other).toContain("yogakaraka");
+        const moon = rows.find((r) => r.planet === Planet.MOON)!;
+        expect(moon.other).not.toContain("yogakaraka");
+    });
+    test("U049b no yogakaraka for Aries lagna (no planet owns a kendra and a trikona)", () => {
+        const rows = derivePlanetsTable({
+            lagna: 1,
+            houseOfPlanet: { [Planet.SATURN]: 10, [Planet.MOON]: 4, [Planet.MARS]: 5 },
+        });
+        expect(rows.flatMap((r) => r.other)).not.toContain("yogakaraka");
+    });
     test("U044 strength is sign-based, not always Sama", () => {
         const rows = derivePlanetsTable({ lagna: 1, houseOfPlanet: { [Planet.MOON]: 1 } });
         expect(rows[0].strength).toBe(PlanetaryStrength.SAMA);

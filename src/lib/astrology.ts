@@ -331,6 +331,41 @@ export function normalizeMaranakaraka(value: number | number[] | null | undefine
     return typeof value === "number" && value > 0 ? [value] : [];
 }
 
+/** Sign lords by sign (1-12): Aries→Mars, Taurus→Venus, Gemini→Mercury, Cancer→Moon, Leo→Sun,
+ *  Virgo→Mercury, Libra→Venus, Scorpio→Mars, Sagittarius→Jupiter, Capricorn→Saturn, Aquarius→Saturn,
+ *  Pisces→Jupiter. Local copy — astrology.ts is imported by manualChart.ts, so it cannot import the
+ *  copy defined there (circular dependency). */
+const SIGN_LORD: Record<number, number> = {
+    1: 3,
+    2: 6,
+    3: 4,
+    4: 2,
+    5: 1,
+    6: 4,
+    7: 6,
+    8: 3,
+    9: 5,
+    10: 7,
+    11: 7,
+    12: 5,
+};
+
+/** Yogakaraka (යෝගකාරක): the planet(s) that simultaneously own a Kendra house (4, 7, 10) and a
+ *  Trikona house (5, 9) by sign lordship from the lagna (1st house is excluded from both). Uses
+ *  whole-sign counting — house N's sign is `((lagna - 1 + N - 1) % 12) + 1`. Rahu/Ketu own no signs
+ *  so they can never qualify. Returns an empty array when no planet holds both, sorted ascending. */
+export function computeYogakaraka(ascSign: number): number[] {
+    if (!Number.isInteger(ascSign) || ascSign < 1 || ascSign > 12) {
+        throw new Error(`Invalid lagna: ${ascSign}`);
+    }
+    const houseSign = (house: number) => ((ascSign - 1 + house - 1) % 12) + 1;
+    const kendraLords = new Set<number>();
+    const trikonaLords = new Set<number>();
+    for (const house of [4, 7, 10]) kendraLords.add(SIGN_LORD[houseSign(house)]);
+    for (const house of [5, 9]) trikonaLords.add(SIGN_LORD[houseSign(house)]);
+    return [...kendraLords].filter((lord) => trikonaLords.has(lord)).sort((a, b) => a - b);
+}
+
 export interface Ascendant {
     sign: number;
     degree: number;
@@ -435,6 +470,9 @@ export interface CalculationResult {
     /** Maranakaraka (මරණකාරක): the planets occupying their designated death houses, each tagged as
      *  Maranakaraka (see computeMaranakaraka). Uses the cusp-based calculated house for auto charts. */
     maranakaraka: number[];
+    /** Yogakaraka (යෝගකාරක): the planets owning both a Kendra (4/7/10) and a Trikona (5/9) house
+     *  from the lagna by sign lordship, each tagged as Yogakaraka (see computeYogakaraka). */
+    yogakaraka: number[];
     isAscendantWargoththama: boolean;
     isAscendantGandantha: boolean;
     isAscendantGandamula: boolean;

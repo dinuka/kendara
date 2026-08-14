@@ -1,4 +1,4 @@
-import { NATURAL_ENEMIES, NATURAL_FRIENDS, computeMaranakaraka, navamsaSign } from "@/lib/astrology";
+import { NATURAL_ENEMIES, NATURAL_FRIENDS, computeMaranakaraka, computeYogakaraka, navamsaSign } from "@/lib/astrology";
 import type {
     Antardasha,
     Planet as AstroPlanet,
@@ -754,6 +754,7 @@ export function derivePlanetsTable(input: PlanetsTableInput): ManualPlanetRow[] 
     const maranakaraka = computeMaranakaraka(
         Object.entries(houseOfPlanet).map(([name, house]) => ({ name: Number(name), house, absoluteDegree: 0 })),
     );
+    const yogakaraka = computeYogakaraka(lagna);
     let atmakaraka: number | null = null;
     if (navamsaEnrichment.length > 0) {
         let maxAbs = -1;
@@ -775,6 +776,7 @@ export function derivePlanetsTable(input: PlanetsTableInput): ManualPlanetRow[] 
             if (lord64thNavamsa === planet) other.push("lord64thNavamsa");
             if (atmakaraka === planet) other.push("atmakaraka");
             if (maranakaraka.includes(planet)) other.push("maranakaraka");
+            if (yogakaraka.includes(planet)) other.push("yogakaraka");
             return {
                 planet,
                 sign,
@@ -1197,9 +1199,10 @@ export function synthesizeValidation(manualHousePlacements: {
 }
 
 /** Recompute the "Other" detail fields (22nd Drekkana Lord, 64th Navamsa Lord, Maraka, Badhaka,
- *  Atmakaraka, Wargoththama, Gandantha/Gandamula, Pushkara, Nidhanamsha/Ashtamansha) for a manual
- *  horoscope from its stored `manualHousePlacements` and persisted planets. Render-time recomputation
- *  is needed because older horoscopes stored `0`/`[]` defaults for these fields. */
+ *  Atmakaraka, Maranakaraka, Yogakaraka, Wargoththama, Gandantha/Gandamula, Pushkara,
+ *  Nidhanamsha/Ashtamansha) for a manual horoscope from its stored `manualHousePlacements` and
+ *  persisted planets. Render-time recomputation is needed because older horoscopes stored `0`/`[]`
+ *  defaults for these fields. */
 export function synthesizeOtherDetails(
     manualHousePlacements: {
         lagna: number;
@@ -1218,6 +1221,7 @@ export function synthesizeOtherDetails(
     | "ashtamanshaPlanets"
     | "atmakaraka"
     | "maranakaraka"
+    | "yogakaraka"
     | "isAscendantWargoththama"
     | "isAscendantGandantha"
     | "isAscendantGandamula"
@@ -1249,6 +1253,7 @@ export function synthesizeOtherDetails(
         ashtamanshaPlanets: hasNavamsa ? computeAshtamansha(lagna, ascNavamsaLagna, houses, planets) : [],
         atmakaraka: computeAtmakaraka(planets),
         maranakaraka: computeMaranakaraka(planets),
+        yogakaraka: computeYogakaraka(lagna),
         isAscendantWargoththama: computeAscWargoththama(lagna, ascNavamsaSign),
         isAscendantGandantha: computeAscendantGandantha(ascNakshatra.id, ascNakshatra.pada),
         isAscendantGandamula: computeAscendantGandamula(ascNakshatra.id, ascNakshatra.pada),

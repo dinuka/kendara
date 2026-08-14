@@ -335,6 +335,7 @@
         "navamsaLordLabel": "64th Navamsa Lord",
         "atmakarakaLabel": "Atmakaraka",
         "maranakarakaLabel": "Maranakaraka",
+        "yogakarakaLabel": "Yogakaraka",
         "marakaLabel": "Maraka",
         "badhakaLabel": "Badhaka",
         "nidhanamshaLabel": "Nidhanamsha",
@@ -738,6 +739,7 @@
         "lord64thNavamsa": "64th Navamsa Lord",
         "atmakaraka": "Atmakaraka",
         "maranakaraka": "Maranakaraka",
+        "yogakaraka": "Yogakaraka",
         "navamsaNotApplicable": "Dasha data not available.",
         "removePlanet": "Remove {planet}",
         "months": {

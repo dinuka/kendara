@@ -20,6 +20,7 @@ import {
     computeMaranakaraka,
     computePanchaPakshi,
     computeThithi,
+    computeYogakaraka,
     navamsaSign,
 } from "@/lib/astrology";
 import { PlanetaryStrength } from "@/lib/astrologyEnums";
@@ -427,6 +428,7 @@ export function calculateHoroscope(
 
     const thithi = computeThithi(sunLong, moonLong);
     const maranakaraka = computeMaranakaraka(planetDetails, houses);
+    const yogakaraka = computeYogakaraka(ascSign);
 
     // Shad Bala computed once at calculation time so new CalculatedDetails docs carry the table;
     // legacy docs without the field are lazily recomputed (and merged with stored overrides) at
@@ -457,6 +459,7 @@ export function calculateHoroscope(
         ashtamanshaPlanets: computeAshtamansha(ascSign, ascLong % 30, houses, planetDetails),
         atmakaraka: computeAtmakaraka(planetDetails),
         maranakaraka,
+        yogakaraka,
         shadbalaya,
         isAscendantWargoththama: computeAscendantWargoththama(ascSign, ascLong % 30),
         isAscendantGandantha: computeAscendantGandantha(ascNakshatra, ascPada),

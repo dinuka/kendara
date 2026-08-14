@@ -14,6 +14,7 @@ import {
     PLANET_SYMBOLS,
     computeAscendantSpecialFlags,
     computeMaranakaraka,
+    computeYogakaraka,
     findHouse,
     formatDegree,
     formatYearDuration,
@@ -553,6 +554,8 @@ const SearchResultCard = ({
     const charts = h.charts as Record<string, unknown> | undefined;
     const ascData = cd?.ascendant as Record<string, unknown> | undefined;
     const ascSign = ascData?.sign as number | undefined;
+    // Yogakaraka depends only on the lagna sign (Kendra 4/7/10 + Trikona 5/9 lordship).
+    const yogakarakaPlanets = ascSign ? computeYogakaraka(ascSign) : ((cd?.yogakaraka as number[]) ?? []);
     const ascDegree = ascData?.degree as number | undefined;
     const navamsaChartData = useMemo(() => {
         if (!cd?.planets || !cd?.ascendant) return null;
@@ -1025,6 +1028,8 @@ const SearchResultCard = ({
                                             tags.push({ key: "atmakaraka", text: t("astrology.atmakarakaLabel") });
                                         if (maranakarakaPlanets.includes(pName))
                                             tags.push({ key: "maranakaraka", text: t("astrology.maranakarakaLabel") });
+                                        if (yogakarakaPlanets.includes(pName))
+                                            tags.push({ key: "yogakaraka", text: t("astrology.yogakarakaLabel") });
                                         if (((cd!.marakaPlanets as number[]) || []).includes(pName))
                                             tags.push({ key: "maraka", text: t("astrology.marakaLabel") });
                                         if (((cd!.badhakaPlanet as number[]) || []).includes(pName))

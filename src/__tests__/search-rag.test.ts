@@ -133,6 +133,7 @@ const MOCK_CALC: CalculationResult = {
     ashtamanshaPlanets: [2],
     atmakaraka: 5,
     maranakaraka: [2],
+    yogakaraka: [],
     isAscendantWargoththama: false,
     wargoththamaPlanets: [4],
     gandanthaPlanets: [],
@@ -203,6 +204,10 @@ describe("textContent - English", () => {
 
     test("includes maranakaraka", () => {
         expect(textEn).toContain("Maranakaraka: Moon");
+    });
+
+    test("includes yogakaraka (none for Aries lagna)", () => {
+        expect(textEn).toContain("No Yogakaraka.");
     });
 
     test("includes badhaka and maraka planets", () => {
@@ -277,6 +282,10 @@ describe("textContent - Sinhala", () => {
     test("includes maranakaraka in Sinhala", () => {
         expect(textSi).toContain("මරණකාරක: සඳු");
     });
+
+    test("includes yogakaraka in Sinhala", () => {
+        expect(textSi).toContain("යෝගකාරක නොමැත.");
+    });
 });
 
 describe("textContent - edge cases", () => {
@@ -308,6 +317,7 @@ describe("textContent - edge cases", () => {
         ashtamanshaPlanets: [],
         atmakaraka: 1,
         maranakaraka: [],
+        yogakaraka: [3],
         isAscendantWargoththama: false,
         wargoththamaPlanets: [],
         gandanthaPlanets: [],
@@ -335,6 +345,12 @@ describe("textContent - edge cases", () => {
         expect(en).not.toBe(si);
         expect(en).toContain("Ascendant: Leo");
         expect(si).toContain("ලග්නය: සිංහ");
+    });
+
+    test("includes yogakaraka names when present (Leo lagna: Mars owns 4th Scorpio + 9th Aries)", () => {
+        const text = generateTextContent(minimalCalc, "en");
+        expect(text).toContain("Yogakaraka: Mars.");
+        expect(generateTextContent(minimalCalc, "si")).toContain("යෝගකාරක: කුජ");
     });
 });
 
