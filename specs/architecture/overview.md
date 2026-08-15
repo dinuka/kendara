@@ -147,6 +147,17 @@
 - Tooltips reuse the AspectChip/AspectTooltip pattern and are composed from i18n keys + numeric enum params (never stored localized text), resolved per locale in `si`/`en`.
 - Full spec: `specs/architecture/20260813-2011-shadbalaya-architecture.md`
 
+### 8. Bhava Suchika (භාව සුචික) — Navamsa House Index
+
+- භාව සුචික නවාංශක ක්‍රමය: the "house index" of a point (the Lagna or a planet) — take the point's Navamsa (D9) sign and find which house that sign occupies in the Lagna (D1) chart; that house number (1-12) is the point's Bhava Suchika. Equivalently `((navamsaSign − lagnaSign) mod 12) + 1`, using **whole-sign** house assignment (`houses[].sign` is whole-sign by construction in `src/lib/calculation.ts` — cusp midpoints are never used for sign/house-of-sign mapping).
+- Computed by a new pure shared module `src/lib/bhavaSuchika.ts` (no ephemeris, no I/O — same contract as `src/lib/shadBalaya.ts`): `computeNavamsaLagnaSign`, `computeLagnaBhavaSuchika`, `computePlanetBhavaSuchika`, `computeBhavaSuchika`. Consumed by the auto engine (`calculateHoroscope`), the manual synthesizer (`synthesizeCalculation` in `src/lib/manualChartDetails.ts`), the render-time legacy fallback, and the AstrologySettings recalculation job.
+- Persisted on `CalculatedDetails` as `lagnaBhavaSuchika` (Integer 1-12) + `bhavaSuchika` (Record keyed by numeric Planet enum string `"1"`…`"9"`) for both `source: "auto"` and `source: "manual"` horoscopes — **manual only when Navamsa data has been entered** (`navamsaLagna` / `navamsaHouses`). Persistence is automatic via the `...calculated` spread (`POST /api/horoscope`), since `ICalculatedDetails extends CalculationResult`.
+- **Auto D9 lagna sign** is derived inline from the stored ascendant (`navamsaSign(ascSign, Math.floor(ascDegree / (30/9)) + 1)` — the same expression used by the existing ascendant Navamsa computations) and is **never read from the `navamsa-d9` Chart document** (Chart data is a rendering blob, not a calculation input).
+- **Display-only** — no overrides, no mutation endpoint (unlike Shad Bala checkboxes). Rendered in the Lagna section alongside Wargoththama/Gandamula and as a new column in the planets table of the calculation tab; the 12 names resolve per locale via i18n (`astrology.bhavaSuchika.names.1..12` — Sinhala authoritative, English transliterations pending domain confirmation).
+- **Recalculation:** recomputed by the AstrologySettings full recalculation job with no `overridden` state to preserve (pure derived value). **Legacy documents** render via a pure render-time fallback mirroring `computeAscendantSpecialFlags` — no migration/backfill required.
+- **No API route changes** — existing responses grow additively. **Search integration:** Bhava Suchika is searchable in `/api/search` (Lagna + per-planet, by house-index name or number, bilingual — new exact conditions `bhava_suchika` / `planet_bhava_suchika` + keyword intents), included in the search text content (`src/lib/search/textContent.ts`, SI + EN, for the vector leg), and **mirrored on search result cards** (`src/app/search/page.tsx` — Lagna tag + per-planet values, same format as the calculation tab) per US-BS-008.
+- Full spec: `specs/architecture/20260814-2127-bhava-suchika-architecture.md`
+
 ### Planet Aspects Setting Flow
 
 ```
@@ -523,6 +534,10 @@ User → Click "Login with Google" →
   shadbalaya?: object,              // ෂඩ් බලය six-strengths per planet (Record keyed by Planet enum string "1"-"9");
                                     // each bala: { value: boolean, overridden: boolean, reasons: [{ key, params? }] };
                                     // overridden:true entries are preserved across the AstrologySettings recalculation
+  lagnaBhavaSuchika?: number,       // භාව සුචික house index (1-12) of the Navamsa Lagna sign in the D1 chart
+                                    // (whole-sign); absent on manual horoscopes without entered Navamsa data
+  bhavaSuchika?: object,            // per-planet භාව සුචික (Record keyed by Planet enum string "1"-"9",
+                                    // values 1-12) — the D1 house of each planet's Navamsa sign
   createdAt: Date
 }
 ```

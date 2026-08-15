@@ -484,6 +484,13 @@ export interface CalculationResult {
     /** Shad Bala (ෂඩ් බලය) six strengths per planet (see src/lib/shadBalaya.ts). Optional because
      *  legacy CalculatedDetails documents predate the field and are lazily recomputed at render. */
     shadbalaya?: ShadBalaya;
+    /** Bhava Suchika (භාව සුචික) of the Lagna point: the house (1-12) its Navamsa sign occupies in
+     *  the birth (Lagna) chart (see src/lib/bhavaSuchika.ts). Optional because legacy documents
+     *  predate the field and are lazily recomputed at render. */
+    lagnaBhavaSuchika?: number;
+    /** Bhava Suchika (භාව සුචික) per planet, keyed by planet enum value ("1".."9"). Optional because
+     *  legacy documents predate the field and are lazily recomputed at render. */
+    bhavaSuchika?: Record<string, number>;
     yogas: unknown[];
     doshas: DoshaInfo;
 }

@@ -11,6 +11,39 @@ import {
     ZODIAC_SIGN_LABELS_EN,
     ZODIAC_SIGN_LABELS_SI,
 } from "@/lib/astrologyEnums";
+import { resolveLagnaBhavaSuchika, resolvePlanetBhavaSuchika } from "@/lib/bhavaSuchika";
+import { BHAVA_SUCHIKA_NAMES_EN, BHAVA_SUCHIKA_NAMES_SI } from "@/lib/search/vocabulary";
+
+// Bhava Suchika (භාව සුචික) sentences share the persistence rules with the render path (stored
+// value wins; corrupt stored → skip; absent → pure-function fallback; manual charts without entered
+// Navamsa data → no sentence, since Navamsa is never derived from birth-sign positions).
+const bhavaSuchikaParts = (
+    calc: CalculationResult,
+    names: Record<string, number>,
+    lagnaLabel: string,
+    suchikaLabel: string,
+    planetLabels: Record<number, string>,
+): string[] => {
+    const parts: string[] = [];
+    // The name maps are keyed by display name → value (1..12); invert for the sentence.
+    const nameOfValue = (value: number): string => Object.keys(names).find((k) => names[k] === value) ?? String(value);
+
+    const lagnaValue = resolveLagnaBhavaSuchika(calc);
+    if (lagnaValue !== undefined) {
+        parts.push(`${lagnaLabel} ${suchikaLabel}: ${nameOfValue(lagnaValue)} (${lagnaValue}).`);
+    }
+
+    for (const p of calc.planets) {
+        const value = resolvePlanetBhavaSuchika(calc, p.name);
+        if (value !== undefined) {
+            parts.push(
+                `${planetLabels[p.name] || `Planet ${p.name}`} ${suchikaLabel}: ${nameOfValue(value)} (${value}).`,
+            );
+        }
+    }
+
+    return parts;
+};
 
 const textPartsEn = (calc: CalculationResult): string[] => {
     const parts: string[] = [];
@@ -106,6 +139,7 @@ const textPartsEn = (calc: CalculationResult): string[] => {
     );
     parts.push(`22nd Drekkana lord: ${PLANET_LABELS_EN[calc.lord22ndDrekkana] || `Planet ${calc.lord22ndDrekkana}`}.`);
     parts.push(`64th Navamsa lord: ${PLANET_LABELS_EN[calc.lord64thNavamsa] || `Planet ${calc.lord64thNavamsa}`}.`);
+    parts.push(...bhavaSuchikaParts(calc, BHAVA_SUCHIKA_NAMES_EN, "Lagna", "Bhava Suchika", PLANET_LABELS_EN));
 
     return parts;
 };
@@ -200,6 +234,7 @@ const textPartsSi = (calc: CalculationResult): string[] => {
         `22 වන ද්‍රැක්කාන අධිපති: ${PLANET_LABELS_SI[calc.lord22ndDrekkana] || `Planet ${calc.lord22ndDrekkana}`}.`,
     );
     parts.push(`64 වන නවාම්ශ අධිපති: ${PLANET_LABELS_SI[calc.lord64thNavamsa] || `Planet ${calc.lord64thNavamsa}`}.`);
+    parts.push(...bhavaSuchikaParts(calc, BHAVA_SUCHIKA_NAMES_SI, "ලග්න", "භාව සුචික", PLANET_LABELS_SI));
 
     return parts;
 };

@@ -3,6 +3,7 @@
 import { BirthChart } from "@/components/BirthChart";
 import { HouseChart } from "@/components/HouseChart";
 import SearchSuggestions from "@/components/SearchSuggestions";
+import BhavaSuchikaTag from "@/components/bhavaSuchika/BhavaSuchikaTag";
 import { useI18n } from "@/hooks/useI18n";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
@@ -22,6 +23,7 @@ import {
     normalizeMaranakaraka,
 } from "@/lib/astrology";
 import { PlanetaryStrength } from "@/lib/astrologyEnums";
+import { resolveLagnaBhavaSuchika, resolvePlanetBhavaSuchika } from "@/lib/bhavaSuchika";
 import { toBirthChartData } from "@/lib/chartDataTransform";
 import { getSuggestions, insertSuggestion, splitLastToken } from "@/lib/search/suggestions";
 import { detectLanguage } from "@/lib/search/utils";
@@ -495,6 +497,14 @@ const formatCondition = (
     if (mc.startsWith("dosha=")) {
         return t("search.conditions.dosha", { name: mc.slice("dosha=".length) });
     }
+    if (mc.startsWith("bhava_suchika=")) {
+        return t("search.conditions.bhavaSuchika", { value: mc.slice("bhava_suchika=".length) });
+    }
+    if (mc.startsWith("planet_bhava_suchika_")) {
+        const rest = mc.slice("planet_bhava_suchika_".length);
+        const [planet, value] = rest.split("=");
+        return t("search.conditions.planetBhavaSuchika", { planet, value });
+    }
     const ROLE_KEYS = [
         "ashtamansha",
         "nidhanamsha",
@@ -556,6 +566,9 @@ const SearchResultCard = ({
     const ascSign = ascData?.sign as number | undefined;
     // Yogakaraka depends only on the lagna sign (Kendra 4/7/10 + Trikona 5/9 lordship).
     const yogakarakaPlanets = ascSign ? computeYogakaraka(ascSign) : ((cd?.yogakaraka as number[]) ?? []);
+    // Bhava Suchika (භාව සුචික) of the Lagna point — stored value wins; legacy docs are lazily
+    // resolved; manual charts without entered Navamsa data show no tag.
+    const lagnaBhavaSuchika = resolveLagnaBhavaSuchika(cd);
     const ascDegree = ascData?.degree as number | undefined;
     const navamsaChartData = useMemo(() => {
         if (!cd?.planets || !cd?.ascendant) return null;
@@ -804,9 +817,12 @@ const SearchResultCard = ({
                                         tags.push({ key: "gandamula", text: t("astrology.gandamulaLabel") });
                                     if (flags.isAscendantPushkara)
                                         tags.push({ key: "pushkara", text: t("astrology.pushkaraLabel") });
-                                    if (tags.length === 0) return null;
+                                    if (tags.length === 0 && lagnaBhavaSuchika === undefined) return null;
                                     return (
                                         <div className="mt-1 flex flex-wrap gap-1">
+                                            {lagnaBhavaSuchika !== undefined && (
+                                                <BhavaSuchikaTag value={lagnaBhavaSuchika} />
+                                            )}
                                             {tags.map((tag) => (
                                                 <span
                                                     key={tag.key}
@@ -983,6 +999,9 @@ const SearchResultCard = ({
                                         const displayHouse =
                                             findHouse(p.absoluteDegree as number, cd!.houses as House[]) ??
                                             (p.house as number);
+                                        // Bhava Suchika (භාව සුචික): stored value wins; legacy docs
+                                        // are lazily resolved at render.
+                                        const bhavaSuchikaValue = resolvePlanetBhavaSuchika(cd, pName);
                                         const isPlanetExpanded = expandedPlanets.has(i);
 
                                         const aspects = ((p.aspects as Array<Record<string, unknown>>) || [])
@@ -1080,7 +1099,7 @@ const SearchResultCard = ({
                                                             return next;
                                                         });
                                                     }}
-                                                    className="w-full flex items-center gap-2 px-3 py-1.5 text-xs hover:bg-gray-50 transition-colors text-left"
+                                                    className="w-full flex flex-wrap items-center gap-2 px-3 py-1.5 text-xs hover:bg-gray-50 transition-colors text-left"
                                                 >
                                                     <span className="font-medium whitespace-nowrap">
                                                         {PLANET_SYMBOLS[pName] || ""}{" "}
@@ -1104,6 +1123,12 @@ const SearchResultCard = ({
                                                         {t(`astrology.nakshatraNames.${(p.nakshatra as number) || 1}`)}{" "}
                                                         ({(p.pada as number) || 1})
                                                     </span>
+                                                    {bhavaSuchikaValue !== undefined && (
+                                                        <span className="text-gray-600 whitespace-nowrap">
+                                                            {t("astrology.bhavaSuchika.label")}: {bhavaSuchikaValue} —{" "}
+                                                            {t(`astrology.bhavaSuchika.names.${bhavaSuchikaValue}`)}
+                                                        </span>
+                                                    )}
                                                     {tags.length > 0 && (
                                                         <div className="flex gap-1 shrink-0 flex-wrap">
                                                             {tags.map((tag) => (

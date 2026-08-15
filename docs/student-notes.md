@@ -50,3 +50,8 @@
 - Based on the system observations the students also can add his observations as tag. He should possible to select the color for his tag.
 - Then based on all observations student should possible to add result notes.
 - Also should have a another tag as other. Then student can add common notes.
+
+## TODO
+
+- Need to use Surya and Chandra lagna observations
+- Need to use Varga kendara observations

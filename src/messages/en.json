@@ -173,7 +173,9 @@
             "gandamula": "{planet} Gandamula",
             "gandamulaPresent": "Has Gandamula planets",
             "pushkara": "{planet} Pushkara",
-            "pushkaraPresent": "Has Pushkara planets"
+            "pushkaraPresent": "Has Pushkara planets",
+            "bhavaSuchika": "Bhava Suchika: {value}",
+            "planetBhavaSuchika": "{planet} Bhava Suchika: {value}"
         },
         "table": {
             "planetName": "Planet {id}",
@@ -344,6 +346,25 @@
         "gandantaLabel": "Gandanta",
         "gandamulaLabel": "Gandamula",
         "pushkaraLabel": "Pushkara",
+        "bhavaSuchika": {
+            "label": "Bhava Suchika",
+            "tooltip": "The Bhava Suchika of a point is the house (1-12) its Navamsa sign occupies in the birth (Lagna) chart.",
+            "infoGlyph": "Show Bhava Suchika explanation",
+            "names": {
+                "1": "Lagnamshaka",
+                "2": "Dhanamshaka",
+                "3": "Vikramamshaka",
+                "4": "Sukhamshaka",
+                "5": "Purvapunyamshaka",
+                "6": "Shashthamshaka",
+                "7": "Saptamamshaka",
+                "8": "Nidhanamshaka",
+                "9": "Bhagyamshaka",
+                "10": "Abhimanamshaka",
+                "11": "Labhamshaka",
+                "12": "Vyamshaka"
+            }
+        },
         "marakaBadhaka": "Maraka / Badhaka",
         "dashas": "Dashas",
         "dashaLevels": {

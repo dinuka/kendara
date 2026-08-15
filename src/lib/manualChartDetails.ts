@@ -260,6 +260,11 @@ export function synthesizeNavamsaCalculation(
         }
     }
     const base = synthesizeCalculation(result, birthDate);
+    // Bhava Suchika (භාව සුචික) is a Lagna-chart concept — it maps a point's Navamsa sign into the
+    // BIRTH chart. It must never be persisted on the Navamsa (D9) chart result, whose ascendant and
+    // houses belong to the D9 wheel.
+    delete base.lagnaBhavaSuchika;
+    delete base.bhavaSuchika;
     return {
         ...base,
         ascendant: synthesizeAscendant(navamsaLagna),

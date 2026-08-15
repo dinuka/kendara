@@ -65,6 +65,10 @@
   - Override any bala the system cannot calculate (e.g. Drishti bala on all horoscopes; Cheshta Uttarayana/planet-war states and Kala varga loads on manual horoscopes)
   - Persist shad bala overrides so they survive the AstrologySettings full recalculation (never wiped by the recalculation job)
   - View the Shad Bala table read-only (no checkboxes) on horoscopes owned by others or accessed via a share link
+  - View the භාව සුචික (Bhava Suchika) house-index value for the Lagna in the Lagna section, alongside the Wargoththama/Gandamula tags
+  - View each planet's භාව සුචික (Bhava Suchika) in a dedicated column of the planets table in the calculation tab
+  - View Bhava Suchika values read-only (no editing) on both auto and manual horoscopes; on manual horoscopes the values appear only when Navamsa data has been entered (the value is omitted otherwise)
+  - Search for horoscopes by Bhava Suchika (the Lagna's or a planet's house index, by name or number, in Sinhala or English) and see the values mirrored on the search result cards
 - **Authentication**: Google SSO (auto-assigned)
 
 ## 2. Super Admin
@@ -132,3 +136,6 @@
   - Compose each bala's tooltip reason from i18n keys plus numeric enum fields (Planet/ZodiacSign/strength/house) — never store localized text
   - Persist `shadbalaya` on `CalculatedDetails` and preserve per-bala `overridden` user toggles across the AstrologySettings recalculation job — an overridden value is never recomputed or overwritten, mirroring `manualHousePlacements`
   - For `source: "manual"` horoscopes: use the sign-based Ravi rule (Makara/Kumba/Meena/Mesha/Wrushaba) instead of Uttarayana, skip the planet-war and varga-load conditions, and leave Drishti (and any other non-derivable bala) unset for the student
+  - Compute and persist the භාව සුචික (Bhava Suchika) house index — the house (1-12) that a point's Navamsa (D9) sign occupies in the Lagna (D1) chart — for the Lagna (using the sign of the 1st house of the Navamsa chart) and for each of the 9 planets (using the planet's Navamsa sign), on both `source: "auto"` and `source: "manual"` horoscopes; store on `CalculatedDetails` as `lagnaBhavaSuchika` + `bhavaSuchika` (see `20260814-2055-bhava-suchika.md`)
+  - Recompute `lagnaBhavaSuchika`/`bhavaSuchika` during the AstrologySettings full recalculation job like any other derived value — there are no user overrides for Bhava Suchika
+  - Make Bhava Suchika searchable in `/api/search` (Lagna + per-planet, by house-index name or number, bilingual) and include the values in the search text content (`src/lib/search/textContent.ts`) so vector search also matches; mirror the values on the search result cards (US-BS-008)

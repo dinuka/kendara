@@ -128,6 +128,8 @@
 | manualHousePlacements | JSON | Manual chart input for `source: "manual"` horoscopes — see [ManualHousePlacements](#manualhouseplacements) structure |
 | derivedRanges | JSON | Derived probable birth ranges for manual horoscopes — see [DerivedRanges](#derivedranges) structure |
 | shadbalaya | JSON | Shad Bala (ෂඩ් බලය) — the six strengths per planet (Sthana, Cheshta, Kala, Dig, Drishti, Naisargika) with tooltip reasons and user overrides — see [ShadBalaya](#shadbalaya) structure |
+| lagnaBhavaSuchika | Integer (1-12) | Lagna's භාව සුචික (Bhava Suchika) — the house (1-12) that the Navamsa (D9) lagna sign (the sign of the 1st house of the Navamsa chart) occupies in the Lagna (D1) chart. Absent on manual horoscopes without entered Navamsa data |
+| bhavaSuchika | JSON | Per-planet භාව සුචික (Bhava Suchika) — `Record<string, number>` keyed by numeric Planet enum string (`"1"`…`"9"`), each value the house (1-12) that the planet's Navamsa sign occupies in the Lagna chart — see [Bhava Suchika (House Index)](#bhava-suchika-house-index) structure |
 | createdAt | DateTime | Record created |
 
 **Notes:**
@@ -136,6 +138,7 @@
 - `shadbalaya` is stored for **both** `source: "auto"` and `source: "manual"` horoscopes. For manual horoscopes the balas the system cannot derive are left unset until the student sets them manually (Drishti bala always; Cheshta Uttarayana/planet-war states and Kala varga loads on manual charts) — see [ShadBalaya](#shadbalaya)
 - Both aspect mechanisms (Planet Aspects houses + degrees, and Rashi Aspects when enabled) are computed for **both** `source: "auto"` and `source: "manual"` horoscopes; the manual chart feeds the same pure aspect functions via each planet's stored or fallback-derived degree (see [ManualHousePlacements](#manualhouseplacements))
 - The bulk recalculation job (triggered by an `AstrologySettings` update) overwrites the computed fields of every stored snapshot using the current system-wide settings. For `source: "auto"` horoscopes it re-runs `calculateHoroscope` from the stored birth details; for `source: "manual"` horoscopes it recomputes from the stored `manualHousePlacements` — which is the single source of truth for the manual chart and is **never overwritten** by the job (US-SAS-009). The same job recomputes `shadbalaya`, but a bala flagged `overridden: true` (a user's manual checkbox toggle) is **never overwritten** — the user's value is preserved exactly as `manualHousePlacements` is never overwritten (US-SB-013)
+- `lagnaBhavaSuchika` and `bhavaSuchika` are stored for **both** `source: "auto"` and `source: "manual"` horoscopes (manual only when Navamsa data has been entered — `navamsaLagna` / `navamsaHouses`). The AstrologySettings recalculation job recomputes them like any other derived value — there are **no user overrides** for Bhava Suchika (see `20260814-2055-bhava-suchika.md`). Legacy documents missing the fields fall back to a render-time derivation from the always-stored `ascendant`, `houses` and per-planet navamsa sign (or entered Navamsa data), mirroring the `computeAscendantSpecialFlags` fallback pattern
 
 **Relationships**:
 
@@ -490,6 +493,8 @@ Every Zodiac Sign belongs to exactly one fixed category. Used by the Rashi Aspec
 **Note:** `degreeGap` = longitudinal distance between two planets minus the nearest major aspect angle (Conjunction 0°, Sextile 60°, Square 90°, Trine 120°, Opposition 180°). Maximum valid `degreeGap` is < 30° — beyond this, the aspect is not considered effective. In the example above, Sun (12.5°) to Mercury (75.0°) has a raw distance of 62.5°, and the nearest major aspect is Sextile (60°), so `degreeGap` = 2.5°.
 
 **Note (aspects setting):** The candidate aspect angles considered for each planet are NOT fixed — they come from the system-wide [PlanetAspects (System Setting)](#planetaspects-system-setting) `degrees` list for that planet (any multiple of 30 in 30–330, e.g. 60/180/240). The orb tolerance that decides whether an aspect is effective uses the system-wide `planetaryOrbs` value for the aspecting planet (see [AstrologySettings](#astrologysettings)). `aspectType` / `exactAspectDegree` reflect the configured degree value.
+
+**Note (navamsa enrichment):** the stored `planets` entries additionally carry `navamsaSign` and `navamsaStrength` (numeric ZodiacSign / PlanetaryStrength enums) — present on auto horoscopes and on manual horoscopes once the student enters Navamsa data. These feed the භාව සුචික (Bhava Suchika) computation (see [Bhava Suchika (House Index)](#bhava-suchika-house-index)).
 
 <a name="planetaspects-user-setting"></a><a name="planetaspects-system-setting"></a>
 ### PlanetAspects (System Setting)
@@ -927,6 +932,57 @@ Computed (and persisted) probable birth ranges derived from Ravi's and Shani's p
 - **Naisargika bala** (නෛසර්ගික බලය): `true` for every planet except a Maranakaraka planet — the planet occupying its designated death house (Chandra in 8th, Rahu in 9th, Shani in 1st, Ravi in 5th, Shukra in 6th, Kuja in 7th, Budha in 4th, Guru in 3rd; lagna/rasi chart only, never D9; multiple planets can qualify — `computeMaranakaraka` in `src/lib/astrology.ts`, rule documented in `docs/done/maranakaraka.md`). `CalculatedDetails.maranakaraka` is `number[]`.
 - The house used for Dig/Sthana/Naisargika evaluation is the cusp-based calculated house on auto charts and the entered house on manual charts (the same house shown in the chart)
 - On a full recalculation (AstrologySettings change), every bala with `overridden: false` is recomputed from the current chart data; every bala with `overridden: true` keeps the stored user value
+
+<a name="bhava-suchika-house-index"></a>
+### Bhava Suchika (House Index)
+
+භාව සුචික නවාංශක ක්‍රමය — the "house index" of a point (the Lagna or a planet) computed from the Navamsa (D9) chart: take the point's Navamsa sign, then find which house that sign occupies in the Lagna (D1) chart; that house number (1-12) is the point's Bhava Suchika. Stored on `CalculatedDetails` as `lagnaBhavaSuchika` (single Integer 1-12 for the Lagna) plus `bhavaSuchika` (Record keyed by numeric Planet enum string `"1"`…`"9"`, following the `planetaryOrbs`/`shadbalaya` Record convention).
+
+```json
+{
+  "lagnaBhavaSuchika": 7,
+  "bhavaSuchika": {
+    "1": 2,
+    "2": 7,
+    "3": 10,
+    "4": 5,
+    "5": 12,
+    "6": 1,
+    "7": 3,
+    "8": 6,
+    "9": 11
+  }
+}
+```
+
+**Calculation rule:**
+
+- **Lagna**: `navamsaLagnaSign` = the sign of the 1st house of the Navamsa (D9) chart (auto: the D9 chart's ascendant sign; manual: the entered `navamsaLagna`). Then `lagnaBhavaSuchika` = the house of `navamsaLagnaSign` in the D1 chart.
+- **Planets**: for each planet, `bhavaSuchika[planet]` = the house of the planet's Navamsa sign in the D1 chart (auto: the computed `planet.navamsaSign`; manual: the planet's navamsa sign derived from the entered Navamsa chart).
+- **"House of sign S in the D1 chart"** = the house whose whole-sign `sign` equals S, equivalently `((S − lagnaSign) mod 12) + 1` (whole-sign counting from the Lagna). All 9 planets (including Rahu/Ketu) always have a value in 1-12 when computed.
+- Values are stored as the numeric house index (1-12) only — the 12 display names (below) are resolved per locale via i18n at render time, never stored as localized text.
+
+**Display names (per house-index value):**
+
+| Value | Sinhala name | English name (proposed transliteration) |
+|-------|--------------|------------------------------------------|
+| 1 | ලග්නාංශකය | Lagnamshaka |
+| 2 | ධනාංශකය | Dhanamshaka |
+| 3 | වික්‍රමාංශකය | Vikramamshaka |
+| 4 | සුඛාංශකය | Sukhamshaka |
+| 5 | පූර්වපුන්‍යාංශකය | Purvapunyamshaka |
+| 6 | ශෂ්ඨාංශකය | Shashthamshaka |
+| 7 | සප්තමාංශකය | Saptamamshaka |
+| 8 | නිධානාංශකය | Nidhanamshaka |
+| 9 | භාග්‍යාංශකය | Bhagyamshaka |
+| 10 | අභිමානාංශකය | Abhimanamshaka |
+| 11 | ලාභාංශකය | Labhamshaka |
+| 12 | ව්‍යාංශකය | Vyamshaka |
+
+**Notes:**
+- The Sinhala names are authoritative (from `docs/bhava-suchika.md`); the English column is a proposed transliteration pending domain confirmation (see Open Questions in `20260814-2055-bhava-suchika.md`).
+- Present on both chart sources when the source data exists; **absent on manual horoscopes without entered Navamsa data** (no `navamsaLagna` / `navamsaHouses` → the Lagna value and the per-planet values are omitted, mirroring the existing navamsa enrichment behaviour of the planets table).
+- Legacy documents missing the fields fall back to a render-time pure-function derivation from the always-stored `ascendant`, `houses` and per-planet navamsa sign (auto) or entered Navamsa data (manual) — the same fallback pattern as the ascendant Wargoththama/Gandamula flags.
 
 ### Doshas
 

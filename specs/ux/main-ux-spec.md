@@ -1,7 +1,7 @@
 # Kendara — Main UX Specification
 
 **Date:** 2026-07-15 12:30
-**Last Updated:** 2026-08-13 (rev: Shad Bala (ෂඩ් බලය) — the horoscope detail Calculations tab gains a 6-strength × 9-planet checkbox table (Sthana / Cheshta / Kala / Dig / Drishti / Naisargika Bala + ratio `(n/6)`) with per-cell reason tooltips for checked and unchecked states, 500ms-debounced auto-save overrides marked by an indigo dot that survives recalculation, and a read-only mode for non-owners and share links; see `specs/ux/20260813-2030-shadbalaya.md`. Previous rev: System-Wide Astrology Settings — the three settings (Orbs / Planet Aspects / Rashi Aspects) are now system-wide on the same `/settings` page: super-admin edits + sees version metadata, recalculation progress, and audit/history; students view read-only with a "managed by the administrator" notice; see `specs/ux/20260813-1000-system-astrology-settings.md`)
+**Last Updated:** 2026-08-14 (rev: Bhava Suchika (භාව සුචික) — the Calculations tab Lagna section gains a "භාව සුචික" house-index tag (label + `7 — සප්තමාංශකය`) alongside the Wargoththama/Gandamula flags, and the planets table gains a new "භාව සුචික" column showing each planet's Navamsa-derived house index (1–12) with its named form — display-only, both chart sources (manual only when Navamsa data has been entered), render-time legacy fallback, bilingual explanation tooltip; see `specs/ux/20260814-2130-bhava-suchika.md`. Previous rev: Shad Bala (ෂඩ් බලය) — the horoscope detail Calculations tab gains a 6-strength × 9-planet checkbox table (Sthana / Cheshta / Kala / Dig / Drishti / Naisargika Bala + ratio `(n/6)`) with per-cell reason tooltips for checked and unchecked states, 500ms-debounced auto-save overrides marked by an indigo dot that survives recalculation, and a read-only mode for non-owners and share links; see `specs/ux/20260813-2030-shadbalaya.md`. Previous rev: System-Wide Astrology Settings — the three settings (Orbs / Planet Aspects / Rashi Aspects) are now system-wide on the same `/settings` page: super-admin edits + sees version metadata, recalculation progress, and audit/history; students view read-only with a "managed by the administrator" notice; see `specs/ux/20260813-1000-system-astrology-settings.md`)
 **Author:** UX (BMAD)
 **Based on:** specs/business-analysis/actors.md, specs/business-analysis/data-model.md, specs/business-analysis/20260714-1255-user-stories.md, specs/architecture/overview.md, specs/architecture/20260715-0746-architecture-spec.md, docs/spec.md
 
@@ -25,6 +25,8 @@ Kendara is a bilingual (Sinhala/English) astrology study web app for students to
 > **System Astrology Settings UX:** The System-Wide Astrology Settings feature (Orbs / Planet Aspects / Rashi Aspects moved to a single system-wide document) has a dedicated UX spec at `specs/ux/20260813-1000-system-astrology-settings.md`. The same `/settings` page serves both roles: **super-admin** edits the three sections (single bulk Save, `version` optimistic lock), sees a metadata strip (version / updated-by / last recalculated), a live recalculation status panel (polling + retry-failed), and collapsible audit-log / recalc-history panels; **students** view the full sections **read-only** with a "managed by the administrator" notice and no edit affordances. Admin metadata is never exposed to students.
 
 > **Shad Bala UX:** The Shad Bala (ෂඩ් බලය) six-strengths table feature has a dedicated UX spec at `specs/ux/20260813-2030-shadbalaya.md` covering the 8-column × 9-row checkbox table on the Calculations tab (desktop table + mobile card-per-planet), per-cell reason tooltips (checked AND unchecked), the 500ms-debounced auto-save override flow with optimistic UI and rollback, the indigo override dot that survives recalculation, the read-only non-owner/share-link mode with `ⓘ` tooltip access, legacy no-flicker rendering, and the full `astrology.shadbalaya.*` EN/SI key set.
+
+> **Bhava Suchika UX:** The Bhava Suchika (භාව සුචික) Navamsa house-index feature has a dedicated UX spec at `specs/ux/20260814-2130-bhava-suchika.md` covering the Lagna-section tag (`{label}: {value} — {name}`, e.g. `භාව සුචික: 7 — සප්තමාංශකය`) placed first in the ascendant tag row, the new planets-table column after Nakshatra (`{value} — {name}`, blank `—` on manual charts without Navamsa data), the display-only read-only semantics on all views, the render-time legacy fallback, the bilingual explanation tooltip, the full `astrology.bhavaSuchika.*` EN/SI key set (label, names.1..12, tooltip, infoGlyph), and the search integration (searchable by house-index name/number in both languages, mirrored as a Lagna tag + per-planet values on search result cards — US-BS-008).
 
 ---
 
@@ -522,6 +524,20 @@ Settings → "Planets Aspects houses and degrees" section →
 - **Accessibility**: native checkbox semantics; `aria-label` = planet + bala + state (+ ", set manually" when overridden); tooltip wired via `aria-describedby` → `role="tooltip"`; override dot is decorative (`aria-hidden`); Sinhala tooltips cap at 320px width
 - **i18n**: full `astrology.shadbalaya.*` key set added to both `en.json` and `si.json` (title, column names, bala names, reason lines, override legend/aria, toast, read-only notice); planet names reused from `astrology.planetNames.*`; no hardcoded strings
 
+### Bhava Suchika (භාව සුචික)
+
+> Full spec: `specs/ux/20260814-2130-bhava-suchika.md`
+
+- **Placement**: Calculations tab — the Lagna (Ascendant) section tag row (`page.tsx:1245-1310`) gains a "භාව සුචික" pill as the FIRST tag (a value, not a flag), and the planets table gains a new column after Nakshatra (desktop `<th>` after `page.tsx:1484-1486`, desktop `<td>` after `:1640-1643`, mobile card `<span>` after `:1839-1841`)
+- **Value semantics**: display-only house index (1–12) derived from the Navamsa (D9) sign mapped into the D1 whole-sign houses (`((navamsaSign − lagnaSign) mod 12) + 1`); stored on `CalculatedDetails` (`lagnaBhavaSuchika` + `bhavaSuchika` record keyed `"1"`…`"9"`), recomputed on full recalculation, render-time pure-function fallback for legacy docs; no overrides, no mutation endpoint
+- **Cell/tag format**: `{value} — {name}` with Western numerals in both locales (e.g. `7 — සප්තමාංශකය` / `7 — Saptamamshaka`); the Lagna tag adds the label prefix (`භාව සුචික: 7 — සප්තමාංශකය`); blank = `—` (em dash, matching the table's existing empty-cell convention) on manual horoscopes without entered Navamsa data
+- **Lagna tag styling**: same pill geometry as the ascendant flags (`text-xs rounded px-2 py-0.5 border`), indigo treatment (`text-indigo-700 bg-indigo-50 border-indigo-200`, same as Wargoththama), never strikethrough, first in the tag row; the tag itself is the tooltip trigger
+- **Tooltip**: hover/focus/tap on the Lagna tag, the desktop column-header `ⓘ` glyph, or the mobile value span opens a compact bilingual explanation — "The Bhava Suchika is the house (1–12) that this point's Navamsa sign occupies in the birth (Lagna) chart." — reusing the AspectTooltip pattern with a `title` fallback
+- **Both chart sources**: auto always when computable; manual ONLY when Navamsa data entered (`navamsaLagna` gates the Lagna value, `navamsaHouses` gates per-planet values) — otherwise tag omitted / `—` cells (mirrors existing Navamsa enrichment behavior)
+- **Search (US-BS-008)**: searchable via the existing grammar — `bhava_suchika` / `planet_bhava_suchika` exact conditions (+1.0 / +0.5 scoring), house-index names + trigger words in SI & EN (new vocabulary maps), and the values appended to `textContent.ts` for the vector leg; search result cards mirror the Lagna tag + per-planet values in the same format as the calculation tab
+- **Read-only everywhere**: own view, public view, and share links render identically; no editing affordances
+- **i18n**: `astrology.bhavaSuchika.label`, `.names.1..12`, `.tooltip`, `.infoGlyph` added to both `en.json` and `si.json`; names resolve from the numeric value at render; no hardcoded strings
+
 ### Search Input
 
 > Full spec: `specs/ux/20260727-2100-search-horoscope.md` §4
@@ -721,6 +737,7 @@ Settings → "Planets Aspects houses and degrees" section →
 | `specs/ux/20260809-2215-planet-aspects.md` | Planet Aspects houses and degrees (දෘෂ්ඨි) settings UX specification |
 | `specs/ux/20260813-1000-system-astrology-settings.md` | System-wide astrology settings UX specification (role-gated `/settings`: admin edit + recalc progress + audit/history; student read-only) |
 | `specs/ux/20260813-2030-shadbalaya.md` | Shad Bala (ෂඩ් බලය) six-strengths table UX specification (checkbox grid + reason tooltips + auto-save overrides + read-only mode) |
+| `specs/ux/20260814-2130-bhava-suchika.md` | Bhava Suchika (භාව සුචික) Navamsa house-index UX specification (Lagna-section tag + planets-table column + bilingual named values/tooltip + legacy fallback) |
 | `src/components/PrivacyToggle.tsx` | PrivacyToggle component (isPublic + displayName toggles) |
 | `src/components/PrivacyBadge.tsx` | Privacy status badge (Public / Private / Name Hidden) |
 | `src/components/ManualChart/` | Manual Chart editor components (ModeToggle, HouseTableEditor, NavamsaHouseTableEditor, PlanetPicker, ValidationBadges, PlanetsTable, DerivedRanges, ManualChartEditor, ManualChartDetailPanel) |

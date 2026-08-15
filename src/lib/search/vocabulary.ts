@@ -23,6 +23,44 @@ export const NAVAMSA_WORDS = [
     "navamshaka",
 ];
 
+// Words that trigger a Bhava Suchika (භාව සුචික) query — the house (1-12) a point's
+// Navamsa sign occupies in the birth chart. "භාව" alone is deliberately excluded (it
+// means "house", a different concept — see the planet_in_house regex).
+export const BHAVA_SUCHIKA_WORDS = ["භාව සුචික", "bhava suchika", "house index", "නිවාස දර්ශක"];
+
+// Display-form Bhava Suchika house-index names (Sinhala + English) keyed exactly as the
+// `astrology.bhavaSuchika.names.*` i18n messages, so tests can diff the two maps and the
+// search UI can look names up by key. Matching lowercases + strips joiners on both sides.
+export const BHAVA_SUCHIKA_NAMES_SI: Record<string, number> = {
+    ලග්නාංශකය: 1,
+    ධනාංශකය: 2,
+    වික්‍රමාංශකය: 3,
+    සුඛාංශකය: 4,
+    පූර්වපුන්‍යාංශකය: 5,
+    ශෂ්ඨාංශකය: 6,
+    සප්තමාංශකය: 7,
+    නිධානාංශකය: 8,
+    භාග්‍යාංශකය: 9,
+    අභිමානාංශකය: 10,
+    ලාභාංශකය: 11,
+    ව්‍යාංශකය: 12,
+};
+
+export const BHAVA_SUCHIKA_NAMES_EN: Record<string, number> = {
+    Lagnamshaka: 1,
+    Dhanamshaka: 2,
+    Vikramamshaka: 3,
+    Sukhamshaka: 4,
+    Purvapunyamshaka: 5,
+    Shashthamshaka: 6,
+    Saptamamshaka: 7,
+    Nidhanamshaka: 8,
+    Bhagyamshaka: 9,
+    Abhimanamshaka: 10,
+    Labhamshaka: 11,
+    Vyamshaka: 12,
+};
+
 export type PlanetRoleKey =
     | "ashtamansha"
     | "nidhanamsha"
@@ -89,6 +127,9 @@ const VOCABULARY_WORDS: string[] = [
     ...Object.keys(NAKSHATRA_NAMES),
     ...Object.keys(STRENGTH_LABELS),
     ...TRIGGER_WORDS,
+    ...BHAVA_SUCHIKA_WORDS,
+    ...Object.keys(BHAVA_SUCHIKA_NAMES_SI),
+    ...Object.keys(BHAVA_SUCHIKA_NAMES_EN),
 ];
 
 export const SEARCH_VOCABULARY: string[] = [...new Set(VOCABULARY_WORDS)];

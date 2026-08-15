@@ -100,6 +100,12 @@ const CalculatedDetailsSchema = new Schema<ICalculatedDetails>({
      *  dropped by normalizeMaranakaraka at read time. */
     maranakaraka: [Number],
     yogakaraka: [Number],
+    /** Bhava Suchika (භාව සුචික) of the Lagna point — the house (1-12) its Navamsa sign occupies in
+     *  the birth chart. Mixed (not Number) so manual-without-Navamsa docs stay absent, exactly like
+     *  `shadbalaya`. Legacy docs predate the field and are lazily recomputed at render. */
+    lagnaBhavaSuchika: { type: Schema.Types.Mixed },
+    /** Bhava Suchika (භාව සුචික) per planet, keyed by planet enum value ("1".."9"). See above. */
+    bhavaSuchika: { type: Schema.Types.Mixed },
     shadbalaya: { type: Schema.Types.Mixed },
     yogas: [{ type: Schema.Types.Mixed }],
     doshas: { type: Schema.Types.Mixed },

@@ -6,5 +6,7 @@
 
 ## Quick fixes
 
-- Maranakaraka Calculation is not correct. For example 6a7442e7849d1aae4bec54ca, Moon is not Maranakaraka. Because it is not in the 8th house. But budha is Maranakaraka because it is in the 4th house. Need to check only lagna kendara. Not D9.
 - Horoscope table should have search for searching horoscopes by name, birth year, location
+- Need to add more planet details to other column, As calculated in @shadhbalaya.md It should include චේෂ්ටා බල,  කාල බල, දිග් බල tags for planet if some planet has that value. Then student can saw all planet details without checking the Shad bala table.
+- Need to add Nakathra adipathi with Nakshathra column in the planet table.
+- If the planet has not any aspect, then its Aspect Bala can check. Should have a setting for this.

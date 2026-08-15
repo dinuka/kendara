@@ -469,3 +469,53 @@ The Shad Bala feature (US-SB-001…014) adds a 8-column × 9-row ෂඩ් බ�
 | US-SB-012 | UT-SB-012/013/037/038/064, E2E-SB-161, RE-SB-219 |
 | US-SB-013 | IT-SB-120..127, E2E-SB-171, RE-SB-220/221 |
 | US-SB-014 | IT-SB-101/102/103, UI-SB-145, AX-SB-193, E2E-SB-172, RE-SB-216 |
+
+## Bhava Suchika (භාව සුචික) — Testing Considerations
+
+> Full test plan: `specs/qa/20260814-2210-bhava-suchika-test-plan.md`
+
+The Bhava Suchika feature (US-BS-001…008, incl. search) adds the Navamsa house index (1–12) for the Lagna and all 9 planets — `((navamsaSign − lagnaSign) mod 12) + 1`, whole-sign. New pure module `src/lib/bhavaSuchika.ts` (`computeNavamsaLagnaSign`, `computeLagnaBhavaSuchika`, `computePlanetBhavaSuchika`, `computeBhavaSuchika`), new optional `CalculatedDetails.lagnaBhavaSuchika` + `CalculatedDetails.bhavaSuchika` fields that ride the existing `...calculated` / `...synth` spreads (NO merge — no overrides exist), Lagna-section tag (first, indigo) + planets-table column after Nakshatra (desktop + mobile + search card), i18n keys `astrology.bhavaSuchika.*`, and two new search exact conditions (`bhava_suchika`, `planet_bhava_suchika`) with guarded SI/EN textContent sentences.
+
+### Scope of Bhava Suchika testing
+
+| Level | Scope | Key files |
+|-------|-------|-----------|
+| Unit (Jest, pure) | Mod-12 rule identity + wrap, degree→navamsa wedge boundaries (3°20′, 6°40′), Wargoththama invariant, 9-planet output contract, determinism, D9-lagna no-drift vs `deriveNavamsaLagnaFromDegree` | `src/lib/bhavaSuchika.ts` (new), `src/__tests__/bhavaSuchika.test.ts` (new) |
+| Integration / API | No new routes (D8); POST /api/horoscope + manual routes + recalc job persist via existing spreads; legacy docs untouched (no migration); Shad Bala PATCH never touches the fields | `src/app/api/horoscope/route.ts`, `src/lib/recalculationJob.ts`, `src/lib/manualChartDetails.ts` |
+| Search | `bhava_suchika` / `planet_bhava_suchika` exact conditions, +1.0/+0.5 scoring, SI/EN 12-name maps + vocabulary pool, guarded textContent sentences, manual-without-navamsa never matches | `src/app/api/search/route.ts`, `src/lib/search/vocabulary.ts`, `src/lib/search/textContent.ts`, `src/lib/search/indexer.ts` |
+| Component / UI | Tag position/styling/tooltip, desktop `<th>`/`<td>` + mobile span after Nakshatra, `—` blank, legacy no-flicker, read-only everywhere | `src/app/horoscopes/[id]/page.tsx`, `src/app/search/page.tsx` |
+| E2E | Manual test scripts (no Playwright installed — flagged) | — |
+| Bilingual | `astrology.bhavaSuchika.*` key parity SI/EN; 12 SI names authoritative (EN provisional, OQ1) | `src/messages/en.json`, `src/messages/si.json` |
+
+### Key risk areas (prioritised)
+
+1. **`src/lib/bhavaSuchika.ts` does not exist yet** (verified) — Developer must create it; `navamsaSign` is exported at `astrology.ts:31` and the D9-lagna expression matches the 5 existing inline sites (`calculation.ts:505, 523, 559, 593, 606`).
+2. **Manual gating (D5)** — `synthesizePlanets` falls back `navamsaSign ?? row.sign` (`manualChartDetails.ts:173`); a manual chart without navamsa data must NEVER produce values (would use the birth sign, wrong). Gating also applies to search text (no sentence emitted) and the search route (never matches).
+3. **textContent guard subtleties** — follow the yogakaraka guarded pattern (`textContent.ts:81-86`/`:179-184`); handle `undefined` / `{}` / missing keys; manual-without-navamsa emits NO sentence.
+4. **Search route testability** — `getExactMatch`/`scoreHoroscope`/`getAstroKeywords` are module-private; route tests must mock session/DB **and** `@/lib/search/embedding` + `@/lib/search/qdrant` (Transformers.js model download otherwise). No Gemini exists in `src/` (unused dependency) — the vector leg is Transformers.js + Qdrant.
+5. **`synthesizeNavamsaCalculation` must NOT gain the fields** (`manualChartDetails.ts:233-269`) — Bhava Suchika is a D1-chart value, never D9.
+6. **jest `testMatch` excludes `.tsx`** — RTL component tests need the config extended; E2E needs Playwright (Developer/PM decision).
+7. **Mobile header button lacks `flex-wrap`** (`page.tsx:1818`) — wider row may wrap badly; UX question to Developer, unresolved.
+
+### Environment & data setup
+
+| Item | Setup |
+|------|-------|
+| Unit fixtures | Pure numeric-enum inputs — no mocks; boundary degrees 0, `30/9`, `30/9 − ε`, `2*(30/9)`, 29.999; full 12×12 `(lagna, navamsaLagna)` sweep |
+| API tests | Mocked `getServerSession` + `connectDB` (reuse `privacy.test.ts` patterns); assert the payload rides `...calculated`/`...synth` with no new persist code |
+| Search tests | Mock `@/lib/search/embedding` (`generateEmbedding → null`) + `@/lib/search/qdrant`; reuse existing `search-*.test.ts` pure-helper pattern where possible |
+| Golden | `calculateHoroscope(baseData)` (1990-06-15 08:30 Colombo) must now include both fields — era-stamped fixture `fixtures/bhava-suchika-default-2026-08.json` |
+| E2E/manual | One auto horoscope, one manual with navamsa data, one manual without navamsa, one legacy doc (`$unset` both fields), one share link; SI + EN sessions |
+
+### Bhava Suchika acceptance-criteria traceability
+
+| User story | QA test IDs (see test plan) |
+|-----------|------------------------------|
+| US-BS-001 | UT-BS-061/062/063, UI-BS-300..305/311, E2E-BS-400/408, AX-BS-350, RE-BS-453 |
+| US-BS-002 | UT-BS-021/022, UI-BS-306..310/313/314, E2E-BS-400/402, RE-BS-454/455/456/458 |
+| US-BS-003 | UT-BS-001..007/012..018/053/064/083, RE-BS-450/451/452 |
+| US-BS-004 | UT-BS-008..011/019..023/052/054/084 |
+| US-BS-005 | BI-BS-380..387, UI-BS-312, AX-BS-356 |
+| US-BS-006 | UT-BS-055..059/063, IT-BS-103/104/105/110, UI-BS-304/308/310, E2E-BS-401/402, RE-BS-457 |
+| US-BS-007 | UT-BS-051/061/062, IT-BS-100..113, UI-BS-305/311, E2E-BS-403/408/410, RE-BS-460/461/462 |
+| US-BS-008 | SR-BS-200..228, E2E-BS-404..407, RE-BS-459/463/464/465/466 |

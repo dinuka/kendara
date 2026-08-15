@@ -24,6 +24,7 @@ import {
     navamsaSign,
 } from "@/lib/astrology";
 import { PlanetaryStrength } from "@/lib/astrologyEnums";
+import { computeBhavaSuchika, computeLagnaBhavaSuchika, computeNavamsaLagnaSign } from "@/lib/bhavaSuchika";
 import logger from "@/lib/logger";
 import { type PlanetAspectsMap, computePlanetAspects } from "@/lib/planetAspects";
 import {
@@ -440,6 +441,11 @@ export function calculateHoroscope(
         maranakaraka,
     });
 
+    // Bhava Suchika (භාව සුචික) computed once at calculation time (whole-sign, Navamsa-into-Lagna
+    // chart house index). Legacy docs without the fields are lazily recomputed at render.
+    const lagnaBhavaSuchika = computeLagnaBhavaSuchika(ascSign, computeNavamsaLagnaSign(ascSign, ascLong % 30));
+    const bhavaSuchika = computeBhavaSuchika(planetDetails, ascSign);
+
     return {
         ascendant,
         houses,
@@ -461,6 +467,8 @@ export function calculateHoroscope(
         maranakaraka,
         yogakaraka,
         shadbalaya,
+        lagnaBhavaSuchika,
+        bhavaSuchika,
         isAscendantWargoththama: computeAscendantWargoththama(ascSign, ascLong % 30),
         isAscendantGandantha: computeAscendantGandantha(ascNakshatra, ascPada),
         isAscendantGandamula: computeAscendantGandamula(ascNakshatra, ascPada),

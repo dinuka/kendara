@@ -1,9 +1,5 @@
 import { ShadBalaReason } from "@/lib/shadBalaya";
-import {
-    composeShadBalaAriaLabel,
-    composeShadBalaRatioAria,
-    composeShadBalaTooltip,
-} from "@/lib/shadBalayaTooltip";
+import { composeShadBalaAriaLabel, composeShadBalaRatioAria, composeShadBalaTooltip } from "@/lib/shadBalayaTooltip";
 
 const messages: Record<string, string> = {
     "astrology.shadbalaya.balaNames.sthanaBala": "Sthana Bala",
@@ -28,10 +24,7 @@ const messages: Record<string, string> = {
 };
 
 const t = (key: string, params: Record<string, string | number> = {}): string =>
-    Object.entries(params).reduce(
-        (acc, [k, v]) => acc.split(`{${k}}`).join(String(v)),
-        messages[key] ?? key,
-    );
+    Object.entries(params).reduce((acc, [k, v]) => acc.split(`{${k}}`).join(String(v)), messages[key] ?? key);
 
 const getSignName = (sign: number): string => `sign-${sign}`;
 const getPlanetName = (planet: number): string => `planet-${planet}`;
@@ -119,13 +112,23 @@ describe("composeShadBalaTooltip", () => {
 describe("composeShadBalaAriaLabel", () => {
     test("checked without override", () => {
         expect(
-            composeShadBalaAriaLabel(t, getPlanetName, { planet: 1, bala: "sthanaBala", value: true, overridden: false }),
+            composeShadBalaAriaLabel(t, getPlanetName, {
+                planet: 1,
+                bala: "sthanaBala",
+                value: true,
+                overridden: false,
+            }),
         ).toBe("planet-1 Sthana Bala — checked");
     });
 
     test("unchecked with override suffix", () => {
         expect(
-            composeShadBalaAriaLabel(t, getPlanetName, { planet: 7, bala: "cheshtaBala", value: false, overridden: true }),
+            composeShadBalaAriaLabel(t, getPlanetName, {
+                planet: 7,
+                bala: "cheshtaBala",
+                value: false,
+                overridden: true,
+            }),
         ).toBe("planet-7 Cheshta Bala — unchecked, set manually");
     });
 });

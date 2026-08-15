@@ -9,6 +9,7 @@ import type {
     Mahadasha,
 } from "@/lib/astrology";
 import { Planet, PlanetaryStrength } from "@/lib/astrologyEnums";
+import { computeLagnaBhavaSuchika, computePlanetBhavaSuchika } from "@/lib/bhavaSuchika";
 import { type PlanetAspectsMap, computeManualHouseAspects, derivePlanetAbsoluteDegree } from "@/lib/planetAspects";
 import {
     DEFAULT_RASHI_ASPECTS,
@@ -1230,6 +1231,8 @@ export function synthesizeOtherDetails(
     | "gandanthaPlanets"
     | "gandamulaPlanets"
     | "pushkaraPlanets"
+    | "lagnaBhavaSuchika"
+    | "bhavaSuchika"
 > {
     const lagna = manualHousePlacements.lagna;
     const ascDegree =
@@ -1244,6 +1247,32 @@ export function synthesizeOtherDetails(
     const hasNavamsa = !!manualHousePlacements.navamsaHouses?.length;
     const houses = buildWholeSignHouses(lagna);
     const ascNakshatra = computeAscendantNakshatra(manualHousePlacements);
+    // Bhava Suchika (භාව සුචික) — whole-sign house of each point's Navamsa sign in the birth chart.
+    // Manual charts only ever use entered Navamsa data (D5 matrix): the Lagna value requires an
+    // entered Navamsa Lagna, and per-planet values require entered Navamsa houses (a planet's
+    // Navamsa sign = the sign of the D9 house it was placed in; unplaced planets are omitted).
+    const lagnaBhavaSuchika =
+        manualHousePlacements.navamsaLagna !== undefined &&
+        manualHousePlacements.navamsaLagna !== null &&
+        manualHousePlacements.navamsaLagna >= 1 &&
+        manualHousePlacements.navamsaLagna <= 12
+            ? computeLagnaBhavaSuchika(lagna, manualHousePlacements.navamsaLagna)
+            : undefined;
+    let bhavaSuchika: Record<string, number> | undefined;
+    if (hasNavamsa) {
+        const navamsaSignOfPlanet: Record<number, number> = {};
+        for (const house of manualHousePlacements.navamsaHouses ?? []) {
+            for (const name of house.planets) navamsaSignOfPlanet[name] = house.sign;
+        }
+        bhavaSuchika = {};
+        for (const p of planets) {
+            const navamsaSignValue = navamsaSignOfPlanet[p.name];
+            if (navamsaSignValue !== undefined) {
+                bhavaSuchika[String(p.name)] = computePlanetBhavaSuchika(navamsaSignValue, lagna);
+            }
+        }
+        if (Object.keys(bhavaSuchika).length === 0) bhavaSuchika = undefined;
+    }
     return {
         lord22ndDrekkana: computeDrekkanaLord(lagna, ascDegree),
         lord64thNavamsa: computeNavamsaLord(lagna, ascDegree),
@@ -1262,6 +1291,8 @@ export function synthesizeOtherDetails(
         gandanthaPlanets: computeGandantha(planets),
         gandamulaPlanets: computeGandamula(planets),
         pushkaraPlanets: computePushkara(planets),
+        ...(lagnaBhavaSuchika !== undefined ? { lagnaBhavaSuchika } : {}),
+        ...(bhavaSuchika !== undefined ? { bhavaSuchika } : {}),
     };
 }
 

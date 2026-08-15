@@ -8,6 +8,7 @@ import { Horoscope } from "@/models/Horoscope";
 
 import { House, findHouse } from "@/lib/astrology";
 import { PLANET_NAMES, PlanetaryStrength, STRENGTH_LABELS, ZODIAC_SIGN_NAMES } from "@/lib/astrologyEnums";
+import { isValidBhavaSuchikaValue, resolveLagnaBhavaSuchika, resolvePlanetBhavaSuchika } from "@/lib/bhavaSuchika";
 import { connectDB } from "@/lib/db";
 import logger from "@/lib/logger";
 import { deriveNavamsaLagnaFromDegree } from "@/lib/manualChart";
@@ -23,6 +24,9 @@ import {
 } from "@/lib/search/utils";
 import {
     ASCENDANT_WORDS,
+    BHAVA_SUCHIKA_NAMES_EN,
+    BHAVA_SUCHIKA_NAMES_SI,
+    BHAVA_SUCHIKA_WORDS,
     DOSHA_WORDS,
     ENGLISH_YOGA,
     NAVAMSA_WORDS,
@@ -37,7 +41,9 @@ type ExactCondition =
     | { type: "planet_in_house"; planet: number; house: number }
     | { type: "nakshatra"; nakshatra: number }
     | { type: "planet_strength"; planet: number; strength: PlanetaryStrength }
-    | { type: "planet_role"; role: PlanetRoleKey; planet: number };
+    | { type: "planet_role"; role: PlanetRoleKey; planet: number }
+    | { type: "bhava_suchika"; value: number }
+    | { type: "planet_bhava_suchika"; planet: number; value: number };
 
 type ExactMatch = ExactCondition[];
 
@@ -263,6 +269,45 @@ const getSignMatchNear = (query: string, triggerWords: string[]): number | null 
 
 const getNavamsaSignMatch = (query: string): number | null => getSignMatchNear(query, NAVAMSA_WORDS);
 
+type BhavaSuchikaMatch = { type: "lagna"; value: number } | { type: "planet"; planet: number; value: number };
+
+// Detects a Bhava Suchika (භාව සුචික) question in a query clause. A house-index NAME wins
+// ("labhamshaka" → 1, "ව්‍යාංශකය" → 12, in either language); otherwise a trigger word
+// ("bhava suchika", "භාව සුචික", ...) plus a number 1-12 gives the value. A bare trigger with no
+// usable number yields null (RE-BS-464) — same as out-of-range numbers (0/13+). When a planet is
+// named the match is per-planet; otherwise it is the Lagna value.
+const getBhavaSuchikaMatch = (query: string): BhavaSuchikaMatch | null => {
+    const q = stripJoiners(query.toLowerCase());
+
+    const valueByWord = new Map<string, number>();
+    for (const [name, value] of Object.entries({ ...BHAVA_SUCHIKA_NAMES_SI, ...BHAVA_SUCHIKA_NAMES_EN })) {
+        valueByWord.set(stripJoiners(name.toLowerCase()), value);
+    }
+
+    for (const [word, value] of valueByWord) {
+        if (q.includes(word)) {
+            return buildBhavaSuchikaMatch(query, value);
+        }
+    }
+
+    const hasTriggerWord = BHAVA_SUCHIKA_WORDS.some((w) => q.includes(stripJoiners(w.toLowerCase())));
+    if (!hasTriggerWord) return null;
+
+    const numbers = q.match(/\d+/g);
+    const value = numbers ? numbers.map(Number).find((n) => isValidBhavaSuchikaValue(n)) : undefined;
+    if (value === undefined) return null;
+
+    return buildBhavaSuchikaMatch(query, value);
+};
+
+const buildBhavaSuchikaMatch = (query: string, value: number): BhavaSuchikaMatch => {
+    const planets = getPlanetMatches(query);
+    if (planets.length > 0) {
+        return { type: "planet", planet: planets[0], value };
+    }
+    return { type: "lagna", value };
+};
+
 // Resolves the Navamsa (D9) lagna sign of a horoscope. Manual horoscopes store it directly in
 // `manualHousePlacements.navamsaLagna` (or derive it from lagna + lagnaDegree); auto-calculated
 // ones derive it from the birth ascendant's sign + degree within sign. Returns null when unknown.
@@ -435,6 +480,19 @@ const getExactMatch = (query: string): ExactMatch => {
         conditions.push({ type: "navamsa_ascendant", sign: navamsaSignValue });
     }
 
+    const bhavaSuchikaMatch = getBhavaSuchikaMatch(query);
+    if (bhavaSuchikaMatch !== null) {
+        if (bhavaSuchikaMatch.type === "lagna") {
+            conditions.push({ type: "bhava_suchika", value: bhavaSuchikaMatch.value });
+        } else {
+            conditions.push({
+                type: "planet_bhava_suchika",
+                planet: bhavaSuchikaMatch.planet,
+                value: bhavaSuchikaMatch.value,
+            });
+        }
+    }
+
     for (const [planetValue, house] of explicitHouseByPlanet) {
         conditions.push({ type: "planet_in_house", planet: planetValue, house });
     }
@@ -513,6 +571,11 @@ const getAstroKeywords = (query: string): string[] => {
         keywords.push("navamsa_ascendant");
     }
 
+    const bhavaSuchikaMatch = getBhavaSuchikaMatch(query);
+    if (bhavaSuchikaMatch !== null) {
+        keywords.push(bhavaSuchikaMatch.type === "lagna" ? "bhava_suchika" : "planet_bhava_suchika");
+    }
+
     for (const w of DOSHA_WORDS) {
         if (q.includes(w)) {
             keywords.push("dosha");
@@ -581,6 +644,22 @@ const scoreHoroscope = (
             const signWord =
                 Object.entries(ZODIAC_SIGN_NAMES).find(([, v]) => v === navamsaSignValue)?.[0] || navamsaSignValue;
             matchedConditions.push(`navamsa_ascendant=${signWord}`);
+        }
+    }
+
+    const bhavaSuchikaMatch = getBhavaSuchikaMatch(query);
+    if (bhavaSuchikaMatch !== null) {
+        if (bhavaSuchikaMatch.type === "lagna") {
+            if (resolveLagnaBhavaSuchika(calculatedDetails) === bhavaSuchikaMatch.value) {
+                score += 1.0;
+                matchedConditions.push(`bhava_suchika=${bhavaSuchikaMatch.value}`);
+            }
+        } else if (resolvePlanetBhavaSuchika(calculatedDetails, bhavaSuchikaMatch.planet) === bhavaSuchikaMatch.value) {
+            score += 0.5;
+            const planetWord =
+                Object.entries(PLANET_NAMES).find(([, v]) => v === bhavaSuchikaMatch.planet)?.[0] ||
+                bhavaSuchikaMatch.planet;
+            matchedConditions.push(`planet_bhava_suchika_${planetWord}=${bhavaSuchikaMatch.value}`);
         }
     }
 
@@ -828,6 +907,14 @@ export async function POST(req: NextRequest) {
                                     condition.role,
                                     condition.planet,
                                     calculatedDetails as Record<string, unknown> | null,
+                                );
+                            }
+                            case "bhava_suchika": {
+                                return resolveLagnaBhavaSuchika(calculatedDetails) === condition.value;
+                            }
+                            case "planet_bhava_suchika": {
+                                return (
+                                    resolvePlanetBhavaSuchika(calculatedDetails, condition.planet) === condition.value
                                 );
                             }
                             default:

@@ -10,6 +10,7 @@ import ManualChartEditor from "@/components/ManualChart/ManualChartEditor";
 import PrivacyBadge from "@/components/PrivacyBadge";
 import PrivacyToggle from "@/components/PrivacyToggle";
 import AspectChip from "@/components/aspects/AspectChip";
+import BhavaSuchikaTag from "@/components/bhavaSuchika/BhavaSuchikaTag";
 import ShadBalaTable from "@/components/shadbalaya/ShadBalaTable";
 import { useI18n } from "@/hooks/useI18n";
 import { useSession } from "next-auth/react";
@@ -30,6 +31,7 @@ import {
     normalizeMaranakaraka,
 } from "@/lib/astrology";
 import { PlanetaryStrength } from "@/lib/astrologyEnums";
+import { resolveLagnaBhavaSuchika, resolvePlanetBhavaSuchika } from "@/lib/bhavaSuchika";
 import { getChartData, toBirthChartData } from "@/lib/chartDataTransform";
 import type { ChartInput } from "@/lib/chartDataTransform";
 import { ALL_CHART_TYPES, ChartType } from "@/lib/chartTypes";
@@ -169,6 +171,8 @@ export default function HoroscopeDetailPage() {
             gandamulaPlanets: number[];
             pushkaraPlanets: number[];
             shadbalaya?: ShadBalaya;
+            lagnaBhavaSuchika?: number;
+            bhavaSuchika?: Record<string, number>;
             yogas: unknown[];
             doshas: { doshas: unknown[] };
             manualHousePlacements?: ManualHousePlacements;
@@ -378,6 +382,11 @@ export default function HoroscopeDetailPage() {
     const resolvedYogakaraka = calculatedDetails?.ascendant?.sign
         ? computeYogakaraka(calculatedDetails.ascendant.sign)
         : (calculatedDetails?.yogakaraka ?? []);
+
+    // Bhava Suchika (භාව සුචික) of the Lagna point — stored value wins; legacy auto docs without
+    // the field are recomputed from the birth ascendant; manual charts only use entered Navamsa
+    // data (a manual chart without entered Navamsa placements shows no tag).
+    const resolvedLagnaBhavaSuchika = resolveLagnaBhavaSuchika(calculatedDetails);
 
     const handleDelete = async () => {
         setDeleting(true);
@@ -1290,9 +1299,13 @@ export default function HoroscopeDetailPage() {
                                                     key: "pushkara",
                                                     text: t("astrology.pushkaraLabel"),
                                                 });
-                                            if (ascTags.length === 0) return null;
+                                            if (ascTags.length === 0 && resolvedLagnaBhavaSuchika === undefined)
+                                                return null;
                                             return (
                                                 <p className="mt-2 flex flex-wrap gap-1">
+                                                    {resolvedLagnaBhavaSuchika !== undefined && (
+                                                        <BhavaSuchikaTag value={resolvedLagnaBhavaSuchika} />
+                                                    )}
                                                     {ascTags.map((tag) => (
                                                         <span
                                                             key={tag.key}
@@ -1484,6 +1497,19 @@ export default function HoroscopeDetailPage() {
                                                 <th className="py-1 pr-3">
                                                     {t("astrology.nakshatra")} ({t("astrology.pada")})
                                                 </th>
+                                                <th className="py-1 pr-3">
+                                                    <span className="inline-flex items-center gap-1 whitespace-nowrap">
+                                                        {t("astrology.bhavaSuchika.label")}
+                                                        <button
+                                                            type="button"
+                                                            title={t("astrology.bhavaSuchika.tooltip")}
+                                                            aria-label={t("astrology.bhavaSuchika.infoGlyph")}
+                                                            className="cursor-help text-gray-400 hover:text-indigo-600"
+                                                        >
+                                                            ⓘ
+                                                        </button>
+                                                    </span>
+                                                </th>
                                                 <th className="py-1 pr-3">{t("astrology.conjunctions")}</th>
                                                 <th className="py-1 pr-3">{t("astrology.aspects")}</th>
                                                 <th className="py-1 pr-3">{t("astrology.other")}</th>
@@ -1498,6 +1524,12 @@ export default function HoroscopeDetailPage() {
                                                             ? p.house
                                                             : (findHouse(p.absoluteDegree, calculatedDetails.houses) ??
                                                               p.house);
+                                                    // Bhava Suchika (භාව සුචික): stored value wins;
+                                                    // legacy docs are lazily resolved at render.
+                                                    const bhavaSuchikaValue = resolvePlanetBhavaSuchika(
+                                                        calculatedDetails,
+                                                        p.name,
+                                                    );
                                                     const conjunct = calculatedDetails.planets
                                                         .filter((q) => q.name !== p.name)
                                                         .filter((q) => {
@@ -1641,6 +1673,11 @@ export default function HoroscopeDetailPage() {
                                                                 {getNakshatraName(p.nakshatra) || p.nakshatra} ({p.pada}
                                                                 )
                                                             </td>
+                                                            <td className="py-1 pr-3 whitespace-nowrap">
+                                                                {bhavaSuchikaValue !== undefined
+                                                                    ? `${bhavaSuchikaValue} — ${t(`astrology.bhavaSuchika.names.${bhavaSuchikaValue}`)}`
+                                                                    : "—"}
+                                                            </td>
                                                             <td className="py-1 pr-3">
                                                                 {conjunct.length > 0 ? conjunct.join(", ") : "—"}
                                                             </td>
@@ -1699,6 +1736,12 @@ export default function HoroscopeDetailPage() {
                                                     ? p.house
                                                     : (findHouse(p.absoluteDegree, calculatedDetails.houses) ??
                                                       p.house);
+                                            // Bhava Suchika (භාව සුචික): stored value wins; legacy docs
+                                            // are lazily resolved at render.
+                                            const bhavaSuchikaValue = resolvePlanetBhavaSuchika(
+                                                calculatedDetails,
+                                                p.name,
+                                            );
 
                                             const conjunct = calculatedDetails.planets
                                                 .filter((q) => q.name !== p.name)
@@ -1815,7 +1858,7 @@ export default function HoroscopeDetailPage() {
                                                                 return next;
                                                             });
                                                         }}
-                                                        className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50 transition-colors text-left"
+                                                        className="w-full flex flex-wrap items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50 transition-colors text-left"
                                                     >
                                                         <span className="font-medium whitespace-nowrap">
                                                             {PLANET_SYMBOLS[p.name]} {getPlanetName(p.name)}
@@ -1839,6 +1882,13 @@ export default function HoroscopeDetailPage() {
                                                         <span className="text-gray-500 whitespace-nowrap">
                                                             {getNakshatraName(p.nakshatra) || p.nakshatra} ({p.pada})
                                                         </span>
+                                                        {bhavaSuchikaValue !== undefined && (
+                                                            <span className="text-gray-600 whitespace-nowrap">
+                                                                {t("astrology.bhavaSuchika.label")}: {bhavaSuchikaValue}{" "}
+                                                                —{" "}
+                                                                {t(`astrology.bhavaSuchika.names.${bhavaSuchikaValue}`)}
+                                                            </span>
+                                                        )}
                                                         {tags.length > 0 && (
                                                             <div className="flex gap-1 shrink-0 flex-wrap">
                                                                 {tags.map((tag) => (
