@@ -59,6 +59,8 @@
         "private": "Private",
         "public": "Public",
         "showName": "Show name",
+        "searchPlaceholder": "Search by name, birth year, or location...",
+        "searchNoResults": "No horoscopes match your search",
         "nav": {
             "prev": "Previous",
             "next": "Next",

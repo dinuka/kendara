@@ -38,6 +38,7 @@ export default function HoroscopesPage() {
     const [error, setError] = useState("");
     const [sortColumn, setSortColumn] = useState<SortableColumn>("name");
     const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
+    const [searchQuery, setSearchQuery] = useState("");
 
     useEffect(() => {
         if (status === "unauthenticated") {
@@ -69,7 +70,19 @@ export default function HoroscopesPage() {
     };
 
     const sortedHoroscopes = useMemo(() => {
-        const sorted = [...horoscopes];
+        const query = searchQuery.trim().toLowerCase();
+        const filtered = query
+            ? horoscopes.filter((h) => {
+                  const year = h.birthDate ? new Date(h.birthDate).getFullYear().toString() : "";
+                  const location = h.locationName || (h.latitude ? `${h.latitude}, ${h.longitude}` : "");
+                  return (
+                      h.name.toLowerCase().includes(query) ||
+                      year.includes(query) ||
+                      location.toLowerCase().includes(query)
+                  );
+              })
+            : horoscopes;
+        const sorted = [...filtered];
         sorted.sort((a, b) => {
             let cmp = 0;
             switch (sortColumn) {
@@ -92,7 +105,7 @@ export default function HoroscopesPage() {
             return sortDirection === "asc" ? cmp : -cmp;
         });
         return sorted;
-    }, [horoscopes, sortColumn, sortDirection]);
+    }, [horoscopes, sortColumn, sortDirection, searchQuery]);
 
     const SortIcon = ({ column }: { column: SortableColumn }) => {
         if (sortColumn !== column) {
@@ -182,12 +195,23 @@ export default function HoroscopesPage() {
                 error={deleteError}
             />
 
-            {horoscopes.length === 0 ? (
-                <div className="bg-white rounded-lg shadow-sm border p-8 text-center text-gray-400">
-                    {t("search.noResults")}
+            <div className="bg-white rounded-lg shadow-sm border overflow-hidden">
+                <div className="px-4 py-3 border-b">
+                    <input
+                        type="search"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        placeholder={t("horoscope.searchPlaceholder")}
+                        aria-label={t("horoscope.searchPlaceholder")}
+                        className="w-full sm:w-80 border rounded px-3 py-2 text-sm"
+                    />
                 </div>
-            ) : (
-                <div className="bg-white rounded-lg shadow-sm border overflow-hidden">
+
+                {sortedHoroscopes.length === 0 ? (
+                    <div className="p-8 text-center text-gray-400">
+                        {horoscopes.length === 0 ? t("search.noResults") : t("horoscope.searchNoResults")}
+                    </div>
+                ) : (
                     <table className="w-full text-sm">
                         <thead className="bg-gray-50">
                             <tr>
@@ -267,8 +291,8 @@ export default function HoroscopesPage() {
                             ))}
                         </tbody>
                     </table>
-                </div>
-            )}
+                )}
+            </div>
         </div>
     );
 }
