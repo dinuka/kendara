@@ -346,6 +346,9 @@
         "gandantaLabel": "Gandanta",
         "gandamulaLabel": "Gandamula",
         "pushkaraLabel": "Pushkara",
+        "cheshtaBalaLabel": "Cheshta Bala",
+        "kalaBalaLabel": "Kala Bala",
+        "digBalaLabel": "Dig Bala",
         "bhavaSuchika": {
             "label": "Bhava Suchika",
             "tooltip": "The Bhava Suchika of a point is the house (1-12) its Navamsa sign occupies in the birth (Lagna) chart.",

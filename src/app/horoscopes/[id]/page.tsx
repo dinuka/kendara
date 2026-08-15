@@ -1643,6 +1643,22 @@ export default function HoroscopeDetailPage() {
                                                             key: "pushkara",
                                                             text: t("astrology.pushkaraLabel"),
                                                         });
+                                                    const shadBalayaPlanet = resolvedShadbalaya?.[String(p.name)];
+                                                    if (shadBalayaPlanet?.cheshtaBala.value)
+                                                        tags.push({
+                                                            key: "cheshtaBala",
+                                                            text: t("astrology.cheshtaBalaLabel"),
+                                                        });
+                                                    if (shadBalayaPlanet?.kalaBala.value)
+                                                        tags.push({
+                                                            key: "kalaBala",
+                                                            text: t("astrology.kalaBalaLabel"),
+                                                        });
+                                                    if (shadBalayaPlanet?.digBala.value)
+                                                        tags.push({
+                                                            key: "digBala",
+                                                            text: t("astrology.digBalaLabel"),
+                                                        });
                                                     return (
                                                         <tr key={p.name} className="border-b border-gray-50">
                                                             <td className="py-1 pr-3 font-medium">
@@ -1830,6 +1846,13 @@ export default function HoroscopeDetailPage() {
                                                 tags.push({ key: "gandamula", text: t("astrology.gandamulaLabel") });
                                             if (calculatedDetails.pushkaraPlanets?.includes(p.name))
                                                 tags.push({ key: "pushkara", text: t("astrology.pushkaraLabel") });
+                                            const shadBalayaPlanet = resolvedShadbalaya?.[String(p.name)];
+                                            if (shadBalayaPlanet?.cheshtaBala.value)
+                                                tags.push({ key: "cheshtaBala", text: t("astrology.cheshtaBalaLabel") });
+                                            if (shadBalayaPlanet?.kalaBala.value)
+                                                tags.push({ key: "kalaBala", text: t("astrology.kalaBalaLabel") });
+                                            if (shadBalayaPlanet?.digBala.value)
+                                                tags.push({ key: "digBala", text: t("astrology.digBalaLabel") });
 
                                             const STRENGTH_COLORS: Record<string, string> = {
                                                 athiUchcha: "text-green-700 font-semibold",
