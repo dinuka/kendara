@@ -27,6 +27,7 @@ import {
     computeYogakaraka,
     findHouse,
     formatDegree,
+    getNakshatraLord,
     navamsaSign,
     normalizeMaranakaraka,
 } from "@/lib/astrology";
@@ -1686,8 +1687,9 @@ export default function HoroscopeDetailPage() {
                                                                 )}
                                                             </td>
                                                             <td className="py-1 pr-3 text-gray-600">
-                                                                {getNakshatraName(p.nakshatra) || p.nakshatra} ({p.pada}
-                                                                )
+                                                                {getNakshatraName(p.nakshatra) || p.nakshatra} (
+                                                                {getPlanetName(getNakshatraLord(p.nakshatra))}) (
+                                                                {p.pada})
                                                             </td>
                                                             <td className="py-1 pr-3 whitespace-nowrap">
                                                                 {bhavaSuchikaValue !== undefined
@@ -1848,7 +1850,10 @@ export default function HoroscopeDetailPage() {
                                                 tags.push({ key: "pushkara", text: t("astrology.pushkaraLabel") });
                                             const shadBalayaPlanet = resolvedShadbalaya?.[String(p.name)];
                                             if (shadBalayaPlanet?.cheshtaBala.value)
-                                                tags.push({ key: "cheshtaBala", text: t("astrology.cheshtaBalaLabel") });
+                                                tags.push({
+                                                    key: "cheshtaBala",
+                                                    text: t("astrology.cheshtaBalaLabel"),
+                                                });
                                             if (shadBalayaPlanet?.kalaBala.value)
                                                 tags.push({ key: "kalaBala", text: t("astrology.kalaBalaLabel") });
                                             if (shadBalayaPlanet?.digBala.value)
@@ -1903,7 +1908,8 @@ export default function HoroscopeDetailPage() {
                                                             {t("astrology.house")} {displayHouse}
                                                         </span>
                                                         <span className="text-gray-500 whitespace-nowrap">
-                                                            {getNakshatraName(p.nakshatra) || p.nakshatra} ({p.pada})
+                                                            {getNakshatraName(p.nakshatra) || p.nakshatra} (
+                                                            {getPlanetName(getNakshatraLord(p.nakshatra))}) ({p.pada})
                                                         </span>
                                                         {bhavaSuchikaValue !== undefined && (
                                                             <span className="text-gray-600 whitespace-nowrap">

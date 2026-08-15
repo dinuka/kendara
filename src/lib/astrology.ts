@@ -167,6 +167,16 @@ export function computePanchaPakshi(moonNakshatraId: number, thithi: number): Pa
     return table[groupIndex];
 }
 
+/** Vimshottari nakshatra lords, ordered 1..27 (Ketu, Venus, Sun, Moon, Mars, Rahu, Jupiter,
+ *  Saturn, Mercury — repeating every 9 nakshatras). Lord for nakshatra id `n` is this[index]. */
+const NAKSHATRA_LORDS = Array.from({ length: 27 }, (_, i) => [9, 6, 1, 2, 3, 8, 5, 7, 4][i % 9]);
+
+/** Nakathra Adipathi (නැකත් අධිපති): the Vimshottari lord planet (1-9) ruling a nakshatra id (1-27).
+ *  Falls back to 1 (Sun) for out-of-range ids so callers never render an undefined lord. */
+export function getNakshatraLord(nakshatraId: number): number {
+    return NAKSHATRA_LORDS[nakshatraId - 1] ?? 1;
+}
+
 export function formatDashaDuration(years: number, months: number, days: number): string {
     const parts: string[] = [];
     if (years > 0) parts.push(`${years} year${years > 1 ? "s" : ""}`);

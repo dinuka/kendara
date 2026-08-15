@@ -3,6 +3,7 @@
 import { planetColor, planetGlyph, signGlyph } from "@/components/ManualChart/visuals";
 import { useI18n } from "@/hooks/useI18n";
 
+import { getNakshatraLord } from "@/lib/astrology";
 import { PlanetaryStrength } from "@/lib/astrologyEnums";
 import type { ManualChartResult, ManualPlanetRow, NavamsaEnrichment } from "@/lib/manualChart";
 import { formatNavamsaDegreeRange } from "@/lib/manualChart";
@@ -146,6 +147,7 @@ function Row({ row, enrichment }: { row: ManualPlanetRow; enrichment?: NavamsaEn
                     </td>
                     <td className="py-1 pr-3 text-gray-600">
                         {t(`astrology.nakshatraNames.${enrichment.nakshatra}`)} (
+                        {t(`astrology.planetNames.${getNakshatraLord(enrichment.nakshatra)}`)}) (
                         {t("astrology.padaFormat", { pada: String(enrichment.pada) })})
                     </td>
                 </>
