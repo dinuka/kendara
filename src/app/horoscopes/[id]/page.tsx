@@ -2001,10 +2001,6 @@ export default function HoroscopeDetailPage() {
                                 </div>
                             </section>
 
-                            {horoscope.source === "manual" && calculatedDetails.derivedRanges && (
-                                <DerivedRangesSection ranges={calculatedDetails.derivedRanges} />
-                            )}
-
                             {resolvedShadbalaya && (
                                 <ShadBalaTable
                                     horoscopeId={horoscope._id}
@@ -2016,6 +2012,10 @@ export default function HoroscopeDetailPage() {
                                     getPlanetName={getPlanetName}
                                     getSignName={getSignName}
                                 />
+                            )}
+
+                            {horoscope.source === "manual" && calculatedDetails.derivedRanges && (
+                                <DerivedRangesSection ranges={calculatedDetails.derivedRanges} birthDate={horoscope.birthDate} />
                             )}
                         </div>
                     )}

@@ -6,11 +6,13 @@ import { type DerivedRanges, deriveBirthDateRange } from "@/lib/manualChart";
 
 interface DerivedRangesSectionProps {
     ranges: DerivedRanges;
+    birthDate?: Date | string | null;
 }
 
-export default function DerivedRangesSection({ ranges }: DerivedRangesSectionProps) {
+export default function DerivedRangesSection({ ranges, birthDate }: DerivedRangesSectionProps) {
     const { t, locale } = useI18n();
 
+    const hasBirthDate = !!birthDate;
     const birthDateRange = deriveBirthDateRange(ranges.birthMonthRange, ranges.birthDateCandidates);
 
     return (
@@ -33,31 +35,35 @@ export default function DerivedRangesSection({ ranges }: DerivedRangesSectionPro
                         )}
                     </dd>
                 </div>
-                <div className="flex gap-2">
-                    <dt className="text-gray-500 w-32 shrink-0">📅 {t("manualChart.birthDate")}</dt>
-                    <dd className="text-gray-700">
-                        {birthDateRange ? (
-                            `${formatDate(birthDateRange.start, t)} – ${formatDate(birthDateRange.end, t)}`
-                        ) : (
-                            <span className="text-gray-400 italic">{t("manualChart.placeRaviFirst")}</span>
-                        )}
-                    </dd>
-                </div>
-                <div className="flex gap-2">
-                    <dt className="text-gray-500 w-32 shrink-0">🎂 {t("manualChart.ages")}</dt>
-                    <dd className="text-gray-700">
-                        {ranges.ageRanges.length > 0 ? (
-                            ranges.ageRanges
-                                .map(
-                                    (a, i) =>
-                                        `${ordinal(i + 1, locale)} ≈${Math.round(a.valueYears)}y${a.warning ? " ⚠" : ""}`,
-                                )
-                                .join(" · ")
-                        ) : (
-                            <span className="text-gray-400">—</span>
-                        )}
-                    </dd>
-                </div>
+                {!hasBirthDate && (
+                    <>
+                        <div className="flex gap-2">
+                            <dt className="text-gray-500 w-32 shrink-0">📅 {t("manualChart.birthDate")}</dt>
+                            <dd className="text-gray-700">
+                                {birthDateRange ? (
+                                    `${formatDate(birthDateRange.start, t)} – ${formatDate(birthDateRange.end, t)}`
+                                ) : (
+                                    <span className="text-gray-400 italic">{t("manualChart.placeRaviFirst")}</span>
+                                )}
+                            </dd>
+                        </div>
+                        <div className="flex gap-2">
+                            <dt className="text-gray-500 w-32 shrink-0">🎂 {t("manualChart.ages")}</dt>
+                            <dd className="text-gray-700">
+                                {ranges.ageRanges.length > 0 ? (
+                                    ranges.ageRanges
+                                        .map(
+                                            (a, i) =>
+                                                `${ordinal(i + 1, locale)} ≈${Math.round(a.valueYears)}y${a.warning ? " ⚠" : ""}`,
+                                        )
+                                        .join(" · ")
+                                ) : (
+                                    <span className="text-gray-400">—</span>
+                                )}
+                            </dd>
+                        </div>
+                    </>
+                )}
             </dl>
             <p className="text-xs text-gray-400 mt-3">ℹ {t("manualChart.estimateDisclaimer")}</p>
         </section>

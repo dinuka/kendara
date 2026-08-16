@@ -6,7 +6,7 @@
 
 ## Quick fixes
 
-- Horoscope table should have search for searching horoscopes by name, birth year, location
-- Need to add more planet details to other column, As calculated in @shadhbalaya.md It should include චේෂ්ටා බල,  කාල බල, දිග් බල tags for planet if some planet has that value. Then student can saw all planet details without checking the Shad bala table.
-- Need to add Nakathra adipathi with Nakshathra column in the planet table.
-- If the planet has not any aspect, then its Aspect Bala can check. Should have a setting for this.
+- ~~For manual calculated horoscope, if user add the birth date, no need to guess Date and Age.~~ ✅
+- Need to update search query
+  - Need to search result by planet's Nakshathra adipathi. As example සඳ්‍ර කුජගේ නැකතක or සඳගේ නැකත් අධිපති කුජ should give horoscopes that has Moon in the Nakshathra of Kuja.
+  - If search ලග්න නැකත අස්ලිය should give horoscopes that has Ascendant's Nakshathra is අස්ලිය. Not Nakshathra is අස්ලිය.
