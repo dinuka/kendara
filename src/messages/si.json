@@ -389,6 +389,7 @@
         "other": "වෙනත්",
         "planet": "ග්‍රහයා",
         "house": "භාවය",
+        "ownership": "හිමිකම",
         "pada": "පාදය",
         "retrograde": "වක්‍ර",
         "combustion": "දාහ",
@@ -522,7 +523,53 @@
         "otherCharts": "වෙනත් සටහන්",
         "chartCaptions": {
             "birth": "ජන්ම කේන්ද්රය (D1)",
-            "navamsa-d9": "නවාංශකය (D9)"
+            "navamsa-d9": "නවාංශකය (D9)",
+            "suryaLagna": "සූර්ය ලග්න කේන්ද්රය",
+            "chandraLagna": "චන්ද්ර ලග්න කේන්ද්රය"
+        },
+        "wargaKendara": {
+            "title": "වර්ග කේනදර",
+            "tabs": {
+                "rashi": "රාශි (D1)",
+                "navamsa": "නවාංශක (D9)",
+                "suryaLagna": "සූර්ය ලග්න",
+                "chandraLagna": "චන්ද්ර ලග්න"
+            },
+            "pinnedAria": "රාශි (D1) — සැමවිටම පෙන්වයි",
+            "secondChartAria": "දෙවන සටහන තෝරන්න",
+            "indicationLabel": "ප්රධාන අර්ථය",
+            "columns": {
+                "sign": "රාශිය",
+                "strength": "බලය",
+                "house": "භාවය",
+                "conjunctions": "සංයෝග",
+                "aspects": "දෘෂ්ටි",
+                "other": "වෙනත්",
+                "nakshatraPada": "නැකත (පාදය)",
+                "bhavaSuchika": "භාව සුචික"
+            },
+            "noDetails": "—",
+            "comingSoon": "සටහන සහ වගු ඉක්මනින් එක් කෙරේ.",
+            "vargas": {
+                "d1": { "name": "රාශි", "indication": "සමස්ත ජීවිතය, ශරීරය, පොදු තත්ත්ව" },
+                "d2": { "name": "හෝරා", "indication": "ධනය, සම්පත්" },
+                "d3": { "name": "ද්රේක්කාණ", "indication": "සහෝදරයන්, ධෛර්යය" },
+                "d4": { "name": "චතුර්ථාංශ", "indication": "දේපළ, භාග්යය" },
+                "d7": { "name": "සප්තාංශ", "indication": "දරුවන්" },
+                "d9": { "name": "නවාංශක", "indication": "විවාහය, ධර්මය, ග්රහ බලය" },
+                "d10": { "name": "දශාංශ", "indication": "වෘත්තිය" },
+                "d12": { "name": "ද්වාදශාංශ", "indication": "දෙමාපියන්, පරම්පරාව" },
+                "d16": { "name": "ෂෝඩශාංශ", "indication": "වාහන, සුවපහසුව" },
+                "d20": { "name": "විංශාංශ", "indication": "අධ්යාත්මිකත්වය" },
+                "d24": { "name": "සිද්ධාංශ", "indication": "අධ්යාපනය" },
+                "d27": { "name": "භාංශ", "indication": "ශක්තිය/දුර්වලතා" },
+                "d30": { "name": "ත්රිංශාංශ", "indication": "අවාසනා, දුෂ්කරතා" },
+                "d40": { "name": "ඛවේදාංශ", "indication": "ශුභ/අශුභ ඵල" },
+                "d45": { "name": "අක්ෂවේදාංශ", "indication": "පොදු අර්ථ" },
+                "d60": { "name": "ෂෂ්ටිංශාංශ", "indication": "සූක්ෂ්ම කර්ම ඵල" },
+                "suryaLagna": { "name": "සූර්ය ලග්න", "indication": "සූර්ය ලග්න පාදක විශ්ලේෂණය" },
+                "chandraLagna": { "name": "චන්ද්ර ලග්න", "indication": "චන්ද්ර ලග්න පාදක විශ්ලේෂණය" }
+            }
         },
         "padaFormat": "{pada} වෙනි පාදය",
         "viewDetails": "විස්තර බලන්න",

@@ -107,6 +107,10 @@ const CalculatedDetailsSchema = new Schema<ICalculatedDetails>({
     /** Bhava Suchika (භාව සුචික) per planet, keyed by planet enum value ("1".."9"). See above. */
     bhavaSuchika: { type: Schema.Types.Mixed },
     shadbalaya: { type: Schema.Types.Mixed },
+    /** Warga Kendara (වර්ග කේනදර) — the D1/D9/Surya Lagna/Chandra Lagna per-chart tables. Mixed (not
+     *  a subdocument schema) because the shape is a derived snapshot. Legacy docs predate the field
+     *  and are lazily derived at render. */
+    wargaKendara: { type: Schema.Types.Mixed },
     yogas: [{ type: Schema.Types.Mixed }],
     doshas: { type: Schema.Types.Mixed },
     manualHousePlacements: { type: Schema.Types.Mixed },

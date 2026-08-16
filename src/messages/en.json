@@ -389,6 +389,7 @@
         "other": "Other",
         "planet": "Planet",
         "house": "House",
+        "ownership": "Ownership",
         "pada": "Pada",
         "retrograde": "R",
         "combustion": "C",
@@ -522,7 +523,53 @@
         "otherCharts": "Other Charts",
         "chartCaptions": {
             "birth": "Birth Chart (D1)",
-            "navamsa-d9": "Navamsa Chart (D9)"
+            "navamsa-d9": "Navamsa Chart (D9)",
+            "suryaLagna": "Surya Lagna Chart",
+            "chandraLagna": "Chandra Lagna Chart"
+        },
+        "wargaKendara": {
+            "title": "Warga Kendara",
+            "tabs": {
+                "rashi": "Rāśi (D1)",
+                "navamsa": "Navāṁśa (D9)",
+                "suryaLagna": "Surya Lagna",
+                "chandraLagna": "Chandra Lagna"
+            },
+            "pinnedAria": "Rāśi (D1) — always shown",
+            "secondChartAria": "Select second chart",
+            "indicationLabel": "Main indication",
+            "columns": {
+                "sign": "Sign",
+                "strength": "Str",
+                "house": "House",
+                "conjunctions": "Conjunctions",
+                "aspects": "Aspects",
+                "other": "Other",
+                "nakshatraPada": "Nakshatra (Pada)",
+                "bhavaSuchika": "Bhava Suchika"
+            },
+            "noDetails": "—",
+            "comingSoon": "Chart and tables coming soon.",
+            "vargas": {
+                "d1": { "name": "Rāśi", "indication": "Overall life, body, general circumstances" },
+                "d2": { "name": "Horā", "indication": "Wealth, resources" },
+                "d3": { "name": "Drekkāṇa", "indication": "Siblings, courage" },
+                "d4": { "name": "Chaturthāṁśa", "indication": "Property, fortune" },
+                "d7": { "name": "Saptāṁśa", "indication": "Children" },
+                "d9": { "name": "Navāṁśa", "indication": "Marriage, dharma, strength of planets" },
+                "d10": { "name": "Daśāṁśa", "indication": "Career/profession" },
+                "d12": { "name": "Dvādaśāṁśa", "indication": "Parents, ancestry" },
+                "d16": { "name": "Ṣoḍaśāṁśa", "indication": "Vehicles, comforts" },
+                "d20": { "name": "Viṁśāṁśa", "indication": "Spirituality" },
+                "d24": { "name": "Siddhāṁśa", "indication": "Education" },
+                "d27": { "name": "Bhāṁśa", "indication": "Strength/weakness" },
+                "d30": { "name": "Triṁśāṁśa", "indication": "Misfortunes, difficulties" },
+                "d40": { "name": "Khavedāṁśa", "indication": "Auspicious/inauspicious effects" },
+                "d45": { "name": "Akṣavedāṁśa", "indication": "General indications" },
+                "d60": { "name": "Ṣaṣṭiāṁśa", "indication": "Very subtle karmic indications" },
+                "suryaLagna": { "name": "Surya Lagna", "indication": "Sun-based analysis" },
+                "chandraLagna": { "name": "Chandra Lagna", "indication": "Moon-based analysis" }
+            }
         },
         "padaFormat": "{pada} Pada",
         "viewDetails": "View details",

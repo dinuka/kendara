@@ -34,6 +34,7 @@ import {
     mergeRashiIntoPlanetAspects,
 } from "@/lib/rashiAspects";
 import { computeShadBalaya, deriveDay } from "@/lib/shadBalaya";
+import { computeWargaKendara } from "@/lib/wargaKendara";
 
 const GRAHA_MAP: Record<string, number> = {
     Su: 1,
@@ -446,7 +447,9 @@ export function calculateHoroscope(
     const lagnaBhavaSuchika = computeLagnaBhavaSuchika(ascSign, computeNavamsaLagnaSign(ascSign, ascLong % 30));
     const bhavaSuchika = computeBhavaSuchika(planetDetails, ascSign);
 
-    return {
+    // Warga Kendara (වර්ග කේනදර) computed once at calculation time so new CalculatedDetails docs
+    // carry the four per-chart tables; legacy docs without the field are lazily derived at render.
+    const result: CalculationResult = {
         ascendant,
         houses,
         planets: planetDetails,
@@ -479,6 +482,11 @@ export function calculateHoroscope(
         pushkaraPlanets: computePushkara(planetDetails),
         yogas: [],
         doshas: { doshas: [] },
+    };
+
+    return {
+        ...result,
+        wargaKendara: computeWargaKendara(result, { source: "auto" }),
     };
 }
 

@@ -18,6 +18,7 @@ import {
 import { computePlanetAspects } from "@/lib/planetAspects";
 import { DEFAULT_RASHI_ASPECTS, mergeRashiIntoPlanetAspects } from "@/lib/rashiAspects";
 import { computeShadBalaya } from "@/lib/shadBalaya";
+import { computeWargaKendara } from "@/lib/wargaKendara";
 
 export type ManualChartPayload = { ok: true; value: ManualChartInput } | { ok: false; error: string };
 
@@ -203,7 +204,7 @@ export function synthesizeCalculation(result: ManualChartResult, birthDate?: Dat
     const thithi = computeThithiFromPlanets(planets);
     const houses = buildWholeSignHouses(lagna);
     const otherDetails = synthesizeOtherDetails(manualHousePlacements, planets);
-    return {
+    const calc: CalculationResult = {
         ascendant: synthesizeAscendant(lagna),
         houses,
         planets,
@@ -225,6 +226,11 @@ export function synthesizeCalculation(result: ManualChartResult, birthDate?: Dat
         }),
         yogas: [],
         doshas: { doshas: [] },
+    };
+
+    return {
+        ...calc,
+        wargaKendara: computeWargaKendara(calc, { source: "manual", manualHousePlacements }),
     };
 }
 
@@ -262,7 +268,8 @@ export function synthesizeNavamsaCalculation(
     const base = synthesizeCalculation(result, birthDate);
     // Bhava Suchika (භාව සුචික) is a Lagna-chart concept — it maps a point's Navamsa sign into the
     // BIRTH chart. It must never be persisted on the Navamsa (D9) chart result, whose ascendant and
-    // houses belong to the D9 wheel.
+    // houses belong to the D9 wheel. The Warga Kendara, by contrast, is KEPT: every entry (incl. the
+    // D9 one) describes the BIRTH chart, so the D9 chart record reuses the same birth-chart tables.
     delete base.lagnaBhavaSuchika;
     delete base.bhavaSuchika;
     return {

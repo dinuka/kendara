@@ -130,6 +130,7 @@
 | shadbalaya | JSON | Shad Bala (ෂඩ් බලය) — the six strengths per planet (Sthana, Cheshta, Kala, Dig, Drishti, Naisargika) with tooltip reasons and user overrides — see [ShadBalaya](#shadbalaya) structure |
 | lagnaBhavaSuchika | Integer (1-12) | Lagna's භාව සුචික (Bhava Suchika) — the house (1-12) that the Navamsa (D9) lagna sign (the sign of the 1st house of the Navamsa chart) occupies in the Lagna (D1) chart. Absent on manual horoscopes without entered Navamsa data |
 | bhavaSuchika | JSON | Per-planet භාව සුචික (Bhava Suchika) — `Record<string, number>` keyed by numeric Planet enum string (`"1"`…`"9"`), each value the house (1-12) that the planet's Navamsa sign occupies in the Lagna chart — see [Bhava Suchika (House Index)](#bhava-suchika-house-index) structure |
+| wargaKendara | JSON | Per-chart Warga Kendara (වර්ග කේනදර) data — for each available divisional chart (phase 1: `d1`, `d9`, `suryaLagna`, `chandraLagna`) the chart's houses/planets and per-chart planet details (D1-only flags for D1; Maraka/Maranakaraka/Dig Bala for every chart) — see [WargaKendara](#wargakendara) structure |
 | createdAt | DateTime | Record created |
 
 **Notes:**
@@ -139,6 +140,7 @@
 - Both aspect mechanisms (Planet Aspects houses + degrees, and Rashi Aspects when enabled) are computed for **both** `source: "auto"` and `source: "manual"` horoscopes; the manual chart feeds the same pure aspect functions via each planet's stored or fallback-derived degree (see [ManualHousePlacements](#manualhouseplacements))
 - The bulk recalculation job (triggered by an `AstrologySettings` update) overwrites the computed fields of every stored snapshot using the current system-wide settings. For `source: "auto"` horoscopes it re-runs `calculateHoroscope` from the stored birth details; for `source: "manual"` horoscopes it recomputes from the stored `manualHousePlacements` — which is the single source of truth for the manual chart and is **never overwritten** by the job (US-SAS-009). The same job recomputes `shadbalaya`, but a bala flagged `overridden: true` (a user's manual checkbox toggle) is **never overwritten** — the user's value is preserved exactly as `manualHousePlacements` is never overwritten (US-SB-013)
 - `lagnaBhavaSuchika` and `bhavaSuchika` are stored for **both** `source: "auto"` and `source: "manual"` horoscopes (manual only when Navamsa data has been entered — `navamsaLagna` / `navamsaHouses`). The AstrologySettings recalculation job recomputes them like any other derived value — there are **no user overrides** for Bhava Suchika (see `20260814-2055-bhava-suchika.md`). Legacy documents missing the fields fall back to a render-time derivation from the always-stored `ascendant`, `houses` and per-planet navamsa sign (or entered Navamsa data), mirroring the `computeAscendantSpecialFlags` fallback pattern
+- `wargaKendara` is stored for **both** `source: "auto"` and `source: "manual"` horoscopes (manual limited to the chart data derivable from the entered placements — see `20260815-1129-warga-kendara.md`). The AstrologySettings recalculation job recomputes it like any other derived value — there are **no user overrides**. Legacy documents missing the field fall back to a render-time pure-function derivation from the stored D1 data plus the derived D9 / Surya Lagna / Chandra Lagna charts
 
 **Relationships**:
 
@@ -158,6 +160,9 @@
 **Relationships**:
 
 - Chart *---1 Horoscope
+
+**Notes:**
+- The `type` enum currently covers the phase-1 Warga Kendara tabs — `birth` (D1 Rāśi), `navamsa-d9` (D9 Navāṁśa), `surya-lagna`, `chandra-lagna` — plus `house`, `drekkana-d3`, `dasamsa-d10`, `shodasha-vargas`. The remaining varga chart types (D2 Horā, D3 Drekkāṇa, D4 Chaturthāṁśa, D7 Saptāṁśa, D10 Daśāṁśa, D12 Dvādaśāṁśa, D16 Ṣoḍaśāṁśa, D20 Viṁśāṁśa, D24 Siddhāṁśa, D27 Bhāṁśa, D30 Triṁśāṁśa, D40 Khavedāṁśa, D45 Akṣavedāṁśa, D60 Ṣaṣṭiāṁśa) are added when those charts become calculable (later Warga Kendara phases — see `20260815-1129-warga-kendara.md`)
 
 ### Metadata
 
@@ -983,6 +988,129 @@ Computed (and persisted) probable birth ranges derived from Ravi's and Shani's p
 - The Sinhala names are authoritative (from `docs/bhava-suchika.md`); the English column is a proposed transliteration pending domain confirmation (see Open Questions in `20260814-2055-bhava-suchika.md`).
 - Present on both chart sources when the source data exists; **absent on manual horoscopes without entered Navamsa data** (no `navamsaLagna` / `navamsaHouses` → the Lagna value and the per-planet values are omitted, mirroring the existing navamsa enrichment behaviour of the planets table).
 - Legacy documents missing the fields fall back to a render-time pure-function derivation from the always-stored `ascendant`, `houses` and per-planet navamsa sign (auto) or entered Navamsa data (manual) — the same fallback pattern as the ascendant Wargoththama/Gandamula flags.
+
+<a name="wargakendara"></a>
+### WargaKendara
+
+වර්ග කේනදර (Warga Kendara) — per-chart data for the divisional (varga) charts shown in the horoscope detail page's chart section. Stored on `CalculatedDetails` as the `wargaKendara` field, keyed by warga chart key. Phase 1 covers `d1` (Rāśi), `d9` (Navāṁśa), `suryaLagna` (Surya Lagna) and `chandraLagna` (Chandra Lagna); later phases add `d2`…`d60` as per-chart calculation guidance is provided (see `20260815-1129-warga-kendara.md`).
+
+Each chart entry holds the chart's whole-sign houses and per-planet rows (sign/strength/house per that chart, nakshatra+pada for D1 only) plus the per-chart planet-detail flags. **D1-only flags** (Wargoththama, Pushkara, Gandantha, Gandamula, 64th Navamsa Lord, 22nd Drekkana Lord, Cheshta Bala, Ashtamansha, Kala Bala, Atmakaraka, Combust, Badhaka) exist **only in the `d1` entry**; **Maraka, Maranakaraka and Dig Bala** are present in **every** chart entry.
+
+```json
+{
+  "d1": {
+    "lagnaSign": 1,
+    "houses": [
+      { "houseNumber": 1, "sign": 1, "planets": [7], "aspects": [5] },
+      { "houseNumber": 2, "sign": 2, "planets": [], "aspects": [] }
+    ],
+    "planets": [
+      {
+        "name": 7,
+        "sign": 10,
+        "strength": 0.5,
+        "house": 1,
+        "nakshatra": 19,
+        "pada": 3,
+        "conjunctions": [6],
+        "aspects": [{ "planetName": 5, "aspectType": 120 }]
+      }
+    ],
+    "wargoththamaPlanets": [5],
+    "pushkaraPlanets": [],
+    "gandanthaPlanets": [],
+    "gandamulaPlanets": [],
+    "lord22ndDrekkana": 4,
+    "lord64thNavamsa": 6,
+    "cheshtaBalaPlanets": [1, 2, 5],
+    "ashtamanshaPlanets": [],
+    "kalaBalaPlanets": [1, 5],
+    "atmakaraka": 5,
+    "combustPlanets": [7],
+    "badhakaPlanets": [7],
+    "marakaPlanets": [7, 6, 3],
+    "maranakaraka": [2],
+    "digBalaPlanets": [5]
+  },
+  "d9": {
+    "lagnaSign": 6,
+    "houses": [
+      { "houseNumber": 1, "sign": 6, "planets": [1], "aspects": [] },
+      { "houseNumber": 2, "sign": 7, "planets": [], "aspects": [] }
+    ],
+    "planets": [
+      {
+        "name": 7,
+        "sign": 4,
+        "strength": -0.1,
+        "house": 11,
+        "conjunctions": [],
+        "aspects": []
+      }
+    ],
+    "marakaPlanets": [],
+    "maranakaraka": [],
+    "digBalaPlanets": [1]
+  },
+  "suryaLagna": {
+    "lagnaSign": 1,
+    "houses": [],
+    "planets": [],
+    "marakaPlanets": [],
+    "maranakaraka": [],
+    "digBalaPlanets": []
+  },
+  "chandraLagna": {
+    "lagnaSign": 4,
+    "houses": [],
+    "planets": [],
+    "marakaPlanets": [],
+    "maranakaraka": [],
+    "digBalaPlanets": []
+  }
+}
+```
+
+**Field meanings (per chart entry):**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| lagnaSign | Integer | Numeric `ZodiacSign` of the chart's lagna (whole-sign) |
+| houses | JSON | The chart's 12 whole-sign houses: `houseNumber` (1-12), `sign` (numeric ZodiacSign), `planets` (numeric Planet enums placed in the house), `aspects` (numeric Planet enums aspecting the house — display without degree difference) |
+| planets | JSON | The chart's per-planet rows: `name` (numeric Planet), `sign` (ZodiacSign per this chart), `strength` (numeric `PlanetaryStrength` per this chart), `house` (1-12 in this chart), `nakshatra`/`pada` (D1 entry only), `conjunctions` (numeric Planet enums), `aspects` (`{ planetName, aspectType }` numeric enums — no degree fields, the cells render without degree differences) |
+| wargoththamaPlanets … badhakaPlanets | JSON | D1-only planet-detail flags, keyed as on the top-level `CalculatedDetails` (numeric Planet enum arrays / single planet / boolean) — present only in the `d1` entry |
+| marakaPlanets / maranakaraka / digBalaPlanets | JSON | Per-chart planet details — present in **every** chart entry, computed relative to that chart's own lagna/houses (per-chart rule pending domain confirmation for Maraka/Maranakaraka — see Open Questions in `20260815-1129-warga-kendara.md`) |
+
+**Notes:**
+- **Numeric-enum conventions** apply throughout: planets = numeric `Planet` (1-9), signs = numeric `ZodiacSign`, strength = numeric `PlanetaryStrength`, houses = 1-12. Display names resolve per locale via i18n — no localized text is stored.
+- **Only the `d1` entry carries `nakshatra`/`pada` and the D1-only flag arrays** — the feature doc is explicit that Nakshatra (Pada) and Bhava Suchika columns exist only on the D1 table, and the twelve D1-only details belong only to the D1 chart.
+- **Bhava Suchika** is not duplicated here — the D1 table's Bhava Suchika column reads the existing top-level `lagnaBhavaSuchika`/`bhavaSuchika` fields.
+- **Manual horoscopes**: `d1` derives from the entered `manualHousePlacements`; `d9` requires entered Navamsa data (else the tab shows the existing "no chart data" placeholder); `suryaLagna`/`chandraLagna` derive by rotating the entered chart to the Sun/Moon lagna. `manualHousePlacements` remains the single source of truth — never overwritten.
+- **Legacy documents** missing `wargaKendara` fall back to a render-time pure-function derivation from the always-stored D1 data plus the derived D9 / Surya Lagna / Chandra Lagna charts.
+- **Recalculation**: the AstrologySettings full recalculation job recomputes `wargaKendara` like any other derived value; there are no user overrides.
+
+### Varga Chart Catalog (static reference data)
+
+The 16-varga catalog that supplies each displayed chart's **main-indication tags** (phase 1 renders tags for D1, D9, Surya Lagna and Chandra Lagna only; D2–D60 are not shown anywhere yet — product decision 2026-08-15). This is **static, system-wide display data** — a fixed catalog resolved via i18n message keys (chart name + main indication per locale); it is **not stored per horoscope** and is not user-editable. English names and indications are authoritative (from `docs/warga-kendara.md`); Sinhala translations are pending domain confirmation (see Open Questions in `20260815-1129-warga-kendara.md`).
+
+| Key | D# | Chart name (EN) | Main indication (EN) | Chart name (SI) | Main indication (SI) |
+|-----|----|------------------|----------------------|------------------|----------------------|
+| d1 | 1 | Rāśi | Overall life, body, general circumstances | (pending) | (pending) |
+| d2 | 2 | Horā | Wealth, resources | (pending) | (pending) |
+| d3 | 3 | Drekkāṇa | Siblings, courage | (pending) | (pending) |
+| d4 | 4 | Chaturthāṁśa | Property, fortune | (pending) | (pending) |
+| d7 | 7 | Saptāṁśa | Children | (pending) | (pending) |
+| d9 | 9 | Navāṁśa | Marriage, dharma, strength of planets | (pending) | (pending) |
+| d10 | 10 | Daśāṁśa | Career/profession | (pending) | (pending) |
+| d12 | 12 | Dvādaśāṁśa | Parents, ancestry | (pending) | (pending) |
+| d16 | 16 | Ṣoḍaśāṁśa | Vehicles, comforts | (pending) | (pending) |
+| d20 | 20 | Viṁśāṁśa | Spirituality | (pending) | (pending) |
+| d24 | 24 | Siddhāṁśa | Education | (pending) | (pending) |
+| d27 | 27 | Bhāṁśa | Strength/weakness | (pending) | (pending) |
+| d30 | 30 | Triṁśāṁśa | Misfortunes, difficulties | (pending) | (pending) |
+| d40 | 40 | Khavedāṁśa | Auspicious/inauspicious effects | (pending) | (pending) |
+| d45 | 45 | Akṣavedāṁśa | General indications | (pending) | (pending) |
+| d60 | 60 | Ṣaṣṭiāṁśa | Very subtle karmic indications | (pending) | (pending) |
 
 ### Doshas
 

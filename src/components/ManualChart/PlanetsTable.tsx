@@ -6,7 +6,7 @@ import { useI18n } from "@/hooks/useI18n";
 import { getNakshatraLord } from "@/lib/astrology";
 import { PlanetaryStrength } from "@/lib/astrologyEnums";
 import type { ManualChartResult, ManualPlanetRow, NavamsaEnrichment } from "@/lib/manualChart";
-import { formatNavamsaDegreeRange } from "@/lib/manualChart";
+import { formatNavamsaDegreeRange, ownedHousesOf } from "@/lib/manualChart";
 
 interface PlanetsTableProps {
     result: ManualChartResult;
@@ -71,6 +71,9 @@ export default function PlanetsTable({ result }: PlanetsTableProps) {
                                 {t("manualChart.colHouse")}
                             </th>
                             <th scope="col" className="py-1 pr-3">
+                                {t("astrology.ownership")}
+                            </th>
+                            <th scope="col" className="py-1 pr-3">
                                 {t("manualChart.colConjunctions")}
                             </th>
                             <th scope="col" className="py-1 pr-3">
@@ -99,7 +102,12 @@ export default function PlanetsTable({ result }: PlanetsTableProps) {
                     </thead>
                     <tbody>
                         {result.planetsTable.map((row) => (
-                            <Row key={row.planet} row={row} enrichment={enrichmentByPlanet.get(row.planet)} />
+                            <Row
+                                key={row.planet}
+                                row={row}
+                                houses={result.manualHousePlacements.houses}
+                                enrichment={enrichmentByPlanet.get(row.planet)}
+                            />
                         ))}
                     </tbody>
                 </table>
@@ -108,7 +116,15 @@ export default function PlanetsTable({ result }: PlanetsTableProps) {
     );
 }
 
-function Row({ row, enrichment }: { row: ManualPlanetRow; enrichment?: NavamsaEnrichment }) {
+function Row({
+    row,
+    houses,
+    enrichment,
+}: {
+    row: ManualPlanetRow;
+    houses: { houseNumber: number; sign: number }[];
+    enrichment?: NavamsaEnrichment;
+}) {
     const { t } = useI18n();
     return (
         <tr className="border-b border-gray-50">
@@ -123,6 +139,7 @@ function Row({ row, enrichment }: { row: ManualPlanetRow; enrichment?: NavamsaEn
             </td>
             <td className="py-1 pr-3">{t(`astrology.${STRENGTH_KEYS[row.strength]}`)}</td>
             <td className="py-1 pr-3 text-gray-600">{row.house}</td>
+            <td className="py-1 pr-3 text-gray-600">{ownedHousesOf(row.planet, houses).join(", ") || "—"}</td>
             <td className="py-1 pr-3 text-gray-600">
                 {row.conjunctions.length > 0
                     ? row.conjunctions.map((p) => `${planetGlyph(p)} ${t(`astrology.planetNames.${p}`)}`).join(", ")

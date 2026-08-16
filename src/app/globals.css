@@ -5,3 +5,14 @@
         border-color: var(--color-gray-200);
     }
 }
+
+/* 150ms opacity crossfade for the second (selectable) Warga Kendara figure — used via the
+   `animate-[wargaFadeIn_150ms_ease-out]` utility on the figure wrapper (remount-keyed). */
+@keyframes wargaFadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}

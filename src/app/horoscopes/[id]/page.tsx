@@ -1,6 +1,5 @@
 "use client";
 
-import { BirthChart } from "@/components/BirthChart";
 import CalculatedChartBadge from "@/components/CalculatedChartBadge";
 import ConfirmDeleteModal from "@/components/ConfirmDeleteModal";
 import DashaSection from "@/components/Dasha/DashaSection";
@@ -12,10 +11,13 @@ import PrivacyToggle from "@/components/PrivacyToggle";
 import AspectChip from "@/components/aspects/AspectChip";
 import BhavaSuchikaTag from "@/components/bhavaSuchika/BhavaSuchikaTag";
 import ShadBalaTable from "@/components/shadbalaya/ShadBalaTable";
+import WargaChartSection from "@/components/wargaKendara/WargaChartSection";
+import WargaIndicationTags from "@/components/wargaKendara/WargaIndicationTags";
 import { useI18n } from "@/hooks/useI18n";
 import { useSession } from "next-auth/react";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import type { KeyboardEvent as ReactKeyboardEvent } from "react";
 
 import ValidationBadges from "@/components/ManualChart/ValidationBadges";
 import type { Ascendant, Aspect, CalculationResult, Dashas, House, Planet } from "@/lib/astrology";
@@ -33,9 +35,9 @@ import {
 } from "@/lib/astrology";
 import { PlanetaryStrength } from "@/lib/astrologyEnums";
 import { resolveLagnaBhavaSuchika, resolvePlanetBhavaSuchika } from "@/lib/bhavaSuchika";
-import { getChartData, toBirthChartData } from "@/lib/chartDataTransform";
+import { getChartData } from "@/lib/chartDataTransform";
 import type { ChartInput } from "@/lib/chartDataTransform";
-import { ALL_CHART_TYPES, ChartType } from "@/lib/chartTypes";
+import { ChartType } from "@/lib/chartTypes";
 import { formatDate } from "@/lib/date";
 import { readHoroscopeSort } from "@/lib/horoscopeSort";
 import {
@@ -47,12 +49,16 @@ import {
     deriveBirthTimeRange,
     formatNavamsaDegreeRange,
     navamsaIndexForSign,
+    ownedHousesOf,
     synthesizeOtherDetails,
     synthesizeValidation,
 } from "@/lib/manualChart";
 import type { DerivedRanges, ManualHouse, ManualHousePlacements } from "@/lib/manualChart";
 import { computeManualPlanetAspects } from "@/lib/planetAspects";
 import { type ShadBalaya, computeShadBalaya, deriveDay, mergeShadBalaya } from "@/lib/shadBalaya";
+import type { WargaVargaKey } from "@/lib/wargaKendara";
+import { VARGA_CATALOG } from "@/lib/wargaKendara";
+import { resolveWargaKendara } from "@/lib/wargaKendara";
 
 const STRENGTH_TRANSLATION_KEYS: Record<PlanetaryStrength, string> = {
     [PlanetaryStrength.ATHI_UCHCHA]: "athiUchcha",
@@ -64,6 +70,41 @@ const STRENGTH_TRANSLATION_KEYS: Record<PlanetaryStrength, string> = {
     [PlanetaryStrength.MITRA]: "friendly",
     [PlanetaryStrength.SHATRU]: "enemy",
     [PlanetaryStrength.SAMA]: "neutral",
+};
+
+/** A strip key: a catalog varga (d1..d60) or the two lagna rotations. Only `d9`, `suryaLagna` and
+ *  `chandraLagna` have computed figures/tables; the remaining catalog keys show name + tags only. */
+type WargaStripKey = WargaVargaKey | "suryaLagna" | "chandraLagna";
+
+/** Second-chart strip order of the Warga Kendara (D1 is the pinned first slot, never a tab). The
+ *  computed charts (D9, Surya/Chandra Lagna) come first; the remaining catalog keys follow in
+ *  canonical order. */
+const SECOND_CHART_KEYS: WargaStripKey[] = [
+    "d9",
+    "suryaLagna",
+    "chandraLagna",
+    ...VARGA_CATALOG.filter((v) => v.key !== "d1" && v.key !== "d9").map((v) => v.key as WargaStripKey),
+];
+
+/** Whether a strip key has a computed figure + tables (D9, Surya/Chandra Lagna). The other catalog
+ *  keys (D2..D60) currently render name + indication tags only. */
+const isComputedChart = (key: WargaStripKey): key is "d9" | "suryaLagna" | "chandraLagna" =>
+    key === "d9" || key === "suryaLagna" || key === "chandraLagna";
+
+/** Chart-caption message key per computed Warga Kendara figure slot. */
+const SECOND_CHART_CAPTION_KEYS: Record<"d1" | "d9" | "suryaLagna" | "chandraLagna", string> = {
+    d1: "astrology.chartCaptions.birth",
+    d9: "astrology.chartCaptions.navamsa-d9",
+    suryaLagna: "astrology.chartCaptions.suryaLagna",
+    chandraLagna: "astrology.chartCaptions.chandraLagna",
+};
+
+/** Tab-label message key per Warga Kendara chart (message keys use rashi/navamsa, not d1/d9). */
+const SECOND_CHART_TAB_KEYS: Record<"d1" | "d9" | "suryaLagna" | "chandraLagna", string> = {
+    d1: "astrology.wargaKendara.tabs.rashi",
+    d9: "astrology.wargaKendara.tabs.navamsa",
+    suryaLagna: "astrology.wargaKendara.tabs.suryaLagna",
+    chandraLagna: "astrology.wargaKendara.tabs.chandraLagna",
 };
 
 interface HoroscopeData {
@@ -190,6 +231,8 @@ export default function HoroscopeDetailPage() {
     } | null>(null);
     const [activeTab, setActiveTab] = useState("charts");
     const [selectedChart, setSelectedChart] = useState<ChartType>(ChartType.HOUSE);
+    const [secondChart, setSecondChart] = useState<WargaStripKey>("d9");
+    const secondChartButtonsRef = useRef<(HTMLButtonElement | null)[]>([]);
     const [loading, setLoading] = useState(true);
     const [orbMap, setOrbMap] = useState<Record<number, number>>({
         1: 15,
@@ -219,6 +262,12 @@ export default function HoroscopeDetailPage() {
     const [toast, setToast] = useState<{ message: string; type: "success" | "info" | "error" } | null>(null);
 
     const debounceRef = useRef<NodeJS.Timeout | null>(null);
+
+    // The second chart is a client-side preference only — navigating to another horoscope resets it
+    // to the D9 (Navamsa) default so each chart pair starts in the canonical state.
+    useEffect(() => {
+        setSecondChart("d9");
+    }, [params.id]);
 
     useEffect(() => {
         if (data) {
@@ -389,6 +438,20 @@ export default function HoroscopeDetailPage() {
     // data (a manual chart without entered Navamsa placements shows no tag).
     const resolvedLagnaBhavaSuchika = resolveLagnaBhavaSuchika(calculatedDetails);
 
+    // Warga Kendara tables: the stored value wins; legacy documents that predate the field are
+    // re-derived from the stored chart data at render time (incl. the D1-only flags).
+    const resolvedWargaKendara = resolveWargaKendara(calculatedDetails);
+
+    // Per-planet Bhava Suchika values feed the D1 Planets table column. They are the existing
+    // top-level calculatedDetails field — never part of the warga entry itself.
+    const resolvedPlanetBhavaSuchika: Record<number, number> = {};
+    if (calculatedDetails) {
+        [1, 2, 3, 4, 5, 6, 7, 8, 9].forEach((name) => {
+            const value = resolvePlanetBhavaSuchika(calculatedDetails, name);
+            if (value !== undefined) resolvedPlanetBhavaSuchika[name] = value;
+        });
+    }
+
     const handleDelete = async () => {
         setDeleting(true);
         setDeleteError(null);
@@ -405,6 +468,21 @@ export default function HoroscopeDetailPage() {
     const goToHoroscope = (id: string) => {
         router.push(`/horoscopes/${id}`);
         window.scrollTo({ top: 0, behavior: "auto" });
+    };
+
+    /** Roving-tabindex strip keyboard: Left/Right arrows move focus + selection (wrapping), Home/End
+     *  jump to the first/last second-chart button. Space/Enter activate natively via onClick. */
+    const handleSecondChartKeyDown = (event: ReactKeyboardEvent<HTMLButtonElement>, index: number) => {
+        const last = SECOND_CHART_KEYS.length - 1;
+        let nextIndex = -1;
+        if (event.key === "ArrowRight") nextIndex = index === last ? 0 : index + 1;
+        else if (event.key === "ArrowLeft") nextIndex = index === 0 ? last : index - 1;
+        else if (event.key === "Home") nextIndex = 0;
+        else if (event.key === "End") nextIndex = last;
+        if (nextIndex === -1) return;
+        event.preventDefault();
+        setSecondChart(SECOND_CHART_KEYS[nextIndex]);
+        secondChartButtonsRef.current[nextIndex]?.focus();
     };
 
     const renderNav = () => {
@@ -734,6 +812,19 @@ export default function HoroscopeDetailPage() {
         return getChartData(result as CalculationResult, type);
     };
 
+    /** Second Warga Kendara figure data for the currently selected chart: the Navamsa (D9) chart
+     *  for `d9`, and the stored Surya/Chandra Lagna chart (auto) or the on-the-fly Sun/Moon rotation
+     *  (manual) for the other two. Null when the chart cannot be derived (e.g. a manual horoscope
+     *  without entered Navamsa data). */
+    const getSecondChartData = (): ChartInput | null => {
+        if (!calculatedDetails) return null;
+        if (secondChart === "d9") return getNavamsaChartData();
+        const type = secondChart === "suryaLagna" ? ChartType.SURYA_LAGNA : ChartType.CHANDRA_LAGNA;
+        const stored = data.charts.find((c) => c.type === type);
+        if (stored?.data) return stored.data;
+        return getSunMoonChartData(type);
+    };
+
     const getStrength = (s: number | string | PlanetaryStrength | undefined | null): PlanetaryStrength => {
         if (typeof s === "number") {
             const NUM_TO_STRENGTH: Record<number, PlanetaryStrength> = {
@@ -882,7 +973,9 @@ export default function HoroscopeDetailPage() {
         { id: "metadata", label: t("horoscope.metadata") },
     ];
 
-    const chartTypes = ALL_CHART_TYPES.filter((type) => type !== ChartType.BIRTH && type !== ChartType.NAVAMSA_D9);
+    // The Warga Kendara pair now covers Birth/Navamsa/Surya Lagna/Chandra Lagna, so the Other Charts
+    // section keeps just the House (bhava) chart.
+    const chartTypes = [ChartType.HOUSE];
 
     return (
         <div>
@@ -1083,13 +1176,58 @@ export default function HoroscopeDetailPage() {
 
                     {activeTab === "charts" && (
                         <div className="space-y-6">
-                            <section aria-labelledby="chart-pair-title">
-                                <h3
-                                    id="chart-pair-title"
-                                    className="font-semibold text-sm mb-3 text-indigo-700 uppercase tracking-wide"
+                            <section>
+                                <div
+                                    role="group"
+                                    aria-label={t("astrology.wargaKendara.secondChartAria")}
+                                    className="flex flex-wrap gap-2 mb-4"
                                 >
-                                    {t("astrology.chartPairTitle")}
-                                </h3>
+                                    <span
+                                        aria-label={t("astrology.wargaKendara.pinnedAria")}
+                                        className="inline-flex items-center gap-1 text-xs px-3 py-1.5 border rounded bg-indigo-600 text-white border-indigo-600 whitespace-nowrap"
+                                    >
+                                        <svg
+                                            width="12"
+                                            height="12"
+                                            viewBox="0 0 24 24"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            strokeWidth="2"
+                                            strokeLinecap="round"
+                                            aria-hidden="true"
+                                            className="shrink-0"
+                                        >
+                                            <rect x="4" y="11" width="16" height="10" rx="2" />
+                                            <path d="M8 11V7a4 4 0 0 1 8 0v4" />
+                                        </svg>
+                                        {t("astrology.wargaKendara.tabs.rashi")}
+                                    </span>
+                                    {SECOND_CHART_KEYS.map((key, index) => {
+                                        const selected = secondChart === key;
+                                        const label = isComputedChart(key)
+                                            ? t(SECOND_CHART_TAB_KEYS[key as "d9" | "suryaLagna" | "chandraLagna"])
+                                            : `${t(`astrology.wargaKendara.vargas.${key}.name`)} (D${VARGA_CATALOG.find((v) => v.key === key)?.d})`;
+                                        return (
+                                            <button
+                                                key={key}
+                                                ref={(el) => {
+                                                    secondChartButtonsRef.current[index] = el;
+                                                }}
+                                                onClick={() => setSecondChart(key)}
+                                                onKeyDown={(event) => handleSecondChartKeyDown(event, index)}
+                                                aria-pressed={selected}
+                                                className={`text-xs px-3 py-1.5 border rounded whitespace-nowrap transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
+                                                    selected
+                                                        ? "bg-indigo-600 text-white border-indigo-600"
+                                                        : "hover:bg-gray-50"
+                                                }`}
+                                            >
+                                                {label}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+
                                 {(() => {
                                     if (!calculatedDetails) {
                                         return (
@@ -1098,41 +1236,45 @@ export default function HoroscopeDetailPage() {
                                             </div>
                                         );
                                     }
-                                    const navamsaData = getNavamsaChartData();
                                     return (
-                                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                                            <figure className="bg-white rounded-lg border p-4 overflow-auto">
-                                                <figcaption className="text-sm font-semibold text-gray-700 mb-2">
-                                                    {t("astrology.chartCaptions.birth")}
-                                                </figcaption>
-                                                <div className="flex justify-center">
-                                                    <BirthChart
-                                                        {...toBirthChartData({
-                                                            planets: calculatedDetails.planets,
-                                                            houses: calculatedDetails.houses,
-                                                            ascendant: calculatedDetails.ascendant,
-                                                        })}
-                                                        ascendantDegreeLabel={getBirthChartAscendantDegreeLabel()}
-                                                    />
-                                                </div>
-                                            </figure>
-                                            <figure className="bg-white rounded-lg border p-4 overflow-auto">
-                                                <figcaption className="text-sm font-semibold text-gray-700 mb-2">
-                                                    {t("astrology.chartCaptions.navamsa-d9")}
-                                                </figcaption>
-                                                {!navamsaData ? (
-                                                    <div className="bg-white rounded-lg border p-6 text-center text-gray-400 min-h-[300px] flex items-center justify-center">
-                                                        <p className="text-sm">{t("astrology.noChartData")}</p>
+                                        <div className="grid grid-cols-1 lg:grid-cols-[3fr_2fr] gap-4">
+                                            <WargaChartSection
+                                                chartKey="d1"
+                                                caption={t("astrology.chartCaptions.birth")}
+                                                chartData={{
+                                                    planets: calculatedDetails.planets,
+                                                    houses: calculatedDetails.houses,
+                                                    ascendant: calculatedDetails.ascendant,
+                                                }}
+                                                entry={resolvedWargaKendara?.d1 ?? null}
+                                                noDataMessage={t("astrology.noChartData")}
+                                                ascendantDegreeLabel={getBirthChartAscendantDegreeLabel()}
+                                                bhavaSuchika={resolvedPlanetBhavaSuchika}
+                                            />
+                                            {isComputedChart(secondChart) ? (
+                                                <WargaChartSection
+                                                    key={secondChart}
+                                                    chartKey={secondChart}
+                                                    caption={t(SECOND_CHART_CAPTION_KEYS[secondChart])}
+                                                    chartData={getSecondChartData()}
+                                                    entry={resolvedWargaKendara?.[secondChart] ?? null}
+                                                    noDataMessage={t("astrology.noChartData")}
+                                                    showAscendantDegree={secondChart !== "d9"}
+                                                />
+                                            ) : (
+                                                <figure className="bg-white rounded-lg border p-4">
+                                                    <figcaption className="text-sm font-semibold text-gray-700">
+                                                        {t(`astrology.wargaKendara.vargas.${secondChart}.name`)} (
+                                                        D{VARGA_CATALOG.find((v) => v.key === secondChart)?.d})
+                                                    </figcaption>
+                                                    <WargaIndicationTags chartKey={secondChart} />
+                                                    <div className="mt-4 bg-white rounded-lg border p-6 min-h-[150px] flex items-center justify-center">
+                                                        <p className="text-sm text-gray-400">
+                                                            {t("astrology.wargaKendara.comingSoon")}
+                                                        </p>
                                                     </div>
-                                                ) : (
-                                                    <div className="flex justify-center">
-                                                        <BirthChart
-                                                            {...toBirthChartData(navamsaData)}
-                                                            showAscendantDegree={false}
-                                                        />
-                                                    </div>
-                                                )}
-                                            </figure>
+                                                </figure>
+                                            )}
                                         </div>
                                     );
                                 })()}
@@ -1185,33 +1327,6 @@ export default function HoroscopeDetailPage() {
                                                     ascNavamsaNum={getAscendantNavamsaNum()}
                                                     ascAbsDeg={getAscendantAbsDeg()}
                                                 />
-                                            </div>
-                                        );
-                                    }
-
-                                    if (
-                                        selectedChart === ChartType.CHANDRA_LAGNA ||
-                                        selectedChart === ChartType.SURYA_LAGNA
-                                    ) {
-                                        const chartData = data.charts.find((c) => c.type === selectedChart);
-                                        if (chartData?.data) {
-                                            return (
-                                                <div className="flex justify-center bg-white rounded-lg border p-4 overflow-auto">
-                                                    <BirthChart {...toBirthChartData(chartData.data)} />
-                                                </div>
-                                            );
-                                        }
-                                        const manualChartData = getSunMoonChartData(selectedChart);
-                                        if (!manualChartData) {
-                                            return (
-                                                <div className="bg-white rounded-lg border p-6 text-center text-gray-400 min-h-[300px] flex items-center justify-center">
-                                                    <p className="text-sm">{t("astrology.noChartData")}</p>
-                                                </div>
-                                            );
-                                        }
-                                        return (
-                                            <div className="flex justify-center bg-white rounded-lg border p-4 overflow-auto">
-                                                <BirthChart {...toBirthChartData(manualChartData)} />
                                             </div>
                                         );
                                     }
@@ -1491,6 +1606,7 @@ export default function HoroscopeDetailPage() {
                                                 </th>
                                                 <th className="py-1 pr-3">{t("astrology.strength")}</th>
                                                 <th className="py-1 pr-3">{t("astrology.house")}</th>
+                                                <th className="py-1 pr-3">{t("astrology.ownership")}</th>
                                                 <th className="py-1 pr-3">{t("astrology.navamsa")}</th>
                                                 <th className="py-1 pr-3">
                                                     {t("astrology.navamsa")} {t("astrology.strength")}
@@ -1680,6 +1796,10 @@ export default function HoroscopeDetailPage() {
                                                                 )}
                                                             </td>
                                                             <td className="py-1 pr-3">{displayHouse}</td>
+                                                            <td className="py-1 pr-3">
+                                                                {ownedHousesOf(p.name, calculatedDetails.houses).join(", ") ||
+                                                                    "—"}
+                                                            </td>
                                                             <td className="py-1 pr-3">{getSignName(p.navamsaSign)}</td>
                                                             <td className="py-1 pr-3">
                                                                 {t(

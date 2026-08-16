@@ -1,5 +1,6 @@
 import { PanchaPakshi, PlanetaryStrength } from "./astrologyEnums";
 import type { ShadBalaya } from "./shadBalaya";
+import type { WargaKendara } from "./wargaKendara";
 
 export const PLANET_SYMBOLS: Record<number, string> = {
     1: "\u2609",
@@ -319,8 +320,9 @@ const MARANAKARAKA_RULE: Record<number, number> = {
  *  Guru in the 3rd — is itself the Maranakaraka (never Chandra by default). Uses the cusp-based
  *  calculated house (findHouse) when `houses` are provided — the same house shown in the chart —
  *  falling back to the whole-sign `planet.house` otherwise (manual charts, where the entered house
- *  is the source of truth). Checks the lagna (rasi) chart only — never D9. Returns an empty array
- *  when no rule holds. */
+ *  is the source of truth). Also used per-chart by the Warga Kendara tables (src/lib/wargaKendara.ts),
+ *  which pass the chart's own houses (e.g. the whole-sign Navamsa wheel for the D9 entry) so the
+ *  check applies within that chart. Returns an empty array when no rule holds. */
 export function computeMaranakaraka(
     planets: Array<Pick<Planet, "name" | "house" | "absoluteDegree">>,
     houses?: House[],
@@ -501,6 +503,10 @@ export interface CalculationResult {
     /** Bhava Suchika (භාව සුචික) per planet, keyed by planet enum value ("1".."9"). Optional because
      *  legacy documents predate the field and are lazily recomputed at render. */
     bhavaSuchika?: Record<string, number>;
+    /** Warga Kendara (වර්ග කේනදර) — the D1/D9/Surya Lagna/Chandra Lagna per-chart tables (see
+     *  src/lib/wargaKendara.ts). Optional because legacy documents predate the field and are lazily
+     *  derived at render. */
+    wargaKendara?: WargaKendara;
     yogas: unknown[];
     doshas: DoshaInfo;
 }

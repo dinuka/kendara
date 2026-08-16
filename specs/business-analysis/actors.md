@@ -69,6 +69,16 @@
   - View each planet's භාව සුචික (Bhava Suchika) in a dedicated column of the planets table in the calculation tab
   - View Bhava Suchika values read-only (no editing) on both auto and manual horoscopes; on manual horoscopes the values appear only when Navamsa data has been entered (the value is omitted otherwise)
   - Search for horoscopes by Bhava Suchika (the Lagna's or a planet's house index, by name or number, in Sinhala or English) and see the values mirrored on the search result cards
+  - View each displayed Warga Kendara chart's main indication as tag chips directly beneath the chart caption (from the static varga catalog, in Sinhala or English) — per product decision 2026-08-15, no 16-varga reference table
+  - View the chart section of the horoscope detail page as warga tabs — Rāśi (D1), Navāṁśa (D9), Surya Lagna, Chandra Lagna (more varga tabs in later phases) — instead of the fixed "Birth & Navamsa" pair
+  - See Rāśi (D1) always selected on the chart section; by default Navāṁśa (D9) is the second selected chart; select any other available warga chart as the second chart (exactly two charts are displayed at once, as today)
+  - View the "Other charts" section showing only the House chart (the warga charts move into the tabs)
+  - View per-chart calculation tables beneath each displayed chart — Houses table (#, Sign, Planets, Aspects) and Planets table (Planet, Sign, Str, House, Conjunctions, Aspects, Other) — each table showing the data of its own chart (e.g. D1 Saturn | Capricorn | Own Sign vs D9 Saturn | Cancer | Enemy)
+  - View the Nakshatra (Pada) and Bhava Suchika columns only in the D1 planets table (these columns are omitted for other charts' tables)
+  - View Conjunctions and Aspects cells without degree differences
+  - View the twelve D1-only planet details — Wargoththama, Pushkara, Gandantha, Gandamula, 64th Navamsa Lord, 22nd Drekkana Lord, Cheshta Bala, Ashtamansha, Kala Bala, Atmakaraka, Combust, Badhaka — only in the D1 tables
+  - View Maraka, Maranakaraka and Dig Bala details calculated for every chart's tables (D1, D9, Surya Lagna, Chandra Lagna)
+  - View all Warga Kendara content read-only (no editing) on own, public and share-linked horoscopes
 - **Authentication**: Google SSO (auto-assigned)
 
 ## 2. Super Admin
@@ -139,3 +149,8 @@
   - Compute and persist the භාව සුචික (Bhava Suchika) house index — the house (1-12) that a point's Navamsa (D9) sign occupies in the Lagna (D1) chart — for the Lagna (using the sign of the 1st house of the Navamsa chart) and for each of the 9 planets (using the planet's Navamsa sign), on both `source: "auto"` and `source: "manual"` horoscopes; store on `CalculatedDetails` as `lagnaBhavaSuchika` + `bhavaSuchika` (see `20260814-2055-bhava-suchika.md`)
   - Recompute `lagnaBhavaSuchika`/`bhavaSuchika` during the AstrologySettings full recalculation job like any other derived value — there are no user overrides for Bhava Suchika
   - Make Bhava Suchika searchable in `/api/search` (Lagna + per-planet, by house-index name or number, bilingual) and include the values in the search text content (`src/lib/search/textContent.ts`) so vector search also matches; mirror the values on the search result cards (US-BS-008)
+  - Maintain the static Warga Kendara catalog — the 16 varga charts (D1–D60) with their D number, chart name and main indication — which supplies each displayed chart's main-indication tags; bilingual display data resolved via i18n, never stored per horoscope (see `20260815-1129-warga-kendara.md`)
+  - Provide chart data for each warga tab: phase 1 covers Rāśi (D1), Navāṁśa (D9), Surya Lagna and Chandra Lagna; the remaining vargas (D2–D60) are added in later phases once per-chart calculation guidance is provided
+  - Compute per-chart calculation tables (Houses: #/Sign/Planets/Aspects; Planets: Planet/Sign/Str/House/Conjunctions/Aspects/Other) for every displayed chart, using that chart's own signs, strengths and houses; Nakshatra (Pada) and Bhava Suchika columns only for D1; Conjunctions/Aspects rendered without degree differences
+  - Compute per-chart planet details: the twelve D1-only details (Wargoththama, Pushkara, Gandantha, Gandamula, 64th Navamsa Lord, 22nd Drekkana Lord, Cheshta Bala, Ashtamansha, Kala Bala, Atmakaraka, Combust, Badhaka) for D1; Maraka, Maranakaraka and Dig Bala for every chart
+  - Persist per-chart Warga Kendara data on `CalculatedDetails.wargaKendara` (see `20260815-1129-warga-kendara.md`) and recompute it during the AstrologySettings full recalculation job — no user overrides exist; provide a render-time pure-function fallback so legacy documents still render correct tables

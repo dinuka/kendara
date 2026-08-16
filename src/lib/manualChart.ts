@@ -151,6 +151,16 @@ export const SIGN_LORD: Record<number, number> = {
     12: 5,
 };
 
+/** Houses (by number, ascending) whose signs are ruled by the given planet — the "ownership"
+ *  column. Each house row carries its whole-sign `sign`, so ownership is the house numbers N with
+ *  `SIGN_LORD[sign of N] === planet`. */
+export function ownedHousesOf(planet: number, houses: Array<{ houseNumber: number; sign: number }>): number[] {
+    return houses
+        .filter((h) => SIGN_LORD[h.sign] === planet)
+        .map((h) => h.houseNumber)
+        .sort((a, b) => a - b);
+}
+
 /** Whole-sign house system: house N (1-12) holds sign `lagna + N - 1` (mod 12). */
 export function deriveHouseSigns(lagna: number): number[] {
     if (!Number.isInteger(lagna) || lagna < 1 || lagna > 12) {

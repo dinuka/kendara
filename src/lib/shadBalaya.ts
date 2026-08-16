@@ -80,6 +80,16 @@ export function isEnemySign(planet: number, sign: number): boolean {
     return !!NATURAL_ENEMIES[planet]?.includes(SIGN_LORD[sign]);
 }
 
+/** Planets (by enum, ascending) sitting on their dig bala target house — Jupiter/Mercury in the 1st,
+ *  Sun/Mars in the 10th, Moon/Venus in the 4th, Saturn in the 7th (see DIG_HOUSE). Rahu/Ketu never
+ *  carry dig bala and are excluded. Used by the Warga Kendara per-chart tables. */
+export function computeDigBalaPlanets(planets: Array<Pick<Planet, "name" | "house">>): number[] {
+    return planets
+        .filter((p) => p.house === DIG_HOUSE[p.name])
+        .map((p) => p.name)
+        .sort((a, b) => a - b);
+}
+
 /** Normalize stored strength to the numeric `PlanetaryStrength` enum. Legacy documents may hold
  *  string strengths ("Uchcha", "OwnSign", ...) — these map to the same numeric values. */
 function normalizePlanetaryStrength(strength: number | string | undefined | null): PlanetaryStrength {
