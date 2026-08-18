@@ -25,6 +25,7 @@ import {
 import { PlanetaryStrength } from "@/lib/astrologyEnums";
 import { resolveLagnaBhavaSuchika, resolvePlanetBhavaSuchika } from "@/lib/bhavaSuchika";
 import { toBirthChartData } from "@/lib/chartDataTransform";
+import { aspectPointSignedDelta } from "@/lib/planetAspects";
 import { getSuggestions, insertSuggestion, splitLastToken } from "@/lib/search/suggestions";
 import { detectLanguage } from "@/lib/search/utils";
 import Link from "next/link";
@@ -1011,11 +1012,11 @@ const SearchResultCard = ({
                                                     (x) => (x.name as number) === (a.planetName as number),
                                                 );
                                                 if (!q) return "";
-                                                const exactPoint =
-                                                    ((p.absoluteDegree as number) + (a.aspectType as number)) % 360;
-                                                let diff = exactPoint - (q.absoluteDegree as number);
-                                                if (diff > 180) diff -= 360;
-                                                if (diff < -180) diff += 360;
+                                                const diff = aspectPointSignedDelta(
+                                                    p.absoluteDegree as number,
+                                                    a.aspectType as number,
+                                                    q.absoluteDegree as number,
+                                                );
                                                 if (Math.abs(diff) > (ORB_MAP[pName] ?? 0)) return "";
                                                 return `${t(`astrology.planetNames.${a.planetName as number}`)} (${formatDegDiff(diff)})`;
                                             })

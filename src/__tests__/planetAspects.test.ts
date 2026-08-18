@@ -142,6 +142,46 @@ describe("computePlanetAspects", () => {
         expect(Object.keys(aspects)).toEqual(["1", "2"]);
         expect(aspects[1].every((a: Aspect) => a.planetName !== 1)).toBe(true);
     });
+
+    test("Saturn's 10th aspect (270°) reaches a planet 90° behind within orb", () => {
+        // Methma regression: Saturn abs 253.77 (Sagittarius), Mars abs 160.68 (Virgo). Saturn's
+        // 270° point ≡ abs − 90 (163.77) sits 3.09° from Mars — point-based matching must record
+        // the planetary aspect even though the minor arc (93.09°) is not near any candidate.
+        const aspects = computePlanetAspects([
+            { name: 7, absoluteDegree: 253.77 },
+            { name: 3, absoluteDegree: 160.68 },
+        ]);
+        const a = aspects[7][0];
+        expect(a.planetName).toBe(3);
+        expect(a.aspectType).toBe(270);
+        expect(a.degreeGap).toBeCloseTo(3.09, 2);
+        expect(a.delta).toBeCloseTo(-3.09, 2);
+        expect(a.isBeneficial).toBe(false);
+        expect(a.reasons).toEqual([{ type: "planetary", angle: 270, delta: -3.09 }]);
+    });
+
+    test("Mars's 4th aspect (90°) to the same pair stays at 90 (not 270)", () => {
+        // Mirrors the Saturn case in the other direction: Mars abs 160.68 → Saturn abs 253.77 is a
+        // true 4th-house aspect at 90° and must not be reclassified as the wrapped 270° point.
+        const aspects = computePlanetAspects([
+            { name: 3, absoluteDegree: 160.68 },
+            { name: 7, absoluteDegree: 253.77 },
+        ]);
+        const a = aspects[3][0];
+        expect(a.planetName).toBe(7);
+        expect(a.aspectType).toBe(90);
+        expect(a.degreeGap).toBeCloseTo(3.09, 2);
+        expect(a.delta).toBeCloseTo(3.09, 2);
+    });
+
+    test("out-of-orb special point is not an aspect", () => {
+        // Same geometry but Mars at 150.68 (10° from Saturn's 270° point) exceeds Saturn orb 9.
+        const aspects = computePlanetAspects([
+            { name: 7, absoluteDegree: 253.77 },
+            { name: 3, absoluteDegree: 150.68 },
+        ]);
+        expect(aspects[7]).toHaveLength(0);
+    });
 });
 
 describe("derivePlanetAbsoluteDegree", () => {

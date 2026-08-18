@@ -177,9 +177,13 @@ export function derivePlanetAbsoluteDegree(
 }
 
 /** Planet-to-planet aspects. For each aspecting planet `i`, candidates = [0, ...configured degrees];
- *  orb = aspecting planet's `planetaryOrbs` value. An aspect to planet `j` is recorded when the minor
- *  arc distance is within orb of the nearest candidate angle (`degreeGap <= orb`, inclusive). Ties
- *  between equidistant candidate angles resolve to the smaller angle. `isBeneficial` only for 60/120. */
+ *  orb = aspecting planet's `planetaryOrbs` value. Each candidate angle `d` maps to the two aspect
+ *  points `abs_i ± d` (wrapped); `aspectPointSignedDelta` picks the nearer of those points to the
+ *  target and an aspect to planet `j` is recorded when the nearest candidate's delta is within orb
+ *  (`degreeGap <= orb`, inclusive). This point-based matching (shared with the house-aspect arm) lets
+ *  special aspects past 180° register against targets sitting near the wrapped point — e.g. Saturn's
+ *  10th (270° ≡ abs_i − 90) reaching a planet 90° behind. Ties between equidistant candidate angles
+ *  resolve to the smaller angle. `isBeneficial` only for 60/120. */
 export function computePlanetAspects(
     planets: Array<Pick<Planet, "name" | "absoluteDegree">>,
     planetAspects?: PlanetAspectsMap,
@@ -194,21 +198,19 @@ export function computePlanetAspects(
         const aspects: Aspect[] = [];
         for (const target of planets) {
             if (target.name === i) continue;
-            const rawDist = Math.min(
-                Math.abs(absI - target.absoluteDegree),
-                360 - Math.abs(absI - target.absoluteDegree),
-            );
             let nearest = candidates[0];
-            let bestDiff = Math.abs(rawDist - nearest);
+            let bestDelta = aspectPointSignedDelta(absI, nearest, target.absoluteDegree);
+            let bestDiff = Math.abs(bestDelta);
             for (let k = 1; k < candidates.length; k++) {
-                const diff = Math.abs(rawDist - candidates[k]);
+                const delta = aspectPointSignedDelta(absI, candidates[k], target.absoluteDegree);
+                const diff = Math.abs(delta);
                 if (diff < bestDiff) {
                     bestDiff = diff;
                     nearest = candidates[k];
+                    bestDelta = delta;
                 }
             }
             if (bestDiff <= orb) {
-                const delta = aspectPointSignedDelta(absI, nearest, target.absoluteDegree);
                 aspects.push({
                     planetName: target.name,
                     aspectType: nearest,
@@ -216,8 +218,8 @@ export function computePlanetAspects(
                     degreeGap: +bestDiff.toFixed(2),
                     exactAspectDegree: nearest,
                     isBeneficial: BENEFICIAL_ASPECT_ANGLES.has(nearest),
-                    delta: +delta.toFixed(2),
-                    reasons: [{ type: "planetary", angle: nearest, delta: +delta.toFixed(2) }],
+                    delta: +bestDelta.toFixed(2),
+                    reasons: [{ type: "planetary", angle: nearest, delta: +bestDelta.toFixed(2) }],
                 });
             }
         }

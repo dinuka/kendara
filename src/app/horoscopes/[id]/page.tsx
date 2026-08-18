@@ -54,7 +54,7 @@ import {
     synthesizeValidation,
 } from "@/lib/manualChart";
 import type { DerivedRanges, ManualHouse, ManualHousePlacements } from "@/lib/manualChart";
-import { computeManualPlanetAspects } from "@/lib/planetAspects";
+import { aspectPointSignedDelta, computeManualPlanetAspects } from "@/lib/planetAspects";
 import { type ShadBalaya, computeShadBalaya, deriveDay, mergeShadBalaya } from "@/lib/shadBalaya";
 import type { WargaVargaKey } from "@/lib/wargaKendara";
 import { VARGA_CATALOG } from "@/lib/wargaKendara";
@@ -958,13 +958,11 @@ export default function HoroscopeDetailPage() {
         return (sign - 1) * 30 + (h.middleDegree ?? 0);
     };
 
-    const getAspectDiff = (planetAbsDeg: number, aspectType: number, houseMidAbsDeg: number): number => {
-        const exactAspectPoint = (planetAbsDeg + aspectType) % 360;
-        let diff = exactAspectPoint - houseMidAbsDeg;
-        if (diff > 180) diff -= 360;
-        if (diff < -180) diff += 360;
-        return diff;
-    };
+    /** Signed gap between a stored aspect record's angle and the target, matching the engine's
+     *  `aspectPointSignedDelta` (both `absI ± angle` aspect points considered). Using only the `+`
+     *  point (the old formula) wrongly discarded rashi aspects whose angle falls on the `−` side. */
+    const getAspectDiff = (planetAbsDeg: number, aspectType: number, houseMidAbsDeg: number): number =>
+        aspectPointSignedDelta(planetAbsDeg, aspectType, houseMidAbsDeg);
 
     const tabs = [
         { id: "charts", label: t("horoscope.charts") },
@@ -1676,11 +1674,11 @@ export default function HoroscopeDetailPage() {
                                                                           (x) => x.name === a.planetName,
                                                                       );
                                                                       if (!q) return false;
-                                                                      const exactPoint =
-                                                                          (p.absoluteDegree + a.aspectType) % 360;
-                                                                      let diff = exactPoint - q.absoluteDegree;
-                                                                      if (diff > 180) diff -= 360;
-                                                                      if (diff < -180) diff += 360;
+                                                                      const diff = aspectPointSignedDelta(
+                                                                          p.absoluteDegree,
+                                                                          a.aspectType,
+                                                                          q.absoluteDegree,
+                                                                      );
                                                                       return Math.abs(diff) <= (orbMap[p.name] ?? 0);
                                                                   });
                                                     const tags: {
@@ -1911,11 +1909,11 @@ export default function HoroscopeDetailPage() {
                                                                   (x) => x.name === a.planetName,
                                                               );
                                                               if (!q) return false;
-                                                              const exactPoint =
-                                                                  (p.absoluteDegree + a.aspectType) % 360;
-                                                              let diff = exactPoint - q.absoluteDegree;
-                                                              if (diff > 180) diff -= 360;
-                                                              if (diff < -180) diff += 360;
+                                                              const diff = aspectPointSignedDelta(
+                                                                  p.absoluteDegree,
+                                                                  a.aspectType,
+                                                                  q.absoluteDegree,
+                                                              );
                                                               return Math.abs(diff) <= (orbMap[p.name] ?? 0);
                                                           });
 
