@@ -10,6 +10,7 @@ import PrivacyBadge from "@/components/PrivacyBadge";
 import PrivacyToggle from "@/components/PrivacyToggle";
 import AspectChip from "@/components/aspects/AspectChip";
 import BhavaSuchikaTag from "@/components/bhavaSuchika/BhavaSuchikaTag";
+import Notepad from "@/components/notepad/Notepad";
 import ShadBalaTable from "@/components/shadbalaya/ShadBalaTable";
 import WargaChartSection from "@/components/wargaKendara/WargaChartSection";
 import WargaIndicationTags from "@/components/wargaKendara/WargaIndicationTags";
@@ -739,7 +740,7 @@ export default function HoroscopeDetailPage() {
         });
     };
 
-    const isManualNoBirthDate = horoscope.source === "manual" && !horoscope.birthDate;
+    const isManualChart = horoscope.source === "manual";
 
     const NAVAMSA_ARC = 30 / 9;
 
@@ -1015,6 +1016,7 @@ export default function HoroscopeDetailPage() {
                     )}
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
+                    <Notepad horoscopeId={params.id as string} calculatedDetails={calculatedDetails} />
                     {horoscope.owner?.id === session?.user?.id && (
                         <>
                             {horoscope.source === "manual" ? (
@@ -1262,8 +1264,8 @@ export default function HoroscopeDetailPage() {
                                             ) : (
                                                 <figure className="bg-white rounded-lg border p-4">
                                                     <figcaption className="text-sm font-semibold text-gray-700">
-                                                        {t(`astrology.wargaKendara.vargas.${secondChart}.name`)} (
-                                                        D{VARGA_CATALOG.find((v) => v.key === secondChart)?.d})
+                                                        {t(`astrology.wargaKendara.vargas.${secondChart}.name`)} ( D
+                                                        {VARGA_CATALOG.find((v) => v.key === secondChart)?.d})
                                                     </figcaption>
                                                     <WargaIndicationTags chartKey={secondChart} />
                                                     <div className="mt-4 bg-white rounded-lg border p-6 min-h-[150px] flex items-center justify-center">
@@ -1356,7 +1358,7 @@ export default function HoroscopeDetailPage() {
                                         <p className="text-sm mb-1">
                                             {getSignName(calculatedDetails.ascendant.sign)} (
                                             {getPlanetName(calculatedDetails.ascendant.lord)}){" "}
-                                            {isManualNoBirthDate
+                                            {isManualChart
                                                 ? formatNavamsaDegreeRange(getAscMidRange().start, getAscMidRange().end)
                                                 : formatDegree(calculatedDetails.ascendant.degree)}
                                         </p>
@@ -1475,7 +1477,7 @@ export default function HoroscopeDetailPage() {
                                             {calculatedDetails.houses.map((h) => {
                                                 const planetsInHouse = getPlanetsInHouse(h.houseNumber);
                                                 const houseMidAbs = getHouseMidAbs(h);
-                                                const isManualRow = isManualNoBirthDate;
+                                                const isManualRow = isManualChart;
                                                 const manualRange = isManualRow
                                                     ? getManualHouseRange(
                                                           h.houseNumber,
@@ -1783,7 +1785,7 @@ export default function HoroscopeDetailPage() {
                                                             </td>
                                                             <td className="py-1 pr-3">
                                                                 {getSignName(p.sign)} (
-                                                                {isManualNoBirthDate
+                                                                {isManualChart
                                                                     ? getPlanetDegreeRange(p)
                                                                     : formatDegree(p.degree)}
                                                                 )
@@ -1795,8 +1797,9 @@ export default function HoroscopeDetailPage() {
                                                             </td>
                                                             <td className="py-1 pr-3">{displayHouse}</td>
                                                             <td className="py-1 pr-3">
-                                                                {ownedHousesOf(p.name, calculatedDetails.houses).join(", ") ||
-                                                                    "—"}
+                                                                {ownedHousesOf(p.name, calculatedDetails.houses).join(
+                                                                    ", ",
+                                                                ) || "—"}
                                                             </td>
                                                             <td className="py-1 pr-3">{getSignName(p.navamsaSign)}</td>
                                                             <td className="py-1 pr-3">
@@ -2060,7 +2063,9 @@ export default function HoroscopeDetailPage() {
                                                                 <span className="font-medium text-gray-700">
                                                                     {t("astrology.degree")}:
                                                                 </span>{" "}
-                                                                {formatDegree(p.degree)}
+                                                                {isManualChart
+                                                                    ? getPlanetDegreeRange(p)
+                                                                    : formatDegree(p.degree)}
                                                             </p>
                                                             {conjunct.length > 0 && (
                                                                 <p>
@@ -2133,7 +2138,10 @@ export default function HoroscopeDetailPage() {
                             )}
 
                             {horoscope.source === "manual" && calculatedDetails.derivedRanges && (
-                                <DerivedRangesSection ranges={calculatedDetails.derivedRanges} birthDate={horoscope.birthDate} />
+                                <DerivedRangesSection
+                                    ranges={calculatedDetails.derivedRanges}
+                                    birthDate={horoscope.birthDate}
+                                />
                             )}
                         </div>
                     )}
