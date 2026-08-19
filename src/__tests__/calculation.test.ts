@@ -152,7 +152,7 @@ describe("calculateHoroscope", () => {
     test("maranakaraka lists planets in their designated death houses, and matches the house rule", () => {
         const result = calculateHoroscope(baseData);
         expect(Array.isArray(result.maranakaraka)).toBe(true);
-        expect(result.maranakaraka).toEqual(computeMaranakaraka(result.planets, result.houses));
+        expect(result.maranakaraka).toEqual(computeMaranakaraka(result.planets));
     });
 
     test("yogakaraka is an array matching computeYogakaraka(ascendant.sign)", () => {
@@ -214,43 +214,14 @@ describe("computeMaranakaraka", () => {
         expect(computeMaranakaraka([planet(9, 8), planet(8, 1), planet(2, 9)])).toEqual([]);
     });
 
-    test("uses the cusp-based calculated house, not the whole-sign house", () => {
-        // Moon's whole-sign house is 8, but the cusp-based house at absolute degree 32 is 7
-        // (house 7 covers [30, 35), house 8 covers [35, 40) in absolute degrees).
-        const houses = [
-            {
-                houseNumber: 7,
-                startSign: 2,
-                startDegree: 0,
-                startLord: 1,
-                middleSign: 2,
-                middleDegree: 2.5,
-                middleLord: 1,
-                endSign: 2,
-                endDegree: 5,
-                endLord: 1,
-                sign: 2,
-                lord: 1,
-            },
-            {
-                houseNumber: 8,
-                startSign: 2,
-                startDegree: 5,
-                startLord: 1,
-                middleSign: 2,
-                middleDegree: 7.5,
-                middleLord: 1,
-                endSign: 2,
-                endDegree: 10,
-                endLord: 1,
-                sign: 2,
-                lord: 1,
-            },
-        ];
-        // whole-sign says 8th -> would be Maranakaraka, but cusp house is 7 -> not Maranakaraka
-        expect(computeMaranakaraka([planet(2, 8, 32)], houses)).toEqual([]);
-        // Moon actually in the 8th cusp house -> Maranakaraka
-        expect(computeMaranakaraka([planet(2, 8, 37)], houses)).toEqual([2]);
+    test("uses the whole-sign Rashi house, ignoring cusp start/end degrees", () => {
+        // Moon's whole-sign house is 8 -> Maranakaraka. The cusp-boundary house at absolute degree
+        // 32 would be 7 (house 7 covering [30, 35)), but the planet's Rashi location (p.house)
+        // always wins — cusp start/end degrees are never considered for Maranakaraka.
+        expect(computeMaranakaraka([planet(2, 8, 32)])).toEqual([2]);
+        expect(computeMaranakaraka([planet(2, 8, 37)])).toEqual([2]);
+        // Whole-sign house 7 -> not Maranakaraka, even if the cusp would place it in house 8.
+        expect(computeMaranakaraka([planet(2, 7, 37)])).toEqual([]);
     });
 });
 

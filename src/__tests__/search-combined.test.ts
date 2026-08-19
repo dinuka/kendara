@@ -249,7 +249,7 @@ describe("search: combined exact conditions (AND logic)", () => {
     });
 });
 
-describe("search: planet_in_house uses cusp-based house", () => {
+describe("search: planet_in_house uses the whole-sign Rashi house", () => {
     async function search(query: string) {
         mockGetServerSession.mockResolvedValue({ user: { id: "owner-1", role: "student" } });
 
@@ -272,8 +272,9 @@ describe("search: planet_in_house uses cusp-based house", () => {
     });
 
     // Aries ascendant. Mars is at Pisces 14:40:48 (absoluteDegree 344.68).
-    // Stored whole-sign house is 12 (Pisces), but the 12th-house boundary ends at
-    // Pisces 13:45:49 (13.7636°), so the cusp-based house is 1.
+    // Stored whole-sign house is 12 (Pisces). The 12th-house cusp boundary ends at Pisces
+    // 13:45:49 (13.7636°), but the house is always the planet's Rashi location (p.house = 12),
+    // never the cusp-boundary range.
     const makeCalculatedDetails = () => {
         const h = (
             houseNumber: number,
@@ -316,7 +317,7 @@ describe("search: planet_in_house uses cusp-based house", () => {
         };
     };
 
-    test("කුජ 1 matches when cusp-based house is 1 even though stored house is 12", async () => {
+    test("කුජ 1 does NOT match when whole-sign house is 12", async () => {
         (Horoscope.find as jest.Mock).mockReturnValue({
             lean: jest.fn().mockResolvedValue([makeHoroscope()]),
         });
@@ -330,12 +331,10 @@ describe("search: planet_in_house uses cusp-based house", () => {
         const response = await search("කුජ 1");
         const body = await response.json();
 
-        expect(body.results).toHaveLength(1);
-        expect(body.queryUnderstanding.mode).toBe("exact_planet_in_house");
-        expect(body.queryUnderstanding.exactMatch).toEqual([{ type: "planet_in_house", planet: 3, house: 1 }]);
+        expect(body.results).toHaveLength(0);
     });
 
-    test("කුජ 12 does NOT match when cusp-based house is 1", async () => {
+    test("කුජ 12 matches when whole-sign house is 12 even though the cusp boundary ends earlier", async () => {
         (Horoscope.find as jest.Mock).mockReturnValue({
             lean: jest.fn().mockResolvedValue([makeHoroscope()]),
         });
@@ -349,7 +348,8 @@ describe("search: planet_in_house uses cusp-based house", () => {
         const response = await search("කුජ 12");
         const body = await response.json();
 
-        expect(body.results).toHaveLength(0);
+        expect(body.results).toHaveLength(1);
+        expect(body.queryUnderstanding.mode).toBe("exact_planet_in_house");
     });
 });
 

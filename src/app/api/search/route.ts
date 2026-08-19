@@ -6,7 +6,6 @@ import { CalculatedDetails } from "@/models/CalculatedDetails";
 import { Chart } from "@/models/Chart";
 import { Horoscope } from "@/models/Horoscope";
 
-import { House, findHouse } from "@/lib/astrology";
 import { PLANET_NAMES, PlanetaryStrength, STRENGTH_LABELS, ZODIAC_SIGN_NAMES } from "@/lib/astrologyEnums";
 import { isValidBhavaSuchikaValue, resolveLagnaBhavaSuchika, resolvePlanetBhavaSuchika } from "@/lib/bhavaSuchika";
 import { connectDB } from "@/lib/db";
@@ -336,17 +335,10 @@ const getNavamsaLagnaSign = (calculatedDetails: Record<string, unknown> | null):
     return null;
 };
 
-// A planet's house for search matching is the cusp-based house (same value shown in the
-// planets table), not the stored whole-sign house (p.house, relative to the ascendant sign).
-// Falls back to the stored house when cusp boundaries are unavailable.
-const getEffectivePlanetHouse = (planet: Record<string, unknown>, houses: unknown): number => {
-    const absoluteDegree = planet.absoluteDegree;
-    if (typeof absoluteDegree === "number" && Array.isArray(houses)) {
-        const found = findHouse(absoluteDegree, houses as House[]);
-        if (found !== null) return found;
-    }
-    return planet.house as number;
-};
+// A planet's house for search matching is its whole-sign Rashi house (p.house — sign relative to
+// the ascendant sign), the same value shown in the planets table. Cusp-boundary ranges (house
+// start/end degrees) are never considered.
+const getEffectivePlanetHouse = (planet: Record<string, unknown>): number => planet.house as number;
 
 const isSinglePlanetRole = (role: PlanetRoleKey): boolean =>
     role === "drekkana" || role === "navamsa" || role === "atmakaraka";
@@ -673,7 +665,7 @@ const scoreHoroscope = (
 
                         const signName = Object.entries(ZODIAC_SIGN_NAMES).find(([, v]) => v === p.sign)?.[0] || p.sign;
                         matchedConditions.push(
-                            `${word}_in_sign=${signName}_house=${getEffectivePlanetHouse(p, calculatedDetails?.houses)}`,
+                            `${word}_in_sign=${signName}_house=${getEffectivePlanetHouse(p)}`,
                         );
                     }
                 }
@@ -757,7 +749,7 @@ const scoreHoroscope = (
                 for (const p of planets) {
                     if (
                         p.name === planetMatch[1] &&
-                        getEffectivePlanetHouse(p, calculatedDetails?.houses) === houseNum
+                        getEffectivePlanetHouse(p) === houseNum
                     ) {
                         score += 0.6;
                         matchedConditions.push(`${planetMatch[0]}_in_house=${houseNum}`);
@@ -884,7 +876,7 @@ export async function POST(req: NextRequest) {
                                 return planets.some(
                                     (p) =>
                                         p.name === condition.planet &&
-                                        getEffectivePlanetHouse(p, calculatedDetails?.houses) === condition.house,
+                                        getEffectivePlanetHouse(p) === condition.house,
                                 );
                             }
                             case "nakshatra": {

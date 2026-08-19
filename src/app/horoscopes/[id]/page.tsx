@@ -28,7 +28,6 @@ import {
     computePanchaPakshi,
     computeThithiFromPlanets,
     computeYogakaraka,
-    findHouse,
     formatDegree,
     getNakshatraLord,
     navamsaSign,
@@ -420,12 +419,13 @@ export default function HoroscopeDetailPage() {
 
     const { horoscope, calculatedDetails } = data;
 
-    // Maranakaraka is recomputed at render from planets + houses (lagna chart only — never D9) so
+    // Maranakaraka is recomputed at render from planets (lagna chart only — never D9) so
     // legacy stored values (a single "any rule → Moon=2") don't stick. Every planet in its
-    // designated death house is a Maranakaraka, so multiple planets can qualify.
+    // designated death house is a Maranakaraka, so multiple planets can qualify. The house is the
+    // planet's whole-sign Rashi house (p.house), never the cusp-boundary range.
     const resolvedMaranakaraka =
-        calculatedDetails?.planets && calculatedDetails?.houses
-            ? computeMaranakaraka(calculatedDetails.planets, calculatedDetails.houses)
+        calculatedDetails?.planets
+            ? computeMaranakaraka(calculatedDetails.planets)
             : normalizeMaranakaraka(calculatedDetails?.maranakaraka);
 
     // Yogakaraka depends only on the lagna sign (Kendra 4/7/10 + Trikona 5/9 lordship), so it is
@@ -606,7 +606,7 @@ export default function HoroscopeDetailPage() {
                       thithi: getThithi(),
                       day:
                           horoscope.source !== "manual"
-                              ? deriveDay(calculatedDetails.planets, calculatedDetails.houses)
+                              ? deriveDay(calculatedDetails.planets)
                               : undefined,
                       maranakaraka: resolvedMaranakaraka,
                   }),
@@ -1636,11 +1636,9 @@ export default function HoroscopeDetailPage() {
                                             {[...calculatedDetails.planets]
                                                 .sort((a, b) => a.name - b.name)
                                                 .map((p) => {
-                                                    const displayHouse =
-                                                        horoscope.source === "manual"
-                                                            ? p.house
-                                                            : (findHouse(p.absoluteDegree, calculatedDetails.houses) ??
-                                                              p.house);
+                                                    // Planet house is its whole-sign Rashi location
+                                                    // (p.house), never the cusp-boundary range.
+                                                    const displayHouse = p.house;
                                                     // Bhava Suchika (භාව සුචික): stored value wins;
                                                     // legacy docs are lazily resolved at render.
                                                     const bhavaSuchikaValue = resolvePlanetBhavaSuchika(
@@ -1870,11 +1868,9 @@ export default function HoroscopeDetailPage() {
                                         .map((p) => {
                                             const isExpanded = expandedPlanets.has(p.name);
                                             const isRetrograde = p.retrograde && p.name !== 8 && p.name !== 9;
-                                            const displayHouse =
-                                                horoscope.source === "manual"
-                                                    ? p.house
-                                                    : (findHouse(p.absoluteDegree, calculatedDetails.houses) ??
-                                                      p.house);
+                                            // Planet house is its whole-sign Rashi location (p.house),
+                                            // never the cusp-boundary range.
+                                            const displayHouse = p.house;
                                             // Bhava Suchika (භාව සුචික): stored value wins; legacy docs
                                             // are lazily resolved at render.
                                             const bhavaSuchikaValue = resolvePlanetBhavaSuchika(

@@ -212,13 +212,12 @@ describe("computeCurrentPlanets", () => {
         expect(degreeDiffs.length).toBeGreaterThan(0);
     });
 
-    test("empty birth houses returns null for house field", () => {
-        // Override Venus to be at a position not in any house
-        // The default houses cover 0-360, so all positions should find a house.
-        // Let's verify that with empty houses array, house is null
+    test("empty birth houses defaults the ascendant sign to 1 for the whole-sign house", () => {
+        // With no birth houses the ascendant sign falls back to 1, so each planet's whole-sign
+        // Rashi house equals its sign — never null (the house is always derived from the sign).
         const result = computeCurrentPlanets("lahiri", []);
         for (const planet of result) {
-            expect(planet.house).toBeNull();
+            expect(planet.house).toBe(planet.sign);
         }
     });
 

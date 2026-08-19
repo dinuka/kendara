@@ -457,13 +457,12 @@ describe("Kala Bala (UT-SB-027..036)", () => {
         expect(balaOf(result, 7, "kalaBala").reasons).toEqual([{ key: "shadbalaya.kala.reason.night" }]);
     });
 
-    test("UT-SB-036: deriveDay from Sun cusp house (7-12 day, house 7 inclusive)", () => {
-        const houses = wholeSignHouses();
-        expect(deriveDay([planet(1, 10, 285)], houses)).toBe(true);
-        expect(deriveDay([planet(1, 6, 165)], houses)).toBe(false);
-        expect(deriveDay([planet(1, 7, 190)], houses)).toBe(true);
-        expect(deriveDay([planet(1, 1, 10)], houses)).toBe(false);
-        expect(deriveDay([] as ShadBalaPlanet[], houses)).toBe(true);
+    test("UT-SB-036: deriveDay from Sun whole-sign Rashi house (7-12 day, house 7 inclusive)", () => {
+        expect(deriveDay([planet(1, 10, 285)])).toBe(true);
+        expect(deriveDay([planet(1, 6, 165)])).toBe(false);
+        expect(deriveDay([planet(1, 7, 190)])).toBe(true);
+        expect(deriveDay([planet(1, 1, 10)])).toBe(false);
+        expect(deriveDay([] as ShadBalaPlanet[])).toBe(true);
     });
 });
 
@@ -520,21 +519,27 @@ describe("Dig Bala (UT-SB-037..043)", () => {
         }
     });
 
-    test("UT-SB-043: house source cusp-based vs entered, with p.house fallback", () => {
+    test("UT-SB-043: house source is the whole-sign p.house, ignoring cusp boundaries", () => {
+        // Guru's whole-sign house is 3 (p.house). Even though absolute degree 15 falls in house 1 by
+        // cusp boundaries, dig bala is evaluated against the Rashi location (house 3), so Guru gets
+        // no dig bala. This holds for both auto and manual sources.
         const houses = wholeSignHouses();
         const guruInHouse3 = planet(5, 3, 15);
         const auto = computeShadBalaya([guruInHouse3], houses, ctx());
-        expect(balaOf(auto, 5, "digBala").value).toBe(true);
-        expect(balaOf(auto, 5, "digBala").reasons).toEqual([
-            { key: "shadbalaya.dig.reason.house", params: { house: 1 } },
-        ]);
+        expect(balaOf(auto, 5, "digBala").value).toBe(false);
+        expect(balaOf(auto, 5, "digBala").reasons).toEqual([]);
 
         const manual = computeShadBalaya([guruInHouse3], houses, ctx({ source: "manual" }));
         expect(balaOf(manual, 5, "digBala").value).toBe(false);
+        expect(balaOf(manual, 5, "digBala").reasons).toEqual([]);
 
-        const fallback = computeShadBalaya([planet(5, 3, 15)], [], ctx());
-        expect(balaOf(fallback, 5, "digBala").value).toBe(false);
-        expect(balaOf(fallback, 5, "digBala").reasons).toEqual([]);
+        // Guru in whole-sign house 1 -> dig bala.
+        const guruInHouse1 = planet(5, 1, 15);
+        const inHouse1 = computeShadBalaya([guruInHouse1], houses, ctx());
+        expect(balaOf(inHouse1, 5, "digBala").value).toBe(true);
+        expect(balaOf(inHouse1, 5, "digBala").reasons).toEqual([
+            { key: "shadbalaya.dig.reason.house", params: { house: 1 } },
+        ]);
     });
 });
 
@@ -571,7 +576,7 @@ describe("Naisargika Bala (UT-SB-044..048)", () => {
         expect(balaOf(noRule, 1, "naisargikaBala").value).toBe(true);
     });
 
-    test("UT-SB-047: ctx.maranakaraka falls back to computeMaranakaraka(planets, houses)", () => {
+    test("UT-SB-047: ctx.maranakaraka falls back to computeMaranakaraka(planets)", () => {
         const result = computeShadBalaya([planet(2, 8, 37)], maranakarakaHouses, ctx());
         expect(balaOf(result, 2, "naisargikaBala").value).toBe(false);
     });

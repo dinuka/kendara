@@ -1,6 +1,6 @@
 import swisseph from "swisseph-v2";
 
-import { CurrentPlanetRecord, House, NATURAL_ENEMIES, NATURAL_FRIENDS, findHouse } from "@/lib/astrology";
+import { CurrentPlanetRecord, House, NATURAL_ENEMIES, NATURAL_FRIENDS } from "@/lib/astrology";
 import { COMBUSTION_ORBS, Planet } from "@/lib/astrologyEnums";
 import logger from "@/lib/logger";
 
@@ -115,6 +115,11 @@ function isCombust(planet: number, sunLongitude: number, planetLongitude: number
 export function computeCurrentPlanets(ayanamsha: string, birthHouses: House[], forDate?: Date): CurrentPlanetRecord[] {
     logger.info({ ayanamsha }, "computing current planetary positions");
 
+    // The planet's house is its whole-sign Rashi house relative to the birth ascendant sign
+    // (house 1 of the birth wheel). The birth wheel's first house sign IS the ascendant sign —
+    // never the cusp-boundary ranges.
+    const ascSign = birthHouses[0]?.sign ?? 1;
+
     const ayanamshaId = AYANAMSHA_MAP[ayanamsha] ?? 1;
     const now = forDate ?? new Date();
 
@@ -204,7 +209,7 @@ export function computeCurrentPlanets(ayanamsha: string, birthHouses: House[], f
             const sign = getSign(longitude);
             const degree = +(longitude % 30).toFixed(4);
             const absoluteDegree = +longitude.toFixed(4);
-            const house = findHouse(absoluteDegree, birthHouses);
+            const house = ((sign - ascSign + 12) % 12) + 1;
             const { nakshatra, pada } = getNakshatra(longitude);
             const retrograde = speed < 0;
             const combustion = isCombust(p, sunLongitude, longitude);

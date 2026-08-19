@@ -18,8 +18,7 @@
  *  Per-chart derived values are recomputed fresh (deterministic — nothing is read back from stored
  *  result fields):
  *    - maraka: lords of the 2nd and 7th signs from the chart lagna.
- *    - maranakaraka: computeMaranakaraka with the chart houses when available (findHouse), falling
- *      back to the row house otherwise.
+ *    - maranakaraka: computeMaranakaraka against the chart's whole-sign row houses (p.house).
  *    - digBala: planets sitting on their dig bala target house (see shadBalaya.DIG_HOUSE).
  */
 
@@ -363,18 +362,8 @@ function buildD1Entry(res: ResultLike): WargaChartEntry {
     const shape = buildChartShape(res.ascendant?.sign ?? 1, houses, sources);
     const maranakaraka = computeMaranakaraka(
         (res.planets ?? [])
-            .filter(
-                (p) =>
-                    typeof p.name === "number" &&
-                    typeof p.house === "number" &&
-                    typeof p.absoluteDegree === "number",
-            )
-            .map((p) => ({
-                name: p.name as number,
-                house: p.house as number,
-                absoluteDegree: p.absoluteDegree as number,
-            })),
-        houses,
+            .filter((p) => typeof p.name === "number" && typeof p.house === "number")
+            .map((p) => ({ name: p.name as number, house: p.house as number })),
     );
     return {
         ...shape,
@@ -421,10 +410,7 @@ function buildAutoD9Entry(res: ResultLike): WargaChartEntry | null {
     return {
         ...shape,
         marakaPlanets: computeWargaMaraka(ascNavSign),
-        maranakaraka: computeMaranakaraka(
-            sources.map((s) => ({ name: s.name, house: s.house, absoluteDegree: (s.sign - 1) * 30 + 15 })),
-            houses,
-        ),
+        maranakaraka: computeMaranakaraka(sources.map((s) => ({ name: s.name, house: s.house }))),
         digBalaPlanets: computeDigBalaPlanets(shape.planets.map((r) => ({ name: r.name, house: r.house }))),
     };
 }
@@ -451,9 +437,7 @@ function buildManualD9Entry(ctx: WargaKendaraContext): WargaChartEntry | null {
     return {
         ...shape,
         marakaPlanets: computeWargaMaraka(navamsaLagna),
-        maranakaraka: computeMaranakaraka(
-            sources.map((s) => ({ name: s.name, house: s.house, absoluteDegree: (s.sign - 1) * 30 })),
-        ),
+        maranakaraka: computeMaranakaraka(sources.map((s) => ({ name: s.name, house: s.house }))),
         digBalaPlanets: computeDigBalaPlanets(shape.planets.map((r) => ({ name: r.name, house: r.house }))),
     };
 }
@@ -485,9 +469,7 @@ function buildRotatedEntry(
     return {
         ...shape,
         marakaPlanets: computeWargaMaraka(chart.ascendant.sign),
-        maranakaraka: computeMaranakaraka(
-            sources.map((s) => ({ name: s.name, house: s.house, absoluteDegree: (s.sign - 1) * 30 + 15 })),
-        ),
+        maranakaraka: computeMaranakaraka(sources.map((s) => ({ name: s.name, house: s.house }))),
         digBalaPlanets: computeDigBalaPlanets(shape.planets.map((r) => ({ name: r.name, house: r.house }))),
     };
 }

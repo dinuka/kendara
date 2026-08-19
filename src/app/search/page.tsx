@@ -16,7 +16,6 @@ import {
     computeAscendantSpecialFlags,
     computeMaranakaraka,
     computeYogakaraka,
-    findHouse,
     formatDegree,
     formatYearDuration,
     navamsaSign,
@@ -558,9 +557,10 @@ const SearchResultCard = ({
     const h = result.horoscope;
     const cd = h.calculatedDetails as Record<string, unknown> | undefined;
     // Maranakaraka recomputed from the lagna chart (never D9); legacy docs stored a single planet.
+    // Uses the planet's whole-sign Rashi house (p.house), never the cusp-boundary range.
     const maranakarakaPlanets =
-        cd?.planets && cd?.houses
-            ? computeMaranakaraka(cd.planets as Planet[], cd.houses as House[])
+        cd?.planets
+            ? computeMaranakaraka(cd.planets as Planet[])
             : normalizeMaranakaraka(cd?.maranakaraka as number | number[] | undefined);
     const charts = h.charts as Record<string, unknown> | undefined;
     const ascData = cd?.ascendant as Record<string, unknown> | undefined;
@@ -997,9 +997,9 @@ const SearchResultCard = ({
                                         const pName = p.name as number;
                                         const pSign = p.sign as number;
                                         const pStrength = parseStrength(p.strength) as PlanetaryStrength;
-                                        const displayHouse =
-                                            findHouse(p.absoluteDegree as number, cd!.houses as House[]) ??
-                                            (p.house as number);
+                                        // Planet house is its whole-sign Rashi location (p.house),
+                                        // never the cusp-boundary range.
+                                        const displayHouse = p.house as number;
                                         // Bhava Suchika (භාව සුචික): stored value wins; legacy docs
                                         // are lazily resolved at render.
                                         const bhavaSuchikaValue = resolvePlanetBhavaSuchika(cd, pName);

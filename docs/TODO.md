@@ -10,7 +10,6 @@
   - සඳු වෘශ්චික is not searching horoscopes which has Moon in the Wrushchika Rashi
   - Need to search result by planet's Nakshathra adipathi. As example සඳ්‍ර කුජගේ නැකතක or සඳගේ නැකත් අධිපති කුජ should give horoscopes that has Moon in the Nakshathra of Kuja.
   - If search ලග්න නැකත අස්ලිය should give horoscopes that has Ascendant's Nakshathra is අස්ලිය. Not Nakshathra is අස්ලිය.
-- The planets table should use the planet's Rashi location without considering house's start and end degree. As example 6a68e2c9150a9f9377fa8861, Moon should in the 8th house. Now it is showing as 7th house because it is in 7th house start and end value
 
 ## Notepad
 

@@ -1,6 +1,6 @@
 import { NATURAL_ENEMIES } from "@/lib/astrology";
 import type { House, Planet } from "@/lib/astrology";
-import { computeMaranakaraka, computeThithiFromPlanets, findHouse } from "@/lib/astrology";
+import { computeMaranakaraka, computeThithiFromPlanets } from "@/lib/astrology";
 import { PlanetaryStrength } from "@/lib/astrologyEnums";
 import { SIGN_LORD } from "@/lib/manualChart";
 
@@ -40,7 +40,7 @@ export interface ShadBalayaContext {
     source: "auto" | "manual";
     /** Thithi (1-30). Falls back to computeThithiFromPlanets(planets). */
     thithi?: number;
-    /** Day/night — Sun cusp house 7-12 for auto; manual charts may omit (then skipped). */
+    /** Day/night — Sun whole-sign Rashi house 7-12 for auto; manual charts may omit (then skipped). */
     day?: boolean;
     /** Maranakaraka planets (each planet in its designated death house; empty when none). Falls back to computeMaranakaraka. */
     maranakaraka?: number[];
@@ -238,30 +238,23 @@ function computeKalaBala(p: ShadBalaPlanet, thithi: number, ctx: ShadBalayaConte
     return { value: reasons.length > 0, overridden: false, reasons };
 }
 
-function computeDigBala(p: ShadBalaPlanet, houses: House[], ctx: ShadBalayaContext): ShadBalaValue {
+function computeDigBala(p: ShadBalaPlanet): ShadBalaValue {
     if (p.name === 8 || p.name === 9) {
         return { value: false, overridden: false, reasons: [] };
     }
-    const house = ctx.source === "manual" ? p.house : (findHouse(p.absoluteDegree, houses) ?? p.house);
     const target = DIG_HOUSE[p.name];
-    if (target !== undefined && house === target) {
-        return { value: true, overridden: false, reasons: [{ key: "shadbalaya.dig.reason.house", params: { house } }] };
+    if (target !== undefined && p.house === target) {
+        return { value: true, overridden: false, reasons: [{ key: "shadbalaya.dig.reason.house", params: { house: p.house } }] };
     }
     return { value: false, overridden: false, reasons: [] };
 }
 
-function computeNaisargikaBala(
-    p: ShadBalaPlanet,
-    houses: House[],
-    maranakaraka: number[],
-    ctx: ShadBalayaContext,
-): ShadBalaValue {
+function computeNaisargikaBala(p: ShadBalaPlanet, maranakaraka: number[]): ShadBalaValue {
     if (maranakaraka.includes(p.name)) {
-        const house = ctx.source === "manual" ? p.house : (findHouse(p.absoluteDegree, houses) ?? p.house);
         return {
             value: false,
             overridden: false,
-            reasons: [{ key: "shadbalaya.naisargika.reason.maranakaraka", params: { house } }],
+            reasons: [{ key: "shadbalaya.naisargika.reason.maranakaraka", params: { house: p.house } }],
         };
     }
     return { value: true, overridden: false, reasons: [{ key: "shadbalaya.naisargika.reason.notMaranakaraka" }] };
@@ -271,13 +264,13 @@ function computeDrishtiBala(): ShadBalaValue {
     return { value: false, overridden: false, reasons: [{ key: "shadbalaya.drishti.reason.manual" }] };
 }
 
-/** Day/night derivation for auto charts: Sun above the horizon when its cusp-based house is 7-12
- *  (house 7 inclusive). Falls back to the entered `p.house` when findHouse has no range. */
-export function deriveDay(planets: ShadBalaPlanet[], houses: House[]): boolean {
+/** Day/night derivation for auto charts: Sun above the horizon when its whole-sign Rashi house is
+ *  7-12 (house 7 inclusive). Uses `sun.house` — the planet's Rashi location — never the cusp
+ *  boundary ranges. */
+export function deriveDay(planets: ShadBalaPlanet[]): boolean {
     const sun = planets.find((p) => p.name === 1);
     if (!sun) return true;
-    const house = findHouse(sun.absoluteDegree, houses) ?? sun.house;
-    return house >= 7;
+    return sun.house >= 7;
 }
 
 const missingPlanet = (name: number): ShadBalaPlanet => ({
@@ -290,10 +283,13 @@ const missingPlanet = (name: number): ShadBalaPlanet => ({
 });
 
 /** Compute the full Shad Bala table for all nine planets (pure, deterministic, no I/O — the page
- *  and the recalculation pipeline both call this so legacy docs recompute at render). */
+ *  and the recalculation pipeline both call this so legacy docs recompute at render). Every
+ *  house-based rule (Dig, Naisargika, day/night) uses the planet's whole-sign Rashi house
+ *  (`p.house`), never the cusp-boundary ranges. The `houses` argument is retained for API
+ *  stability with legacy callers but is no longer consulted. */
 export function computeShadBalaya(planets: ShadBalaPlanet[], houses: House[], ctx: ShadBalayaContext): ShadBalaya {
     const thithi = ctx.thithi ?? computeThithiFromPlanets(planets);
-    const maranakaraka = ctx.maranakaraka ?? computeMaranakaraka(planets, houses);
+    const maranakaraka = ctx.maranakaraka ?? computeMaranakaraka(planets);
     const moonSign = planets.find((p) => p.name === 2)?.sign ?? null;
 
     const result: ShadBalaya = {};
@@ -303,9 +299,9 @@ export function computeShadBalaya(planets: ShadBalaPlanet[], houses: House[], ct
             sthanaBala: computeSthanaBala(p),
             cheshtaBala: computeCheshtaBala(p, thithi, moonSign, ctx),
             kalaBala: computeKalaBala(p, thithi, ctx),
-            digBala: computeDigBala(p, houses, ctx),
+            digBala: computeDigBala(p),
             drishtiBala: computeDrishtiBala(),
-            naisargikaBala: computeNaisargikaBala(p, houses, maranakaraka, ctx),
+            naisargikaBala: computeNaisargikaBala(p, maranakaraka),
         };
     }
     return result;

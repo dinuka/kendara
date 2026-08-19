@@ -429,16 +429,16 @@ export function calculateHoroscope(
     const dashas = calculateDashas(positions.Mo.longitude, moonNakshatra, nakshatraLords[moonNakshatra - 1], birthDate);
 
     const thithi = computeThithi(sunLong, moonLong);
-    const maranakaraka = computeMaranakaraka(planetDetails, houses);
+    const maranakaraka = computeMaranakaraka(planetDetails);
     const yogakaraka = computeYogakaraka(ascSign);
 
     // Shad Bala computed once at calculation time so new CalculatedDetails docs carry the table;
     // legacy docs without the field are lazily recomputed (and merged with stored overrides) at
-    // render in the horoscope detail page. Day/night uses the Sun-cusp-house rule (see deriveDay).
+    // render in the horoscope detail page. Day/night uses the Sun-whole-sign-house rule (see deriveDay).
     const shadbalaya = computeShadBalaya(planetDetails, houses, {
         source: "auto",
         thithi,
-        day: deriveDay(planetDetails, houses),
+        day: deriveDay(planetDetails),
         maranakaraka,
     });
 
@@ -645,8 +645,8 @@ function computeAtmakaraka(planets: Planet[]): number {
 }
 
 /** Maranakaraka (මරණකාරක) is computed by the shared computeMaranakaraka in astrology.ts, which uses
- *  the cusp-based calculated house (findHouse) — the same house shown in the chart — rather than the
- *  whole-sign `planet.house`, which can differ for unequal houses. */
+ *  the planet's whole-sign Rashi house (`planet.house` — sign relative to the ascendant sign), never
+ *  the cusp-boundary ranges (house start/end degrees). */
 function addYearsToDate(date: Date, years: number): Date {
     const d = new Date(date);
     const y = Math.floor(years);

@@ -317,21 +317,14 @@ const MARANAKARAKA_RULE: Record<number, number> = {
 
 /** Maranakaraka (මරණකාරක): every planet occupying its designated house — Chandra in the 8th, Rahu in
  *  the 9th, Shani in the 1st, Ravi in the 5th, Shukra in the 6th, Kuja in the 7th, Budha in the 4th,
- *  Guru in the 3rd — is itself the Maranakaraka (never Chandra by default). Uses the cusp-based
- *  calculated house (findHouse) when `houses` are provided — the same house shown in the chart —
- *  falling back to the whole-sign `planet.house` otherwise (manual charts, where the entered house
- *  is the source of truth). Also used per-chart by the Warga Kendara tables (src/lib/wargaKendara.ts),
- *  which pass the chart's own houses (e.g. the whole-sign Navamsa wheel for the D9 entry) so the
- *  check applies within that chart. Returns an empty array when no rule holds. */
-export function computeMaranakaraka(
-    planets: Array<Pick<Planet, "name" | "house" | "absoluteDegree">>,
-    houses?: House[],
-): number[] {
+ *  Guru in the 3rd — is itself the Maranakaraka (never Chandra by default). The house is the planet's
+ *  Rashi location (`planet.house`, the whole-sign house relative to the ascendant sign), never the
+ *  cusp-boundary range (house start/end degrees). Also used per-chart by the Warga Kendara tables
+ *  (src/lib/wargaKendara.ts), which pass each chart's own whole-sign row houses so the check applies
+ *  within that chart. Returns an empty array when no rule holds. */
+export function computeMaranakaraka(planets: Array<Pick<Planet, "name" | "house">>): number[] {
     return planets
-        .filter((p) => {
-            const house = houses ? (findHouse(p.absoluteDegree, houses) ?? p.house) : p.house;
-            return MARANAKARAKA_RULE[p.name] === house;
-        })
+        .filter((p) => MARANAKARAKA_RULE[p.name] === p.house)
         .map((p) => p.name)
         .sort((a, b) => a - b);
 }
@@ -480,7 +473,7 @@ export interface CalculationResult {
     ashtamanshaPlanets: number[];
     atmakaraka: number;
     /** Maranakaraka (මරණකාරක): the planets occupying their designated death houses, each tagged as
-     *  Maranakaraka (see computeMaranakaraka). Uses the cusp-based calculated house for auto charts. */
+     *  Maranakaraka (see computeMaranakaraka). Uses the whole-sign Rashi house (`planet.house`). */
     maranakaraka: number[];
     /** Yogakaraka (යෝගකාරක): the planets owning both a Kendra (4/7/10) and a Trikona (5/9) house
      *  from the lagna by sign lordship, each tagged as Yogakaraka (see computeYogakaraka). */
