@@ -150,6 +150,7 @@
             "ascendant": "ලග්නය {sign}",
             "planetInSign": "ග්‍ර. {planet} රාශි {sign}",
             "planetInSignHouse": "{planet} රාශි {sign}, භාව {house}",
+            "planetNakshatraLord": "{planet} නැකතට අධිපති {lord}",
             "exaltation": "{planet} උච්ච",
             "debilitation": "{planet} නීච",
             "yogaPresent": "යෝග {count}",

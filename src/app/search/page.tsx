@@ -505,6 +505,10 @@ const formatCondition = (
         const [planet, value] = rest.split("=");
         return t("search.conditions.planetBhavaSuchika", { planet, value });
     }
+    if (mc.startsWith("planet_nakshatra_lord=")) {
+        const [planet, lord] = mc.slice("planet_nakshatra_lord=".length).split(":");
+        return t("search.conditions.planetNakshatraLord", { planet, lord });
+    }
     const ROLE_KEYS = [
         "ashtamansha",
         "nidhanamsha",
@@ -558,10 +562,9 @@ const SearchResultCard = ({
     const cd = h.calculatedDetails as Record<string, unknown> | undefined;
     // Maranakaraka recomputed from the lagna chart (never D9); legacy docs stored a single planet.
     // Uses the planet's whole-sign Rashi house (p.house), never the cusp-boundary range.
-    const maranakarakaPlanets =
-        cd?.planets
-            ? computeMaranakaraka(cd.planets as Planet[])
-            : normalizeMaranakaraka(cd?.maranakaraka as number | number[] | undefined);
+    const maranakarakaPlanets = cd?.planets
+        ? computeMaranakaraka(cd.planets as Planet[])
+        : normalizeMaranakaraka(cd?.maranakaraka as number | number[] | undefined);
     const charts = h.charts as Record<string, unknown> | undefined;
     const ascData = cd?.ascendant as Record<string, unknown> | undefined;
     const ascSign = ascData?.sign as number | undefined;

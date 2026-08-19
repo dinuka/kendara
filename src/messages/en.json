@@ -150,6 +150,7 @@
             "ascendant": "Asc. {sign}",
             "planetInSign": "P{planet} in {sign}",
             "planetInSignHouse": "{planet} in {sign} H{house}",
+            "planetNakshatraLord": "{planet} in nakshatra of {lord}",
             "exaltation": "{planet} Exalted",
             "debilitation": "{planet} Debil.",
             "yogaPresent": "{count} Yogas",

@@ -6,7 +6,8 @@ import { CalculatedDetails } from "@/models/CalculatedDetails";
 import { Chart } from "@/models/Chart";
 import { Horoscope } from "@/models/Horoscope";
 
-import { PLANET_NAMES, PlanetaryStrength, STRENGTH_LABELS, ZODIAC_SIGN_NAMES } from "@/lib/astrologyEnums";
+import { getNakshatraLord } from "@/lib/astrology";
+import { PLANET_NAMES, Planet, PlanetaryStrength, STRENGTH_LABELS, ZODIAC_SIGN_NAMES } from "@/lib/astrologyEnums";
 import { isValidBhavaSuchikaValue, resolveLagnaBhavaSuchika, resolvePlanetBhavaSuchika } from "@/lib/bhavaSuchika";
 import { connectDB } from "@/lib/db";
 import logger from "@/lib/logger";
@@ -38,7 +39,10 @@ type ExactCondition =
     | { type: "ascendant"; sign: number }
     | { type: "navamsa_ascendant"; sign: number }
     | { type: "planet_in_house"; planet: number; house: number }
+    | { type: "planet_in_sign"; planet: number; sign: number }
     | { type: "nakshatra"; nakshatra: number }
+    | { type: "ascendant_nakshatra"; nakshatra: number }
+    | { type: "planet_nakshatra_lord"; planet: number; lord: number }
     | { type: "planet_strength"; planet: number; strength: PlanetaryStrength }
     | { type: "planet_role"; role: PlanetRoleKey; planet: number }
     | { type: "bhava_suchika"; value: number }
@@ -222,6 +226,136 @@ const getPlanetStrengthPairs = (query: string): Array<{ planet: number; strength
     }
 
     return pairs;
+};
+
+// Pairs each planet word in the query with the sign word nearest to it, so a query like
+// "සඳු වෘශ්චික" yields [{ Moon, Scorpio }] and "සඳු වෘශ්චික කුජ මේෂ" yields
+// [{ Moon, Scorpio }, { Mars, Aries }] — each named planet matched to its own sign. A bare
+// sign with no nearby planet is left unpaired and is still handled by keyword scoring.
+const getPlanetSignPairs = (query: string): Array<{ planet: number; sign: number }> => {
+    const q = stripJoiners(query.toLowerCase());
+
+    const planetValueByWord = new Map<string, number>();
+    for (const [word, value] of Object.entries(PLANET_NAMES)) {
+        planetValueByWord.set(stripJoiners(word.toLowerCase()), value);
+    }
+
+    const signValueByWord = new Map<string, number>();
+    for (const [word, value] of Object.entries(ZODIAC_SIGN_NAMES)) {
+        signValueByWord.set(stripJoiners(word.toLowerCase()), value);
+    }
+
+    const planetOccurrences: Array<{ index: number; value: number }> = [];
+    const planetRe = new RegExp(buildRegexSource([...planetValueByWord.keys()]), "g");
+    for (const m of q.matchAll(planetRe)) {
+        const value = planetValueByWord.get(m[0]);
+        if (value !== undefined && typeof m.index === "number") {
+            planetOccurrences.push({ index: m.index, value });
+        }
+    }
+    if (planetOccurrences.length === 0) return [];
+
+    const signOccurrences: Array<{ index: number; value: number }> = [];
+    const signRe = new RegExp(buildRegexSource([...signValueByWord.keys()]), "g");
+    for (const m of q.matchAll(signRe)) {
+        const value = signValueByWord.get(m[0]);
+        if (value !== undefined && typeof m.index === "number") {
+            signOccurrences.push({ index: m.index, value });
+        }
+    }
+    if (signOccurrences.length === 0) return [];
+
+    const pairs: Array<{ planet: number; sign: number }> = [];
+    const usedSigns = new Set<number>();
+
+    for (const p of planetOccurrences) {
+        let bestDist = Number.POSITIVE_INFINITY;
+        let bestSign: number | null = null;
+        for (const s of signOccurrences) {
+            if (usedSigns.has(s.value)) continue;
+            const dist = Math.abs(s.index - p.index);
+            if (dist < bestDist) {
+                bestDist = dist;
+                bestSign = s.value;
+            }
+        }
+
+        if (bestSign !== null) {
+            pairs.push({ planet: p.value, sign: bestSign });
+            usedSigns.add(bestSign);
+        }
+    }
+
+    return pairs;
+};
+
+// Phrases that mean "nakshatra lord" (නැකත් අධිපති). Kept in raw spelling (not the collapsed
+// nakshatra skeleton) so "moon nakshatra lord mars" still matches after its repeated letters
+// are merged by normalizeNakshatraQuery.
+const NAKSHATRA_LORD_PHRASES = [
+    "නැකත් අධිපති",
+    "නැකත් අධිපතියා",
+    "නැකැත් අධිපති",
+    "නැකැත් අධිපතියා",
+    "නැකත අධිපති",
+    "නැකත අධිපතියා",
+    "නක්ෂත්ර අධිපති",
+    "නක්ෂත්රයේ අධිපති",
+    "nakshatra lord",
+    "nakshathra lord",
+    "nakashatra lord",
+    "star lord",
+];
+
+// A genitive marker right before a nakshatra word — the possessive "of" form, e.g. "කුජගේ
+// නැකතක" (a nakshatra of Mars) or "mars's nakshatra".
+const POSSESSIVE_NAKSHATRA_RE = /(ගේ|'s)\s*(?:නැකත්|නැකැත්|නැකත|නක්ෂත්රය|නක්ෂත්ර|nakshatra|nakshathra|nakashatra|star)/;
+
+// Pairs the planet whose nakshatra is meant with the planet that rules it, so "සඳගේ නැකත්
+// අධිපති කුජ" and "සඳ කුජගේ නැකතක" both yield { planet: Moon, lord: Mars }. With an
+// adipathi/lord word the genitive planet ("Xගේ නැකත් අධිපති Y") is the one inside the
+// nakshatra and Y is its lord; without one ("X Yගේ නැකත") the genitive planet is the lord.
+const getPlanetNakshatraLord = (query: string): { planet: number; lord: number } | null => {
+    const q = stripJoiners(query.toLowerCase());
+
+    const planetByKey = new Map<string, number>();
+    for (const [word, value] of Object.entries(PLANET_NAMES)) {
+        planetByKey.set(stripJoiners(word.toLowerCase()), value);
+    }
+
+    const occurrences: Array<{ index: number; value: number; word: string }> = [];
+    const planetRe = new RegExp(buildRegexSource([...planetByKey.keys()]), "g");
+    for (const m of q.matchAll(planetRe)) {
+        const value = planetByKey.get(m[0]);
+        if (value !== undefined && typeof m.index === "number") {
+            occurrences.push({ index: m.index, value, word: m[0] });
+        }
+    }
+    if (occurrences.length < 2) return null;
+
+    const genitivePlanets = occurrences.filter((p) => {
+        const after = q.slice(p.index + p.word.length);
+        return after.startsWith("ගේ") || after.startsWith("'s");
+    });
+
+    const hasLordTrigger = NAKSHATRA_LORD_PHRASES.some((phrase) => q.includes(phrase));
+
+    if (hasLordTrigger) {
+        if (genitivePlanets.length > 0) {
+            const subject = genitivePlanets[0];
+            const lord = occurrences.find((p) => p.index !== subject.index);
+            if (lord) return { planet: subject.value, lord: lord.value };
+        }
+        return { planet: occurrences[0].value, lord: occurrences[1].value };
+    }
+
+    if (POSSESSIVE_NAKSHATRA_RE.test(q) && genitivePlanets.length > 0) {
+        const lord = genitivePlanets[0];
+        const subject = occurrences.find((p) => p.index !== lord.index);
+        if (subject) return { planet: subject.value, lord: lord.value };
+    }
+
+    return null;
 };
 
 // Pairs a sign word with the trigger word (ascendant/navamsa) it refers to, so a query like
@@ -417,12 +551,21 @@ const hasAnyPlanetRole = (role: PlanetRoleKey, calculatedDetails: Record<string,
 
 const getExactMatch = (query: string): ExactMatch => {
     const q = stripJoiners(query.toLowerCase());
+    const hasAscendantWord = ASCENDANT_WORDS.some((w) => q.includes(stripJoiners(w.toLowerCase())));
+    const planetNakshatraLord = getPlanetNakshatraLord(query);
     const conditions: ExactMatch = [];
 
-    if (hasNakshatraTriggerWord(query)) {
+    // A nakshatra-lord query uses the nakshatra word as a trigger ("නැකත් අධිපති", "ගේ නැකත"),
+    // never as a nakshatra name — skip the name resolver so it can't misread "නැකතක" as a
+    // nakshatra id (e.g. Krittika's "කතක" skeleton inside "නැකතක").
+    if (planetNakshatraLord === null && hasNakshatraTriggerWord(query)) {
         const nakshatraValue = findNakshatraMatch(query);
         if (nakshatraValue !== null) {
-            conditions.push({ type: "nakshatra", nakshatra: nakshatraValue });
+            conditions.push(
+                hasAscendantWord
+                    ? { type: "ascendant_nakshatra", nakshatra: nakshatraValue }
+                    : { type: "nakshatra", nakshatra: nakshatraValue },
+            );
         }
     }
 
@@ -431,14 +574,16 @@ const getExactMatch = (query: string): ExactMatch => {
         conditions.push({ type: "planet_strength", planet, strength });
     }
 
+    if (planetNakshatraLord !== null) {
+        conditions.push({ type: "planet_nakshatra_lord", ...planetNakshatraLord });
+    }
+
     const planetRole = getPlanetRole(query);
     if (planetRole !== null) {
         for (const planet of getPlanetMatches(query)) {
             conditions.push({ type: "planet_role", role: planetRole, planet });
         }
     }
-
-    const hasAscendantWord = ASCENDANT_WORDS.some((w) => q.includes(stripJoiners(w.toLowerCase())));
 
     const explicitHouseByPlanet = new Map<number, number>();
     for (const [word, planetValue] of Object.entries(PLANET_NAMES)) {
@@ -472,6 +617,15 @@ const getExactMatch = (query: string): ExactMatch => {
         conditions.push({ type: "navamsa_ascendant", sign: navamsaSignValue });
     }
 
+    // A bare "planet sign" query (e.g. "සඳු වෘශ්චික", "කුජ මේෂ") means THAT planet is in THAT
+    // sign. Skipped when an ascendant or navamsa trigger is present because there the sign words
+    // already refer to the lagna/navamsa-lagna instead of a planet's Rashi position.
+    if (!hasAscendantWord && navamsaSignValue === null) {
+        for (const { planet, sign } of getPlanetSignPairs(query)) {
+            conditions.push({ type: "planet_in_sign", planet, sign });
+        }
+    }
+
     const bhavaSuchikaMatch = getBhavaSuchikaMatch(query);
     if (bhavaSuchikaMatch !== null) {
         if (bhavaSuchikaMatch.type === "lagna") {
@@ -500,10 +654,12 @@ const getAstroKeywords = (query: string): string[] => {
     const q = stripJoiners(query.toLowerCase());
     const keywords: string[] = [];
 
-    if (hasNakshatraTriggerWord(query)) {
+    const planetNakshatraLord = getPlanetNakshatraLord(query);
+    if (planetNakshatraLord === null && hasNakshatraTriggerWord(query)) {
         const nakshatraValue = findNakshatraMatch(query);
         if (nakshatraValue !== null) {
-            keywords.push(`nakshatra:${nakshatraValue}`);
+            const hasAscendantWord = ASCENDANT_WORDS.some((w) => q.includes(stripJoiners(w.toLowerCase())));
+            keywords.push(hasAscendantWord ? `ascendant_nakshatra:${nakshatraValue}` : `nakshatra:${nakshatraValue}`);
         }
     }
 
@@ -517,6 +673,16 @@ const getAstroKeywords = (query: string): string[] => {
         if (q.includes(stripJoiners(word.toLowerCase()))) {
             keywords.push(`planet:${word}`);
         }
+    }
+
+    if (planetNakshatraLord !== null) {
+        const planetWord =
+            Object.entries(PLANET_NAMES).find(([, v]) => v === planetNakshatraLord.planet)?.[0] ||
+            planetNakshatraLord.planet;
+        const lordWord =
+            Object.entries(PLANET_NAMES).find(([, v]) => v === planetNakshatraLord.lord)?.[0] ||
+            planetNakshatraLord.lord;
+        keywords.push(`planet_nakshatra_lord:${planetWord}:${lordWord}`);
     }
 
     const strengthMatch = getStrengthMatch(query);
@@ -559,6 +725,15 @@ const getAstroKeywords = (query: string): string[] => {
         }
     }
 
+    const hasAscendantWord = ASCENDANT_WORDS.some((w) => q.includes(stripJoiners(w.toLowerCase())));
+    if (!hasAscendantWord && getNavamsaSignMatch(query) === null) {
+        for (const { planet, sign } of getPlanetSignPairs(query)) {
+            const planetWord = Object.entries(PLANET_NAMES).find(([, v]) => v === planet)?.[0] || planet;
+            const signWord = Object.entries(ZODIAC_SIGN_NAMES).find(([, v]) => v === sign)?.[0] || sign;
+            keywords.push(`planet_in_sign:${planetWord}:${signWord}`);
+        }
+    }
+
     if (getNavamsaSignMatch(query) !== null) {
         keywords.push("navamsa_ascendant");
     }
@@ -587,22 +762,56 @@ const scoreHoroscope = (
     const q = stripJoiners(query.toLowerCase());
     const matchedConditions: string[] = [];
 
-    if (hasNakshatraTriggerWord(query)) {
+    const planetNakshatraLord = getPlanetNakshatraLord(query);
+    if (planetNakshatraLord === null && hasNakshatraTriggerWord(query)) {
         const nakshatraValue = findNakshatraMatch(query);
         if (nakshatraValue !== null && calculatedDetails?.nakshatra) {
             const nakshatra = calculatedDetails.nakshatra as Record<string, unknown>;
             const moonNakshatra = nakshatra.moonNakshatra as Record<string, unknown> | undefined;
             const ascendantNakshatra = nakshatra.ascendantNakshatra as Record<string, unknown> | undefined;
+            const hasAscendantWord = ASCENDANT_WORDS.some((w) => q.includes(stripJoiners(w.toLowerCase())));
 
-            if (moonNakshatra?.id === nakshatraValue) {
-                score += 1.0;
-                matchedConditions.push(`moon_nakshatra=${nakshatraValue}`);
-            }
+            if (hasAscendantWord) {
+                if (ascendantNakshatra?.id === nakshatraValue) {
+                    score += 1.0;
+                    matchedConditions.push(`ascendant_nakshatra=${nakshatraValue}`);
+                }
+            } else {
+                if (moonNakshatra?.id === nakshatraValue) {
+                    score += 1.0;
+                    matchedConditions.push(`moon_nakshatra=${nakshatraValue}`);
+                }
 
-            if (ascendantNakshatra?.id === nakshatraValue) {
-                score += 0.5;
-                matchedConditions.push(`ascendant_nakshatra=${nakshatraValue}`);
+                if (ascendantNakshatra?.id === nakshatraValue) {
+                    score += 0.5;
+                    matchedConditions.push(`ascendant_nakshatra=${nakshatraValue}`);
+                }
             }
+        }
+    }
+
+    if (planetNakshatraLord !== null) {
+        const nakshatra = calculatedDetails?.nakshatra as Record<string, unknown> | undefined;
+        const planets = calculatedDetails?.planets as Array<Record<string, unknown>> | undefined;
+
+        let lordMatches = false;
+        if (planetNakshatraLord.planet === Planet.MOON) {
+            const moonNakshatra = nakshatra?.moonNakshatra as Record<string, unknown> | undefined;
+            lordMatches = !!moonNakshatra && getNakshatraLord(moonNakshatra.id as number) === planetNakshatraLord.lord;
+        } else if (planets) {
+            const target = planets.find((p) => p.name === planetNakshatraLord.planet);
+            lordMatches = !!target && getNakshatraLord(target.nakshatra as number) === planetNakshatraLord.lord;
+        }
+
+        if (lordMatches) {
+            score += 1.0;
+            const planetWord =
+                Object.entries(PLANET_NAMES).find(([, v]) => v === planetNakshatraLord.planet)?.[0] ||
+                planetNakshatraLord.planet;
+            const lordWord =
+                Object.entries(PLANET_NAMES).find(([, v]) => v === planetNakshatraLord.lord)?.[0] ||
+                planetNakshatraLord.lord;
+            matchedConditions.push(`planet_nakshatra_lord=${planetWord}:${lordWord}`);
         }
     }
 
@@ -664,9 +873,7 @@ const scoreHoroscope = (
                         score += 0.3;
 
                         const signName = Object.entries(ZODIAC_SIGN_NAMES).find(([, v]) => v === p.sign)?.[0] || p.sign;
-                        matchedConditions.push(
-                            `${word}_in_sign=${signName}_house=${getEffectivePlanetHouse(p)}`,
-                        );
+                        matchedConditions.push(`${word}_in_sign=${signName}_house=${getEffectivePlanetHouse(p)}`);
                     }
                 }
             }
@@ -676,6 +883,26 @@ const scoreHoroscope = (
     const namedPlanets = getPlanetMatches(query);
     const matchesNamedPlanet = (planetValue: unknown): boolean =>
         namedPlanets.length === 0 || namedPlanets.includes(planetValue as number);
+
+    // A named planet placed in the sign the query pairs it with (e.g. "සඳු වෘශ්චික" → Moon in
+    // Scorpio) is the strongest signal for a planet+sign query — a single bonus shared across any
+    // matching horoscope rather than one added per duplicate word/alias. Skipped when an ascendant
+    // or navamsa trigger is present because there the sign words refer to the lagna/navamsa-lagna.
+    const hasAscendantWord = ASCENDANT_WORDS.some((w) => q.includes(stripJoiners(w.toLowerCase())));
+    const planetSignPairs = !hasAscendantWord && navamsaSignValue === null ? getPlanetSignPairs(query) : [];
+    const matchedPlanetSign = new Set<string>();
+    if (planetSignPairs.length > 0 && calculatedDetails?.planets) {
+        const planets = calculatedDetails.planets as Array<Record<string, unknown>>;
+        for (const { planet, sign } of planetSignPairs) {
+            if (matchedPlanetSign.has(`${planet}:${sign}`)) continue;
+            if (planets.some((p) => p.name === planet && p.sign === sign)) {
+                score += 1.0;
+                matchedPlanetSign.add(`${planet}:${sign}`);
+                const signWord = Object.entries(ZODIAC_SIGN_NAMES).find(([, v]) => v === sign)?.[0] || sign;
+                matchedConditions.push(`planet_in_sign=${planet}_${signWord}`);
+            }
+        }
+    }
 
     const strengthMatch = getStrengthMatch(query);
 
@@ -747,10 +974,7 @@ const scoreHoroscope = (
             if (planetMatch && calculatedDetails?.planets) {
                 const planets = calculatedDetails.planets as Array<Record<string, unknown>>;
                 for (const p of planets) {
-                    if (
-                        p.name === planetMatch[1] &&
-                        getEffectivePlanetHouse(p) === houseNum
-                    ) {
+                    if (p.name === planetMatch[1] && getEffectivePlanetHouse(p) === houseNum) {
                         score += 0.6;
                         matchedConditions.push(`${planetMatch[0]}_in_house=${houseNum}`);
                     }
@@ -875,14 +1099,43 @@ export async function POST(req: NextRequest) {
                                 if (!planets) return false;
                                 return planets.some(
                                     (p) =>
-                                        p.name === condition.planet &&
-                                        getEffectivePlanetHouse(p) === condition.house,
+                                        p.name === condition.planet && getEffectivePlanetHouse(p) === condition.house,
                                 );
+                            }
+                            case "planet_in_sign": {
+                                const planets = calculatedDetails?.planets as
+                                    Array<Record<string, unknown>> | undefined;
+                                if (!planets) return false;
+                                return planets.some((p) => p.name === condition.planet && p.sign === condition.sign);
                             }
                             case "nakshatra": {
                                 const nakshatra = calculatedDetails?.nakshatra as Record<string, unknown> | undefined;
                                 const moonNakshatra = nakshatra?.moonNakshatra as Record<string, unknown> | undefined;
                                 return !!moonNakshatra && moonNakshatra.id === condition.nakshatra;
+                            }
+                            case "ascendant_nakshatra": {
+                                const nakshatra = calculatedDetails?.nakshatra as Record<string, unknown> | undefined;
+                                const ascendantNakshatra = nakshatra?.ascendantNakshatra as
+                                    Record<string, unknown> | undefined;
+                                return !!ascendantNakshatra && ascendantNakshatra.id === condition.nakshatra;
+                            }
+                            case "planet_nakshatra_lord": {
+                                const nakshatra = calculatedDetails?.nakshatra as Record<string, unknown> | undefined;
+                                const planets = calculatedDetails?.planets as
+                                    Array<Record<string, unknown>> | undefined;
+
+                                if (condition.planet === Planet.MOON) {
+                                    const moonNakshatra = nakshatra?.moonNakshatra as
+                                        Record<string, unknown> | undefined;
+                                    return (
+                                        !!moonNakshatra &&
+                                        getNakshatraLord(moonNakshatra.id as number) === condition.lord
+                                    );
+                                }
+
+                                if (!planets) return false;
+                                const target = planets.find((p) => p.name === condition.planet);
+                                return !!target && getNakshatraLord(target.nakshatra as number) === condition.lord;
                             }
                             case "planet_strength": {
                                 const planets = calculatedDetails?.planets as
