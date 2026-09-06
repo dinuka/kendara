@@ -79,6 +79,18 @@
   - View the twelve D1-only planet details — Wargoththama, Pushkara, Gandantha, Gandamula, 64th Navamsa Lord, 22nd Drekkana Lord, Cheshta Bala, Ashtamansha, Kala Bala, Atmakaraka, Combust, Badhaka — only in the D1 tables
   - View Maraka, Maranakaraka and Dig Bala details calculated for every chart's tables (D1, D9, Surya Lagna, Chandra Lagna)
   - View all Warga Kendara content read-only (no editing) on own, public and share-linked horoscopes
+  - Open the Student Notepad (ශිෂ්ය සටහන් පොත) popup on any viewable horoscope (own, public, share-linked) and move/resize it; the popup geometry persists per horoscope
+  - Select a single parent tag at a time — the 12 house purposes plus "Other" — and drill into that parent's sub-tags (house significations from the static house-purpose catalog)
+  - View system-generated observations for the selected sub-tag as color-coded tags (green = good, red = bad, white = neutral) with a per-section ratio `(green count/all count)`:
+    - The planets and details of each planet in the house (D1)
+    - House load, house load position, Nakshatra load of the house load, position of the Nakshatra load
+    - The planet(s) and details relevant to the sub-tag (planet significations)
+    - Chandra Lagna's related house and its house load, house load position and details (e.g. for Marriage check the 7th house of the Chandra chart)
+    - Surya Lagna's related house and its house load, house load position and details
+    - The related Warga Kendara and its data: warga lagna + load + position; the related house of the warga chart + load + position; the D1 load in the warga chart + position + details
+  - Add own observation tags (with a selectable color) to the current parent/sub-tag context; edit and delete own observation tags
+  - Add, edit and delete result notes based on all observations
+  - Persist the notepad per horoscope — popup geometry, own observation tags and result notes — privately (never visible to other students, public viewers or share-link recipients)
 - **Authentication**: Google SSO (auto-assigned)
 
 ## 2. Super Admin
@@ -154,3 +166,7 @@
   - Compute per-chart calculation tables (Houses: #/Sign/Planets/Aspects; Planets: Planet/Sign/Str/House/Conjunctions/Aspects/Other) for every displayed chart, using that chart's own signs, strengths and houses; Nakshatra (Pada) and Bhava Suchika columns only for D1; Conjunctions/Aspects rendered without degree differences
   - Compute per-chart planet details: the twelve D1-only details (Wargoththama, Pushkara, Gandantha, Gandamula, 64th Navamsa Lord, 22nd Drekkana Lord, Cheshta Bala, Ashtamansha, Kala Bala, Atmakaraka, Combust, Badhaka) for D1; Maraka, Maranakaraka and Dig Bala for every chart
   - Persist per-chart Warga Kendara data on `CalculatedDetails.wargaKendara` (see `20260815-1129-warga-kendara.md`) and recompute it during the AstrologySettings full recalculation job — no user overrides exist; provide a render-time pure-function fallback so legacy documents still render correct tables
+  - Maintain the static house-purpose catalog — the 13 notepad parent tags (12 houses, each with its Sanskrit name and main purpose/significations that supply the sub-tags, plus "Other") — bilingual display data resolved via i18n, never stored per horoscope (see `20260816-1543-student-notes.md`)
+  - Maintain the static planet-signification catalog (☉ Sun → self/soul/father…, ☽ Moon → mind/mother…, ♂ Mars → courage/strength…, ☿ Mercury → intelligence/speech…, ♃ Jupiter → wisdom/guru…, ♀ Venus → marriage/spouse…, ♄ Saturn → work/service…, ☊ Rahu → foreign matters…, ☋ Ketu → detachment/spirituality…) and the reverse sub-tag → relevant planet(s) mapping used by the sub-tag observation section
+  - Derive the Student Notepad system-observation payload for a selected parent tag/sub-tag from `CalculatedDetails` (both `source: "auto"` and `source: "manual"`, with a render-time fallback for legacy documents): planets in the house; house load + position; Nakshatra load of the house load + position; sub-tag-relevant planet significations; Chandra/Surya Lagna related house + load + position; the related Warga Kendara (warga lagna, related house, D1 load in the warga chart) + loads + positions + details — computed on-the-fly as pure functions at render time, never stored on the note document
+  - Classify each derived observation as good (green) / bad (red) / neutral (white) and compute each section's `(green count/all count)` ratio at render time

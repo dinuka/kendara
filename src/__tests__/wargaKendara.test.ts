@@ -8,15 +8,10 @@ import * as path from "path";
 import { navamsaSign } from "@/lib/astrology";
 import { Planet, PlanetaryStrength } from "@/lib/astrologyEnums";
 import { calculateHoroscope } from "@/lib/calculation";
-import { compute, SIGN_LORD, ownedHousesOf } from "@/lib/manualChart";
+import { SIGN_LORD, compute, ownedHousesOf } from "@/lib/manualChart";
 import { synthesizeCalculation } from "@/lib/manualChartDetails";
 import { computeDigBalaPlanets } from "@/lib/shadBalaya";
-import {
-    computeWargaKendara,
-    computeWargaMaraka,
-    resolveWargaKendara,
-    VARGA_CATALOG,
-} from "@/lib/wargaKendara";
+import { VARGA_CATALOG, computeWargaKendara, computeWargaMaraka, resolveWargaKendara } from "@/lib/wargaKendara";
 import type { WargaKendara } from "@/lib/wargaKendara";
 
 const baseData = {
@@ -35,7 +30,7 @@ const baseData = {
 
 const auto = calculateHoroscope(baseData);
 
-const wedge = (degree: number): number => Math.floor((((degree ?? 0) % 30) + 30) % 30 / (30 / 9)) + 1;
+const wedge = (degree: number): number => Math.floor(((((degree ?? 0) % 30) + 30) % 30) / (30 / 9)) + 1;
 
 const D1_ONLY_KEYS = [
     "wargoththamaPlanets",
@@ -109,7 +104,21 @@ describe("D1 entry (UT-WK-001..007)", () => {
             6: [4, 8],
         };
         const angleForDiff = (diff: number): number =>
-            diff === 6 ? 180 : diff === 4 ? 120 : diff === 8 ? 240 : diff === 3 ? 90 : diff === 7 ? 210 : diff === 2 ? 60 : diff === 9 ? 270 : 0;
+            diff === 6
+                ? 180
+                : diff === 4
+                  ? 120
+                  : diff === 8
+                    ? 240
+                    : diff === 3
+                      ? 90
+                      : diff === 7
+                        ? 210
+                        : diff === 2
+                          ? 60
+                          : diff === 9
+                            ? 270
+                            : 0;
         const byName = new Map(auto.planets.map((p) => [p.name, p]));
         for (const house of d1.houses) {
             for (const aspect of house.aspects) {
@@ -117,8 +126,7 @@ describe("D1 entry (UT-WK-001..007)", () => {
                 expect(aspect.planetName).toBeLessThanOrEqual(9);
                 const planet = byName.get(aspect.planetName);
                 const diff = (house.houseNumber - (planet?.house ?? 0) + 12) % 12;
-                const aspectsHouse =
-                    diff === 6 || (SPECIAL_ASPECTS[aspect.planetName]?.includes(diff) ?? false);
+                const aspectsHouse = diff === 6 || (SPECIAL_ASPECTS[aspect.planetName]?.includes(diff) ?? false);
                 expect(aspectsHouse).toBe(true);
                 expect(aspect.aspectType).toBe(angleForDiff(diff));
             }
@@ -128,7 +136,10 @@ describe("D1 entry (UT-WK-001..007)", () => {
 
     test("UT-WK-007: ownership lists the houses whose sign the planet rules", () => {
         const ownedByPlanet = (planet: number): number[] =>
-            d1.houses.filter((h) => SIGN_LORD[h.sign] === planet).map((h) => h.houseNumber).sort((a, b) => a - b);
+            d1.houses
+                .filter((h) => SIGN_LORD[h.sign] === planet)
+                .map((h) => h.houseNumber)
+                .sort((a, b) => a - b);
         for (const planet of d1.planets) {
             expect(ownedHousesOf(planet.name, d1.houses)).toEqual(ownedByPlanet(planet.name));
         }
@@ -148,8 +159,8 @@ describe("D1 entry (UT-WK-001..007)", () => {
     });
 
     test("UT-WK-007: d1 maraka = lords of the 2nd/7th signs from the ascendant", () => {
-        const secondSign = ((auto.ascendant.sign + 1) % 12) || 12;
-        const seventhSign = ((auto.ascendant.sign + 6) % 12) || 12;
+        const secondSign = (auto.ascendant.sign + 1) % 12 || 12;
+        const seventhSign = (auto.ascendant.sign + 6) % 12 || 12;
         expect(d1.marakaPlanets).toEqual([SIGN_LORD[secondSign] || 1, SIGN_LORD[seventhSign] || 1]);
     });
 });
@@ -353,6 +364,27 @@ describe("resolveWargaKendara (UT-WK-030..033, RE-WK-450..452)", () => {
         expect(derived?.d1?.wargoththamaPlanets).toEqual(auto.wargoththamaPlanets);
         expect(warn).not.toHaveBeenCalled();
         warn.mockRestore();
+    });
+
+    test("UT-WK-032: legacy doc with planets missing navamsaStrength derives real navamsa strengths", () => {
+        const legacyDoc = {
+            ascendant: auto.ascendant,
+            houses: auto.houses,
+            planets: auto.planets.map(({ navamsaStrength, ...rest }) => rest),
+            shadbalaya: auto.shadbalaya,
+            wargoththamaPlanets: auto.wargoththamaPlanets,
+            pushkaraPlanets: auto.pushkaraPlanets,
+            gandanthaPlanets: auto.gandanthaPlanets,
+            gandamulaPlanets: auto.gandamulaPlanets,
+            lord22ndDrekkana: auto.lord22ndDrekkana,
+            lord64thNavamsa: auto.lord64thNavamsa,
+            ashtamanshaPlanets: auto.ashtamanshaPlanets,
+            atmakaraka: auto.atmakaraka,
+            badhakaPlanet: auto.badhakaPlanet,
+        };
+        const derived = resolveWargaKendara(legacyDoc);
+        expect(derived?.d9).not.toBeNull();
+        expect(derived?.d9?.planets.some((p) => p.strength !== PlanetaryStrength.SAMA)).toBe(true);
     });
 
     test("RE-WK-450: corrupt stored value → warn + re-derive from stored data", () => {

@@ -326,10 +326,10 @@ export function HouseChart({
                             isSelected
                                 ? HIGHLIGHT_SELECTED
                                 : isAscNavamsa
-                                  ? HIGHLIGHT_NAVAMSA
-                                  : n % 2 === 0
-                                    ? "#f3f4f6"
-                                    : "#e5e7eb"
+                                    ? HIGHLIGHT_NAVAMSA
+                                    : n % 2 === 0
+                                        ? "#f3f4f6"
+                                        : "#e5e7eb"
                         }
                         stroke="#9ca3af"
                         strokeWidth={0.3}
@@ -751,14 +751,12 @@ export function HouseChart({
                         aria-label={t("currentPlanets.toggleLabel")}
                         onClick={handleToggle}
                         disabled={loadingCurrent}
-                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 ${
-                            showCurrentPlanets ? "bg-sky-500" : "bg-gray-300"
-                        } ${loadingCurrent ? "opacity-60 cursor-not-allowed" : "cursor-pointer"}`}
+                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 ${showCurrentPlanets ? "bg-sky-500" : "bg-gray-300"
+                            } ${loadingCurrent ? "opacity-60 cursor-not-allowed" : "cursor-pointer"}`}
                     >
                         <span
-                            className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-sm ring-0 transition-transform duration-200 ${
-                                showCurrentPlanets ? "translate-x-[22px]" : "translate-x-[2px]"
-                            }`}
+                            className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-sm ring-0 transition-transform duration-200 ${showCurrentPlanets ? "translate-x-[22px]" : "translate-x-[2px]"
+                                }`}
                         />
                     </button>
                     <span className="text-sm text-gray-700 select-none">{t("currentPlanets.toggleLabel")}</span>
@@ -870,7 +868,7 @@ export function HouseChart({
             >
                 <circle cx={CX} cy={CY} r={R_NAKSHATRA_OUTER} fill="#ffffff" stroke="#d1d5db" strokeWidth={1} />
                 {nakshatraWedges}
-                {padaWedges}
+                {padaWedges}dd
                 {navamsaWedges}
                 {signWedges}
                 {houseWedges}

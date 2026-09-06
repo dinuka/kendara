@@ -519,3 +519,56 @@ The Bhava Suchika feature (US-BS-001…008, incl. search) adds the Navamsa house
 | US-BS-006 | UT-BS-055..059/063, IT-BS-103/104/105/110, UI-BS-304/308/310, E2E-BS-401/402, RE-BS-457 |
 | US-BS-007 | UT-BS-051/061/062, IT-BS-100..113, UI-BS-305/311, E2E-BS-403/408/410, RE-BS-460/461/462 |
 | US-BS-008 | SR-BS-200..228, E2E-BS-404..407, RE-BS-459/463/464/465/466 |
+
+## Student Notepad (ශිෂ්ය සටහන් පොත) — Testing Considerations
+
+| Level | Scope | Key files |
+|-------|-------|-----------|
+| Unit (Jest, pure) | Static house-purpose catalog (13 parents + Sanskrit names, sub-tag keys, planet-signification reverse map, SI/EN key parity); system-observation derivation per section (planets-in-house both sources, house/nakshatra load, significations, Chandra/Surya Lagna, related Warga Kendara incl. `resolveWargaKendara` legacy fallback), color classification green/red/white, ratio `{green, total}`, not-available degradation, determinism | `src/lib/notepadCatalogs.ts` (new), `src/lib/notepadObservations.ts` (new), `src/__tests__/notepadCatalogs.test.ts` (new), `src/__tests__/notepadObservations.test.ts` (new) |
+| Integration / API | GET/PUT `/api/horoscope/[id]/note` — 401/404 (never 403), lazy doc creation (GET never writes), PUT upsert + per-field-group `$set`, strict body validation (parentTag 0–12, subTag catalog-or-null, text caps 500/2000, TagColor 1–6, geometry bounds 320×400–900×1200, tag ≤200 / note ≤100), last-write-wins, no computation in route, cascade delete, recalc job never touches HoroscopeNote | `src/app/api/horoscope/[id]/note/route.ts` (new), `src/models/HoroscopeNote.ts` (new), `src/lib/recalculationJob.ts` (no change), DELETE routes (cascade) |
+| Component / UI | Popup geometry (drag/resize/clamp/restore/keyboard nudge), parent strip single-select + sub-tag drill-down, system chips vs student tags (colorblind-safe), debounced autosave (500ms) + optimistic UI + rollback toast + keepalive flush, counters/caps (amber ≥80%, red 100%, composer disable), per-horoscope isolation + stale-response guard | `src/components/notepad/*` (new), `src/app/horoscopes/[id]/page.tsx` |
+| E2E | Manual test scripts (no Playwright installed — flagged, see bhava-suchika §7 risk 6) | — |
+| Accessibility | Focus trap + Esc, `aria-pressed` radio strip + arrow keys, color announced on chips, keyboard geometry, focus restore, toast `role=alert` | `src/components/notepad/*` |
+| Bilingual | `notepad.*` key parity SI/EN (both message files); SI-pending catalog strings → EN fallback (never raw key leak); Sinhala wrap at 360px min width | `src/messages/en.json`, `src/messages/si.json`, `src/lib/notepadCatalogs.ts` |
+
+### Key risk areas (prioritised)
+
+1. **All notepad artifacts are greenfield** (verified 2026-08-16): `src/lib/notepadObservations.ts`, `src/lib/notepadCatalogs.ts`, `src/models/HoroscopeNote.ts`, `src/app/api/horoscope/[id]/note/`, `src/components/notepad/`, `notepad.*` message keys — none exist yet. Developer must create all of them; QA asserts against the architecture contract (`notepadObservations.ts` typed contract + GET/PUT validation table), not the code.
+2. **Two locked-in requirements are the acceptance spine** (arch spec, US-SN-001 AC5 / US-SN-013 AC5): (a) observations derive strictly from the **currently viewed** horoscope's `CalculatedDetails` — switching horoscopes instantly switches observations with no cross-horoscope bleed (UI-SN-414/415, E2E-SN-1101); (b) **every** student modification (geometry, selection, tags, notes) persists to the `HoroscopeNote` doc for that (student, horoscope) pair — nothing memory-only, reopen restores from DB (IT-SN-206..209, UI-SN-500..506, RE-SN-907, E2E-SN-1100). Any implementation that keeps state only in memory or caches observations across horoscopes fails acceptance.
+3. **Viewability posture is 404, never 403** — note route must hide non-viewable horoscopes (and never expose notes via share links), unlike the shadbalaya route's 403. Public-viewer and share-token requests must 404 (IT-SN-203/204).
+4. **Domain rules pending** (BA Open Questions 1–6): house-load / Nakshatra-load definitions, classification rule, related-house rule, related-warga selection. Provisional defaults are asserted (structure + determinism), exact semantics must be confirmed before Developer implements — the classifier must be pluggable so the confirmed rule can drop in.
+5. **GET must not create documents** — architecture requires empty defaults `{ notepadState: null, observationTags: [], resultNotes: [] }` on first GET (no side effects) with lazy creation only on PUT (IT-SN-206/208).
+6. **jest `testMatch` excludes `.tsx`** (jest.config.js) — RTL component tests need the per-file `/** @jest-environment jsdom */` override precedent (shadbalaya §Test Environment) and, for real component coverage, a config extension (Developer/PM decision, see test plan §Open Questions).
+7. **No E2E framework installed** (verified: no Playwright/Cypress in `package.json`) — E2E cases are executable manual scripts; Playwright install is a Developer/PM decision.
+8. **Concurrent-save races** — debounced autosave + keepalive flush + horoscope switching must not clobber newer state (last-write-wins at the API; stale-response guard in the UI).
+
+### Environment & data setup
+
+| Item | Setup |
+|------|-------|
+| Unit fixtures | Pure numeric-enum inputs — no mocks; catalog assertions against the 13-parent table in `docs/student-notes.md`; per-section CalculatedDetails fixtures (auto with `wargaKendara`, legacy without, manual without warga, corrupt/partial arrays) |
+| API tests | Mocked `getServerSession` + `connectDB` + mocked `HoroscopeNote`/`Horoscope` models (reuse `privacy.test.ts` / `shadbalayaApi.test.ts` patterns); assert exact `$set` dotted paths; assert no `notepadObservations` import in the route (no computation in route) |
+| Component (optional) | `@testing-library/react` 16.3.2 (present in devDependencies) with per-file `/** @jest-environment jsdom */` — debounce/rollback/flush timing tests |
+| Golden | `calculateHoroscope(baseData)` fixture unchanged — notepad derives at render time, nothing added to stored snapshots |
+| E2E/manual | Two auto horoscopes (for isolation), one manual-without-warga, one legacy doc, one share link; SI + EN sessions; dev server + seeded DB with `wargaKendara` present |
+
+### Student Notepad acceptance-criteria traceability
+
+| User story | QA test IDs (see test plan) |
+|-----------|------------------------------|
+| US-SN-001 | UI-SN-300..309/414/415, AX-SN-704/705, IT-SN-210..212, E2E-SN-1100/1101 |
+| US-SN-002 | UI-SN-400..406, AX-SN-701/702, E2E-SN-1100 |
+| US-SN-003 | UT-SN-001..009, BI-SN-801/802, E2E-SN-1104 |
+| US-SN-004 | UT-SN-100..102, IT-SN-224, E2E-SN-1101 |
+| US-SN-005 | UT-SN-103..105, E2E-SN-1101 |
+| US-SN-006 | UT-SN-106/107, E2E-SN-1101 |
+| US-SN-007 | UT-SN-109, E2E-SN-1101 |
+| US-SN-008 | UT-SN-110, E2E-SN-1101 |
+| US-SN-009 | UT-SN-111/112, E2E-SN-1101 |
+| US-SN-010 | UT-SN-107/108/115, UI-SN-407/408, E2E-SN-1101 |
+| US-SN-011 | UT-SN-010, UI-SN-407..411, IT-SN-215/217/219/220, E2E-SN-1100 |
+| US-SN-012 | UI-SN-412/413, IT-SN-218/221, E2E-SN-1100 |
+| US-SN-013 | IT-SN-206..209/222/223/228, UI-SN-500..506, RE-SN-907, E2E-SN-1100/1105 |
+| US-SN-014 | IT-SN-200..205/226, RE-SN-901, SR-SN-1000/1002, E2E-SN-1102 |
+| US-SN-015 | BI-SN-800..805, E2E-SN-1104 |
+| US-SN-016 | UT-SN-100..117, IT-SN-224, UI-SN-414/415, E2E-SN-1101 |

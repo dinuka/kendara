@@ -417,6 +417,17 @@
         "friendly": "Friendly",
         "enemy": "Enemy",
         "neutral": "Neutral",
+        "strengthInSign": {
+            "athiUchcha": "Deeply exalted",
+            "athiNeecha": "Deeply debilitated",
+            "exalted": "Exalted",
+            "debilitated": "Debilitated",
+            "ownSign": "Own sign",
+            "moolatrikona": "Moolatrikona",
+            "friendly": "Friendly",
+            "enemy": "Enemy",
+            "neutral": "Neutral"
+        },
         "planetNames": {
             "1": "Sun",
             "2": "Moon",
@@ -429,6 +440,20 @@
             "9": "Ketu"
         },
         "signNames": {
+            "1": "Aries",
+            "2": "Taurus",
+            "3": "Gemini",
+            "4": "Cancer",
+            "5": "Leo",
+            "6": "Virgo",
+            "7": "Libra",
+            "8": "Scorpio",
+            "9": "Sagittarius",
+            "10": "Capricorn",
+            "11": "Aquarius",
+            "12": "Pisces"
+        },
+        "signNamesLocative": {
             "1": "Aries",
             "2": "Taurus",
             "3": "Gemini",
@@ -552,24 +577,78 @@
             "noDetails": "—",
             "comingSoon": "Chart and tables coming soon.",
             "vargas": {
-                "d1": { "name": "Rāśi", "indication": "Overall life, body, general circumstances" },
-                "d2": { "name": "Horā", "indication": "Wealth, resources" },
-                "d3": { "name": "Drekkāṇa", "indication": "Siblings, courage" },
-                "d4": { "name": "Chaturthāṁśa", "indication": "Property, fortune" },
-                "d7": { "name": "Saptāṁśa", "indication": "Children" },
-                "d9": { "name": "Navāṁśa", "indication": "Marriage, dharma, strength of planets" },
-                "d10": { "name": "Daśāṁśa", "indication": "Career/profession" },
-                "d12": { "name": "Dvādaśāṁśa", "indication": "Parents, ancestry" },
-                "d16": { "name": "Ṣoḍaśāṁśa", "indication": "Vehicles, comforts" },
-                "d20": { "name": "Viṁśāṁśa", "indication": "Spirituality" },
-                "d24": { "name": "Siddhāṁśa", "indication": "Education" },
-                "d27": { "name": "Bhāṁśa", "indication": "Strength/weakness" },
-                "d30": { "name": "Triṁśāṁśa", "indication": "Misfortunes, difficulties" },
-                "d40": { "name": "Khavedāṁśa", "indication": "Auspicious/inauspicious effects" },
-                "d45": { "name": "Akṣavedāṁśa", "indication": "General indications" },
-                "d60": { "name": "Ṣaṣṭiāṁśa", "indication": "Very subtle karmic indications" },
-                "suryaLagna": { "name": "Surya Lagna", "indication": "Sun-based analysis" },
-                "chandraLagna": { "name": "Chandra Lagna", "indication": "Moon-based analysis" }
+                "d1": {
+                    "name": "Rāśi",
+                    "indication": "Overall life, body, general circumstances"
+                },
+                "d2": {
+                    "name": "Horā",
+                    "indication": "Wealth, resources"
+                },
+                "d3": {
+                    "name": "Drekkāṇa",
+                    "indication": "Siblings, courage"
+                },
+                "d4": {
+                    "name": "Chaturthāṁśa",
+                    "indication": "Property, fortune"
+                },
+                "d7": {
+                    "name": "Saptāṁśa",
+                    "indication": "Children"
+                },
+                "d9": {
+                    "name": "Navāṁśa",
+                    "indication": "Marriage, dharma, strength of planets"
+                },
+                "d10": {
+                    "name": "Daśāṁśa",
+                    "indication": "Career/profession"
+                },
+                "d12": {
+                    "name": "Dvādaśāṁśa",
+                    "indication": "Parents, ancestry"
+                },
+                "d16": {
+                    "name": "Ṣoḍaśāṁśa",
+                    "indication": "Vehicles, comforts"
+                },
+                "d20": {
+                    "name": "Viṁśāṁśa",
+                    "indication": "Spirituality"
+                },
+                "d24": {
+                    "name": "Siddhāṁśa",
+                    "indication": "Education"
+                },
+                "d27": {
+                    "name": "Bhāṁśa",
+                    "indication": "Strength/weakness"
+                },
+                "d30": {
+                    "name": "Triṁśāṁśa",
+                    "indication": "Misfortunes, difficulties"
+                },
+                "d40": {
+                    "name": "Khavedāṁśa",
+                    "indication": "Auspicious/inauspicious effects"
+                },
+                "d45": {
+                    "name": "Akṣavedāṁśa",
+                    "indication": "General indications"
+                },
+                "d60": {
+                    "name": "Ṣaṣṭiāṁśa",
+                    "indication": "Very subtle karmic indications"
+                },
+                "suryaLagna": {
+                    "name": "Surya Lagna",
+                    "indication": "Sun-based analysis"
+                },
+                "chandraLagna": {
+                    "name": "Chandra Lagna",
+                    "indication": "Moon-based analysis"
+                }
             }
         },
         "padaFormat": "{pada} Pada",
@@ -852,5 +931,306 @@
         "previous": "Previous",
         "next": "Next",
         "page_of": "Page {page} of {total}"
+    },
+    "notepad": {
+        "title": "Student Notepad",
+        "button": "Notepad",
+        "close": "Close notepad",
+        "hasContent": "You have saved notes here",
+        "resetPosition": "Reset position",
+        "dragHandle": "Drag to move",
+        "resizeHandle": "Drag to resize",
+        "chandraLagna": "Chandra Lagna",
+        "suryaLagna": "Surya Lagna",
+        "toast": {
+            "saveFailed": "Save failed. Your last change was reverted."
+        },
+        "hint": "Select a house topic to see its observations",
+        "planetStrengths": {
+            "title": "Planet strengths",
+            "hint": "Click a planet to review the factors behind its strength and determine it",
+            "factors": {
+                "sign": "Sign dignity",
+                "signLabel": "{strength} in {sign}",
+                "navamsa": "Navamsa dignity",
+                "navamsaLabel": "{strength} in {sign}",
+                "house": "House {house}",
+                "dig": "Dig Bala",
+                "kala": "Kala Bala",
+                "cheshta": "Cheshta Bala",
+                "naisargika": "Naisargika Bala",
+                "retrograde": "Retrograde",
+                "combust": "Combust",
+                "atmakaraka": "Atmakaraka",
+                "yogakaraka": "Yogakaraka",
+                "maranakaraka": "Maranakaraka",
+                "maraka": "Maraka",
+                "badhaka": "Badhaka",
+                "wargoththama": "Wargoththama",
+                "pushkara": "Pushkara",
+                "gandantha": "Gandantha",
+                "gandamula": "Gandamula",
+                "ashtamansha": "Ashtamansha",
+                "nidhanamsha": "Nidhanamsha"
+            }
+        },
+        "housePurpose": {
+            "0": {
+                "label": "Other",
+                "sanskrit": "Other"
+            },
+            "1": {
+                "label": "The person",
+                "sanskrit": "Tanu/Lagna"
+            },
+            "2": {
+                "label": "What he/she has",
+                "sanskrit": "Dhana"
+            },
+            "3": {
+                "label": "What he/she does",
+                "sanskrit": "Sahaja/Bhrātṛ"
+            },
+            "4": {
+                "label": "What gives him/her peace",
+                "sanskrit": "Sukha"
+            },
+            "5": {
+                "label": "What he/she creates and knows",
+                "sanskrit": "Putra"
+            },
+            "6": {
+                "label": "What he/she must overcome",
+                "sanskrit": "Ari/Ṣaṭru"
+            },
+            "7": {
+                "label": "Whom he/she partners with",
+                "sanskrit": "Yuvati/Kalatra"
+            },
+            "8": {
+                "label": "What transforms him/her",
+                "sanskrit": "Randhra/Ayu"
+            },
+            "9": {
+                "label": "What guides him/her",
+                "sanskrit": "Dharma/Bhāgya"
+            },
+            "10": {
+                "label": "What he/she accomplishes",
+                "sanskrit": "Karma"
+            },
+            "11": {
+                "label": "What he/she gains",
+                "sanskrit": "Lābha"
+            },
+            "12": {
+                "label": "What he/she releases",
+                "sanskrit": "Vyaya/Mokṣa"
+            },
+            "subTags": {
+                "self": "Self",
+                "body": "Body",
+                "personality": "Personality",
+                "identity": "Identity",
+                "vitality": "Vitality",
+                "appearance": "Appearance",
+                "overallLifeDirection": "Overall life direction",
+                "wealth": "Wealth",
+                "accumulatedResources": "Accumulated resources",
+                "family": "Family",
+                "speech": "Speech",
+                "food": "Food",
+                "values": "Values",
+                "courage": "Courage",
+                "effort": "Effort",
+                "skills": "Skills",
+                "communication": "Communication",
+                "youngerSiblings": "Younger siblings",
+                "initiative": "Initiative",
+                "mother": "Mother",
+                "home": "Home",
+                "property": "Property",
+                "emotionalHappiness": "Emotional happiness",
+                "education": "Education",
+                "vehicles": "Vehicles",
+                "innerPeace": "Inner peace",
+                "intelligence": "Intelligence",
+                "children": "Children",
+                "creativity": "Creativity",
+                "learning": "Learning",
+                "pastLifeMerit": "Past-life merit",
+                "mantra": "Mantra",
+                "enemies": "Enemies",
+                "disease": "Disease",
+                "debts": "Debts",
+                "service": "Service",
+                "competition": "Competition",
+                "obstacles": "Obstacles",
+                "litigation": "Litigation",
+                "marriage": "Marriage",
+                "spouse": "Spouse",
+                "partnerships": "Partnerships",
+                "sexuality": "Sexuality",
+                "businessPartnerships": "Business partnerships",
+                "publicDealings": "Public dealings",
+                "longevity": "Longevity",
+                "transformation": "Transformation",
+                "death": "Death",
+                "inheritance": "Inheritance",
+                "secrets": "Secrets",
+                "occultKnowledge": "Occult knowledge",
+                "suddenEvents": "Sudden events",
+                "dharma": "Dharma",
+                "fortune": "Fortune",
+                "father": "Father",
+                "guru": "Guru",
+                "higherKnowledge": "Higher knowledge",
+                "pilgrimage": "Pilgrimage",
+                "blessings": "Blessings",
+                "career": "Career",
+                "profession": "Profession",
+                "status": "Status",
+                "authority": "Authority",
+                "achievements": "Achievements",
+                "actionsInTheWorld": "Actions in the world",
+                "gains": "Gains",
+                "income": "Income",
+                "fulfillmentOfDesires": "Fulfillment of desires",
+                "elderSiblings": "Elder siblings",
+                "networks": "Networks",
+                "largeOrganizations": "Large organizations",
+                "expenditure": "Expenditure",
+                "loss": "Loss",
+                "foreignPlaces": "Foreign places",
+                "isolation": "Isolation",
+                "sleep": "Sleep",
+                "spiritualLiberation": "Spiritual liberation",
+                "lettingGo": "Letting go",
+                "soul": "Soul",
+                "mind": "Mind",
+                "emotions": "Emotions",
+                "happiness": "Happiness",
+                "nourishment": "Nourishment",
+                "strength": "Strength",
+                "land": "Land",
+                "business": "Business",
+                "calculation": "Calculation",
+                "wisdom": "Wisdom",
+                "love": "Love",
+                "relationships": "Relationships",
+                "pleasures": "Pleasures",
+                "labor": "Labor",
+                "suffering": "Suffering",
+                "delays": "Delays",
+                "foreignMatters": "Foreign matters",
+                "obsession": "Obsession",
+                "unconventionalThings": "Unconventional things",
+                "materialDesires": "Material desires",
+                "detachment": "Detachment",
+                "spirituality": "Spirituality",
+                "moksha": "Moksha",
+                "separation": "Separation",
+                "government": "Government"
+            }
+        },
+        "observation": {
+            "planetsInHouse": "Planets in this house",
+            "houseLoad": "House load & position",
+            "houseLord": "House lord & position",
+            "nakshatraLoad": "Nakshatra load & position",
+            "subTagPlanet": "Significator planets",
+            "chandraLagnaHouse": "Chandra Lagna — related house",
+            "suryaLagnaHouse": "Surya Lagna — related house",
+            "wargaKendara": "Related Warga Kendara",
+            "noPlanets": "No planets in this house",
+            "noSignificant": "No significant planet for this topic",
+            "notAvailable": "Not available",
+            "markNotRelevant": "Mark as not relevant",
+            "restoreTag": "Restore as relevant",
+            "notRelevant": "not relevant",
+            "classification": {
+                "green": "good",
+                "darkGreen": "very good",
+                "lightGreen": "good",
+                "red": "bad",
+                "lightRed": "bad",
+                "darkRed": "very bad",
+                "white": "neutral",
+                "yellow": "uncertain"
+            },
+            "ratio": "{green} of {total} good",
+            "houseLoadLabel": "House load: {count} · Planets {planets} · {sign}",
+            "nakshatraLoadLabel": "Nakshatra load: {name} {pada}",
+            "chartHouseLabel": "{chart} · House {house} · Planets {planets} · Load {load}",
+            "wargaLagnaLabel": "{chart} Lagna · {sign} · Load {load}",
+            "d1LoadInWargaLabel": "D1 load: {planet} · {sign} · {house}",
+            "lord": {
+                "ownsHouses": "{planet} owns houses {houses}",
+                "inSign": "{planet} in {sign} Rashi",
+                "inNakshatra": "{planet} in {nakshatra} nakshatra",
+                "strength": "{planet} is {strength}",
+                "retrograde": "{planet} is retrograde",
+                "combust": "{planet} is combust",
+                "navamsa": "{planet} in {sign} Navamsa",
+                "ashtamamsha": "{planet} is Ashtamamsha (8th house)",
+                "ashtamansha": "{planet} is Ashtamansha",
+                "kalaBala": "{planet} has Kala Bala",
+                "noKalaBala": "{planet} lacks Kala Bala",
+                "cheshtaBala": "{planet} has Cheshta Bala",
+                "noCheshtaBala": "{planet} lacks Cheshta Bala",
+                "conjuncts": "{planet} conjuncts {target}",
+                "aspects": "{planet} aspects {target}",
+                "aspectedBy": "{planet} is aspected by {target}",
+                "bhavaSuchika": "{planet} Bhava Suchika — house {house}",
+                "atmakaraka": "{planet} is the Atmakaraka",
+                "yogakaraka": "{planet} is the Yogakaraka",
+                "maranakaraka": "{planet} is Maranakaraka",
+                "maraka": "{planet} is a Maraka",
+                "badhaka": "{planet} is the Badhaka",
+                "nidhanamsha": "{planet} is in Nidhanamsha",
+                "wargoththama": "{planet} is Wargoththama",
+                "gandantha": "{planet} is in Gandantha",
+                "gandamula": "{planet} is in Gandamula",
+                "pushkara": "{planet} is in Pushkara",
+                "drekkanaLord": "{planet} is the 22nd Drekkana lord",
+                "navamsaLord": "{planet} is the 64th Navamsa lord"
+            }
+        },
+        "tagColors": {
+            "1": "White",
+            "2": "Light red",
+            "3": "Dark red",
+            "4": "Light green",
+            "5": "Dark green",
+            "6": "Yellow"
+        },
+        "studentTags": {
+            "title": "My observations",
+            "addPlaceholder": "Add an observation…",
+            "add": "Add",
+            "edit": "Edit",
+            "delete": "Delete",
+            "empty": "No tags yet for this topic",
+            "overviewEmpty": "No tags yet. Select a topic to start.",
+            "limitReached": "Tag limit reached (200). Delete a tag to add more.",
+            "charCount": "{count}/{max}"
+        },
+        "resultNotes": {
+            "title": "Result notes",
+            "addPlaceholder": "Write a note…",
+            "add": "Add note",
+            "edit": "Edit",
+            "delete": "Delete",
+            "empty": "No notes yet",
+            "limitReached": "Note limit reached (100). Delete a note to add more."
+        },
+        "aria": {
+            "parentStrip": "Select a house topic",
+            "subTagStrip": "Select a topic detail",
+            "observationsRegion": "System observations",
+            "ratio": "{green} of {total} good",
+            "planetStrengths": "Planet strengths",
+            "planetFactor": "{factor} — {classification}"
+        }
     }
 }

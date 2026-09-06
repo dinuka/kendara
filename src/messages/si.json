@@ -417,6 +417,17 @@
         "friendly": "මිත්‍ර",
         "enemy": "සතුරු",
         "neutral": "සම",
+        "strengthInSign": {
+            "athiUchcha": "අති උච්චව",
+            "athiNeecha": "අති නීචව",
+            "exalted": "උච්චව",
+            "debilitated": "නීචව",
+            "ownSign": "ස්වව",
+            "moolatrikona": "මූ.ත්‍රිව",
+            "friendly": "මිත්‍රව",
+            "enemy": "සතුරුව",
+            "neutral": "සමව"
+        },
         "planetNames": {
             "1": "රවි",
             "2": "සඳු",
@@ -441,6 +452,20 @@
             "10": "මකර",
             "11": "කුම්භ",
             "12": "මීන"
+        },
+        "signNamesLocative": {
+            "1": "මේෂයේ",
+            "2": "වෘෂභයේ",
+            "3": "මිථුනයේ",
+            "4": "කටකයේ",
+            "5": "සිංහයේ",
+            "6": "කන්‍යාවේ",
+            "7": "තුලාවේ",
+            "8": "වෘශ්චිකයේ",
+            "9": "ධනුවේ",
+            "10": "මකරයේ",
+            "11": "කුම්භයේ",
+            "12": "මීනයේ"
         },
         "nakshatraNames": {
             "1": "අස්විද",
@@ -552,24 +577,78 @@
             "noDetails": "—",
             "comingSoon": "සටහන සහ වගු ඉක්මනින් එක් කෙරේ.",
             "vargas": {
-                "d1": { "name": "රාශි", "indication": "සමස්ත ජීවිතය, ශරීරය, පොදු තත්ත්ව" },
-                "d2": { "name": "හෝරා", "indication": "ධනය, සම්පත්" },
-                "d3": { "name": "ද්රේක්කාණ", "indication": "සහෝදරයන්, ධෛර්යය" },
-                "d4": { "name": "චතුර්ථාංශ", "indication": "දේපළ, භාග්යය" },
-                "d7": { "name": "සප්තාංශ", "indication": "දරුවන්" },
-                "d9": { "name": "නවාංශක", "indication": "විවාහය, ධර්මය, ග්රහ බලය" },
-                "d10": { "name": "දශාංශ", "indication": "වෘත්තිය" },
-                "d12": { "name": "ද්වාදශාංශ", "indication": "දෙමාපියන්, පරම්පරාව" },
-                "d16": { "name": "ෂෝඩශාංශ", "indication": "වාහන, සුවපහසුව" },
-                "d20": { "name": "විංශාංශ", "indication": "අධ්යාත්මිකත්වය" },
-                "d24": { "name": "සිද්ධාංශ", "indication": "අධ්යාපනය" },
-                "d27": { "name": "භාංශ", "indication": "ශක්තිය/දුර්වලතා" },
-                "d30": { "name": "ත්රිංශාංශ", "indication": "අවාසනා, දුෂ්කරතා" },
-                "d40": { "name": "ඛවේදාංශ", "indication": "ශුභ/අශුභ ඵල" },
-                "d45": { "name": "අක්ෂවේදාංශ", "indication": "පොදු අර්ථ" },
-                "d60": { "name": "ෂෂ්ටිංශාංශ", "indication": "සූක්ෂ්ම කර්ම ඵල" },
-                "suryaLagna": { "name": "සූර්ය ලග්න", "indication": "සූර්ය ලග්න පාදක විශ්ලේෂණය" },
-                "chandraLagna": { "name": "චන්ද්ර ලග්න", "indication": "චන්ද්ර ලග්න පාදක විශ්ලේෂණය" }
+                "d1": {
+                    "name": "රාශි",
+                    "indication": "සමස්ත ජීවිතය, ශරීරය, පොදු තත්ත්ව"
+                },
+                "d2": {
+                    "name": "හෝරා",
+                    "indication": "ධනය, සම්පත්"
+                },
+                "d3": {
+                    "name": "ද්රේක්කාණ",
+                    "indication": "සහෝදරයන්, ධෛර්යය"
+                },
+                "d4": {
+                    "name": "චතුර්ථාංශ",
+                    "indication": "දේපළ, භාග්යය"
+                },
+                "d7": {
+                    "name": "සප්තාංශ",
+                    "indication": "දරුවන්"
+                },
+                "d9": {
+                    "name": "නවාංශක",
+                    "indication": "විවාහය, ධර්මය, ග්රහ බලය"
+                },
+                "d10": {
+                    "name": "දශාංශ",
+                    "indication": "වෘත්තිය"
+                },
+                "d12": {
+                    "name": "ද්වාදශාංශ",
+                    "indication": "දෙමාපියන්, පරම්පරාව"
+                },
+                "d16": {
+                    "name": "ෂෝඩශාංශ",
+                    "indication": "වාහන, සුවපහසුව"
+                },
+                "d20": {
+                    "name": "විංශාංශ",
+                    "indication": "අධ්යාත්මිකත්වය"
+                },
+                "d24": {
+                    "name": "සිද්ධාංශ",
+                    "indication": "අධ්යාපනය"
+                },
+                "d27": {
+                    "name": "භාංශ",
+                    "indication": "ශක්තිය/දුර්වලතා"
+                },
+                "d30": {
+                    "name": "ත්රිංශාංශ",
+                    "indication": "අවාසනා, දුෂ්කරතා"
+                },
+                "d40": {
+                    "name": "ඛවේදාංශ",
+                    "indication": "ශුභ/අශුභ ඵල"
+                },
+                "d45": {
+                    "name": "අක්ෂවේදාංශ",
+                    "indication": "පොදු අර්ථ"
+                },
+                "d60": {
+                    "name": "ෂෂ්ටිංශාංශ",
+                    "indication": "සූක්ෂ්ම කර්ම ඵල"
+                },
+                "suryaLagna": {
+                    "name": "සූර්ය ලග්න",
+                    "indication": "සූර්ය ලග්න පාදක විශ්ලේෂණය"
+                },
+                "chandraLagna": {
+                    "name": "චන්ද්ර ලග්න",
+                    "indication": "චන්ද්ර ලග්න පාදක විශ්ලේෂණය"
+                }
             }
         },
         "padaFormat": "{pada} වෙනි පාදය",
@@ -852,5 +931,306 @@
         "previous": "පෙර",
         "next": "ඊළඟ",
         "page_of": "පිටුව {page} / {total}"
+    },
+    "notepad": {
+        "title": "ශිෂ්ය සටහන් පොත",
+        "button": "සටහන් පොත",
+        "close": "සටහන් පොත වසන්න",
+        "hasContent": "මෙහි සුරකින ලද සටහන් ඇත",
+        "resetPosition": "පිහිටීම යළි සකසන්න",
+        "dragHandle": "ඇදගෙන ගෙනයාමට",
+        "resizeHandle": "ඇදගෙන ප්‍රමාණය වෙනස් කිරීමට",
+        "chandraLagna": "චන්ද්‍ර ලග්නය",
+        "suryaLagna": "සූර්ය ලග්නය",
+        "toast": {
+            "saveFailed": "සුරැකීම අසාර්ථක විය. ඔබේ අවසන් වෙනස්කම ආපසු හරවන ලදී."
+        },
+        "hint": "ගෘහ මාතෘකාවක් තේරීමෙන් එහි නිරීක්ෂණ බලන්න",
+        "planetStrengths": {
+            "title": "ග්‍රහ බල",
+            "hint": "ග්‍රහයෙකු මත ක්ලික් කර එහි බලයට පාදක වන කරුණු බලා තීරණය කරන්න",
+            "factors": {
+                "sign": "රාශි බල",
+                "signLabel": "{sign} {strength}",
+                "navamsa": "නවාංශක බල",
+                "navamsaLabel": "{sign} {strength}",
+                "house": "භාව {house}",
+                "dig": "දිග් බලය",
+                "kala": "කාල බලය",
+                "cheshta": "චේෂ්ටා බලය",
+                "naisargika": "නෛසර්ගික බලය",
+                "retrograde": "ප්‍රතිගාමී",
+                "combust": "දවන (Combust)",
+                "atmakaraka": "ආත්මකාරක",
+                "yogakaraka": "යෝගකාරක",
+                "maranakaraka": "මාරණකාරක",
+                "maraka": "මාරක",
+                "badhaka": "බාධක",
+                "wargoththama": "වර්ගෝත්තම",
+                "pushkara": "පුෂ්කර",
+                "gandantha": "ගණ්ඩාන්ත",
+                "gandamula": "ගණ්ඩමූල",
+                "ashtamansha": "අෂ්ටමාංශ",
+                "nidhanamsha": "නිධනාම්ශ"
+            }
+        },
+        "housePurpose": {
+            "0": {
+                "label": "වෙනත්",
+                "sanskrit": "වෙනත්"
+            },
+            "1": {
+                "label": "පුද්ගලයා",
+                "sanskrit": "තනු/ලග්න"
+            },
+            "2": {
+                "label": "ඔහුට/ඇයට ඇති දේ",
+                "sanskrit": "ධන"
+            },
+            "3": {
+                "label": "ඔහු/ඇය කරන දේ",
+                "sanskrit": "සහජ/භ්‍රාතෘ"
+            },
+            "4": {
+                "label": "ඔහුට/ඇයට සාමය ලබා දෙන දේ",
+                "sanskrit": "සුඛ"
+            },
+            "5": {
+                "label": "ඔහු/ඇය නිර්මාණය කර දන්නා දේ",
+                "sanskrit": "පුත්‍ර"
+            },
+            "6": {
+                "label": "ඔහු/ඇය ජය ගත යුතු දේ",
+                "sanskrit": "අරි/ෂට්‍රු"
+            },
+            "7": {
+                "label": "ඔහු/ඇය හවුල් වන අය",
+                "sanskrit": "යුවති/කලත්‍ර"
+            },
+            "8": {
+                "label": "ඔහු/ඇයව පරිවර්තනය කරන දේ",
+                "sanskrit": "රන්ධ්‍ර/ආයු"
+            },
+            "9": {
+                "label": "ඔහුට/ඇයට මඟ පෙන්වන දේ",
+                "sanskrit": "ධර්ම/භාග්‍ය"
+            },
+            "10": {
+                "label": "ඔහු/ඇය ඉටු කරන දේ",
+                "sanskrit": "කර්ම"
+            },
+            "11": {
+                "label": "ඔහුට/ඇයට ලැබෙන දේ",
+                "sanskrit": "ලාභ"
+            },
+            "12": {
+                "label": "ඔහු/ඇය මුදා හරින දේ",
+                "sanskrit": "ව්‍යය/මෝක්ෂ"
+            },
+            "subTags": {
+                "self": "ස්වයං",
+                "body": "ශරීරය",
+                "personality": "පෞරුෂත්වය",
+                "identity": "අනන්‍යතාව",
+                "vitality": "ජීව ශක්තිය",
+                "appearance": "පෙනුම",
+                "overallLifeDirection": "සමස්ත ජීවන දිශාව",
+                "wealth": "ධනය",
+                "accumulatedResources": "එක්රැස් වූ සම්පත්",
+                "family": "පවුල",
+                "speech": "කථාව",
+                "food": "ආහාර",
+                "values": "වටිනාකම්",
+                "courage": "ධෛර්යය",
+                "effort": "උත්සාහය",
+                "skills": "දක්ෂතා",
+                "communication": "සන්නිවේදනය",
+                "youngerSiblings": "බාල සහෝදර සහෝදරියන්",
+                "initiative": "මුලපිරීම",
+                "mother": "මව",
+                "home": "නිවස",
+                "property": "දේපළ",
+                "emotionalHappiness": "චිත්ත සුවය",
+                "education": "අධ්‍යාපනය",
+                "vehicles": "වාහන",
+                "innerPeace": "අභ්‍යන්තර සාමය",
+                "intelligence": "බුද්ධිය",
+                "children": "දරුවන්",
+                "creativity": "නිර්මාණශීලිත්වය",
+                "learning": "ඉගෙනීම",
+                "pastLifeMerit": "පූර්ව පුණ්‍ය",
+                "mantra": "මන්ත්‍රය",
+                "enemies": "සතුරන්",
+                "disease": "රෝග",
+                "debts": "ණය",
+                "service": "සේවය",
+                "competition": "තරඟය",
+                "obstacles": "බාධක",
+                "litigation": "නඩු කටයුතු",
+                "marriage": "විවාහය",
+                "spouse": "කලත්‍රයා/කලත්‍රිය",
+                "partnerships": "හවුල්කාරිත්වය",
+                "sexuality": "ලිංගිකත්වය",
+                "businessPartnerships": "ව්‍යාපාර හවුල්කාරිත්වය",
+                "publicDealings": "පොදු කටයුතු",
+                "longevity": "ආයුෂ",
+                "transformation": "පරිවර්තනය",
+                "death": "මරණය",
+                "inheritance": "උරුමය",
+                "secrets": "රහස්",
+                "occultKnowledge": "ගුප්ත විද්‍යාව",
+                "suddenEvents": "හදිසි සිදුවීම්",
+                "dharma": "ධර්මය",
+                "fortune": "භාග්‍යය",
+                "father": "පියා",
+                "guru": "ගුරු",
+                "higherKnowledge": "උසස් දැනුම",
+                "pilgrimage": "වන්දනා ගමන",
+                "blessings": "ආශීර්වාද",
+                "career": "රැකියාව",
+                "profession": "වෘත්තිය",
+                "status": "තත්ත්වය",
+                "authority": "අධිකාරිය",
+                "achievements": "ජයග්‍රහණ",
+                "actionsInTheWorld": "ලෝකයේ ක්‍රියා",
+                "gains": "ලාභ",
+                "income": "ආදායම",
+                "fulfillmentOfDesires": "ආශා සාක්ෂාත් කිරීම",
+                "elderSiblings": "වැඩිමහල් සහෝදර සහෝදරියන්",
+                "networks": "ජාල",
+                "largeOrganizations": "විශාල සංවිධාන",
+                "expenditure": "වියදම",
+                "loss": "අලාභය",
+                "foreignPlaces": "විදේශ ස්ථාන",
+                "isolation": "හුදකලාව",
+                "sleep": "නින්ද",
+                "spiritualLiberation": "ආධ්‍යාත්මික විමුක්තිය",
+                "lettingGo": "අත්හැරීම",
+                "soul": "ආත්මය",
+                "mind": "මනස",
+                "emotions": "හැඟීම්",
+                "happiness": "සතුට",
+                "nourishment": "පෝෂණය",
+                "strength": "ශක්තිය",
+                "land": "ඉඩම",
+                "business": "ව්‍යාපාර",
+                "calculation": "ගණනය",
+                "wisdom": "ප්‍රඥාව",
+                "love": "ආදරය",
+                "relationships": "සබඳතා",
+                "pleasures": "සැප",
+                "labor": "ශ්‍රමය",
+                "suffering": "දුක් වේදනා",
+                "delays": "ප්‍රමාදයන්",
+                "foreignMatters": "විදේශ කටයුතු",
+                "obsession": "උමතුව",
+                "unconventionalThings": "සාම්ප්‍රදායික නොවන දේ",
+                "materialDesires": "භෞතික ආශා",
+                "detachment": "විරක්තිය",
+                "spirituality": "ආධ්‍යාත්මිකත්වය",
+                "moksha": "මෝක්ෂය",
+                "separation": "වෙන්වීම",
+                "government": "රජය"
+            }
+        },
+        "observation": {
+            "planetsInHouse": "මෙම භාවයේ ග්‍රහයෝ",
+            "houseLoad": "ගෘහ භාරය සහ පිහිටීම",
+            "houseLord": "භාවාධිපති හා පිහිටීම",
+            "nakshatraLoad": "නක්ෂත්‍ර භාරය සහ පිහිටීම",
+            "subTagPlanet": "කාරක ග්‍රහයෝ",
+            "chandraLagnaHouse": "චන්ද්‍ර ලග්නය — අදාළ ගෘහය",
+            "suryaLagnaHouse": "සූර්ය ලග්නය — අදාළ ගෘහය",
+            "wargaKendara": "අදාළ වර්ග කේන්දරය",
+            "noPlanets": "මෙම භාවයේ ග්රහයන් නැත",
+            "noSignificant": "මෙම මාතෘකාවට අදාළ කාරක ග්‍රහයෙක් නැත",
+            "notAvailable": "ලබා ගත නොහැක",
+            "markNotRelevant": "අදාළ නොවන ලෙස සලකුණු කරන්න",
+            "restoreTag": "නැවත අදාළ කරන්න",
+            "notRelevant": "අදාළ නොවේ",
+            "classification": {
+                "green": "හොඳ",
+                "darkGreen": "ඉතා හොඳ",
+                "lightGreen": "හොඳ",
+                "red": "නරක",
+                "lightRed": "නරක",
+                "darkRed": "ඉතා නරක",
+                "white": "මධ්‍යස්ථ",
+                "yellow": "අවිනිශ්චිත"
+            },
+            "ratio": "{green}/{total} ක් හොඳයි",
+            "houseLoadLabel": "ගෘහ භාරය: {count} · ග්‍රහයෝ {planets} · {sign}",
+            "nakshatraLoadLabel": "නක්ෂත්‍ර භාරය: {name} {pada}",
+            "chartHouseLabel": "{chart} · {house} වන ගෘහය · ග්‍රහයෝ {planets} · භාරය {load}",
+            "wargaLagnaLabel": "{chart} ලග්නය · {sign} · භාරය {load}",
+            "d1LoadInWargaLabel": "D1 භාරය: {planet} · {sign} · {house}",
+            "lord": {
+                "ownsHouses": "{planet} හිමි ගෘහ: {houses}",
+                "inSign": "{planet} {sign} රාශියෙහි",
+                "inNakshatra": "{planet} {nakshatra} නැකතේ",
+                "strength": "{planet} {strength} වේ",
+                "retrograde": "{planet} ප්‍රතිගාමී වේ",
+                "combust": "{planet} දාහිත වේ",
+                "navamsa": "{planet} {sign} නවාංශයේ",
+                "ashtamamsha": "{planet} අෂ්ටමාම්ශ වේ (8 වන ගෘහයේ)",
+                "ashtamansha": "{planet} අෂ්ටමාංශ වේ",
+                "kalaBala": "{planet}ට කාල බලය ඇත",
+                "noKalaBala": "{planet}ට කාල බලය නැත",
+                "cheshtaBala": "{planet}ට චේෂ්ටා බලය ඇත",
+                "noCheshtaBala": "{planet}ට චේෂ්ටා බලය නැත",
+                "conjuncts": "{planet} {target} සමඟ යුති",
+                "aspects": "{planet} {target} දෘෂ්ටි කරයි",
+                "aspectedBy": "{planet}ට {target} දෘෂ්ටිය ඇත",
+                "bhavaSuchika": "{planet} භාව සුචික — {house} වන ගෘහය",
+                "atmakaraka": "{planet} ආත්මකාරක වේ",
+                "yogakaraka": "{planet} යෝගකාරක වේ",
+                "maranakaraka": "{planet} මරණකාරක වේ",
+                "maraka": "{planet} මාරක වේ",
+                "badhaka": "{planet} බාධක වේ",
+                "nidhanamsha": "{planet} නිධනාංශයේ ඇත",
+                "wargoththama": "{planet} වර්ගෝත්තම වේ",
+                "gandantha": "{planet} ගන්ධාන්තයේ ඇත",
+                "gandamula": "{planet} ගන්ධමූලයේ ඇත",
+                "pushkara": "{planet} පුෂ්කරයේ ඇත",
+                "drekkanaLord": "{planet} 22 වන ඩ්‍රෙක්කාණ අධිපති වේ",
+                "navamsaLord": "{planet} 64 වන නවාංශ අධිපති වේ"
+            }
+        },
+        "tagColors": {
+            "1": "සුදු",
+            "2": "ලා රතු",
+            "3": "තද රතු",
+            "4": "ලා කොළ",
+            "5": "තද කොළ",
+            "6": "කහ"
+        },
+        "studentTags": {
+            "title": "මගේ සටහන්",
+            "addPlaceholder": "නිරීක්ෂණයක් එක් කරන්න…",
+            "add": "එකතු",
+            "edit": "සංස්කරණය",
+            "delete": "මකන්න",
+            "empty": "මෙම මාතෘකාවට තවම ටැග් නැත",
+            "overviewEmpty": "තවම ටැග් නැත. මාතෘකාවක් තෝරා ආරම්භ කරන්න.",
+            "limitReached": "ටැග් සීමාව (200) ඉක්මවා ඇත. තව එක් කිරීමට ටැගයක් මකන්න.",
+            "charCount": "{count}/{max}"
+        },
+        "resultNotes": {
+            "title": "ප්රතිඵල සටහන්",
+            "addPlaceholder": "සටහනක් ලියන්න…",
+            "add": "සටහන එක් කරන්න",
+            "edit": "සංස්කරණය",
+            "delete": "මකන්න",
+            "empty": "තවම සටහන් නැත",
+            "limitReached": "සටහන් සීමාව (100) ඉක්මවා ඇත. තව එක් කිරීමට සටහනක් මකන්න."
+        },
+        "aria": {
+            "parentStrip": "ගෘහ මාතෘකාවක් තෝරන්න",
+            "subTagStrip": "මාතෘකා විස්තරයක් තෝරන්න",
+            "observationsRegion": "පද්ධති නිරීක්ෂණ",
+            "ratio": "{green}/{total} ක් හොඳයි",
+            "planetStrengths": "ග්‍රහ බල",
+            "planetFactor": "{factor} — {classification}"
+        }
     }
 }

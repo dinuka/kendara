@@ -2,6 +2,7 @@
 
 import AspectChip from "@/components/aspects/AspectChip";
 import { useI18n } from "@/hooks/useI18n";
+
 import { getNakshatraLord } from "@/lib/astrology";
 import type { Aspect } from "@/lib/astrology";
 import { PlanetaryStrength } from "@/lib/astrologyEnums";
@@ -150,10 +151,7 @@ const WargaPlanetsTable = ({ entry, caption, isD1, bhavaSuchika }: WargaPlanetsT
     const skeletons = otherItemSkeletons(entry, isD1, t);
 
     const ownershipByPlanet = new Map<number, number[]>(
-        entry.planets.map((planet) => [
-            planet.name,
-            ownedHousesOf(planet.name, entry.houses),
-        ]),
+        entry.planets.map((planet) => [planet.name, ownedHousesOf(planet.name, entry.houses)]),
     );
 
     const flagCell = (planet: WargaPlanetRow): OtherItem[] =>
@@ -228,9 +226,7 @@ const WargaPlanetsTable = ({ entry, caption, isD1, bhavaSuchika }: WargaPlanetsT
             getSignName(planet.sign),
             `${t("astrology.strength")} ${strengthLabel(planet.strength)}`,
             `${t("astrology.house")} ${planet.house}`,
-            `${t("astrology.ownership")} ${
-                ownershipByPlanet.get(planet.name)?.join(", ") || noDetails
-            }`,
+            `${t("astrology.ownership")} ${ownershipByPlanet.get(planet.name)?.join(", ") || noDetails}`,
         ];
         if (isD1) {
             parts.push(`${t("astrology.nakshatra")} ${nakshatraCell(planet)}`);
@@ -244,7 +240,9 @@ const WargaPlanetsTable = ({ entry, caption, isD1, bhavaSuchika }: WargaPlanetsT
         );
         parts.push(
             `${t("astrology.other")} ${
-                flagCell(planet).map((item) => item.label).join(", ") || noDetails
+                flagCell(planet)
+                    .map((item) => item.label)
+                    .join(", ") || noDetails
             }`,
         );
         return parts.join(" · ");
@@ -300,10 +298,7 @@ const WargaPlanetsTable = ({ entry, caption, isD1, bhavaSuchika }: WargaPlanetsT
                     </thead>
                     <tbody>
                         {entry.planets.map((planet) => (
-                            <tr
-                                key={planet.name}
-                                className="border-b border-gray-50 align-top even:bg-gray-100"
-                            >
+                            <tr key={planet.name} className="border-b border-gray-50 align-top even:bg-gray-100">
                                 <td className="py-1 pr-3 font-medium whitespace-nowrap">{planetCell(planet.name)}</td>
                                 <td className="py-1 pr-3 whitespace-nowrap">{getSignName(planet.sign)}</td>
                                 <td className="py-1 pr-3 whitespace-nowrap">{strengthLabel(planet.strength)}</td>
@@ -330,9 +325,9 @@ const WargaPlanetsTable = ({ entry, caption, isD1, bhavaSuchika }: WargaPlanetsT
                         className="border rounded p-2 text-xs text-gray-700"
                     >
                         <p className="font-medium">
-                            {planetCell(planet.name)} · {getSignName(planet.sign)} ·{" "}
-                            {strengthLabel(planet.strength)} · {t("astrology.house")} {planet.house} ·{" "}
-                            {t("astrology.ownership")} {ownershipByPlanet.get(planet.name)?.join(", ") || noDetails}
+                            {planetCell(planet.name)} · {getSignName(planet.sign)} · {strengthLabel(planet.strength)} ·{" "}
+                            {t("astrology.house")} {planet.house} · {t("astrology.ownership")}{" "}
+                            {ownershipByPlanet.get(planet.name)?.join(", ") || noDetails}
                         </p>
                         {isD1 && (
                             <p className="mt-1">

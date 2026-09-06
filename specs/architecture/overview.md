@@ -169,6 +169,16 @@
 - **Read-only on all views** (own/public/share-link) — no new endpoints, no mutation, no permission changes. The existing `GET /api/horoscope/:id` and `GET /api/share/:token` payloads grow additively (`calculatedDetails.wargaKendara`). Manual horoscopes without entered Navamsa data show the existing "no chart data" placeholder for D9. Search integration and the calculations tab are explicitly **out of scope** and unchanged.
 - Full spec: `specs/architecture/20260815-1145-warga-kendara-architecture.md`
 
+### 10. Student Notepad (ශිෂ්ය සටහන් පොත) — Per-Horoscope Private Observation Workspace
+
+- The notepad is a movable/resizable **non-modal popup** on the horoscope detail page. **13 parent tags** (12 house purposes + "Other", numeric `0` = Other / `1`-`12` = house number — the house number is the value, no separate enum) form a single-select radio strip; selecting a parent reveals its **sub-tags** (house significations) from a static house-purpose catalog.
+- **System observations are derived, never stored**: selecting a sub-tag derives the six observation groups (planets in the house; house load + position + Nakshatra load + position; sub-tag planet significations; Chandra Lagna related house; Surya Lagna related house; related Warga Kendara) at render time via a new pure module `src/lib/notepadObservations.ts` over the already-shipped `CalculatedDetails` payload (including `wargaKendara`) — the `currentPlanets`/`wargaKendara`-fallback precedent. No per-request API call, no loading spinner. Colors (green = good / red = bad / white = neutral) and `(n/m)` ratios are render-time derivations with a **pluggable classifier** (default: planet `PlanetaryStrength` sign — positive green, negative red, Sama 0 white). The domain-pending "house load" / "Nakshatra load" definitions render neutral placeholder tags until confirmed — **no new `CalculatedDetails` fields in phase 1** (BA Open Questions 1–2).
+- The static **house-purpose catalog** (13 parent tags, Sanskrit names, significations → sub-tags) and **planet-signification catalog** (feeding the reverse sub-tag → planet mapping) live in `src/lib/notepadCatalogs.ts`, resolved via i18n (`notepad.*` keys in `si`/`en`) — never stored per horoscope, never user-editable (Varga Chart Catalog precedent). Sub-tag identity is the stable catalog **key**, never the localized display text.
+- **Student-entered data lives on a new `HoroscopeNote` Mongoose model** (`src/models/HoroscopeNote.ts`) — one document per (student, horoscope), unique compound index `{ "user.id": 1, "horoscope.id": 1 }` (SearchBookmark precedent). Stores `notepadState` (popup geometry + optional last selection), `observationTags` (student tags with numeric `TagColor` enum), `resultNotes`. Lazy creation on first save; GET of a missing note returns empty defaults. **Cascade-deleted with the horoscope** (`HoroscopeNote.deleteMany` added to both horoscope DELETE routes). **Never touched by the AstrologySettings recalculation job** (student data, not derived data — Shad Bala `overridden` precedent in spirit).
+- **API**: `GET` / `PUT /api/horoscope/:id/note` — 401 unauthenticated; 404 horoscope missing or not viewable (same check as `GET /api/horoscope/:id`); the note is always the **caller's own** document — **not** horoscope-owner-scoped (unlike the Shad Bala PATCH route: any authenticated student with view access gets their own private notepad). `PUT` is a validated full-document upsert (`$set` per provided field group, no partial save). Client persists with a 500 ms debounce + optimistic UI + `keepalive` flush on unmount (Shad Bala Table pattern).
+- **Privacy**: notepad content is never rendered to other students, public viewers or search results (US-SN-014); the note route reuses the detail-page viewability check. Super Admin visibility defaults to strictly private (BA Open Question 9).
+- Full spec: `specs/architecture/20260816-1559-student-notes-architecture.md`
+
 ### Planet Aspects Setting Flow
 
 ```
@@ -276,6 +286,32 @@ User → Horoscope Detail → Calculations tab → ෂඩ් බලය table →
   → Non-owners / share links render the table read-only
 ```
 
+### Student Notepad Observation Flow
+
+```
+User → Horoscope Detail page → notepad button → Student Notepad popup (non-modal, draggable, resizable)
+  → Page already holds calculatedDetails (existing GET /api/horoscope/:id, incl. wargaKendara)
+  → Notepad fetches GET /api/horoscope/:id/note
+      → { notepadState: null, observationTags: [], resultNotes: [] } when no document
+        (lazy creation on first save; 401 unauthenticated / 404 not viewable)
+  → User selects a parent tag (single-select radio, 0-12) → sub-tag chips (static catalog keys)
+  → User selects a sub-tag → resolveNotepadObservation(calculatedDetails, parentTag, subTag)
+      [pure render-time derivation — no API call, no spinner]
+      → six observation sections: planetsInHouse, houseLoad, nakshatraLoad, subTagPlanet,
+        chandraLagnaHouse, suryaLagnaHouse, wargaKendara
+      → each tag colored green/red/white (default classifier: PlanetaryStrength sign;
+        domain-pending loads render neutral) + per-section ratio (n/m) — never stored
+  → User adds own tags (TagColor picker) / result notes / moves-resizes popup / changes selection
+      → optimistic local state → debounced 500ms PUT /api/horoscope/:id/note
+        { notepadState, observationTags, resultNotes } → server validates + upserts caller's doc
+      → failure → rollback + localized error toast (Shad Bala Table pattern)
+  → Navigate to another horoscope → note refetched for the new (student, horoscope) pair;
+    observations re-derive from the new horoscope's calculatedDetails (no cross-horoscope bleed)
+  → AstrologySettings full recalculation → recalculateOne recomputes CalculatedDetails only —
+    HoroscopeNote is never read or written (student data preserved)
+  → Horoscope deletion → both DELETE routes also HoroscopeNote.deleteMany({ "horoscope.id": id })
+```
+
 ### Search Flow
 
 ```
@@ -364,6 +400,8 @@ User → Click "Login with Google" →
 | DELETE | /api/horoscope/:id | Delete horoscope (own) |
 | PATCH | /api/horoscope/:id/privacy | Toggle public/private and/or show/hide name — body: `{ isPublic?: boolean, displayName?: boolean }` |
 | PATCH | /api/horoscope/:id/shadbalaya | Toggle a Shad Bala bala — body: `{ planet, bala, value }` (owner or super-admin; stores `overridden: true`; 401/403/404/400 otherwise) |
+| GET | /api/horoscope/:id/note | Get the calling student's notepad for the horoscope — returns `{ notepadState, observationTags, resultNotes }` or empty defaults when no document exists (lazy creation on first save; 401 unauthenticated / 404 horoscope missing or not viewable) |
+| PUT | /api/horoscope/:id/note | Upsert the calling student's notepad — body: `{ notepadState?, observationTags?, resultNotes? }` (server-validated, at least one group; `$set` per provided group, no partial save; always the caller's own document, never another student's; 401/404/400) |
 | PUT | /api/horoscope/:id/manual-chart | Update a manual horoscope's chart — body: `{ lagna, houses, navamsaHouses }` (owner-only; 409 on `source: "auto"`) |
 | GET | /api/horoscope/:id/dasha | Get dasha timeline data (returns dashas JSON from CalculatedDetails) — optional standalone endpoint; data also available via GET /api/horoscope/:id |
 
@@ -599,6 +637,25 @@ User → Click "Login with Google" →
 }
 ```
 
+**horoscopeNotes**
+
+```
+{
+  id: UUID (string),
+  user: { id: UUID },                // the owning student (caller-scoped — NOT the horoscope owner)
+  horoscope: { id: UUID },
+  notepadState: object | null,       // popup geometry + optional selection state:
+                                     //   { position: { x, y }, size: { width, height },
+                                     //     isOpen?, selectedParentTag?, selectedSubTag? }
+  observationTags: array,            // student tags:
+                                     //   [{ id, parentTag (0-12), subTag|null (catalog key),
+                                     //      text, color (TagColor 1-6), createdAt, updatedAt }]
+  resultNotes: array,                // [{ id, text, createdAt, updatedAt }] — newest-first at render
+  createdAt: Date,
+  updatedAt: Date
+}
+```
+
 **auditLogs**
 
 ```
@@ -710,6 +767,8 @@ User → Click "Login with Google" →
 - searchHistory: { "user.id": 1, query: 1, createdAt: -1 } (for dedup consecutive same queries)
 - searchBookmarks: { "user.id": 1, createdAt: -1 } (for listing user's bookmarks)
 - searchBookmarks: { "user.id": 1, "horoscope.id": 1 } (unique compound — prevent duplicate bookmarks)
+- horoscopeNotes: { "user.id": 1, "horoscope.id": 1 } (unique compound — one notepad per (student, horoscope))
+- horoscopeNotes: { "horoscope.id": 1 } (cascade-delete lookups)
 - searchEmbeddings: { "horoscope.id": 1, language: 1, isActive: 1 } (for managing embedding lifecycle)
 - searchEmbeddings: { isActive: 1, language: 1 } (for filtering active embeddings by language during search)
 
@@ -735,6 +794,8 @@ User → Click "Login with Google" →
 - Derived birth ranges (time/month/date/age) are read-only outputs computed from user-entered sign/placement data — no user-controlled degree/time input is accepted for range derivation
 - Per-user settings (`planetaryOrbs`, `planetAspects`) are scoped to the owning session (`/api/settings` uses `getServerSession` and writes by `session.user.email`/`googleId`); `planetAspects` payloads are strictly validated server-side (numeric-only, bounded ranges, no partial save) and non-owners always receive the stored aspect snapshot — owner-specific view-time aspect re-derivation runs only under an ownership check
 - Shad Bala writes (`PATCH /api/horoscope/:id/shadbalaya`) are strictly validated server-side (planet integer 1–9, bala in the allowed six-key set, boolean value) and authorized to the owner or a super-admin only (401 unauthenticated, 403 otherwise); non-owner/share-link views render read-only and any mutation attempt is rejected regardless of what the UI shows; `overridden` entries are never rewritten by the recalculation job
+- Notepad reads/writes (`GET`/`PUT /api/horoscope/:id/note`) are scoped to the owning session and the **caller's own** `HoroscopeNote` document — no endpoint ever reads or writes another student's note; the route reuses the detail-page viewability check (404 for missing or non-viewable horoscopes, 401 unauthenticated) and strictly validates payloads server-side (parentTag 0–12, subTag from the static catalog or null, tag/note text length caps, `TagColor` 1–6, geometry bounds) with no partial save
+- Notepad content is private per student: never included in search text content, search result cards, public detail payloads or share-link payloads (US-SN-014)
 
 ### Privacy & Access Control
 

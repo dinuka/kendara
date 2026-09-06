@@ -21,13 +21,12 @@
  *    - maranakaraka: computeMaranakaraka against the chart's whole-sign row houses (p.house).
  *    - digBala: planets sitting on their dig bala target house (see shadBalaya.DIG_HOUSE).
  */
-
 import type { CalculationResult, House, Planet } from "@/lib/astrology";
 import { computeMaranakaraka, navamsaSign } from "@/lib/astrology";
 import { PlanetaryStrength } from "@/lib/astrologyEnums";
 import { getChartData } from "@/lib/chartDataTransform";
 import { ChartType } from "@/lib/chartTypes";
-import { SIGN_LORD, buildWholeSignHouses } from "@/lib/manualChart";
+import { SIGN_LORD, buildWholeSignHouses, computePlanetStrength } from "@/lib/manualChart";
 import { computeDigBalaPlanets } from "@/lib/shadBalaya";
 
 /** One row of the per-chart Houses table (the chart's whole-sign houses, the planets occupying each
@@ -300,8 +299,8 @@ function buildChartShape(lagnaSign: number, houses: House[], planets: WargaPlane
 /** Maraka (මාරක) planets of a chart: the lords of the 2nd and 7th signs from its lagna. Mirrors
  *  calculation.computeMaraka so the per-chart tables are self-contained. */
 export function computeWargaMaraka(ascSign: number): number[] {
-    const secondSign = ((ascSign + 1) % 12) || 12;
-    const seventhSign = ((ascSign + 6) % 12) || 12;
+    const secondSign = (ascSign + 1) % 12 || 12;
+    const seventhSign = (ascSign + 6) % 12 || 12;
     return [SIGN_LORD[secondSign] || 1, SIGN_LORD[seventhSign] || 1];
 }
 
@@ -309,9 +308,7 @@ export function computeWargaMaraka(ascSign: number): number[] {
  *  (cheshta/kala bala are the only per-planet booleans the D1 tables surface). */
 function balaFlagPlanets(
     shadbalaya:
-        | Record<string, { cheshtaBala?: { value?: boolean }; kalaBala?: { value?: boolean } }>
-        | undefined
-        | null,
+        Record<string, { cheshtaBala?: { value?: boolean }; kalaBala?: { value?: boolean } }> | undefined | null,
     bala: "cheshtaBala" | "kalaBala",
 ): number[] {
     if (!shadbalaya) return [];
@@ -377,9 +374,7 @@ function buildD1Entry(res: ResultLike): WargaChartEntry {
         ashtamanshaPlanets: res.ashtamanshaPlanets ?? [],
         kalaBalaPlanets: balaFlagPlanets(res.shadbalaya, "kalaBala"),
         atmakaraka: res.atmakaraka,
-        combustPlanets: (res.planets ?? [])
-            .filter((p) => p.combustion === true)
-            .map((p) => p.name as number),
+        combustPlanets: (res.planets ?? []).filter((p) => p.combustion === true).map((p) => p.name as number),
         badhakaPlanets: res.badhakaPlanet ?? [],
         marakaPlanets: computeWargaMaraka(shape.lagnaSign),
         maranakaraka,
@@ -398,11 +393,15 @@ function buildAutoD9Entry(res: ResultLike): WargaChartEntry | null {
         .map((p) => {
             const navSign =
                 typeof p.navamsaSign === "number" ? p.navamsaSign : navamsaSign(p.sign ?? 1, wedgeOf(p.degree));
+            const navStrength =
+                p.navamsaStrength === undefined || p.navamsaStrength === null
+                    ? computePlanetStrength(p.name ?? 0, navSign, 0)
+                    : normalizeStrength(p.navamsaStrength);
             return {
                 name: p.name as number,
                 sign: navSign,
                 house: ((navSign - ascNavSign + 12) % 12) + 1,
-                strength: normalizeStrength(p.navamsaStrength),
+                strength: navStrength,
             };
         });
     if (sources.length === 0) return null;
@@ -450,11 +449,7 @@ function buildRotatedEntry(
 ): WargaChartEntry | null {
     if (!Array.isArray(res.planets) || res.planets.length === 0) return null;
     const chart = getChartData(res as CalculationResult, type);
-    if (
-        !Array.isArray(chart.planets) ||
-        !Array.isArray(chart.houses) ||
-        typeof chart.ascendant?.sign !== "number"
-    ) {
+    if (!Array.isArray(chart.planets) || !Array.isArray(chart.houses) || typeof chart.ascendant?.sign !== "number") {
         return null;
     }
     const sources: WargaPlanetSource[] = chart.planets

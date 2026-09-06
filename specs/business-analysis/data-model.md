@@ -26,6 +26,7 @@
 - User 1---* Horoscope (owner)
 - User 1---* Metadata (creator)
 - User 1---* Location (creator)
+- User 1---* HoroscopeNote (notepad owner)
 - User 1---1 AstrologySettings (last updated by, via `updatedBy` — optional)
 
 ### AstrologySettings
@@ -105,6 +106,7 @@
 - Horoscope 1---* Metadata
 - Horoscope 1---* ShareLink
 - Horoscope 1---* Chart
+- Horoscope 1---* HoroscopeNote
 
 ### CalculatedDetails
 
@@ -261,6 +263,35 @@
 
 - SearchBookmark *---1 User
 - SearchBookmark *---1 Horoscope
+
+### HoroscopeNote
+
+The **Student Notepad** (ශිෂ්ය සටහන් පොත) — the student's private observation workspace attached to a horoscope (see `20260816-1543-student-notes.md`). One notepad exists per (student, horoscope): it stores the popup geometry, the student's own observation tags (with selectable colors) and the result notes. The **system-generated observations** (planets in house, house load, Nakshatra loads, Chandra/Surya Lagna related houses, related Warga Kendara data, color classification, ratios) are **never stored on this document** — they are derived on-the-fly from `CalculatedDetails` (including `wargaKendara`) at render time.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| id | UUID | Primary key |
+| user | Object | `{ id: UUID }` — reference to User (the student who owns the notepad) |
+| horoscope | Object | `{ id: UUID }` — reference to Horoscope |
+| notepadState | JSON | Popup window geometry (and optional last-selection state) — see [NotepadState](#notepadstate) structure |
+| observationTags | JSON | Student-entered observation tags with selectable colors — see [ObservationTags (HoroscopeNote)](#observationtags-horoscopenote) structure |
+| resultNotes | JSON | Student's result notes derived from the observations — see [ResultNotes (HoroscopeNote)](#resultnotes-horoscopenote) structure |
+| createdAt | DateTime | Record created |
+| updatedAt | DateTime | Last updated |
+
+**Business rules:**
+- **One notepad per (user, horoscope)**: unique constraint on `user` + `horoscope` (mirrors SearchBookmark). The document is created lazily on first notepad use; a horoscope without a notepad renders an empty notepad
+- **Private to the owning student**: notepad content (geometry, observation tags, result notes) is NEVER rendered to other students, public horoscope viewers, share-link recipients, or search results — each student interacting with a horoscope gets their own private notepad. (Super Admin visibility — see Open Questions in `20260816-1543-student-notes.md`)
+- **Cascade delete**: deleting the horoscope or the user cascade-deletes the notepad (mirrors SearchBookmark)
+- **Untouched by recalculation**: the AstrologySettings full recalculation job never writes to `HoroscopeNote` — it contains student data, not derived astrological data (mirrors the `overridden` Shad Bala preservation principle in spirit: student-entered data is never recomputed or overwritten)
+- **System observations are derived, not stored**: the colored observation tags and ratios come from pure render-time functions over `CalculatedDetails` (both `source: "auto"` and `source: "manual"`, with legacy fallback) — no calculation output is persisted on this document
+- **Observations follow the viewed horoscope**: the derived observation payload always reflects the **currently viewed horoscope's** `CalculatedDetails` — switching horoscopes instantly switches the observations; no notepad ever shows another horoscope's data
+- **Every student modification persists to the database**: geometry, selection state (when enabled), observation tags and result notes are all written to this document for the owning (user, horoscope) pair — no modification is kept only in memory; reopening the notepad on the same horoscope restores everything from the database
+
+**Relationships**:
+
+- HoroscopeNote *---1 User (owner)
+- HoroscopeNote *---1 Horoscope
 
 ### Location
 
@@ -419,6 +450,19 @@ Every Zodiac Sign belongs to exactly one fixed category. Used by the Rashi Aspec
 - `0` remains reserved for Conjunction (co-location), which is not part of the configurable aspects setting
 - The aspects setting (see [PlanetAspects (System Setting)](#planetaspects-system-setting)) allows any multiple of 30 from 30 to 330 as a configurable aspect degree per planet — `aspectType` / `exactAspectDegree` on a planet's aspects can therefore be any of these values (including non-classical angles such as 210, 240, 270, 300, 330)
 - Display names for the non-classical angles are descriptive placeholders; the numeric degree value is the source of truth for calculation
+
+### TagColor (student observation tag)
+
+Selectable color for a student-entered observation tag on the Student Notepad (`HoroscopeNote.observationTags[].color`). The proposed palette below is provisional — the exact selectable palette is pending UX/domain confirmation (see Open Questions in `20260816-1543-student-notes.md`). Note: this enum applies to **student-entered** tags only; the **system-generated** observation tags use the fixed render-time classification green (good) / red (bad) / white (neutral) and are never stored.
+
+| Value | Color | Notes |
+|-------|-------|-------|
+| 1 | Green | Proposed palette — matches the system "good" color |
+| 2 | Red | Proposed palette — matches the system "bad" color |
+| 3 | White | Proposed palette — neutral/default |
+| 4 | Blue | Proposed palette |
+| 5 | Yellow | Proposed palette |
+| 6 | Purple | Proposed palette |
 
 ## JSON Structures
 
@@ -1112,6 +1156,200 @@ The 16-varga catalog that supplies each displayed chart's **main-indication tags
 | d45 | 45 | Akṣavedāṁśa | General indications | (pending) | (pending) |
 | d60 | 60 | Ṣaṣṭiāṁśa | Very subtle karmic indications | (pending) | (pending) |
 
+### NotepadState (HoroscopeNote)
+
+Stored on `HoroscopeNote.notepadState`. Popup geometry of the Student Notepad, persisted per (student, horoscope) so the notepad reopens where the student left it. The last-selection fields are optional — whether the selected parent/sub-tag restores on reopen is a UX decision (see Open Questions in `20260816-1543-student-notes.md`).
+
+```json
+{
+  "position": { "x": 120, "y": 80 },
+  "size": { "width": 480, "height": 640 },
+  "isOpen": true,
+  "selectedParentTag": 7,
+  "selectedSubTag": "marriage"
+}
+```
+
+**Field meanings:**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| position | JSON | `{ x, y }` — top-left offset of the popup within the viewport, clamped on restore so the popup never sits fully off-screen |
+| size | JSON | `{ width, height }` — popup size, clamped to the configured min/max bounds (UX decision) |
+| isOpen | Boolean | Whether the notepad was open when last closed/navigated (optional — restore open state) |
+| selectedParentTag | Integer (0-12) | Optional — last-selected parent tag: `0` = "Other", `1`-`12` = house number |
+| selectedSubTag | String | Optional — last-selected sub-tag key from the static house-purpose catalog |
+
+### ObservationTags (HoroscopeNote)
+
+Stored on `HoroscopeNote.observationTags` — the student's own observation tags, added in the context of the currently selected parent tag (and sub-tag, when one is selected). Each tag carries a text and a selectable color (numeric `TagColor` enum). `parentTag` uses the same convention as `NotepadState`: `0` = "Other", `1`-`12` = house number; a tag under the "Other" parent has no `subTag`.
+
+```json
+[
+  {
+    "id": "uuid",
+    "parentTag": 7,
+    "subTag": "marriage",
+    "text": "සිකුරු 7 වන භාවයේ උච්ච — විවාහයට හොඳයි",
+    "color": 1,
+    "createdAt": "2026-08-16T10:00:00Z",
+    "updatedAt": "2026-08-16T10:00:00Z"
+  },
+  {
+    "id": "uuid",
+    "parentTag": 0,
+    "subTag": null,
+    "text": "General observation not belonging to any house",
+    "color": 4,
+    "createdAt": "2026-08-16T10:05:00Z",
+    "updatedAt": "2026-08-16T10:05:00Z"
+  }
+]
+```
+
+**Field meanings:**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| id | UUID | Tag identifier |
+| parentTag | Integer (0-12) | Parent tag context: `0` = "Other", `1`-`12` = house number |
+| subTag | String | Optional sub-tag key from the static house-purpose catalog (always `null` for the "Other" parent) |
+| text | String | The student's own observation text (non-empty; length capped — see Open Questions) |
+| color | Integer | Numeric `TagColor` enum — the student-selected tag color |
+| createdAt / updatedAt | DateTime | Timestamps |
+
+### ResultNotes (HoroscopeNote)
+
+Stored on `HoroscopeNote.resultNotes` — the student's result notes, written based on all observations. Plain text, newest-first ordering at render time. (Whether result notes should be grouped per parent tag is an Open Question — the model below is notepad-level, matching "based on all observations".)
+
+```json
+[
+  {
+    "id": "uuid",
+    "text": "7 වන භාවය ශක්තිමත් — විවාහය සාර්ථකයි. සිකුරු උච්ච වීම නිසා කල් දැමීම් අඩුයි.",
+    "createdAt": "2026-08-16T11:00:00Z",
+    "updatedAt": "2026-08-16T11:15:00Z"
+  }
+]
+```
+
+### NotepadObservation (derived, NOT stored)
+
+The system-generated observation payload shown when the student selects a sub-tag in the notepad. **Computed on-the-fly at render time from `CalculatedDetails`** (including `wargaKendara`) via pure functions — mirroring the `currentPlanets` precedent ("computed server-side in real-time — it is NOT stored in the database"). It is never persisted on `HoroscopeNote` and is never part of any stored snapshot. If the domain confirms the "load" values require calculations that cannot be derived from existing stored fields, they would be added to `CalculatedDetails` as new derived fields recomputed by the AstrologySettings recalculation job (mirroring `wargaKendara`) — see Open Questions in `20260816-1543-student-notes.md`.
+
+```json
+{
+  "parentTag": 7,
+  "subTag": "marriage",
+  "sections": [
+    {
+      "key": "planetsInHouse",
+      "ratio": { "green": 1, "total": 2 },
+      "tags": [
+        { "kind": "planet", "color": "green", "planet": 6, "sign": 8, "house": 7, "strength": 1, "nakshatra": 14, "pada": 1 },
+        { "kind": "planet", "color": "red", "planet": 3, "sign": 2, "house": 7, "strength": -0.1, "nakshatra": 5, "pada": 2 }
+      ]
+    },
+    {
+      "key": "houseLoad",
+      "ratio": { "green": 0, "total": 1 },
+      "tags": [
+        { "kind": "load", "color": "white", "labelKey": "notepad.observation.houseLoad", "params": { "house": 7, "count": 2 } }
+      ]
+    },
+    {
+      "key": "nakshatraLoad",
+      "ratio": { "green": 0, "total": 1 },
+      "tags": [
+        { "kind": "load", "color": "white", "labelKey": "notepad.observation.nakshatraLoad", "params": { "nakshatra": 14, "lord": 6 } }
+      ]
+    },
+    {
+      "key": "subTagPlanet",
+      "ratio": { "green": 1, "total": 1 },
+      "tags": [
+        { "kind": "planet", "color": "green", "planet": 6, "sign": 8, "house": 7, "strength": 1, "nakshatra": 14, "pada": 1 }
+      ]
+    },
+    {
+      "key": "chandraLagnaHouse",
+      "ratio": { "green": 1, "total": 1 },
+      "tags": [
+        { "kind": "house", "color": "green", "chart": "chandraLagna", "house": 7, "planets": [6], "loadCount": 1 }
+      ]
+    },
+    {
+      "key": "suryaLagnaHouse",
+      "ratio": { "green": 0, "total": 0 },
+      "tags": []
+    },
+    {
+      "key": "wargaKendara",
+      "ratio": { "green": 1, "total": 3 },
+      "tags": [
+        { "kind": "lagna", "color": "white", "chart": "d9", "lagnaSign": 6, "loadCount": 1 },
+        { "kind": "house", "color": "green", "chart": "d9", "house": 7, "planets": [6], "loadCount": 1 },
+        { "kind": "d1LoadInWarga", "color": "red", "chart": "d9", "planet": 3, "sign": 4, "house": 11, "strength": -0.1 }
+      ]
+    }
+  ]
+}
+```
+
+**Field meanings:**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| parentTag / subTag | Integer / String | The selection that produced this payload |
+| sections | JSON | One entry per observation sub-section (the six bullet groups of the feature doc): `planetsInHouse`, `houseLoad`, `nakshatraLoad`, `subTagPlanet`, `chandraLagnaHouse`, `suryaLagnaHouse`, `wargaKendara` |
+| ratio | JSON | `{ green, total }` — derived at render time as `(green/total)`; displayed exactly as `(n/m)` with no division performed. An empty section shows `(0/0)` or is omitted (UX decision) |
+| tags[].kind | String | Observation kind: `planet`, `house`, `lagna`, `load`, `d1LoadInWarga` — drives how the tag renders |
+| tags[].color | String | Render-time classification only — `"green"` (good), `"red"` (bad), `"white"` (neutral). Never stored; the classification rule per kind is a domain question (see Open Questions) |
+| tags[].planet / sign / house / strength / nakshatra / pada | Integer | Numeric enums (Planet 1-9, ZodiacSign, house 1-12, PlanetaryStrength, Nakshatra, pada) — display names resolved per locale via i18n, never stored as localized text |
+| tags[].chart | String | Reference chart key for house/lagna/d1LoadInWarga tags: `d1`, `d9`, `suryaLagna`, `chandraLagna` (phase-1 warga keys, matching [WargaKendara](#wargakendara)) |
+| tags[].labelKey / params | String / JSON | Optional i18n composition for non-planet tags, following the ShadBalaya reason-object convention (`key` + numeric `params`) |
+
+**Notes:**
+- The `houseLoad` / `nakshatraLoad` / `d1LoadInWarga` definitions are **pending domain confirmation** — "house load" (භාව භාරය), "house load position", "Nakshatra load of the house load" and "position of the Nakshatra load" are not defined anywhere in the repository outside `docs/student-notes.md` (see Open Questions)
+- The structure above is a render-time contract; the exact tag payloads per section depend on the confirmed load definitions and the confirmed color-classification rules
+- Both `source: "auto"` and `source: "manual"` horoscopes derive this payload (manual limited to what the entered placements support — e.g. no D9 warga section without entered Navamsa data); legacy documents missing `wargaKendara` fall back to the existing render-time derivation
+
+### House Purpose Catalog (static reference data)
+
+The static catalog behind the notepad's **parent tags** and their **sub-tags** (see `20260816-1543-student-notes.md`). This is **static, system-wide display data** — resolved via i18n message keys (house purpose label, Sanskrit name, significations per locale); it is **not stored per horoscope** and is not user-editable. The parent-tag value is `0` = "Other" or `1`-`12` = house number (the house number doubles as the numeric parent-tag value, so no separate enum is needed). English names and significations are authoritative (from `docs/student-notes.md`); Sinhala translations are pending domain confirmation. Each signification becomes a selectable sub-tag (comma-split at catalog build time, mirroring the varga indication-tag split pattern).
+
+| parentTag | House | Sanskrit name | Main purpose / significations (sub-tags) |
+|-----------|-------|---------------|------------------------------------------|
+| 1 | 1st | Tanu / Lagna | Self, body, personality, identity, vitality, appearance, overall life direction |
+| 2 | 2nd | Dhana | Wealth, accumulated resources, family, speech, food, values |
+| 3 | 3rd | Sahaja / Bhrātṛ | Courage, effort, skills, communication, younger siblings, initiative |
+| 4 | 4th | Sukha | Mother, home, property, emotional happiness, education, vehicles, inner peace |
+| 5 | 5th | Putra | Intelligence, children, creativity, learning, past-life merit (Pūrva Puṇya), mantra |
+| 6 | 6th | Ari / Ṣaṭru | Enemies, disease, debts, service, competition, obstacles, litigation |
+| 7 | 7th | Yuvati / Kalatra | Marriage, spouse, partnerships, sexuality, business partnerships, public dealings |
+| 8 | 8th | Randhra / Ayu | Longevity, transformation, death, inheritance, secrets, occult knowledge, sudden events |
+| 9 | 9th | Dharma / Bhāgya | Dharma, fortune, father, guru, higher knowledge, pilgrimage, blessings |
+| 10 | 10th | Karma | Career, profession, status, authority, achievements, actions in the world |
+| 11 | 11th | Lābha | Gains, income, fulfillment of desires, elder siblings, networks, large organizations |
+| 12 | 12th | Vyaya / Mokṣa | Expenditure, loss, foreign places, isolation, sleep, spiritual liberation, letting go |
+| 0 | — | Other | Other notes not belonging to the houses |
+
+### Planet Signification Catalog (static reference data)
+
+The static catalog mapping each planet to its significations (from `docs/student-notes.md`). It feeds two things: (1) the **sub-tag → relevant planet(s) reverse mapping** — when a sub-tag is selected, the system looks up every planet whose signification list contains that sub-tag (e.g. "marriage" → Venus; "father" → Sun; "children" → Jupiter); (2) the human-readable signification lines shown with the planet tags. **Static, system-wide, resolved via i18n — never stored per horoscope.** Planet values are the numeric `Planet` enum; Sinhala names from the existing enum table.
+
+| Planet | Significations |
+|--------|----------------|
+| 1 Sun (Ravi / රවි) | Self, soul, father, authority, government, status |
+| 2 Moon (Chandra / සඳු) | Mind, mother, emotions, happiness, nourishment |
+| 3 Mars (Kuja / කුජ) | Courage, strength, younger siblings, land, competition |
+| 4 Mercury (Budha / බුධ) | Intelligence, speech, communication, business, calculation |
+| 5 Jupiter (Guru / ගුරු) | Wisdom, guru, children, wealth, dharma, higher knowledge |
+| 6 Venus (Shukra / සිකුරු) | Marriage, spouse, love, relationships, pleasures, vehicles |
+| 7 Saturn (Shani / ශනි) | Work, service, labor, suffering, delays, longevity |
+| 8 Rahu (රාහු) | Foreign matters, obsession, unconventional things, material desires |
+| 9 Ketu (කේතු) | Detachment, spirituality, Moksha, occult knowledge, separation |
+
 ### Doshas
 
 ```json
@@ -1228,6 +1466,7 @@ User (1) ---< (N) Metadata
 User (1) ---< (N) SavedFilter
 User (1) ---< (N) SearchHistory
 User (1) ---< (N) SearchBookmark
+User (1) ---< (N) HoroscopeNote
 User (1) ---< (N) Location
 
 AstrologySettings (1) --- (1) User (last updated by, via updatedBy)
@@ -1240,6 +1479,7 @@ Horoscope (1) ---< (N) Metadata
 Horoscope (1) ---< (N) ShareLink
 Horoscope (1) ---< (N) SearchEmbedding
 Horoscope (1) ---< (N) SearchBookmark
+Horoscope (1) ---< (N) HoroscopeNote
 
 SavedFilter (1) ---< (N) SearchHistory
 ```

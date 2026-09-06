@@ -5,6 +5,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { CalculatedDetails } from "@/models/CalculatedDetails";
 import { Chart } from "@/models/Chart";
 import { Horoscope } from "@/models/Horoscope";
+import { HoroscopeNote } from "@/models/HoroscopeNote";
 import { Metadata } from "@/models/Metadata";
 
 import { getCalculationSettings } from "@/lib/astrologySettings";
@@ -201,6 +202,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
     await CalculatedDetails.deleteOne({ "horoscope.id": id });
     await Chart.deleteMany({ "horoscope.id": id });
     await Metadata.deleteMany({ "horoscope.id": id });
+    await HoroscopeNote.deleteMany({ "horoscope.id": id });
 
     return NextResponse.json({ success: true });
 }

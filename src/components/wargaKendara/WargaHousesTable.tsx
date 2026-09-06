@@ -2,6 +2,7 @@
 
 import AspectChip from "@/components/aspects/AspectChip";
 import { useI18n } from "@/hooks/useI18n";
+
 import type { Aspect } from "@/lib/astrology";
 import type { WargaHouseRow } from "@/lib/wargaKendara";
 
@@ -109,10 +110,7 @@ const WargaHousesTable = ({ houses, caption }: WargaHousesTableProps) => {
                     </thead>
                     <tbody>
                         {houses.map((house) => (
-                            <tr
-                                key={house.houseNumber}
-                                className="border-b border-gray-50 align-top even:bg-gray-100"
-                            >
+                            <tr key={house.houseNumber} className="border-b border-gray-50 align-top even:bg-gray-100">
                                 <th scope="row" className="py-1 pr-3 font-medium text-left">
                                     {house.houseNumber}
                                 </th>
