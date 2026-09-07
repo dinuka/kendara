@@ -3,8 +3,8 @@ import * as path from "path";
 
 import { computeAscendantSpecialFlags, computeMaranakaraka, computeYogakaraka, navamsaSign } from "@/lib/astrology";
 import { calculateHoroscope } from "@/lib/calculation";
-import { YOGA_DOSHA_VERSION } from "@/lib/yogaDosha";
 import { SHADBALAYA_KEYS } from "@/lib/shadBalaya";
+import { YOGA_DOSHA_VERSION } from "@/lib/yogaDosha";
 
 describe("calculateHoroscope", () => {
     const baseData = {
@@ -375,8 +375,14 @@ describe("calculateHoroscope Yoga/Dosha tags (IT-YD-200..202)", () => {
         expect(result.doshas).toBeDefined();
         expect(Array.isArray(result.doshas.doshas)).toBe(true);
 
-        // No active yogas this release — the yoga list is empty by design.
-        expect(result.yogas).toEqual([]);
+        // The Dharma Karmadhipati Yoga is present — Mercury (9th lord, sign 4 Cancer house 10) and
+        // Moon (10th lord, sign 4 Cancer house 10) are conjunct (1.57° apart). Conjunction is yuti,
+        // so only DK-01 fires — the DK-02 "aspecting each other" reason must NOT appear for a
+        // conjunct pair (horoscope 6a68e63506d2d7cd52c6fa9d).
+        const dk = result.yogas.find((y) => y.id === "dharmaKarmadhipati");
+        expect(dk).toBeDefined();
+        expect(dk?.isPresent).toBe(true);
+        expect(dk?.formation.rulesTriggered).toEqual(["dharmaKarmadhipati.dk01"]);
 
         // The 2012-08-16 Colombo chart carries a present Shani Mangala Dosha (conjunction, SM-01).
         const shaniMangala = result.doshas.doshas.find((d) => d.id === "shaniMangala");
@@ -403,7 +409,8 @@ describe("calculateHoroscope Yoga/Dosha tags (IT-YD-200..202)", () => {
             JSON.stringify({ yogas: result.yogas, doshas: result.doshas, yogaDoshaVersion: result.yogaDoshaVersion }),
         );
         expect(persisted.yogaDoshaVersion).toBe(YOGA_DOSHA_VERSION);
-        expect(persisted.yogas).toEqual([]);
+        expect(persisted.yogas.map((y: { id: string }) => y.id)).toEqual(["dharmaKarmadhipati"]);
+        expect(persisted.yogas[0].isPresent).toBe(true);
         expect(persisted.doshas.doshas[0].id).toBe("shaniMangala");
         expect(persisted.doshas.doshas[0].formation.rulesTriggered).toContain("shaniMangala.sm01");
         expect(persisted.doshas.doshas.map((d: { id: string }) => d.id)).toEqual([

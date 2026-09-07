@@ -3,10 +3,19 @@
  * Mirrors the §Rule Catalog table in specs/business-analysis/data-model.md (registered rules,
  * strengths, tradition gates). English names are authoritative. Shani Mangala (narrow subset),
  * Agni Marutha (broad Saturn–Mars relationship, docs/agni-marutha-dosha.md) and Kuja Dosha
- * (docs/kuja-doshaya.md) are evaluated as distinct doshas; the Yoga catalog is empty this release.
+ * (docs/kuja-doshaya.md) are evaluated as distinct doshas; the Dharma Karmadhipati Yoga
+ * (docs/dharma-karmadipathi-yogaya.md) is evaluated as the first yoga in the catalog.
  * Sinhala strings for pending-domain themes stay English placeholders until confirmed (BI-YD-703).
  */
-import { DashaActivation, DoshaId, DoshaRuleId, MitigationKey, Tradition, YogaId, YogaRuleId } from "@/lib/yogaDosha/types";
+import {
+    DashaActivation,
+    DoshaId,
+    DoshaRuleId,
+    MitigationKey,
+    Tradition,
+    YogaId,
+    YogaRuleId,
+} from "@/lib/yogaDosha/types";
 
 export interface CatalogEntryBase {
     kind: "yoga" | "dosha";
@@ -54,7 +63,32 @@ export interface DoshaCatalogEntry extends CatalogEntryBase {
 
 export type CatalogEntry = YogaCatalogEntry | DoshaCatalogEntry;
 
-export const YOGA_CATALOG: YogaCatalogEntry[] = [];
+export const YOGA_CATALOG: YogaCatalogEntry[] = [
+    {
+        kind: "yoga",
+        id: "dharmaKarmadhipati",
+        tradition: "MAIN_STREAM",
+        status: "ACTIVE",
+        keywordEn: "Dharma Karmadhipati Yoga",
+        keywordSi: "ධර්ම කර්මාධිපති යෝගය",
+        searchAliasesEn: [
+            "Dharma Karmadhipati",
+            "Dharma-Karmadhipati",
+            "Dharma Karmadhipathi",
+            "9th lord 10th lord yoga",
+        ],
+        searchAliasesSi: ["ධර්ම කර්මාධිපති", "ධර්මකර්මාධිපති", "ධර්ම කර්මාධිපති යෝග"],
+        i18nKey: "yoga.dharmaKarmadhipati",
+        planets: [1, 2, 3, 4, 5, 6, 7],
+        expressionKeys: ["expression.main"],
+        rules: [
+            { rule: "dharmaKarmadhipati.dk01", strength: 1, reasonKey: "rule.dk01" },
+            { rule: "dharmaKarmadhipati.dk02", strength: 2, reasonKey: "rule.dk02" },
+            { rule: "dharmaKarmadhipati.dk03", strength: 1, reasonKey: "rule.dk03" },
+        ],
+        mitigations: [],
+    },
+];
 
 export const DOSHA_CATALOG: DoshaCatalogEntry[] = [
     {
@@ -64,7 +98,13 @@ export const DOSHA_CATALOG: DoshaCatalogEntry[] = [
         status: "ACTIVE",
         keywordEn: "Shani Mangala Dosha",
         keywordSi: "ශනි මංගල දෝෂය",
-        searchAliasesEn: ["Shani-Mangala", "Shani Mangala", "Saturn Mars yoga", "Saturn Mars dosha", "Saturn-Mars conjunction"],
+        searchAliasesEn: [
+            "Shani-Mangala",
+            "Shani Mangala",
+            "Saturn Mars yoga",
+            "Saturn Mars dosha",
+            "Saturn-Mars conjunction",
+        ],
         searchAliasesSi: ["ශනි මංගල", "ශනි කුජ යෝග", "ශනි කුජ දෝෂය"],
         i18nKey: "dosha.shaniMangala",
         planets: [7, 3],

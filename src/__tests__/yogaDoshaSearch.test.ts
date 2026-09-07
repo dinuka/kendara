@@ -111,7 +111,8 @@ describe("search: Yoga/Dosha catalog names (SR-YD-800..805)", () => {
                 planets: saturnMarsConjunctPlanets(),
             }),
         );
-        expect(result.yogas).toEqual([]);
+        expect(result.yogas.map((y) => y.id)).toEqual(["dharmaKarmadhipati"]);
+        expect(result.yogas[0].isPresent).toBe(false);
         expect(result.doshas[0].isPresent).toBe(true);
         expect(result.doshas[0].id).toBe("shaniMangala");
         return {

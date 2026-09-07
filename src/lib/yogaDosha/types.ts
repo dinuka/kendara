@@ -14,8 +14,8 @@ export type Tradition = "MAIN_STREAM";
 
 export type CatalogKind = "yoga" | "dosha";
 
-/** Yoga catalog ids (registered in catalog.ts) — no active yogas in this release. */
-export type YogaId = never;
+/** Yoga catalog ids (registered in catalog.ts). */
+export type YogaId = "dharmaKarmadhipati";
 
 /** Dosha catalog ids (registered in catalog.ts). */
 export type DoshaId = "shaniMangala" | "agniMarutha" | "manglik";
@@ -24,10 +24,7 @@ export type DoshaId = "shaniMangala" | "agniMarutha" | "manglik";
  *  Shani Mangala (narrow subset) and Agni Marutha (broad Saturn–Mars relationship) are distinct
  *  doshas — docs/agni-marutha-dosha.md: SM = conjunction / 7th-from-each-other / 4-10 only; all
  *  other Saturn–Mars relationships (aspects, ownership, nakshatra, parivartana) are Agni Marutha. */
-export type ShaniMangalaRuleId =
-    | "shaniMangala.sm01"
-    | "shaniMangala.sm02"
-    | "shaniMangala.sm03";
+export type ShaniMangalaRuleId = "shaniMangala.sm01" | "shaniMangala.sm02" | "shaniMangala.sm03";
 export type AgniMaruthaRuleId =
     | "agniMarutha.am01"
     | "agniMarutha.am02"
@@ -38,13 +35,13 @@ export type AgniMaruthaRuleId =
     | "agniMarutha.am07"
     | "agniMarutha.am08";
 export type ManglikRuleId = "manglik.mk01" | "manglik.mk02" | "manglik.mk03";
-export type YogaRuleId = never;
+export type DharmaKarmadhipatiRuleId =
+    "dharmaKarmadhipati.dk01" | "dharmaKarmadhipati.dk02" | "dharmaKarmadhipati.dk03";
+export type YogaRuleId = DharmaKarmadhipatiRuleId;
 export type DoshaRuleId = ShaniMangalaRuleId | AgniMaruthaRuleId | ManglikRuleId;
 
 /** Registered mitigation rule ids (cancellation.ts). */
-export type MitigationKey =
-    | "shaniMangala.mitigation.sm-mit-001"
-    | "manglik.mitigation.mk-mit-001";
+export type MitigationKey = "shaniMangala.mitigation.sm-mit-001" | "manglik.mitigation.mk-mit-001";
 export type MitigationType = "BENEFIC_INFLUENCE";
 export type MitigationEffect = "REDUCES_SEVERITY";
 export type MitigationConfidence = 1 | 2 | 3;

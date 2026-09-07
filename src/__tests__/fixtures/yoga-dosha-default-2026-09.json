@@ -51,7 +51,22 @@
             "house": 8
         }
     ],
-    "yogas": [],
+    "yogas": [
+        {
+            "id": "dharmaKarmadhipati",
+            "isPresent": true,
+            "formation": {
+                "primaryRule": "dharmaKarmadhipati.dk01",
+                "strength": 1
+            },
+            "finalAssessment": {
+                "severity": 1
+            },
+            "cancellation": {
+                "status": 1
+            }
+        }
+    ],
     "doshas": [
         {
             "id": "shaniMangala",

@@ -967,7 +967,33 @@
     "tradition": {
         "MAIN_STREAM": "Mainstream"
     },
-    "yoga": {},
+    "yoga": {
+        "dharmaKarmadhipati": {
+            "name": "Dharma Karmadhipati Yoga",
+            "rule": {
+                "dk01": "The 9th lord and 10th lord conjoin in one sign and house.",
+                "dk02": "The 9th lord and 10th lord aspect each other.",
+                "dk03": "The 9th lord and 10th lord exchange signs (parivartana)."
+            },
+            "theme": {
+                "house1": "Relates to self and vitality.",
+                "house2": "Relates to family and wealth.",
+                "house3": "Relates to courage and effort.",
+                "house4": "Relates to home, property and domestic life.",
+                "house5": "Relates to creativity and children.",
+                "house6": "Relates to obstacles and service.",
+                "house7": "Relates to partnerships and marriage.",
+                "house8": "Relates to longevity, inheritance and hidden matters.",
+                "house9": "Relates to fortune, dharma and higher learning.",
+                "house10": "Relates to career, karma and public standing.",
+                "house11": "Relates to gains and networks.",
+                "house12": "Relates to losses and foreign lands."
+            },
+            "expression": {
+                "main": "This yoga unites the energies of fortune and karma, favouring righteous action and purposeful career."
+            }
+        }
+    },
     "dosha": {
         "shaniMangala": {
             "name": "Shani Mangala Dosha",

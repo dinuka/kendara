@@ -1,8 +1,9 @@
 "use client";
 
 import { useI18n } from "@/hooks/useI18n";
+
 import { CancellationStatus } from "@/lib/astrologyEnums";
-import { doshaCatalogEntry, YogaDoshaEvaluation, yogaCatalogEntry } from "@/lib/yogaDosha";
+import { YogaDoshaEvaluation, doshaCatalogEntry, yogaCatalogEntry } from "@/lib/yogaDosha";
 
 interface YogaDoshaTagProps {
     entry: YogaDoshaEvaluation;
@@ -26,21 +27,21 @@ const YogaDoshaTag = ({ entry, open, onToggle }: YogaDoshaTagProps) => {
     const name = known ? t(`${entry.kind}.${entry.id}.name`) : t("yogaDosha.unknownName");
     const isCancelled = entry.cancellation.status === CancellationStatus.CANCELLED;
     const isDosha = entry.kind === "dosha";
-    // Dosha emphasis (user direction): a present dosha is a red tag; a cancelled dosha goes gray.
-    // Yogas keep the neutral chip with an indigo hover.
+    // Color direction: a present dosha is a red tag; a present yoga is a green tag; a cancelled
+    // entry (yoga or dosha) goes gray regardless of kind.
     const chipClass = isCancelled
         ? "line-through text-gray-500 bg-gray-100 border-gray-300"
         : isDosha
           ? "bg-red-50 text-red-700 border-red-300 hover:border-red-500 hover:text-red-800"
-          : "text-gray-800 bg-white border-gray-300 hover:border-indigo-400 hover:text-indigo-700";
+          : "bg-green-50 text-green-700 border-green-300 hover:border-green-500 hover:text-green-800";
     const dotClass = isCancelled
         ? "bg-gray-500"
         : isDosha
           ? "bg-red-600"
           : entry.cancellation.status === CancellationStatus.MITIGATED
             ? "bg-amber-500"
-            : "bg-slate-400";
-    const ringClass = isDosha ? "focus-visible:ring-red-400" : "focus-visible:ring-indigo-400";
+            : "bg-green-600";
+    const ringClass = isDosha ? "focus-visible:ring-red-400" : "focus-visible:ring-green-400";
 
     const label = known
         ? `${name}, ${strength}, ${status}`

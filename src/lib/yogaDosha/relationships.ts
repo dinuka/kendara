@@ -8,12 +8,12 @@ import { ChartFacts, PlanetFact } from "@/lib/yogaDosha/types";
 /** Whole-sign rulers (Rāśi lords) — parivartana / sign-ownership checks only. */
 export const SIGN_LORDS: Record<number, number> = {
     1: 3, // Mesha – Mars
-    2: 5, // Vrishabha – Venus
+    2: 6, // Vrishabha – Venus
     3: 4, // Mithuna – Mercury
     4: 2, // Karka – Moon
     5: 1, // Simha – Sun
     6: 4, // Kanya – Mercury
-    7: 5, // Tula – Venus
+    7: 6, // Tula – Venus
     8: 3, // Vrishchika – Mars
     9: 5, // Dhanus – Jupiter
     10: 7, // Makara – Saturn
@@ -65,6 +65,20 @@ export function planetFact(facts: ChartFacts, name: number): PlanetFact | undefi
 /** Graha drishti: `from` aspects `to` in the stored aspect records (any angle, within orb). */
 export function aspectsTheOther(from: PlanetFact, to: number): boolean {
     return from.aspects.some((a) => a.planetName === to);
+}
+
+/**
+ * Graha drishti excluding the 0° conjunction record. A conjunction is yuti, not drishti — when two
+ * planets sit in the same sign/house with matching 0° records, the DK-02 "aspecting each other"
+ * reason must not fire alongside DK-01 (reported for horoscope 6a68e63506d2d7cd52c6fa9d).
+ */
+export function aspectsTheOtherByDrishti(from: PlanetFact, to: number): boolean {
+    return from.aspects.some((a) => a.planetName === to && a.aspectType !== 0);
+}
+
+/** Mutual graha drishti excluding conjunction records (DK-02 basis — "and", both directions). */
+export function hasMutualAspectByDrishti(a: PlanetFact, b: PlanetFact): boolean {
+    return aspectsTheOtherByDrishti(a, b.planetName) && aspectsTheOtherByDrishti(b, a.planetName);
 }
 
 /** Mutual graha drishti (SM-02 basis). */

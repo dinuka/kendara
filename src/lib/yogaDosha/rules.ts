@@ -19,19 +19,21 @@
  * the confirmed dosha-house set [1, 2, 4, 7, 8, 12].
  */
 import {
+    SIGN_LORDS,
     areConjunct,
     aspectsTheOther,
     hasMutualAspectAngle,
+    hasMutualAspectByDrishti,
     hasMutualFourTenAspect,
     isParivartana,
     nakshatraLord,
     planetFact,
     relativeHouseGap,
-    SIGN_LORDS,
 } from "@/lib/yogaDosha/relationships";
 import {
     AgniMaruthaRuleId,
     ChartFacts,
+    DharmaKarmadhipatiRuleId,
     ManglikRuleId,
     RuleEvaluation,
     RuleId,
@@ -41,6 +43,7 @@ import {
 export const SHANI_MANGALA_PLANETS = [7, 3] as const; // Saturn, Mars
 export const AGNI_MARUTHA_PLANETS = [7, 3] as const; // Saturn, Mars
 export const KUJA_DOSHA_PLANETS = [3] as const; // Mars
+export const DHARMA_KARMADHIPATI_HOUSES = [9, 10] as const; // Dharma (9th) & Karma (10th)
 
 /**
  * Houses that cause Kuja Dosha when Mars occupies them relative to a reference point
@@ -66,7 +69,7 @@ function fired(
  *  House 1 = same sign as the reference. referenceSign/marsSign are ZodiacSign enums (1..12). */
 function marsHouseFromReference(marsHouse: number, referenceSign: number, ascendantSign: number): number {
     const referenceHouse = referenceSign - ascendantSign + 1;
-    const normalizedReferenceHouse = ((referenceHouse - 1) % 12 + 12) % 12 + 1;
+    const normalizedReferenceHouse = ((((referenceHouse - 1) % 12) + 12) % 12) + 1;
     return ((marsHouse - normalizedReferenceHouse + 12) % 12) + 1;
 }
 
@@ -200,10 +203,74 @@ function evaluateManglikRule(rule: ManglikRuleId, facts: ChartFacts): RuleEvalua
     }
 }
 
+/**
+ * Dharma Karmadhipati Yoga — the 9th lord (Dharma) connects with the 10th lord (Karma)
+ * via one of the qualifying sambandha relationships (docs/dharma-karmadipathi-yogaya.md):
+ *  - DK-01 Conjunction: both lords in the same sign/house
+ *  - DK-02 Mutual aspect: the lords aspect each other on the per-planet orbs (stored drishti)
+ *  - DK-03 Parivartana: each lord occupies the sign owned by the other
+ * Formation only — strength of the lords is NOT used to create the yoga.
+ */
+
+/** Whole-sign sign of house N counted from the ascendant (house 1 = ascendant sign). */
+function signOfHouseFromAscendant(ascendantSign: number, house: number): number {
+    return ((ascendantSign + house - 2) % 12) + 1;
+}
+
+/** Lord planet of a whole-sign house from the ascendant (via SIGN_LORDS). */
+function lordOfHouse(ascendantSign: number, house: number): number {
+    const sign = signOfHouseFromAscendant(ascendantSign, house);
+    return SIGN_LORDS[sign];
+}
+
+function evaluateDharmaKarmadhipatiRule(rule: DharmaKarmadhipatiRuleId, facts: ChartFacts): RuleEvaluation {
+    if (!facts.ascendantSign) return absent(rule);
+
+    const dharmaLord = lordOfHouse(facts.ascendantSign, 9);
+    const karmaLord = lordOfHouse(facts.ascendantSign, 10);
+    const dharmaPlanet = planetFact(facts, dharmaLord);
+    const karmaPlanet = planetFact(facts, karmaLord);
+    if (!dharmaPlanet || !karmaPlanet) return absent(rule);
+
+    switch (rule) {
+        // DK-01: 9th and 10th lords are conjunct (same sign + house, mutual 0° records in orb).
+        case "dharmaKarmadhipati.dk01":
+            if (!areConjunct(dharmaPlanet, karmaPlanet)) return absent(rule);
+            return fired(rule, 1, "rule.dk01", { dharmaLord, karmaLord }, [
+                DHARMA_KARMADHIPATI_HOUSES[0],
+                DHARMA_KARMADHIPATI_HOUSES[1],
+            ]);
+
+        // DK-02: 9th and 10th lords MUTUALLY aspect each other (docs/dharma-karmadipathi-yogaya.md §19 —
+        // "9th lord aspects 10th lord AND 10th lord aspects 9th lord" — both directions required). A
+        // 0° conjunction record is yuti, not drishti, so it never satisfies DK-02; conjunction charts
+        // report DK-01 only (reported for horoscope 6a68e63506d2d7cd52c6fa9d).
+        case "dharmaKarmadhipati.dk02":
+            if (!hasMutualAspectByDrishti(dharmaPlanet, karmaPlanet)) return absent(rule);
+            return fired(rule, 2, "rule.dk02", { dharmaLord, karmaLord }, [
+                DHARMA_KARMADHIPATI_HOUSES[0],
+                DHARMA_KARMADHIPATI_HOUSES[1],
+            ]);
+
+        // DK-03: 9th and 10th lords exchange signs (parivartana).
+        case "dharmaKarmadhipati.dk03":
+            if (!isParivartana(dharmaPlanet, karmaPlanet)) return absent(rule);
+            return fired(rule, 1, "rule.dk03", { dharmaLord, karmaLord }, [
+                DHARMA_KARMADHIPATI_HOUSES[0],
+                DHARMA_KARMADHIPATI_HOUSES[1],
+            ]);
+
+        default:
+            return absent(rule);
+    }
+}
+
 /** Evaluates every catalog rule of an entry (catalog order). Triggers dedupe upstream. */
 export function evaluateRule(rule: RuleId, facts: ChartFacts): RuleEvaluation {
     if (rule.startsWith("shaniMangala.")) return evaluateShaniMangalaRule(rule as ShaniMangalaRuleId, facts);
     if (rule.startsWith("agniMarutha.")) return evaluateAgniMaruthaRule(rule as AgniMaruthaRuleId, facts);
     if (rule.startsWith("manglik.")) return evaluateManglikRule(rule as ManglikRuleId, facts);
+    if (rule.startsWith("dharmaKarmadhipati."))
+        return evaluateDharmaKarmadhipatiRule(rule as DharmaKarmadhipatiRuleId, facts);
     return absent(rule);
 }

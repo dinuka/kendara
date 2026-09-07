@@ -11,10 +11,7 @@ import * as fs from "fs";
 import * as path from "path";
 
 import { CancellationStatus, PlanetaryStrength, YogaStrength } from "@/lib/astrologyEnums";
-import {
-    CANCELLATION_REGISTRY,
-    MITIGATION_REGISTRY,
-} from "@/lib/yogaDosha/cancellation";
+import { CANCELLATION_REGISTRY, MITIGATION_REGISTRY } from "@/lib/yogaDosha/cancellation";
 import {
     DOSHA_CATALOG,
     YOGA_CATALOG,
@@ -25,34 +22,20 @@ import {
     doshaCatalogEntry,
     yogaCatalogEntry,
 } from "@/lib/yogaDosha/catalog";
-import * as rulesModule from "@/lib/yogaDosha/rules";
-import { evaluateRule } from "@/lib/yogaDosha/rules";
 import {
-    buildChartFacts,
-    computeYogaDoshas,
-    PlanetLike,
-    YOGA_DOSHA_VERSION,
-} from "@/lib/yogaDosha/ruleEngine";
-import {
+    SIGN_LORDS,
     areConjunct,
     degreeGapBetween,
     hasMutualAspect,
     isParivartana,
     relativeHouseGap,
-    SIGN_LORDS,
 } from "@/lib/yogaDosha/relationships";
-import {
-    resolveDoshas,
-    resolveYogaDoshas,
-    resolveYogas,
-    validateYogaDoshaShape,
-} from "@/lib/yogaDosha/resolve";
-import {
-    AspectFact,
-    ChartFacts,
-    PlanetFact,
-} from "@/lib/yogaDosha/types";
-import { evaluateRule as evaluateRuleDirect, KUJA_DOSHA_HOUSES } from "@/lib/yogaDosha/rules";
+import { resolveDoshas, resolveYogaDoshas, resolveYogas, validateYogaDoshaShape } from "@/lib/yogaDosha/resolve";
+import { PlanetLike, YOGA_DOSHA_VERSION, buildChartFacts, computeYogaDoshas } from "@/lib/yogaDosha/ruleEngine";
+import * as rulesModule from "@/lib/yogaDosha/rules";
+import { evaluateRule } from "@/lib/yogaDosha/rules";
+import { KUJA_DOSHA_HOUSES, evaluateRule as evaluateRuleDirect } from "@/lib/yogaDosha/rules";
+import { AspectFact, ChartFacts, PlanetFact } from "@/lib/yogaDosha/types";
 
 jest.mock("@/lib/yogaDosha/catalog", () => {
     const actual = jest.requireActual("@/lib/yogaDosha/catalog") as Record<string, unknown>;
@@ -132,7 +115,11 @@ afterEach(() => {
 
 describe("Catalog & enums (UT-YD-001..008)", () => {
     test("UT-YD-001: catalog is registry-driven — all ACTIVE doshas live in the dosha catalog", () => {
-        expect(YOGA_CATALOG).toEqual([]);
+        expect(YOGA_CATALOG.map((e) => e.id)).toEqual(["dharmaKarmadhipati"]);
+        expect(YOGA_CATALOG[0].kind).toBe("yoga");
+        expect(YOGA_CATALOG[0].status).toBe("ACTIVE");
+        expect(YOGA_CATALOG[0].keywordEn).toBe("Dharma Karmadhipati Yoga");
+        expect(YOGA_CATALOG[0].keywordSi).toBe("ධර්ම කර්මාධිපති යෝගය");
         expect(DOSHA_CATALOG.map((e) => e.id)).toEqual(["shaniMangala", "agniMarutha", "manglik"]);
         expect(DOSHA_CATALOG[0].kind).toBe("dosha");
         expect(DOSHA_CATALOG[0].status).toBe("ACTIVE");
@@ -159,7 +146,15 @@ describe("Catalog & enums (UT-YD-001..008)", () => {
     });
 
     test("UT-YD-002: catalog rows match the data-model §Rule Catalog seed table", () => {
-        expect(YOGA_CATALOG.flatMap((e) => e.rules.map((r) => r.rule))).toEqual([]);
+        expect(YOGA_CATALOG.flatMap((e) => e.rules.map((r) => r.rule))).toEqual([
+            "dharmaKarmadhipati.dk01",
+            "dharmaKarmadhipati.dk02",
+            "dharmaKarmadhipati.dk03",
+        ]);
+        expect(YOGA_CATALOG[0].rules.map((r) => r.strength)).toEqual([1, 2, 1]);
+        expect(YOGA_CATALOG[0].planets).toEqual([1, 2, 3, 4, 5, 6, 7]);
+        expect(YOGA_CATALOG[0].expressionKeys).toEqual(["expression.main"]);
+        expect(YOGA_CATALOG[0].mitigations).toEqual([]);
         expect(DOSHA_CATALOG[0].rules.map((r) => r.rule)).toEqual([
             "shaniMangala.sm01",
             "shaniMangala.sm02",
@@ -208,7 +203,7 @@ describe("Catalog & enums (UT-YD-001..008)", () => {
     });
 
     test("UT-YD-004: bilingual name maps keyed by catalog id, both locales, frozen lookup", () => {
-        for (const id of ["shaniMangala", "agniMarutha", "manglik"]) {
+        for (const id of ["dharmaKarmadhipati", "shaniMangala", "agniMarutha", "manglik"]) {
             expect(catalogNameFor(id, "en").length).toBeGreaterThan(0);
             expect(catalogNameFor(id, "si").length).toBeGreaterThan(0);
         }
@@ -228,9 +223,9 @@ describe("Catalog & enums (UT-YD-001..008)", () => {
             keys.push(`${entry.i18nKey}.name`);
             for (const rule of entry.rules) keys.push(`${entry.i18nKey}.${rule.reasonKey}`);
             for (const key of entry.expressionKeys) keys.push(`${entry.i18nKey}.${key}`);
-            if (entry.id === "shaniMangala" || entry.id === "agniMarutha") {
+            if (entry.id === "shaniMangala" || entry.id === "agniMarutha" || entry.id === "dharmaKarmadhipati") {
                 for (let house = 1; house <= 12; house++) keys.push(`${entry.i18nKey}.theme.house${house}`);
-                keys.push(`${entry.i18nKey}.dashaNote`);
+                if (entry.id !== "dharmaKarmadhipati") keys.push(`${entry.i18nKey}.dashaNote`);
             } else {
                 for (const house of [1, 2, 4, 7, 8, 12]) keys.push(`${entry.i18nKey}.theme.house${house}`);
             }
@@ -380,10 +375,12 @@ describe("Relationships (UT-YD-020..025)", () => {
 
 describe("Shani–Mangala + Agni–Marutha rules (UT-YD-040..047, AM-0x)", () => {
     test("UT-YD-040: SM-01 conjunction fires at strength 1 with house param; AM-01 mirrors it", () => {
-        const chart = facts(saturnMarsBoth(
+        const chart = facts(
+            saturnMarsBoth(
                 { sign: 7, house: 7, aspects: [aspect(3, 0, 0)] },
                 { sign: 7, house: 7, aspects: [aspect(7, 0, 0)] },
-            ));
+            ),
+        );
         const sm = evaluateRuleDirect("shaniMangala.sm01", chart);
         expect(sm.triggered).toBe(true);
         expect(sm.strength).toBe(1);
@@ -398,10 +395,7 @@ describe("Shani–Mangala + Agni–Marutha rules (UT-YD-040..047, AM-0x)", () =>
 
     test("UT-YD-041: SM-02 7th-from-each-other — needs BOTH directions to aspect (mutual 180°, stored records, per-planet orbs)", () => {
         const seventh = facts(
-            saturnMarsBoth(
-                { house: 7, aspects: [aspect(3, 180, 2)] },
-                { house: 1, aspects: [aspect(7, 180, 2)] },
-            ),
+            saturnMarsBoth({ house: 7, aspects: [aspect(3, 180, 2)] }, { house: 1, aspects: [aspect(7, 180, 2)] }),
         );
         const result = evaluateRuleDirect("shaniMangala.sm02", seventh);
         expect(result.triggered).toBe(true);
@@ -410,25 +404,16 @@ describe("Shani–Mangala + Agni–Marutha rules (UT-YD-040..047, AM-0x)", () =>
         expect(result.params).toEqual({ gap: 6 });
         // Reverse direction is also 7th (gap 6 both ways).
         const reversed = facts(
-            saturnMarsBoth(
-                { house: 1, aspects: [aspect(3, 180, 2)] },
-                { house: 7, aspects: [aspect(7, 180, 2)] },
-            ),
+            saturnMarsBoth({ house: 1, aspects: [aspect(3, 180, 2)] }, { house: 7, aspects: [aspect(7, 180, 2)] }),
         );
         expect(evaluateRuleDirect("shaniMangala.sm02", reversed).triggered).toBe(true);
         // Positionally 7th but only ONE direction aspects (6a68e773 shape) — NOT Shani Mangala.
-        const oneWayPlanets = saturnMarsBoth(
-            { house: 7, aspects: [] },
-            { house: 1, aspects: [aspect(7, 180, 3)] },
-        );
+        const oneWayPlanets = saturnMarsBoth({ house: 7, aspects: [] }, { house: 1, aspects: [aspect(7, 180, 3)] });
         expect(hasMutualAspect(oneWayPlanets[0], oneWayPlanets[1])).toBe(false);
         expect(evaluateRuleDirect("shaniMangala.sm02", facts(oneWayPlanets)).triggered).toBe(false);
         // Not opposite → absent even with mutual stored aspects.
         const not7 = facts(
-            saturnMarsBoth(
-                { house: 2, aspects: [aspect(3, 90, 10)] },
-                { house: 7, aspects: [aspect(7, 90, 10)] },
-            ),
+            saturnMarsBoth({ house: 2, aspects: [aspect(3, 90, 10)] }, { house: 7, aspects: [aspect(7, 90, 10)] }),
         );
         expect(evaluateRuleDirect("shaniMangala.sm02", not7).triggered).toBe(false);
         // A 2/12 pair is not a Shani Mangala under any SM clause.
@@ -438,10 +423,7 @@ describe("Shani–Mangala + Agni–Marutha rules (UT-YD-040..047, AM-0x)", () =>
 
     test("AM-1/UT-YD-042: SM-03 requires the mutual 4-10 drishti (90°/270° records); 7th pairs fire SM-02 but not SM-03", () => {
         const fourthTenth = facts(
-            saturnMarsBoth(
-                { house: 1, aspects: [aspect(3, 270, 3)] },
-                { house: 10, aspects: [aspect(7, 90, 3)] },
-            ),
+            saturnMarsBoth({ house: 1, aspects: [aspect(3, 270, 3)] }, { house: 10, aspects: [aspect(7, 90, 3)] }),
         );
         const sm03 = evaluateRuleDirect("shaniMangala.sm03", fourthTenth);
         expect(sm03.triggered).toBe(true);
@@ -449,10 +431,7 @@ describe("Shani–Mangala + Agni–Marutha rules (UT-YD-040..047, AM-0x)", () =>
         expect(sm03.params).toEqual({ gap: 9 });
         // The same mutual 4-10 (Mars still 10th from Saturn, Saturn 4th from Mars).
         const reverse = facts(
-            saturnMarsBoth(
-                { house: 4, aspects: [aspect(3, 270, 3)] },
-                { house: 1, aspects: [aspect(7, 90, 3)] },
-            ),
+            saturnMarsBoth({ house: 4, aspects: [aspect(3, 270, 3)] }, { house: 1, aspects: [aspect(7, 90, 3)] }),
         );
         expect(evaluateRuleDirect("shaniMangala.sm03", reverse).triggered).toBe(true);
         // Gap-3 orientation (Mars 4th from Saturn) is the reverse 4-10 — never SM-3, even with
@@ -460,7 +439,12 @@ describe("Shani–Mangala + Agni–Marutha rules (UT-YD-040..047, AM-0x)", () =>
         expect(
             evaluateRuleDirect(
                 "shaniMangala.sm03",
-                facts(saturnMarsBoth({ house: 1, aspects: [aspect(3, 90, 3)] }, { house: 4, aspects: [aspect(7, 90, 3)] })),
+                facts(
+                    saturnMarsBoth(
+                        { house: 1, aspects: [aspect(3, 90, 3)] },
+                        { house: 4, aspects: [aspect(7, 90, 3)] },
+                    ),
+                ),
             ).triggered,
         ).toBe(false);
         // Positionally 4-10, but only Saturn→Mars aspects → the mutual record is missing.
@@ -471,10 +455,12 @@ describe("Shani–Mangala + Agni–Marutha rules (UT-YD-040..047, AM-0x)", () =>
             ).triggered,
         ).toBe(false);
         // A conjunct pair fires SM-01 + AM-01, never SM-02/SM-03.
-        const conjunct = facts(saturnMarsBoth(
+        const conjunct = facts(
+            saturnMarsBoth(
                 { sign: 7, house: 7, aspects: [aspect(3, 0, 0)] },
                 { sign: 7, house: 7, aspects: [aspect(7, 0, 0)] },
-            ));
+            ),
+        );
         expect(evaluateRuleDirect("shaniMangala.sm02", conjunct).triggered).toBe(false);
         expect(evaluateRuleDirect("shaniMangala.sm03", conjunct).triggered).toBe(false);
         const engine = computeYogaDoshas(conjunct);
@@ -569,6 +555,10 @@ describe("Shani–Mangala + Agni–Marutha rules (UT-YD-040..047, AM-0x)", () =>
     test("AM-4/AM-5: sign ownership — Saturn in a Mars sign, Mars in a Saturn sign", () => {
         expect(SIGN_LORDS[1]).toBe(3); // Mesha → Mars
         expect(SIGN_LORDS[8]).toBe(3); // Vrishchika → Mars
+        expect(SIGN_LORDS[2]).toBe(6); // Vrishabha → Venus (regression: was Jupiter 5)
+        expect(SIGN_LORDS[7]).toBe(6); // Tula → Venus (regression: was Jupiter 5)
+        expect(SIGN_LORDS[6]).toBe(4); // Kanya → Mercury
+        expect(SIGN_LORDS[9]).toBe(5); // Dhanus → Jupiter
         const saturnInMarsSign = facts(saturnMarsBoth({ sign: 8, house: 8 }, { sign: 1, house: 1 }));
         expect(evaluateRuleDirect("agniMarutha.am04", saturnInMarsSign).triggered).toBe(true);
         expect(evaluateRuleDirect("agniMarutha.am05", saturnInMarsSign).triggered).toBe(false);
@@ -586,7 +576,9 @@ describe("Shani–Mangala + Agni–Marutha rules (UT-YD-040..047, AM-0x)", () =>
         expect(evaluateRuleDirect("agniMarutha.am06", saturnInMarsNak).triggered).toBe(true);
         expect(evaluateRuleDirect("agniMarutha.am07", saturnInMarsNak).triggered).toBe(true);
         // Missing nakshatra (0) fails closed.
-        expect(evaluateRuleDirect("agniMarutha.am06", facts(saturnMarsBoth({ nakshatra: 0 }, { nakshatra: 5 }))).triggered).toBe(false);
+        expect(
+            evaluateRuleDirect("agniMarutha.am06", facts(saturnMarsBoth({ nakshatra: 0 }, { nakshatra: 5 }))).triggered,
+        ).toBe(false);
         // A nakshatra neutrality fires neither.
         const neutral = facts(saturnMarsBoth({ nakshatra: 1 }, { nakshatra: 2 }));
         expect(evaluateRuleDirect("agniMarutha.am06", neutral).triggered).toBe(false);
@@ -616,10 +608,12 @@ describe("Shani–Mangala + Agni–Marutha rules (UT-YD-040..047, AM-0x)", () =>
 
     test("AM inheritance: every Shani Mangala present is also Agni Marutha present", () => {
         // Conjunction (sm01 → also am01).
-        const chart = facts(saturnMarsBoth(
+        const chart = facts(
+            saturnMarsBoth(
                 { sign: 7, house: 7, aspects: [aspect(3, 0, 0)] },
                 { sign: 7, house: 7, aspects: [aspect(7, 0, 0)] },
-            ));
+            ),
+        );
         const engine = computeYogaDoshas(chart);
         expect(engine.doshas[0].isPresent).toBe(true);
         expect(engine.doshas[1].isPresent).toBe(true);
@@ -627,7 +621,9 @@ describe("Shani–Mangala + Agni–Marutha rules (UT-YD-040..047, AM-0x)", () =>
 
     test("UT-YD-047: no relationship anywhere — both doshas absent", () => {
         // Saturn in house 2 / Mars house 9 (2/12), both in neutral signs with unowned nakshatras.
-        const chart = facts(saturnMarsBoth({ house: 2, sign: 5, nakshatra: 1 }, { house: 9, sign: 5, nakshatra: 2, aspects: [] }));
+        const chart = facts(
+            saturnMarsBoth({ house: 2, sign: 5, nakshatra: 1 }, { house: 9, sign: 5, nakshatra: 2, aspects: [] }),
+        );
         const engine = computeYogaDoshas(chart);
         expect(engine.doshas[0].isPresent).toBe(false);
         expect(engine.doshas[1].isPresent).toBe(false);
@@ -689,11 +685,7 @@ describe("Kuja Dosha (UT-YD-070)", () => {
         expect(multiManglik?.formation.rulesTriggered).toEqual(["manglik.mk01", "manglik.mk03"]);
 
         // Safe placements (3/5/6/9/10/11 from every reference) never fire the dosha.
-        const safe = facts([
-            pf(2, { sign: 8, house: 8 }),
-            pf(6, { sign: 4, house: 4 }),
-            pf(3, { sign: 6, house: 6 }),
-        ]);
+        const safe = facts([pf(2, { sign: 8, house: 8 }), pf(6, { sign: 4, house: 4 }), pf(3, { sign: 6, house: 6 })]);
         const safeEngine = computeYogaDoshas(safe);
         const safeManglik = safeEngine.doshas.find((d) => d.id === "manglik");
         expect(safeManglik?.isPresent).toBe(false);
@@ -732,11 +724,7 @@ describe("Kuja Dosha (UT-YD-070)", () => {
     test("UT-YD-073: manglik houseImpact/themes use the reference-relative house, never the absolute one", () => {
         // Mars absolutely in house 9 (a NON-dosha house) — but 4th from Moon (mk02) and 7th from
         // Venus (mk03). Regresses the absolute-house bug that produced theme.house9 → MISSING_MESSAGE.
-        const chart = facts([
-            pf(2, { sign: 6, house: 6 }),
-            pf(6, { sign: 3, house: 3 }),
-            pf(3, { sign: 9, house: 9 }),
-        ]);
+        const chart = facts([pf(2, { sign: 6, house: 6 }), pf(6, { sign: 3, house: 3 }), pf(3, { sign: 9, house: 9 })]);
         const manglik = computeYogaDoshas(chart).doshas.find((d) => d.id === "manglik");
         expect(manglik?.isPresent).toBe(true);
         expect(manglik?.formation.rulesTriggered).toEqual(["manglik.mk02", "manglik.mk03"]);
@@ -748,11 +736,183 @@ describe("Kuja Dosha (UT-YD-070)", () => {
     });
 });
 
+describe("Dharma Karmadhipati Yoga (UT-DK-001..011)", () => {
+    // Ascendant Aries (sign 1) → 9th house sign 9 (Sagittarius, lord Jupiter=5),
+    // 10th house sign 10 (Capricorn, lord Saturn=7).
+
+    test("UT-DK-001: DK-01 conjunction — 9th and 10th lords in the same sign/house with mutual 0° records", () => {
+        const chart = facts([
+            pf(5, { sign: 10, house: 10, aspects: [aspect(7, 0, 0)] }),
+            pf(7, { sign: 10, house: 10, aspects: [aspect(5, 0, 0)] }),
+        ]);
+        const dk = evaluateRuleDirect("dharmaKarmadhipati.dk01", chart);
+        expect(dk.triggered).toBe(true);
+        expect(dk.strength).toBe(1);
+        expect(dk.reasonKey).toBe("rule.dk01");
+        expect(dk.params).toEqual({ dharmaLord: 5, karmaLord: 7 });
+        expect(dk.houseImpact).toEqual([9, 10]);
+    });
+
+    test("UT-DK-002: DK-02 — one-directional aspect does NOT fire (9th lord aspects 10th lord only)", () => {
+        // Spec §19: BOTH lords must aspect each other — a one-way drishti is not mutual.
+        const chart = facts([
+            pf(5, { sign: 9, house: 9, aspects: [aspect(7, 120, 5)] }),
+            pf(7, { sign: 10, house: 10, aspects: [] }),
+        ]);
+        const dk = evaluateRuleDirect("dharmaKarmadhipati.dk02", chart);
+        expect(dk.triggered).toBe(false);
+    });
+
+    test("UT-DK-003: DK-02 — reverse one-directional aspect does NOT fire (10th lord aspects 9th lord only)", () => {
+        const chart = facts([
+            pf(5, { sign: 9, house: 9, aspects: [] }),
+            pf(7, { sign: 10, house: 10, aspects: [aspect(5, 120, 5)] }),
+        ]);
+        const dk = evaluateRuleDirect("dharmaKarmadhipati.dk02", chart);
+        expect(dk.triggered).toBe(false);
+    });
+
+    test("UT-DK-004: DK-02 — MUTUAL aspect fires (both lords aspect each other at a drishti angle)", () => {
+        const chart = facts([
+            pf(5, { sign: 9, house: 9, aspects: [aspect(7, 120, 5)] }),
+            pf(7, { sign: 10, house: 10, aspects: [aspect(5, 120, 5)] }),
+        ]);
+        const dk = evaluateRuleDirect("dharmaKarmadhipati.dk02", chart);
+        expect(dk.triggered).toBe(true);
+        expect(dk.strength).toBe(2);
+    });
+
+    test("UT-DK-005: DK-03 parivartana — each lord in the other's own sign", () => {
+        // Jupiter in Capricorn (lord Saturn) + Saturn in Sagittarius (lord Jupiter).
+        const chart = facts([pf(5, { sign: 10, house: 10 }), pf(7, { sign: 9, house: 9 })]);
+        const dk = evaluateRuleDirect("dharmaKarmadhipati.dk03", chart);
+        expect(dk.triggered).toBe(true);
+        expect(dk.strength).toBe(1);
+        // Also check the parivartana relationship helper confirms it.
+        const jupiter = pf(5, { sign: 10, house: 10 });
+        const saturn = pf(7, { sign: 9, house: 9 });
+        expect(isParivartana(jupiter, saturn)).toBe(true);
+    });
+
+    test("UT-DK-006: no qualifying relationship — yoga NOT formed", () => {
+        // Jupiter and Saturn in unrelated houses with no aspects between them.
+        const chart = facts([pf(5, { sign: 9, house: 9, aspects: [] }), pf(7, { sign: 6, house: 6, aspects: [] })]);
+        const engine = computeYogaDoshas(chart);
+        const dk = engine.yogas.find((y) => y.id === "dharmaKarmadhipati");
+        expect(dk?.isPresent).toBe(false);
+        expect(dk?.formation.rulesTriggered).toEqual([]);
+    });
+
+    test("UT-DK-007: strong/debilitated lords alone never create the yoga (docs distinction)", () => {
+        // Both lords present but no relationship — the yoga must NOT form even if the lords
+        // are in strong positions. Exalted Jupiter and own-sign Saturn with no mutual aspect.
+        const chart = facts([
+            pf(5, { sign: 4, house: 4, strength: PlanetaryStrength.UCHCHA, aspects: [] }),
+            pf(7, { sign: 10, house: 10, strength: PlanetaryStrength.OWN_SIGN, aspects: [] }),
+        ]);
+        const engine = computeYogaDoshas(chart);
+        const dk = engine.yogas.find((y) => y.id === "dharmaKarmadhipati");
+        expect(dk?.isPresent).toBe(false);
+    });
+
+    test("UT-DK-008: engine integration — all qualifying relations form the yoga, reasons carry lord params", () => {
+        // Conjunction plus parivartana-style set: DK-01 and DK-03 both fire.
+        const conjunct = facts([
+            pf(5, { sign: 10, house: 10, aspects: [aspect(7, 0, 0)] }),
+            pf(7, { sign: 10, house: 10, aspects: [aspect(5, 0, 0)] }),
+        ]);
+        const engine = computeYogaDoshas(conjunct);
+        const dk = engine.yogas.find((y) => y.id === "dharmaKarmadhipati");
+        expect(dk?.isPresent).toBe(true);
+        expect(dk?.formation.primaryRule).toBe("dharmaKarmadhipati.dk01");
+        expect(dk?.formation.reasons[0].params).toEqual({ dharmaLord: 5, karmaLord: 7 });
+        expect(dk?.context.houseImpact).toEqual([9, 10]);
+        expect(dk?.formation.strength).toBe(1);
+        // Shape validation on present yoga entries.
+        expect(validateYogaDoshaShape(dk)).toEqual([]);
+    });
+
+    test("UT-DK-009: Venus-ruled houses — Capricorn ascendant, 9th lord Mercury + 10th lord Venus, no sambandha → absent", () => {
+        // Ascendant Capricorn (10): 9th house = Virgo (lord Mercury 4), 10th house = Libra
+        // (lord Venus 6). THE SIGN_LORDS regression: Libra was mapped to Jupiter (5) making the
+        // engine inspect the wrong 10th lord. Mercury and Venus share no aspect/conjunction, so
+        // the yoga must be absent (reported for horoscope 6a68e2c9150a9f9377fa8861).
+        const chart = buildChartFacts({
+            ascendantSign: 10,
+            source: "auto",
+            planets: [
+                {
+                    name: 4,
+                    sign: 6,
+                    house: 9,
+                    degree: 6.55,
+                    absoluteDegree: 156.55,
+                    strength: PlanetaryStrength.SAMA,
+                    navamsaSign: 1,
+                    navamsaStrength: PlanetaryStrength.SAMA,
+                    nakshatra: 12,
+                    aspects: [],
+                },
+                {
+                    name: 6,
+                    sign: 7,
+                    house: 10,
+                    degree: 22.34,
+                    absoluteDegree: 202.34,
+                    strength: PlanetaryStrength.UCHCHA,
+                    navamsaSign: 1,
+                    navamsaStrength: PlanetaryStrength.SAMA,
+                    nakshatra: 6,
+                    aspects: [],
+                },
+            ],
+        });
+        expect(SIGN_LORDS[7]).toBe(6); // Libra lord = Venus — the fixed mapping
+        const engine = computeYogaDoshas(chart);
+        const dk = engine.yogas.find((y) => y.id === "dharmaKarmadhipati");
+        expect(dk?.isPresent).toBe(false);
+        expect(dk?.formation.rulesTriggered).toEqual([]);
+    });
+
+    test("UT-DK-010: conjunction-only chart — DK-01 fires, DK-02 does NOT (yuti is not drishti)", () => {
+        // Reported for horoscope 6a68e63506d2d7cd52c6fa9d: the 9th/10th lords were conjunct (mutual
+        // 0° records) and the engine ALSO emitted the DK-02 "aspecting each other" reason. A
+        // 0° conjunction record is yuti, not drishti — only the DK-01 reason may appear.
+        const chart = facts([
+            pf(5, { sign: 12, house: 12, aspects: [aspect(7, 0, 0)] }),
+            pf(7, { sign: 12, house: 12, aspects: [aspect(5, 0, 0)] }),
+        ]);
+        const dk02 = evaluateRuleDirect("dharmaKarmadhipati.dk02", chart);
+        expect(dk02.triggered).toBe(false);
+        const engine = computeYogaDoshas(chart);
+        const dk = engine.yogas.find((y) => y.id === "dharmaKarmadhipati");
+        expect(dk?.isPresent).toBe(true);
+        expect(dk?.formation.rulesTriggered).toEqual(["dharmaKarmadhipati.dk01"]);
+        expect(dk?.formation.reasons.map((r) => r.rule)).toEqual(["dharmaKarmadhipati.dk01"]);
+    });
+
+    test("UT-DK-011: genuine non-zero mutual aspect — DK-02 fires even when the lords are also conjunct", () => {
+        // 90° mutual drishti in addition to the 0° conjunction record: the aspect reason is real
+        // graha drishti, so both DK-01 and DK-02 qualify.
+        const chart = facts([
+            pf(5, { sign: 9, house: 9, aspects: [aspect(7, 0, 0), aspect(7, 90, 5)] }),
+            pf(7, { sign: 9, house: 9, aspects: [aspect(5, 0, 0), aspect(5, 90, 5)] }),
+        ]);
+        const engine = computeYogaDoshas(chart);
+        const dk = engine.yogas.find((y) => y.id === "dharmaKarmadhipati");
+        expect(dk?.isPresent).toBe(true);
+        expect(dk?.formation.rulesTriggered).toEqual(["dharmaKarmadhipati.dk01", "dharmaKarmadhipati.dk02"]);
+    });
+});
+
 describe("Rule engine (UT-YD-080..090)", () => {
     test("UT-YD-080: only active catalog entries evaluated", () => {
         const chart = facts(saturnMarsBoth({ aspects: [aspect(3, 0, 0)] }, { aspects: [aspect(7, 0, 0)] }));
         const engine = computeYogaDoshas(chart);
-        expect(engine.yogas).toEqual([]);
+        // With ascendant Aries, the 9th lord is Jupiter (not in this fixture) — the yoga is absent
+        // but still evaluated and stored (fail-closed, US-YD-005 Edge).
+        expect(engine.yogas.map((y) => y.id)).toEqual(["dharmaKarmadhipati"]);
+        expect(engine.yogas[0].isPresent).toBe(false);
         expect(engine.doshas.map((d) => d.id)).toEqual(["shaniMangala", "agniMarutha", "manglik"]);
         // Default both-in-house-1 facts are a same-sign same-house conjunction → first two present.
         // Mars in house 1 is also 1st from Lagna → Kuja dosha present (mk01).
@@ -763,10 +923,12 @@ describe("Rule engine (UT-YD-080..090)", () => {
     });
 
     test("UT-YD-081: structured output shape — never { yoga: true }", () => {
-        const chart = facts(saturnMarsBoth(
+        const chart = facts(
+            saturnMarsBoth(
                 { sign: 7, house: 7, aspects: [aspect(3, 0, 0)] },
                 { sign: 7, house: 7, aspects: [aspect(7, 0, 0)] },
-            ));
+            ),
+        );
         const [shani] = computeYogaDoshas(chart).doshas;
         expect(shani.id).toBe("shaniMangala");
         expect(shani.kind).toBe("dosha");
@@ -818,10 +980,12 @@ describe("Rule engine (UT-YD-080..090)", () => {
     });
 
     test("UT-YD-084: reasons carry numeric params only", () => {
-        const chart = facts(saturnMarsBoth(
+        const chart = facts(
+            saturnMarsBoth(
                 { sign: 7, house: 7, aspects: [aspect(3, 0, 0)] },
                 { sign: 7, house: 7, aspects: [aspect(7, 0, 0)] },
-            ));
+            ),
+        );
         const reasons = computeYogaDoshas(chart).doshas[0].formation.reasons;
         expect(reasons.length).toBeGreaterThan(0);
         for (const reason of reasons) {
@@ -865,10 +1029,12 @@ describe("Rule engine (UT-YD-080..090)", () => {
     });
 
     test("UT-YD-088: partial evaluation fails closed (rule throw → absent entry, no abort)", () => {
-        const chart = facts(saturnMarsBoth(
+        const chart = facts(
+            saturnMarsBoth(
                 { sign: 7, house: 7, aspects: [aspect(3, 0, 0)] },
                 { sign: 7, house: 7, aspects: [aspect(7, 0, 0)] },
-            ));
+            ),
+        );
         const spy = jest.spyOn(rulesModule, "evaluateRule").mockImplementation(() => {
             throw new Error("boom");
         });
@@ -892,10 +1058,12 @@ describe("Rule engine (UT-YD-080..090)", () => {
 describe("Cancellation & mitigation (UT-YD-110..117, UT-YD-130)", () => {
     test("UT-YD-110/114: three separate stored fields; no registered cancellation → status 1 default", () => {
         expect(CANCELLATION_REGISTRY).toEqual({});
-        const chart = facts(saturnMarsBoth(
+        const chart = facts(
+            saturnMarsBoth(
                 { sign: 7, house: 7, aspects: [aspect(3, 0, 0)] },
                 { sign: 7, house: 7, aspects: [aspect(7, 0, 0)] },
-            ));
+            ),
+        );
         const dosha = computeYogaDoshas(chart).doshas[0];
         expect(dosha.isPresent).toBe(true);
         expect(dosha.cancellation).toEqual({ status: CancellationStatus.NOT_CANCELLED, factors: [] });
@@ -951,10 +1119,7 @@ describe("Cancellation & mitigation (UT-YD-110..117, UT-YD-130)", () => {
         // the same mutual aspects also fire AM-02/AM-03, so Shani Mangala and Agni Marutha are both
         // present here.
         const chart = facts(
-            saturnMarsBoth(
-                { house: 2, aspects: [aspect(3, 180, 10)] },
-                { house: 8, aspects: [aspect(7, 180, 10)] },
-            ),
+            saturnMarsBoth({ house: 2, aspects: [aspect(3, 180, 10)] }, { house: 8, aspects: [aspect(7, 180, 10)] }),
         );
         const engine = computeYogaDoshas(chart);
         const shani = engine.doshas.find((d) => d.id === "shaniMangala");
@@ -964,10 +1129,12 @@ describe("Cancellation & mitigation (UT-YD-110..117, UT-YD-130)", () => {
     });
 
     test("UT-YD-130: dasha activation — soft note, planets [7,3], tendency language only", () => {
-        const chart = facts(saturnMarsBoth(
+        const chart = facts(
+            saturnMarsBoth(
                 { sign: 7, house: 7, aspects: [aspect(3, 0, 0)] },
                 { sign: 7, house: 7, aspects: [aspect(7, 0, 0)] },
-            ));
+            ),
+        );
         const dosha = computeYogaDoshas(chart).doshas[0];
         expect(dosha.dashaActivation).toEqual({
             planets: [7, 3],
@@ -984,12 +1151,36 @@ describe("Legacy & manual resolution (UT-YD-150..155)", () => {
             ascendantSign: 1,
             source: "manual",
             planets: [
-                { name: 7, sign: 7, house: 7, degree: 15, absoluteDegree: 195, strength: PlanetaryStrength.SAMA, navamsaSign: 7, navamsaStrength: PlanetaryStrength.SAMA, nakshatra: 14, aspects: [aspect(3, 0, 0)] },
-                { name: 3, sign: 7, house: 7, degree: 15, absoluteDegree: 195, strength: PlanetaryStrength.SAMA, navamsaSign: 7, navamsaStrength: PlanetaryStrength.SAMA, nakshatra: 14, aspects: [aspect(7, 0, 0)] },
+                {
+                    name: 7,
+                    sign: 7,
+                    house: 7,
+                    degree: 15,
+                    absoluteDegree: 195,
+                    strength: PlanetaryStrength.SAMA,
+                    navamsaSign: 7,
+                    navamsaStrength: PlanetaryStrength.SAMA,
+                    nakshatra: 14,
+                    aspects: [aspect(3, 0, 0)],
+                },
+                {
+                    name: 3,
+                    sign: 7,
+                    house: 7,
+                    degree: 15,
+                    absoluteDegree: 195,
+                    strength: PlanetaryStrength.SAMA,
+                    navamsaSign: 7,
+                    navamsaStrength: PlanetaryStrength.SAMA,
+                    nakshatra: 14,
+                    aspects: [aspect(7, 0, 0)],
+                },
             ],
         });
         const engine = computeYogaDoshas(manual);
-        expect(engine.yogas).toEqual([]);
+        // Ascendant Aries → 9th lord Jupiter absent from this manual fixture → yoga absent.
+        expect(engine.yogas.map((y) => y.id)).toEqual(["dharmaKarmadhipati"]);
+        expect(engine.yogas[0].isPresent).toBe(false);
         expect(engine.doshas[0].isPresent).toBe(true);
         expect(manual.source).toBe("manual");
         // Stored mutual 0° (conjunction, in-orb) records fire SM-01 — the positional conjunction.
@@ -1004,28 +1195,39 @@ describe("Legacy & manual resolution (UT-YD-150..155)", () => {
             kind: "yoga",
             isPresent: true,
             tradition: "MAIN_STREAM",
-            formation: { rulesTriggered: ["shaniMangala.sm01"], primaryRule: "shaniMangala.sm01", strength: 1, reasons: [] },
+            formation: {
+                rulesTriggered: ["shaniMangala.sm01"],
+                primaryRule: "shaniMangala.sm01",
+                strength: 1,
+                reasons: [],
+            },
             context: { houseImpact: [7] },
             interpretation: { themes: [] },
             mitigation: [],
             cancellation: { status: 1, factors: [] },
             finalAssessment: { severity: 1, expressionKeys: [] },
         } as const;
-        const versioned = { yogaDoshaVersion: YOGA_DOSHA_VERSION, yogas: [storedYoga], ascendant: { sign: 1 }, planets: [] };
+        const versioned = {
+            yogaDoshaVersion: YOGA_DOSHA_VERSION,
+            yogas: [storedYoga],
+            ascendant: { sign: 1 },
+            planets: [],
+        };
         expect(resolveYogas(versioned)).toEqual([storedYoga]);
         // Versioned with an empty list is stored-first too.
         expect(resolveYogas({ ...versioned, yogas: [] })).toEqual([]);
 
         // Legacy document without the version field → recompute purely from stored chart data.
-        // There are no active yogas this release, so even a Saturn+Mars conjunction derives an
-        // empty yogas list (the Shani Mangala dosha lives on the doshas side).
+        // The active Dharma Karmadhipati yoga is derived (absent here — the 9th lord Jupiter is
+        // missing from this Aries-ascendant fixture) rather than omitted.
         const legacy = {
             ascendant: { sign: 1 },
             planets: [planetDoc(7, 7, 7), planetDoc(3, 7, 7)],
             yogas: ["shaniMangala"],
         };
         const resolved = resolveYogas(legacy);
-        expect(resolved).toEqual([]);
+        expect(resolved?.map((y) => y.id)).toEqual(["dharmaKarmadhipati"]);
+        expect(resolved?.[0].isPresent).toBe(false);
         // Corrupt stored entry → warn + derive (never crash).
         const corrupt = {
             yogaDoshaVersion: YOGA_DOSHA_VERSION,
@@ -1033,7 +1235,8 @@ describe("Legacy & manual resolution (UT-YD-150..155)", () => {
             ascendant: { sign: 1 },
             planets: [planetDoc(7, 7, 7), planetDoc(3, 7, 7)],
         };
-        expect(resolveYogas(corrupt)).toEqual([]);
+        expect(resolveYogas(corrupt)?.map((y) => y.id)).toEqual(["dharmaKarmadhipati"]);
+        expect(resolveYogas(corrupt)?.[0].isPresent).toBe(false);
         // Nothing derivable → undefined.
         expect(resolveYogas(undefined)).toBeUndefined();
         expect(resolveYogas({})).toBeUndefined();
@@ -1088,10 +1291,12 @@ describe("Legacy & manual resolution (UT-YD-150..155)", () => {
     });
 
     test("UT-YD-155: schema-invariant validator shared by engine outputs", () => {
-        const chart = facts(saturnMarsBoth(
+        const chart = facts(
+            saturnMarsBoth(
                 { sign: 7, house: 7, aspects: [aspect(3, 0, 0)] },
                 { sign: 7, house: 7, aspects: [aspect(7, 0, 0)] },
-            ));
+            ),
+        );
         const engine = computeYogaDoshas(chart);
         for (const entry of [...engine.yogas, ...engine.doshas]) {
             expect(validateYogaDoshaShape(entry)).toEqual([]);
@@ -1114,8 +1319,26 @@ describe("Legacy & manual resolution (UT-YD-150..155)", () => {
         // still treats the pair as non-conjunct (SM-01 needs stored mutual 0° records — with no
         // records there is no evidence the planets are within their orbs).
         const planetsWithoutAspects = [
-            { name: 7, sign: 7, house: 7, degree: 15, absoluteDegree: 195, strength: PlanetaryStrength.SAMA, navamsaSign: 7, navamsaStrength: PlanetaryStrength.SAMA },
-            { name: 3, sign: 7, house: 7, degree: 15, absoluteDegree: 195, strength: PlanetaryStrength.SAMA, navamsaSign: 7, navamsaStrength: PlanetaryStrength.SAMA },
+            {
+                name: 7,
+                sign: 7,
+                house: 7,
+                degree: 15,
+                absoluteDegree: 195,
+                strength: PlanetaryStrength.SAMA,
+                navamsaSign: 7,
+                navamsaStrength: PlanetaryStrength.SAMA,
+            },
+            {
+                name: 3,
+                sign: 7,
+                house: 7,
+                degree: 15,
+                absoluteDegree: 195,
+                strength: PlanetaryStrength.SAMA,
+                navamsaSign: 7,
+                navamsaStrength: PlanetaryStrength.SAMA,
+            },
         ] as unknown as PlanetLike[];
         const factsBuilt = buildChartFacts({
             ascendantSign: 1,
@@ -1124,7 +1347,9 @@ describe("Legacy & manual resolution (UT-YD-150..155)", () => {
         });
         expect(factsBuilt.planets[0].aspects).toEqual([]);
         const engine = computeYogaDoshas(factsBuilt);
-        expect(engine.yogas).toEqual([]);
+        // Ascendant Aries → 9th lord Jupiter absent → yoga absent (fail-closed).
+        expect(engine.yogas.map((y) => y.id)).toEqual(["dharmaKarmadhipati"]);
+        expect(engine.yogas[0].isPresent).toBe(false);
         expect(engine.doshas[0].isPresent).toBe(false);
         expect(engine.doshas[0].mitigation).toEqual([]);
     });
@@ -1138,7 +1363,8 @@ describe("Legacy & manual resolution (UT-YD-150..155)", () => {
             ],
         };
         const combined = resolveYogaDoshas(doc);
-        expect(combined?.yogas).toEqual([]);
+        expect(combined?.yogas?.map((y) => y.id)).toEqual(["dharmaKarmadhipati"]);
+        expect(combined?.yogas?.[0]?.isPresent).toBe(false);
         expect(combined?.doshas?.[0]?.isPresent).toBe(true);
         expect(combined?.doshas?.[0]?.kind).toBe("dosha");
         expect(resolveYogaDoshas(undefined)).toBeUndefined();

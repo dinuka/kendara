@@ -54,6 +54,7 @@ jest.mock("@/hooks/useI18n", () => {
         "dosha.manglik.theme.house7": "A challenging note in partnerships.",
         "dosha.manglik.expression.partnershipStress": "Partnership stress indicator.",
         "dosha.manglik.mitigation.mk-mit-001": "Jupiter's aspect mitigates the dosha.",
+        "yoga.dharmaKarmadhipati.name": "Dharma Karmadhipati Yoga",
     };
 
     return {
@@ -75,8 +76,30 @@ jest.mock("@/hooks/useI18n", () => {
 
 const engineDosha = (jupiterAspects?: boolean): DoshaEvaluation => {
     const planets = [
-        { name: 7, sign: 7, house: 7, degree: 15, absoluteDegree: 195, strength: PlanetaryStrength.SAMA, navamsaSign: 7, navamsaStrength: PlanetaryStrength.SAMA, nakshatra: 14, aspects: [{ planetName: 3, aspectType: 0, degreeGap: 0 }] },
-        { name: 3, sign: 7, house: 7, degree: 15, absoluteDegree: 195, strength: PlanetaryStrength.SAMA, navamsaSign: 7, navamsaStrength: PlanetaryStrength.SAMA, nakshatra: 14, aspects: [{ planetName: 7, aspectType: 0, degreeGap: 0 }] },
+        {
+            name: 7,
+            sign: 7,
+            house: 7,
+            degree: 15,
+            absoluteDegree: 195,
+            strength: PlanetaryStrength.SAMA,
+            navamsaSign: 7,
+            navamsaStrength: PlanetaryStrength.SAMA,
+            nakshatra: 14,
+            aspects: [{ planetName: 3, aspectType: 0, degreeGap: 0 }],
+        },
+        {
+            name: 3,
+            sign: 7,
+            house: 7,
+            degree: 15,
+            absoluteDegree: 195,
+            strength: PlanetaryStrength.SAMA,
+            navamsaSign: 7,
+            navamsaStrength: PlanetaryStrength.SAMA,
+            nakshatra: 14,
+            aspects: [{ planetName: 7, aspectType: 0, degreeGap: 0 }],
+        },
     ];
     if (jupiterAspects) {
         planets.push({
@@ -93,7 +116,10 @@ const engineDosha = (jupiterAspects?: boolean): DoshaEvaluation => {
         });
     }
     const result = computeYogaDoshas(buildChartFacts({ ascendantSign: 1, source: "auto", planets }));
-    expect(result.yogas).toEqual([]);
+    expect(result.yogas.map((y) => y.id)).toEqual(["dharmaKarmadhipati"]);
+    // The Dharma Karmadhipati Yoga stays absent in both variants: without Jupiter the 9th lord is
+    // missing, and with Jupiter a one-directional 120° drishti fails the DK-02 mutual requirement.
+    expect(result.yogas[0].isPresent).toBe(false);
     return result.doshas[0];
 };
 
@@ -116,23 +142,43 @@ const presentDosha = (over: Partial<DoshaEvaluation> = {}): DoshaEvaluation => (
     ...over,
 });
 
-const unknownYoga = (): YogaEvaluation => ({
-    id: "recentExperiment",
+const presentYoga = (over: Partial<YogaEvaluation> = {}): YogaEvaluation => ({
+    id: "dharmaKarmadhipati",
     kind: "yoga",
     isPresent: true,
     tradition: "MAIN_STREAM",
     formation: {
-        rulesTriggered: ["shaniMangala.sm01"],
-        primaryRule: "shaniMangala.sm01",
-        strength: YogaStrength.VERY_STRONG,
-        reasons: [{ rule: "shaniMangala.sm01", reasonKey: "rule.sm01", params: { house: 7 } }],
+        rulesTriggered: ["dharmaKarmadhipati.dk01"],
+        primaryRule: "dharmaKarmadhipati.dk01",
+        strength: YogaStrength.STRONG,
+        reasons: [{ rule: "dharmaKarmadhipati.dk01", reasonKey: "rule.dk01", params: { dharmaLord: 4, karmaLord: 6 } }],
     },
-    context: { houseImpact: [7] },
-    interpretation: { themes: [{ key: "theme.house7", params: { house: 7 } }] },
+    context: { houseImpact: [9, 10] },
+    interpretation: { themes: [{ key: "theme.house9", params: { house: 9 } }] },
     mitigation: [],
     cancellation: { status: CancellationStatus.NOT_CANCELLED, factors: [] },
-    finalAssessment: { severity: YogaStrength.VERY_STRONG, expressionKeys: ["expression.main"] },
-} as unknown as YogaEvaluation);
+    finalAssessment: { severity: YogaStrength.STRONG, expressionKeys: ["expression.main"] },
+    ...over,
+});
+
+const unknownYoga = (): YogaEvaluation =>
+    ({
+        id: "recentExperiment",
+        kind: "yoga",
+        isPresent: true,
+        tradition: "MAIN_STREAM",
+        formation: {
+            rulesTriggered: ["shaniMangala.sm01"],
+            primaryRule: "shaniMangala.sm01",
+            strength: YogaStrength.VERY_STRONG,
+            reasons: [{ rule: "shaniMangala.sm01", reasonKey: "rule.sm01", params: { house: 7 } }],
+        },
+        context: { houseImpact: [7] },
+        interpretation: { themes: [{ key: "theme.house7", params: { house: 7 } }] },
+        mitigation: [],
+        cancellation: { status: CancellationStatus.NOT_CANCELLED, factors: [] },
+        finalAssessment: { severity: YogaStrength.VERY_STRONG, expressionKeys: ["expression.main"] },
+    }) as unknown as YogaEvaluation;
 
 const renderSection = (result?: YogaDoshaResult) => {
     return render(
@@ -271,6 +317,32 @@ describe("AX-YD-603/604: tag labels, cancelled chips, unknown chips", () => {
         expect(cancelledTag.querySelector("[aria-hidden=true]")).toHaveClass("bg-gray-500");
     });
 
+    test("yoga tag is green while present and gray when cancelled (user color direction)", () => {
+        render(
+            <YogaDoshaSection
+                result={{
+                    yogas: [
+                        presentYoga(),
+                        presentYoga({ cancellation: { status: CancellationStatus.CANCELLED, factors: [] } }),
+                    ],
+                    doshas: [],
+                }}
+            />,
+        );
+
+        const presentTag = screen.getByRole("button", { name: "Dharma Karmadhipati Yoga, Strong, Not cancelled" });
+        expect(presentTag).toHaveClass("bg-green-50");
+        expect(presentTag).toHaveClass("text-green-700");
+        expect(presentTag).toHaveClass("border-green-300");
+        expect(presentTag.querySelector("[aria-hidden=true]")).toHaveClass("bg-green-600");
+
+        const cancelledTag = screen.getByRole("button", { name: "Dharma Karmadhipati Yoga, Strong, Cancelled" });
+        expect(cancelledTag).toHaveClass("bg-gray-100");
+        expect(cancelledTag).toHaveClass("text-gray-500");
+        expect(cancelledTag).toHaveClass("line-through");
+        expect(cancelledTag.querySelector("[aria-hidden=true]")).toHaveClass("bg-gray-500");
+    });
+
     test("AX-YD-605: unknown-id chip is a plain, non-focusable span that keeps {id}, not available", () => {
         const result: YogaDoshaResult = { yogas: [unknownYoga()], doshas: [] };
         render(<YogaDoshaSection result={result} />);
@@ -321,9 +393,7 @@ describe("Detail panel blocks (UI-YD-520..538)", () => {
         const manglikPanel = within(screen.getByRole("group", { name: "Doshas" })).getByRole("region", {
             name: "Manglik",
         });
-        expect(
-            within(manglikPanel).queryByText("These periods may surface the themes above."),
-        ).not.toBeInTheDocument();
+        expect(within(manglikPanel).queryByText("These periods may surface the themes above.")).not.toBeInTheDocument();
     });
 
     test("panel header shows tradition, strength pill and status badge", () => {
