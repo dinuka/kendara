@@ -992,6 +992,81 @@
             "expression": {
                 "main": "This yoga unites the energies of fortune and karma, favouring righteous action and purposeful career."
             }
+        },
+        "ruchaka": {
+            "name": "Ruchaka Yoga",
+            "rule": {
+                "pmp01": "Mars is in house {house}, a Kendra from Lagna, in an own or exaltation sign."
+            },
+            "theme": {
+                "house1": "Relates to self and vitality.",
+                "house4": "Relates to home, property and domestic life.",
+                "house7": "Relates to partnerships and marriage.",
+                "house10": "Relates to career, karma and public standing."
+            },
+            "expression": {
+                "main": "This yoga grants courage, drive and leadership, favouring bold achievement and authority."
+            }
+        },
+        "bhadra": {
+            "name": "Bhadra Yoga",
+            "rule": {
+                "pmp02": "Mercury is in house {house}, a Kendra from Lagna, in an own or exaltation sign."
+            },
+            "theme": {
+                "house1": "Relates to self and vitality.",
+                "house4": "Relates to home, property and domestic life.",
+                "house7": "Relates to partnerships and marriage.",
+                "house10": "Relates to career, karma and public standing."
+            },
+            "expression": {
+                "main": "This yoga sharpens intellect, eloquence and discrimination, favouring scholarly and communicative success."
+            }
+        },
+        "hamsa": {
+            "name": "Hamsa Yoga",
+            "rule": {
+                "pmp03": "Jupiter is in house {house}, a Kendra from Lagna, in an own or exaltation sign."
+            },
+            "theme": {
+                "house1": "Relates to self and vitality.",
+                "house4": "Relates to home, property and domestic life.",
+                "house7": "Relates to partnerships and marriage.",
+                "house10": "Relates to career, karma and public standing."
+            },
+            "expression": {
+                "main": "This yoga bestows wisdom, righteousness and repute, favouring leadership through dharma."
+            }
+        },
+        "malavya": {
+            "name": "Malavya Yoga",
+            "rule": {
+                "pmp04": "Venus is in house {house}, a Kendra from Lagna, in an own or exaltation sign."
+            },
+            "theme": {
+                "house1": "Relates to self and vitality.",
+                "house4": "Relates to home, property and domestic life.",
+                "house7": "Relates to partnerships and marriage.",
+                "house10": "Relates to career, karma and public standing."
+            },
+            "expression": {
+                "main": "This yoga confers charm, refinement, wealth and comfort, favouring a gracious and cultured life."
+            }
+        },
+        "sasha": {
+            "name": "Sasha Yoga",
+            "rule": {
+                "pmp05": "Saturn is in house {house}, a Kendra from Lagna, in an own or exaltation sign."
+            },
+            "theme": {
+                "house1": "Relates to self and vitality.",
+                "house4": "Relates to home, property and domestic life.",
+                "house7": "Relates to partnerships and marriage.",
+                "house10": "Relates to career, karma and public standing."
+            },
+            "expression": {
+                "main": "This yoga grants authority, discipline and enduring status, favouring position earned through steady effort."
+            }
         }
     },
     "dosha": {

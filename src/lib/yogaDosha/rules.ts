@@ -32,11 +32,16 @@ import {
 } from "@/lib/yogaDosha/relationships";
 import {
     AgniMaruthaRuleId,
+    BhadraRuleId,
     ChartFacts,
     DharmaKarmadhipatiRuleId,
+    HamsaRuleId,
+    MalavyaRuleId,
     ManglikRuleId,
+    RuchakaRuleId,
     RuleEvaluation,
     RuleId,
+    SashaRuleId,
     ShaniMangalaRuleId,
 } from "@/lib/yogaDosha/types";
 
@@ -44,6 +49,18 @@ export const SHANI_MANGALA_PLANETS = [7, 3] as const; // Saturn, Mars
 export const AGNI_MARUTHA_PLANETS = [7, 3] as const; // Saturn, Mars
 export const KUJA_DOSHA_PLANETS = [3] as const; // Mars
 export const DHARMA_KARMADHIPATI_HOUSES = [9, 10] as const; // Dharma (9th) & Karma (10th)
+
+/** Kendra houses from Lagna for Pancha Maha Purusha Yoga (1st, 4th, 7th, 10th). */
+const KENDRA_HOUSES = [1, 4, 7, 10];
+
+/** Pancha Maha Purusha Yoga: planet → [own signs, exaltation sign]. */
+const PMP_PLANET_DATA: Record<number, { ownSigns: number[]; exaltSign: number }> = {
+    3: { ownSigns: [1, 8], exaltSign: 10 }, // Mars: Aries, Scorpio; exalt Capricorn
+    4: { ownSigns: [3, 6], exaltSign: 6 }, // Mercury: Gemini, Virgo; exalt Virgo
+    5: { ownSigns: [9, 12], exaltSign: 4 }, // Jupiter: Sagittarius, Pisces; exalt Cancer
+    6: { ownSigns: [2, 7], exaltSign: 12 }, // Venus: Taurus, Libra; exalt Pisces
+    7: { ownSigns: [10, 11], exaltSign: 7 }, // Saturn: Capricorn, Aquarius; exalt Libra
+};
 
 /**
  * Houses that cause Kuja Dosha when Mars occupies them relative to a reference point
@@ -265,6 +282,49 @@ function evaluateDharmaKarmadhipatiRule(rule: DharmaKarmadhipatiRuleId, facts: C
     }
 }
 
+/**
+ * Pancha Maha Purusha Yoga (docs/pancha-maha-pursha-yoga.md): one of the five non-luminary
+ * planets — Mars (Ruchaka), Mercury (Bhadra), Jupiter (Hamsa), Venus (Malavya), Saturn
+ * (Sasha/Shasha) — placed in a Kendra from Lagna (1st/4th/7th/10th house) AND in its own sign
+ * or exaltation sign. Both conditions must hold simultaneously (dignity resolved from the sign,
+ * per the §Sashti/own-sign tables): exaltation forms a stronger yoga (strength 1) than own sign
+ * (strength 2).
+ */
+function evaluatePanchaMahaPurushaRule(
+    rule: RuchakaRuleId | BhadraRuleId | HamsaRuleId | MalavyaRuleId | SashaRuleId,
+    facts: ChartFacts,
+): RuleEvaluation {
+    const planetName = {
+        ruchaka: 3,
+        bhadra: 4,
+        hamsa: 5,
+        malavya: 6,
+        sasha: 7,
+    }[rule.split(".")[0] as "ruchaka" | "bhadra" | "hamsa" | "malavya" | "sasha"];
+
+    const dignities = PMP_PLANET_DATA[planetName];
+    const planet = planetFact(facts, planetName);
+    if (!planet || !dignities) return absent(rule);
+
+    if (!KENDRA_HOUSES.includes(planet.house)) return absent(rule);
+
+    const isExalted = dignities.exaltSign === planet.sign;
+    const isOwnSign = dignities.ownSigns.includes(planet.sign);
+    if (!isExalted && !isOwnSign) return absent(rule);
+
+    return fired(
+        rule,
+        isExalted ? 1 : 2,
+        `rule.${rule.split(".")[1]}`,
+        {
+            house: planet.house,
+            sign: planet.sign,
+            dignity: isExalted ? "exalted" : "own",
+        },
+        [planet.house],
+    );
+}
+
 /** Evaluates every catalog rule of an entry (catalog order). Triggers dedupe upstream. */
 export function evaluateRule(rule: RuleId, facts: ChartFacts): RuleEvaluation {
     if (rule.startsWith("shaniMangala.")) return evaluateShaniMangalaRule(rule as ShaniMangalaRuleId, facts);
@@ -272,5 +332,16 @@ export function evaluateRule(rule: RuleId, facts: ChartFacts): RuleEvaluation {
     if (rule.startsWith("manglik.")) return evaluateManglikRule(rule as ManglikRuleId, facts);
     if (rule.startsWith("dharmaKarmadhipati."))
         return evaluateDharmaKarmadhipatiRule(rule as DharmaKarmadhipatiRuleId, facts);
+    if (
+        rule.startsWith("ruchaka.") ||
+        rule.startsWith("bhadra.") ||
+        rule.startsWith("hamsa.") ||
+        rule.startsWith("malavya.") ||
+        rule.startsWith("sasha.")
+    )
+        return evaluatePanchaMahaPurushaRule(
+            rule as RuchakaRuleId | BhadraRuleId | HamsaRuleId | MalavyaRuleId | SashaRuleId,
+            facts,
+        );
     return absent(rule);
 }

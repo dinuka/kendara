@@ -1,11 +1,37 @@
 import { NAKSHATRA_NAMES, PLANET_NAMES, STRENGTH_LABELS, ZODIAC_SIGN_NAMES } from "@/lib/astrologyEnums";
 import { DOSHA_CATALOG, YOGA_CATALOG } from "@/lib/yogaDosha/catalog";
+import type { YogaId } from "@/lib/yogaDosha/types";
 import { stripJoiners } from "@/lib/search/utils";
 
 export const SINHALA_YOGA = ["යෝග", "යෝගය", "යෝග තිබෙන"];
 export const ENGLISH_YOGA = ["yoga", "yogas", "yogic"];
 export const ASCENDANT_WORDS = ["ලග්නයේ", "ලග්නය", "ලග්න", "ascendant", "lagna"];
 export const DOSHA_WORDS = ["දෝෂය", "දෝෂ", "dosha", "doshas"];
+
+// Search-only "families" of yoga ids that share a common group term (e.g. the five Pancha
+// Maha Purusha yogas). A family condition matches a horoscope when ANY member id is present,
+// so the group term "පංච මහා පුරුෂ යෝග" stays an OR across the family — NOT an AND of five
+// separate yoga_id conditions (which would wrongly demand every Maha Purusha yoga at once).
+// Family terms name a group, not a single yoga, so they intentionally live here rather than in
+// the yoga catalog (which must stay one-entry-per-yoga for per-yoga evaluation/reasoning).
+export const YOGA_FAMILIES: Record<string, YogaId[]> = {
+    panchaMahaPurusha: ["ruchaka", "bhadra", "hamsa", "malavya", "sasha"],
+};
+
+// Family group-term aliases (bilingual) → familyId. Keyed on the same stripJoiners().lowercase()
+// skeleton used elsewhere so catalog-word-boundary matching can reuse the same span scan. Kept in
+// vocabulary.ts (not catalogs) so search suggestions and the API parse from the SAME source.
+export const FAMILY_NAME_WORDS: Record<string, string> = Object.fromEntries(
+    Object.entries({
+        panchaMahaPurusha: [
+            "Pancha Maha Purusha Yoga",
+            "Pancha Mahapurusha Yoga",
+            "The Five Maha Purusha Yogas",
+            "පංච මහා පුරුෂ යෝග",
+            "පංච මහා පුරුෂ යෝගය",
+        ],
+    }).flatMap(([familyId, words]) => words.map((word) => [stripJoiners(word).toLowerCase(), familyId] as const)),
+);
 
 // Yoga/Dosha catalog display names + aliases → catalog id (e.g. "ශනි කුජ" → "shaniMangala").
 // The catalog (src/lib/yogaDosha/catalog.ts) is the single source of aliases — deriving this map
@@ -134,6 +160,7 @@ const TRIGGER_WORDS = [
     ...ASCENDANT_WORDS,
     ...DOSHA_WORDS,
     ...Object.keys(YOGA_DOSHA_NAME_WORDS),
+    ...Object.keys(FAMILY_NAME_WORDS),
     ...ROLE_TRIGGER_WORDS,
 ];
 

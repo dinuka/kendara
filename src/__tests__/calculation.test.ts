@@ -409,7 +409,14 @@ describe("calculateHoroscope Yoga/Dosha tags (IT-YD-200..202)", () => {
             JSON.stringify({ yogas: result.yogas, doshas: result.doshas, yogaDoshaVersion: result.yogaDoshaVersion }),
         );
         expect(persisted.yogaDoshaVersion).toBe(YOGA_DOSHA_VERSION);
-        expect(persisted.yogas.map((y: { id: string }) => y.id)).toEqual(["dharmaKarmadhipati"]);
+        expect(persisted.yogas.map((y: { id: string }) => y.id)).toEqual([
+            "dharmaKarmadhipati",
+            "ruchaka",
+            "bhadra",
+            "hamsa",
+            "malavya",
+            "sasha",
+        ]);
         expect(persisted.yogas[0].isPresent).toBe(true);
         expect(persisted.doshas.doshas[0].id).toBe("shaniMangala");
         expect(persisted.doshas.doshas[0].formation.rulesTriggered).toContain("shaniMangala.sm01");

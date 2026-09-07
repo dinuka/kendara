@@ -65,6 +65,76 @@
             "cancellation": {
                 "status": 1
             }
+        },
+        {
+            "id": "ruchaka",
+            "isPresent": false,
+            "formation": {
+                "primaryRule": "",
+                "strength": 4
+            },
+            "finalAssessment": {
+                "severity": 4
+            },
+            "cancellation": {
+                "status": 1
+            }
+        },
+        {
+            "id": "bhadra",
+            "isPresent": false,
+            "formation": {
+                "primaryRule": "",
+                "strength": 4
+            },
+            "finalAssessment": {
+                "severity": 4
+            },
+            "cancellation": {
+                "status": 1
+            }
+        },
+        {
+            "id": "hamsa",
+            "isPresent": false,
+            "formation": {
+                "primaryRule": "",
+                "strength": 4
+            },
+            "finalAssessment": {
+                "severity": 4
+            },
+            "cancellation": {
+                "status": 1
+            }
+        },
+        {
+            "id": "malavya",
+            "isPresent": false,
+            "formation": {
+                "primaryRule": "",
+                "strength": 4
+            },
+            "finalAssessment": {
+                "severity": 4
+            },
+            "cancellation": {
+                "status": 1
+            }
+        },
+        {
+            "id": "sasha",
+            "isPresent": true,
+            "formation": {
+                "primaryRule": "sasha.pmp05",
+                "strength": 1
+            },
+            "finalAssessment": {
+                "severity": 1
+            },
+            "cancellation": {
+                "status": 1
+            }
         }
     ],
     "doshas": [

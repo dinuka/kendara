@@ -116,10 +116,20 @@ const engineDosha = (jupiterAspects?: boolean): DoshaEvaluation => {
         });
     }
     const result = computeYogaDoshas(buildChartFacts({ ascendantSign: 1, source: "auto", planets }));
-    expect(result.yogas.map((y) => y.id)).toEqual(["dharmaKarmadhipati"]);
+    expect(result.yogas.map((y) => y.id)).toEqual([
+        "dharmaKarmadhipati",
+        "ruchaka",
+        "bhadra",
+        "hamsa",
+        "malavya",
+        "sasha",
+    ]);
     // The Dharma Karmadhipati Yoga stays absent in both variants: without Jupiter the 9th lord is
     // missing, and with Jupiter a one-directional 120° drishti fails the DK-02 mutual requirement.
+    // Saturn is in the 7th Kendra in its exaltation sign (Libra 7) → the Sasha Maha Purusha Yoga
+    // fires (strength 1); Mars in Libra does not fire Ruchaka.
     expect(result.yogas[0].isPresent).toBe(false);
+    expect(result.yogas.find((y) => y.id === "sasha")?.isPresent).toBe(true);
     return result.doshas[0];
 };
 

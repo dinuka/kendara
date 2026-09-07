@@ -15,7 +15,7 @@ export type Tradition = "MAIN_STREAM";
 export type CatalogKind = "yoga" | "dosha";
 
 /** Yoga catalog ids (registered in catalog.ts). */
-export type YogaId = "dharmaKarmadhipati";
+export type YogaId = "dharmaKarmadhipati" | "ruchaka" | "bhadra" | "hamsa" | "malavya" | "sasha";
 
 /** Dosha catalog ids (registered in catalog.ts). */
 export type DoshaId = "shaniMangala" | "agniMarutha" | "manglik";
@@ -37,7 +37,13 @@ export type AgniMaruthaRuleId =
 export type ManglikRuleId = "manglik.mk01" | "manglik.mk02" | "manglik.mk03";
 export type DharmaKarmadhipatiRuleId =
     "dharmaKarmadhipati.dk01" | "dharmaKarmadhipati.dk02" | "dharmaKarmadhipati.dk03";
-export type YogaRuleId = DharmaKarmadhipatiRuleId;
+export type RuchakaRuleId = "ruchaka.pmp01";
+export type BhadraRuleId = "bhadra.pmp02";
+export type HamsaRuleId = "hamsa.pmp03";
+export type MalavyaRuleId = "malavya.pmp04";
+export type SashaRuleId = "sasha.pmp05";
+export type YogaRuleId =
+    DharmaKarmadhipatiRuleId | RuchakaRuleId | BhadraRuleId | HamsaRuleId | MalavyaRuleId | SashaRuleId;
 export type DoshaRuleId = ShaniMangalaRuleId | AgniMaruthaRuleId | ManglikRuleId;
 
 /** Registered mitigation rule ids (cancellation.ts). */

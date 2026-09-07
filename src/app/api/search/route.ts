@@ -29,11 +29,13 @@ import {
     BHAVA_SUCHIKA_WORDS,
     DOSHA_WORDS,
     ENGLISH_YOGA,
+    FAMILY_NAME_WORDS,
     NAVAMSA_WORDS,
     PLANET_ROLE_WORDS,
     PlanetRoleKey,
     SINHALA_YOGA,
     YOGA_DOSHA_NAME_WORDS,
+    YOGA_FAMILIES,
 } from "@/lib/search/vocabulary";
 import { DOSHA_CATALOG, YOGA_CATALOG, doshaCatalogEntry, yogaCatalogEntry } from "@/lib/yogaDosha/catalog";
 import type { DoshaId, YogaId } from "@/lib/yogaDosha/types";
@@ -52,6 +54,7 @@ type ExactCondition =
     | { type: "bhava_suchika"; value: number }
     | { type: "planet_bhava_suchika"; planet: number; value: number }
     | { type: "yoga_id"; yogaId: string }
+    | { type: "yoga_family"; familyId: string }
     | { type: "dosha_id"; doshaId: string };
 
 type ExactMatch = ExactCondition[];
@@ -655,7 +658,7 @@ const getExactMatch = (query: string): ExactMatch => {
     // a present manglik that no chart carries. The full catalog name wins.
     const UNICODE_LETTER = /\p{L}/u;
     const catalogWordSpans: Array<{ word: string; id: string; index: number }> = [];
-    for (const [word, id] of Object.entries(YOGA_DOSHA_NAME_WORDS)) {
+    for (const [word, id] of Object.entries({ ...YOGA_DOSHA_NAME_WORDS, ...FAMILY_NAME_WORDS })) {
         const index = q.indexOf(word);
         if (index === -1) continue;
         const before = q[index - 1];
@@ -675,7 +678,9 @@ const getExactMatch = (query: string): ExactMatch => {
                 other.index + other.word.length >= match.index + match.word.length,
         );
         if (overshadowed) continue;
-        if (yogaCatalogEntry(match.id as YogaId)) {
+        if (match.id in YOGA_FAMILIES) {
+            conditions.push({ type: "yoga_family", familyId: match.id });
+        } else if (yogaCatalogEntry(match.id as YogaId)) {
             conditions.push({ type: "yoga_id", yogaId: match.id });
         } else if (doshaCatalogEntry(match.id as DoshaId)) {
             conditions.push({ type: "dosha_id", doshaId: match.id });
@@ -1244,6 +1249,18 @@ export async function POST(req: NextRequest) {
                                     | Array<Record<string, unknown>>
                                     | undefined;
                                 return !!yogas && yogas.some((y) => y.id === condition.yogaId && y.isPresent === true);
+                            }
+                            case "yoga_family": {
+                                const yogas = calculatedDetails?.yogas as
+                                    | Array<Record<string, unknown>>
+                                    | undefined;
+                                const memberIds = YOGA_FAMILIES[condition.familyId] ?? [];
+                                return (
+                                    !!yogas &&
+                                    memberIds.some((id) =>
+                                        yogas.some((y) => y.id === id && y.isPresent === true),
+                                    )
+                                );
                             }
                             case "dosha_id": {
                                 const doshas = calculatedDetails?.doshas as Record<string, unknown> | undefined;

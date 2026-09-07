@@ -115,11 +115,31 @@ afterEach(() => {
 
 describe("Catalog & enums (UT-YD-001..008)", () => {
     test("UT-YD-001: catalog is registry-driven — all ACTIVE doshas live in the dosha catalog", () => {
-        expect(YOGA_CATALOG.map((e) => e.id)).toEqual(["dharmaKarmadhipati"]);
+        expect(YOGA_CATALOG.map((e) => e.id)).toEqual([
+            "dharmaKarmadhipati",
+            "ruchaka",
+            "bhadra",
+            "hamsa",
+            "malavya",
+            "sasha",
+        ]);
         expect(YOGA_CATALOG[0].kind).toBe("yoga");
         expect(YOGA_CATALOG[0].status).toBe("ACTIVE");
         expect(YOGA_CATALOG[0].keywordEn).toBe("Dharma Karmadhipati Yoga");
         expect(YOGA_CATALOG[0].keywordSi).toBe("ධර්ම කර්මාධිපති යෝගය");
+        // Pancha Maha Purusha Yoga — five ACTIVE yogas (docs/pancha-maha-pursha-yoga.md).
+        const pmp = YOGA_CATALOG.slice(1).map((e) => e.id);
+        expect(pmp).toEqual(["ruchaka", "bhadra", "hamsa", "malavya", "sasha"]);
+        expect(YOGA_CATALOG[1].keywordEn).toBe("Ruchaka Yoga");
+        expect(YOGA_CATALOG[1].keywordSi).toBe("රැචක යෝගය");
+        expect(YOGA_CATALOG[2].keywordEn).toBe("Bhadra Yoga");
+        expect(YOGA_CATALOG[2].keywordSi).toBe("බද්‍රා යෝගය");
+        expect(YOGA_CATALOG[3].keywordEn).toBe("Hamsa Yoga");
+        expect(YOGA_CATALOG[3].keywordSi).toBe("හංස යෝගය");
+        expect(YOGA_CATALOG[4].keywordEn).toBe("Malavya Yoga");
+        expect(YOGA_CATALOG[4].keywordSi).toBe("මාලව්‍ය යෝගය");
+        expect(YOGA_CATALOG[5].keywordEn).toBe("Sasha Yoga");
+        expect(YOGA_CATALOG[5].keywordSi).toBe("ශශ යෝගය");
         expect(DOSHA_CATALOG.map((e) => e.id)).toEqual(["shaniMangala", "agniMarutha", "manglik"]);
         expect(DOSHA_CATALOG[0].kind).toBe("dosha");
         expect(DOSHA_CATALOG[0].status).toBe("ACTIVE");
@@ -150,11 +170,28 @@ describe("Catalog & enums (UT-YD-001..008)", () => {
             "dharmaKarmadhipati.dk01",
             "dharmaKarmadhipati.dk02",
             "dharmaKarmadhipati.dk03",
+            "ruchaka.pmp01",
+            "bhadra.pmp02",
+            "hamsa.pmp03",
+            "malavya.pmp04",
+            "sasha.pmp05",
         ]);
         expect(YOGA_CATALOG[0].rules.map((r) => r.strength)).toEqual([1, 2, 1]);
         expect(YOGA_CATALOG[0].planets).toEqual([1, 2, 3, 4, 5, 6, 7]);
         expect(YOGA_CATALOG[0].expressionKeys).toEqual(["expression.main"]);
         expect(YOGA_CATALOG[0].mitigations).toEqual([]);
+        // Each Pancha Maha Purusha yoga is keyed to exactly one non-luminary planet: Mars → 3
+        // (Ruchaka), Mercury → 4 (Bhadra), Jupiter → 5 (Hamsa), Venus → 6 (Malavya), Saturn → 7
+        // (Sasha). Rules carry the catalog default strength 2 (own sign); exaltation upgrades it
+        // to 1 in the evaluator.
+        const pmpPlanets = [3, 4, 5, 6, 7];
+        YOGA_CATALOG.slice(1).forEach((entry, i) => {
+            expect(entry.planets).toEqual([pmpPlanets[i]]);
+            expect(entry.rules).toHaveLength(1);
+            expect(entry.rules[0].strength).toBe(2);
+            expect(entry.expressionKeys).toEqual(["expression.main"]);
+            expect(entry.mitigations).toEqual([]);
+        });
         expect(DOSHA_CATALOG[0].rules.map((r) => r.rule)).toEqual([
             "shaniMangala.sm01",
             "shaniMangala.sm02",
@@ -203,7 +240,17 @@ describe("Catalog & enums (UT-YD-001..008)", () => {
     });
 
     test("UT-YD-004: bilingual name maps keyed by catalog id, both locales, frozen lookup", () => {
-        for (const id of ["dharmaKarmadhipati", "shaniMangala", "agniMarutha", "manglik"]) {
+        for (const id of [
+            "dharmaKarmadhipati",
+            "ruchaka",
+            "bhadra",
+            "hamsa",
+            "malavya",
+            "sasha",
+            "shaniMangala",
+            "agniMarutha",
+            "manglik",
+        ]) {
             expect(catalogNameFor(id, "en").length).toBeGreaterThan(0);
             expect(catalogNameFor(id, "si").length).toBeGreaterThan(0);
         }
@@ -218,6 +265,8 @@ describe("Catalog & enums (UT-YD-001..008)", () => {
                 return undefined;
             }, obj);
         };
+        // Pancha Maha Purusha entries provide theme keys only for Kendra houses (houseImpact ∈ {1,4,7,10}).
+        const PMP_IDS = ["ruchaka", "bhadra", "hamsa", "malavya", "sasha"];
         const keys: string[] = [];
         for (const entry of [...YOGA_CATALOG, ...DOSHA_CATALOG]) {
             keys.push(`${entry.i18nKey}.name`);
@@ -226,6 +275,8 @@ describe("Catalog & enums (UT-YD-001..008)", () => {
             if (entry.id === "shaniMangala" || entry.id === "agniMarutha" || entry.id === "dharmaKarmadhipati") {
                 for (let house = 1; house <= 12; house++) keys.push(`${entry.i18nKey}.theme.house${house}`);
                 if (entry.id !== "dharmaKarmadhipati") keys.push(`${entry.i18nKey}.dashaNote`);
+            } else if (PMP_IDS.includes(entry.id)) {
+                for (const house of [1, 4, 7, 10]) keys.push(`${entry.i18nKey}.theme.house${house}`);
             } else {
                 for (const house of [1, 2, 4, 7, 8, 12]) keys.push(`${entry.i18nKey}.theme.house${house}`);
             }
@@ -905,13 +956,200 @@ describe("Dharma Karmadhipati Yoga (UT-DK-001..011)", () => {
     });
 });
 
+describe("Pancha Maha Purusha Yoga (UT-PMP-001..018)", () => {
+    // Ascendant Aries (sign 1). Kendras from Lagna: houses 1/4/7/10. Dignity maps:
+    // Mars own {1,8} exalt 10; Mercury own {3,6} exalt 6; Jupiter own {9,12} exalt 4;
+    // Venus own {2,7} exalt 12; Saturn own {10,11} exalt 7.
+
+    test("UT-PMP-001: RUCHAKA fires — exalted Mars in the 10th house (Capricorn 10), the doc's example", () => {
+        const chart = facts([pf(3, { house: 10, sign: 10 })]);
+        const rchr = evaluateRuleDirect("ruchaka.pmp01", chart);
+        expect(rchr.triggered).toBe(true);
+        expect(rchr.strength).toBe(1);
+        expect(rchr.reasonKey).toBe("rule.pmp01");
+        expect(rchr.params).toEqual({ house: 10, sign: 10, dignity: "exalted" });
+        expect(rchr.houseImpact).toEqual([10]);
+    });
+
+    test("UT-PMP-002: RUCHAKA absent — Mars in a Kendra but not dignified (10th house, Leo 5)", () => {
+        const chart = facts([pf(3, { house: 10, sign: 5 })]);
+        expect(evaluateRuleDirect("ruchaka.pmp01", chart).triggered).toBe(false);
+    });
+
+    test("UT-PMP-003: RUCHAKA fires — own-sign Mars in the 1st house (Aries 1) → strength 2", () => {
+        const chart = facts([pf(3, { house: 1, sign: 1 })]);
+        const rchr = evaluateRuleDirect("ruchaka.pmp01", chart);
+        expect(rchr.triggered).toBe(true);
+        expect(rchr.strength).toBe(2);
+        expect(rchr.params).toEqual({ house: 1, sign: 1, dignity: "own" });
+    });
+
+    test("UT-PMP-004: RUCHAKA absent — own-sign Mars NOT in a Kendra (Scorpio 8 in the 8th house)", () => {
+        const chart = facts([pf(3, { house: 8, sign: 8 })]);
+        expect(evaluateRuleDirect("ruchaka.pmp01", chart).triggered).toBe(false);
+    });
+
+    test("UT-PMP-005: BHADRA fires — exalted Mercury in the 4th house (Virgo 6) → strength 1", () => {
+        const chart = facts([pf(4, { house: 4, sign: 6 })]);
+        const bdr = evaluateRuleDirect("bhadra.pmp02", chart);
+        expect(bdr.triggered).toBe(true);
+        expect(bdr.strength).toBe(1);
+        expect(bdr.params).toEqual({ house: 4, sign: 6, dignity: "exalted" });
+    });
+
+    test("UT-PMP-006: BHADRA fires — own-sign Mercury in the 7th house (Gemini 3) → strength 2", () => {
+        const chart = facts([pf(4, { house: 7, sign: 3 })]);
+        const bdr = evaluateRuleDirect("bhadra.pmp02", chart);
+        expect(bdr.triggered).toBe(true);
+        expect(bdr.strength).toBe(2);
+        expect(bdr.params.dignity).toBe("own");
+    });
+
+    test("UT-PMP-007: HAMSA fires — exalted Jupiter in the 4th house (Cancer 4) → strength 1", () => {
+        const chart = facts([pf(5, { house: 4, sign: 4 })]);
+        const hms = evaluateRuleDirect("hamsa.pmp03", chart);
+        expect(hms.triggered).toBe(true);
+        expect(hms.strength).toBe(1);
+        expect(hms.params).toEqual({ house: 4, sign: 4, dignity: "exalted" });
+    });
+
+    test("UT-PMP-008: HAMSA fires — own-sign Jupiter in the 10th house (Sagittarius 9) → strength 2", () => {
+        const chart = facts([pf(5, { house: 10, sign: 9 })]);
+        const hms = evaluateRuleDirect("hamsa.pmp03", chart);
+        expect(hms.triggered).toBe(true);
+        expect(hms.strength).toBe(2);
+    });
+
+    test("UT-PMP-009: MALAVYA fires — exalted Venus in the 4th house (Pisces 12) → strength 1", () => {
+        const chart = facts([pf(6, { house: 4, sign: 12 })]);
+        const mlv = evaluateRuleDirect("malavya.pmp04", chart);
+        expect(mlv.triggered).toBe(true);
+        expect(mlv.strength).toBe(1);
+        expect(mlv.params).toEqual({ house: 4, sign: 12, dignity: "exalted" });
+    });
+
+    test("UT-PMP-010: MALAVYA fires — own-sign Venus in the 7th house (Taurus 2) → strength 2", () => {
+        const chart = facts([pf(6, { house: 7, sign: 2 })]);
+        const mlv = evaluateRuleDirect("malavya.pmp04", chart);
+        expect(mlv.triggered).toBe(true);
+        expect(mlv.strength).toBe(2);
+    });
+
+    test("UT-PMP-011: SASHA fires — exalted Saturn in the 10th house (Libra 7) → strength 1", () => {
+        const chart = facts([pf(7, { house: 10, sign: 7 })]);
+        const shs = evaluateRuleDirect("sasha.pmp05", chart);
+        expect(shs.triggered).toBe(true);
+        expect(shs.strength).toBe(1);
+        expect(shs.params).toEqual({ house: 10, sign: 7, dignity: "exalted" });
+    });
+
+    test("UT-PMP-012: SASHA fires — own-sign Saturn in the 1st house (Capricorn 10) → strength 2", () => {
+        const chart = facts([pf(7, { house: 1, sign: 10 })]);
+        const shs = evaluateRuleDirect("sasha.pmp05", chart);
+        expect(shs.triggered).toBe(true);
+        expect(shs.strength).toBe(2);
+    });
+
+    test("UT-PMP-013: absent — dignified planets NOT in a Kendra (each stays absent)", () => {
+        // Mars own Aries in the 11th, Saturn exalted Libra in the 12th, Jupiter own Sag in the 8th.
+        const chart = facts([
+            pf(3, { house: 11, sign: 1 }),
+            pf(7, { house: 12, sign: 7 }),
+            pf(5, { house: 8, sign: 9 }),
+        ]);
+        expect(evaluateRuleDirect("ruchaka.pmp01", chart).triggered).toBe(false);
+        expect(evaluateRuleDirect("sasha.pmp05", chart).triggered).toBe(false);
+        expect(evaluateRuleDirect("hamsa.pmp03", chart).triggered).toBe(false);
+    });
+
+    test("UT-PMP-014: absent — every planet in a Kendra but none dignified → all five stay absent", () => {
+        const chart = facts([
+            pf(3, { house: 1, sign: 5 }), // Mars Leo
+            pf(4, { house: 4, sign: 4 }), // Mercury Cancer
+            pf(5, { house: 10, sign: 6 }), // Jupiter Virgo
+            pf(6, { house: 1, sign: 1 }), // Venus Aries
+            pf(7, { house: 10, sign: 5 }), // Saturn Leo
+        ]);
+        const engine = computeYogaDoshas(chart);
+        for (const id of ["ruchaka", "bhadra", "hamsa", "malavya", "sasha"]) {
+            expect(engine.yogas.find((y) => y.id === id)?.isPresent).toBe(false);
+        }
+    });
+
+    test("UT-PMP-015: engine — all five PMP yogas fire together when each planet is kendra + dignified", () => {
+        const chart = facts([
+            pf(3, { house: 1, sign: 1 }), // Ruchaka (own Aries, 1st)
+            pf(4, { house: 4, sign: 6 }), // Bhadra (exalted Virgo, 4th)
+            pf(5, { house: 10, sign: 9 }), // Hamsa (own Sagittarius, 10th)
+            pf(6, { house: 7, sign: 2 }), // Malavya (own Taurus, 7th)
+            pf(7, { house: 10, sign: 7 }), // Sasha (exalted Libra, 10th)
+        ]);
+        const engine = computeYogaDoshas(chart);
+        for (const [id, rule] of [
+            ["ruchaka", "ruchaka.pmp01"],
+            ["bhadra", "bhadra.pmp02"],
+            ["hamsa", "hamsa.pmp03"],
+            ["malavya", "malavya.pmp04"],
+            ["sasha", "sasha.pmp05"],
+        ] as const) {
+            const y = engine.yogas.find((e) => e.id === id);
+            expect(y?.isPresent).toBe(true);
+            expect(y?.formation.primaryRule).toBe(rule);
+            expect(y?.formation.rulesTriggered).toEqual([rule]);
+        }
+    });
+
+    test("UT-PMP-016: engine — exaltation yields a stronger yoga than own sign (strength 1 vs 2)", () => {
+        const e1 = computeYogaDoshas(facts([pf(3, { house: 10, sign: 10 })])).yogas;
+        const e2 = computeYogaDoshas(facts([pf(3, { house: 10, sign: 1 })])).yogas;
+        expect(e1.find((y) => y.id === "ruchaka")?.formation.strength).toBe(1);
+        expect(e2.find((y) => y.id === "ruchaka")?.formation.strength).toBe(2);
+    });
+
+    test("UT-PMP-017: engine — kendra themes resolve for the fired PMP house(s); absent PMP has no themes", () => {
+        const chart = facts([pf(7, { house: 10, sign: 7 })]);
+        const engine = computeYogaDoshas(chart);
+        const sasha = engine.yogas.find((y) => y.id === "sasha");
+        expect(sasha?.isPresent).toBe(true);
+        expect(sasha?.interpretation.themes).toEqual([{ key: "theme.house10", params: { house: 10 } }]);
+        const bhadra = engine.yogas.find((y) => y.id === "bhadra");
+        expect(bhadra?.isPresent).toBe(false);
+        expect(bhadra?.interpretation.themes).toEqual([]);
+    });
+
+    test("UT-PMP-018: catalog — bilingual names + aliases, and EN/SI messages resolve", () => {
+        expect(catalogNameFor("ruchaka", "si")).toBe("රැචක යෝගය");
+        expect(catalogNameFor("sasha", "en")).toBe("Sasha Yoga");
+        const resolve = (obj: Record<string, unknown>, dotted: string): string => {
+            return dotted.split(".").reduce<unknown>((acc, part) => {
+                if (acc && typeof acc === "object") return (acc as Record<string, unknown>)[part];
+                return undefined;
+            }, obj) as string;
+        };
+        for (const entry of YOGA_CATALOG.filter((e) => e.id !== "dharmaKarmadhipati")) {
+            const aliases = catalogAliasesFor(entry.id);
+            expect(aliases).toEqual(expect.arrayContaining(entry.searchAliasesEn.map((a) => a.toLowerCase())));
+            expect(aliases).toEqual(expect.arrayContaining(entry.searchAliasesSi.map((a) => a.toLowerCase())));
+            expect(resolve(en, `${entry.i18nKey}.name`).length).toBeGreaterThan(0);
+            expect(resolve(si, `${entry.i18nKey}.expression.main`).length).toBeGreaterThan(0);
+        }
+    });
+});
+
 describe("Rule engine (UT-YD-080..090)", () => {
     test("UT-YD-080: only active catalog entries evaluated", () => {
         const chart = facts(saturnMarsBoth({ aspects: [aspect(3, 0, 0)] }, { aspects: [aspect(7, 0, 0)] }));
         const engine = computeYogaDoshas(chart);
         // With ascendant Aries, the 9th lord is Jupiter (not in this fixture) — the yoga is absent
         // but still evaluated and stored (fail-closed, US-YD-005 Edge).
-        expect(engine.yogas.map((y) => y.id)).toEqual(["dharmaKarmadhipati"]);
+        expect(engine.yogas.map((y) => y.id)).toEqual([
+            "dharmaKarmadhipati",
+            "ruchaka",
+            "bhadra",
+            "hamsa",
+            "malavya",
+            "sasha",
+        ]);
         expect(engine.yogas[0].isPresent).toBe(false);
         expect(engine.doshas.map((d) => d.id)).toEqual(["shaniMangala", "agniMarutha", "manglik"]);
         // Default both-in-house-1 facts are a same-sign same-house conjunction → first two present.
@@ -1179,7 +1417,14 @@ describe("Legacy & manual resolution (UT-YD-150..155)", () => {
         });
         const engine = computeYogaDoshas(manual);
         // Ascendant Aries → 9th lord Jupiter absent from this manual fixture → yoga absent.
-        expect(engine.yogas.map((y) => y.id)).toEqual(["dharmaKarmadhipati"]);
+        expect(engine.yogas.map((y) => y.id)).toEqual([
+            "dharmaKarmadhipati",
+            "ruchaka",
+            "bhadra",
+            "hamsa",
+            "malavya",
+            "sasha",
+        ]);
         expect(engine.yogas[0].isPresent).toBe(false);
         expect(engine.doshas[0].isPresent).toBe(true);
         expect(manual.source).toBe("manual");
@@ -1226,7 +1471,14 @@ describe("Legacy & manual resolution (UT-YD-150..155)", () => {
             yogas: ["shaniMangala"],
         };
         const resolved = resolveYogas(legacy);
-        expect(resolved?.map((y) => y.id)).toEqual(["dharmaKarmadhipati"]);
+        expect(resolved?.map((y) => y.id)).toEqual([
+            "dharmaKarmadhipati",
+            "ruchaka",
+            "bhadra",
+            "hamsa",
+            "malavya",
+            "sasha",
+        ]);
         expect(resolved?.[0].isPresent).toBe(false);
         // Corrupt stored entry → warn + derive (never crash).
         const corrupt = {
@@ -1235,7 +1487,14 @@ describe("Legacy & manual resolution (UT-YD-150..155)", () => {
             ascendant: { sign: 1 },
             planets: [planetDoc(7, 7, 7), planetDoc(3, 7, 7)],
         };
-        expect(resolveYogas(corrupt)?.map((y) => y.id)).toEqual(["dharmaKarmadhipati"]);
+        expect(resolveYogas(corrupt)?.map((y) => y.id)).toEqual([
+            "dharmaKarmadhipati",
+            "ruchaka",
+            "bhadra",
+            "hamsa",
+            "malavya",
+            "sasha",
+        ]);
         expect(resolveYogas(corrupt)?.[0].isPresent).toBe(false);
         // Nothing derivable → undefined.
         expect(resolveYogas(undefined)).toBeUndefined();
@@ -1348,7 +1607,14 @@ describe("Legacy & manual resolution (UT-YD-150..155)", () => {
         expect(factsBuilt.planets[0].aspects).toEqual([]);
         const engine = computeYogaDoshas(factsBuilt);
         // Ascendant Aries → 9th lord Jupiter absent → yoga absent (fail-closed).
-        expect(engine.yogas.map((y) => y.id)).toEqual(["dharmaKarmadhipati"]);
+        expect(engine.yogas.map((y) => y.id)).toEqual([
+            "dharmaKarmadhipati",
+            "ruchaka",
+            "bhadra",
+            "hamsa",
+            "malavya",
+            "sasha",
+        ]);
         expect(engine.yogas[0].isPresent).toBe(false);
         expect(engine.doshas[0].isPresent).toBe(false);
         expect(engine.doshas[0].mitigation).toEqual([]);
@@ -1363,7 +1629,14 @@ describe("Legacy & manual resolution (UT-YD-150..155)", () => {
             ],
         };
         const combined = resolveYogaDoshas(doc);
-        expect(combined?.yogas?.map((y) => y.id)).toEqual(["dharmaKarmadhipati"]);
+        expect(combined?.yogas?.map((y) => y.id)).toEqual([
+            "dharmaKarmadhipati",
+            "ruchaka",
+            "bhadra",
+            "hamsa",
+            "malavya",
+            "sasha",
+        ]);
         expect(combined?.yogas?.[0]?.isPresent).toBe(false);
         expect(combined?.doshas?.[0]?.isPresent).toBe(true);
         expect(combined?.doshas?.[0]?.kind).toBe("dosha");

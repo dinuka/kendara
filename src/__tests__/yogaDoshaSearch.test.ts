@@ -13,10 +13,10 @@ import { Horoscope } from "@/models/Horoscope";
 
 import { PlanetaryStrength } from "@/lib/astrologyEnums";
 import { calculateHoroscope } from "@/lib/calculation";
-import { buildChartFacts, computeYogaDoshas, YOGA_DOSHA_VERSION } from "@/lib/yogaDosha/ruleEngine";
 import { getTextForBothLanguages } from "@/lib/search/textContent";
-import { vocabularySkeleton, YOGA_DOSHA_NAME_WORDS } from "@/lib/search/vocabulary";
+import { FAMILY_NAME_WORDS, YOGA_DOSHA_NAME_WORDS, vocabularySkeleton } from "@/lib/search/vocabulary";
 import { DOSHA_CATALOG, YOGA_CATALOG } from "@/lib/yogaDosha/catalog";
+import { YOGA_DOSHA_VERSION, buildChartFacts, computeYogaDoshas } from "@/lib/yogaDosha/ruleEngine";
 
 jest.mock("@/models/Horoscope", () => ({
     Horoscope: { findById: jest.fn(), find: jest.fn() },
@@ -98,8 +98,30 @@ describe("search: Yoga/Dosha catalog names (SR-YD-800..805)", () => {
 
     /** Fact-planets for a present Shani-Mangala conjunction (Saturn + Mars, house 7 / sign 7). */
     const saturnMarsConjunctPlanets = () => [
-        { name: 7, sign: 7, house: 7, degree: 15, absoluteDegree: 195, strength: PlanetaryStrength.SAMA, navamsaSign: 7, navamsaStrength: PlanetaryStrength.SAMA, nakshatra: 14, aspects: [{ planetName: 3, aspectType: 0, degreeGap: 0 }] },
-        { name: 3, sign: 7, house: 7, degree: 15, absoluteDegree: 195, strength: PlanetaryStrength.SAMA, navamsaSign: 7, navamsaStrength: PlanetaryStrength.SAMA, nakshatra: 14, aspects: [{ planetName: 7, aspectType: 0, degreeGap: 0 }] },
+        {
+            name: 7,
+            sign: 7,
+            house: 7,
+            degree: 15,
+            absoluteDegree: 195,
+            strength: PlanetaryStrength.SAMA,
+            navamsaSign: 7,
+            navamsaStrength: PlanetaryStrength.SAMA,
+            nakshatra: 14,
+            aspects: [{ planetName: 3, aspectType: 0, degreeGap: 0 }],
+        },
+        {
+            name: 3,
+            sign: 7,
+            house: 7,
+            degree: 15,
+            absoluteDegree: 195,
+            strength: PlanetaryStrength.SAMA,
+            navamsaSign: 7,
+            navamsaStrength: PlanetaryStrength.SAMA,
+            nakshatra: 14,
+            aspects: [{ planetName: 7, aspectType: 0, degreeGap: 0 }],
+        },
     ];
 
     /** Engine result for a present Shani-Mangala conjunction fixture (house 7), stored shape. */
@@ -111,7 +133,14 @@ describe("search: Yoga/Dosha catalog names (SR-YD-800..805)", () => {
                 planets: saturnMarsConjunctPlanets(),
             }),
         );
-        expect(result.yogas.map((y) => y.id)).toEqual(["dharmaKarmadhipati"]);
+        expect(result.yogas.map((y) => y.id)).toEqual([
+            "dharmaKarmadhipati",
+            "ruchaka",
+            "bhadra",
+            "hamsa",
+            "malavya",
+            "sasha",
+        ]);
         expect(result.yogas[0].isPresent).toBe(false);
         expect(result.doshas[0].isPresent).toBe(true);
         expect(result.doshas[0].id).toBe("shaniMangala");
@@ -141,6 +170,58 @@ describe("search: Yoga/Dosha catalog names (SR-YD-800..805)", () => {
             finalAssessment: { severity: 2, expressionKeys: ["expression.partnershipStress"] },
         },
     ];
+
+    test("SR-YD-805: group term 'පංච මහා පුරුෂ යෝග' resolves a yoga_family OR across all five PMP ids", async () => {
+        // The Shani-Mangala fixture carries a present Sasha (Saturn exalted, 7th kendra) but NOT
+        // Ruchaka/Bhadra/Hamsa/Malavya. A family match must fire on Sasha alone, yet the query must
+        // not AND all five ids (which no chart carries at once).
+        const fixture = presentShaniMangalaFixture();
+        expect(fixture.yogas.find((y) => y.id === "sasha")?.isPresent).toBe(true);
+        expect(fixture.yogas.find((y) => y.id === "ruchaka")?.isPresent).toBe(false);
+
+        withCalculated({ ascendant: { sign: 4, degree: 4.76 }, ...fixture });
+        const response = await search("පංච මහා පුරුෂ යෝග");
+        const body = await response.json();
+        const conditions = body.queryUnderstanding.exactMatch.flat(Infinity) as Array<Record<string, unknown>>;
+
+        expect(body.results).toHaveLength(1);
+        expect(conditions).toContainEqual({ type: "yoga_family", familyId: "panchaMahaPurusha" });
+        // The group term must not expand into five ANDed yoga_id conditions.
+        expect(conditions.filter((c) => c.type === "yoga_id")).not.toContainEqual({
+            type: "yoga_id",
+            yogaId: "ruchaka",
+        });
+    });
+
+    test("SR-YD-805b: EN group term 'Pancha Maha Purusha Yoga' matches; absent family yields no results", async () => {
+        const fixture = presentShaniMangalaFixture();
+        withCalculated({ ascendant: { sign: 4, degree: 4.76 }, ...fixture });
+        const matchResponse = await search("Pancha Mahapurusha Yoga");
+        const matchBody = await matchResponse.json();
+        expect(matchBody.results).toHaveLength(1);
+        expect(matchBody.queryUnderstanding.exactMatch.flat(Infinity)).toContainEqual({
+            type: "yoga_family",
+            familyId: "panchaMahaPurusha",
+        });
+
+        // A chart with none of the five PMP yogas present must not match the family term.
+        const absent = {
+            ...fixture,
+            yogas: fixture.yogas.map((y) => ({ ...y, isPresent: false })),
+        };
+        withCalculated({ ascendant: { sign: 4, degree: 4.76 }, ...absent });
+        const absentResponse = await search("පංච මහා පුරුෂ යෝගය");
+        expect((await absentResponse.json()).results).toHaveLength(0);
+    });
+
+    test("UT-YD-004e: family group terms live in the shared search vocabulary (suggestions resolve)", async () => {
+        expect(Object.keys(FAMILY_NAME_WORDS).length).toBeGreaterThan(0);
+        for (const [word, familyId] of Object.entries(FAMILY_NAME_WORDS)) {
+            expect(word.length).toBeGreaterThan(0);
+            expect(["panchaMahaPurusha"]).toContain(familyId);
+            expect(FAMILY_NAME_WORDS[vocabularySkeleton(word)]).toBe(familyId);
+        }
+    });
 
     test("SR-YD-800: catalog name 'ශනි කුජ' + trigger word resolves a dosha_id exact match", async () => {
         const fixture = presentShaniMangalaFixture();
@@ -213,14 +294,16 @@ describe("search: Yoga/Dosha catalog names (SR-YD-800..805)", () => {
         const fixture = presentShaniMangalaFixture();
         const docs = [makeHoroscope({ _id: "a", id: "a", owner: { id: "other-1" }, isPublic: false })];
         (Horoscope.find as jest.Mock).mockImplementation((filter: unknown) => ({
-            lean: jest.fn().mockResolvedValue(
-                docs.filter((h) =>
-                    (filter as { $or: Array<Record<string, boolean | string>> }).$or.some(
-                        (c) =>
-                            (c["owner.id"] === "owner-1" && h.owner.id === "owner-1") || (c.isPublic && h.isPublic),
+            lean: jest
+                .fn()
+                .mockResolvedValue(
+                    docs.filter((h) =>
+                        (filter as { $or: Array<Record<string, boolean | string>> }).$or.some(
+                            (c) =>
+                                (c["owner.id"] === "owner-1" && h.owner.id === "owner-1") || (c.isPublic && h.isPublic),
+                        ),
                     ),
                 ),
-            ),
         }));
         (CalculatedDetails.findOne as jest.Mock).mockReturnValue({
             lean: jest.fn().mockResolvedValue({ ascendant: { sign: 4, degree: 4.76 }, ...fixture }),
@@ -265,7 +348,11 @@ describe("search: Yoga/Dosha catalog names (SR-YD-800..805)", () => {
         // A legacy doc WITHOUT the formation must stay excluded (no false positives).
         withCalculated({
             ascendant: { sign: 1 },
-            planets: saturnMarsConjunctPlanets().map((p, i) => ({ ...p, sign: i === 0 ? 10 : 6, house: i === 0 ? 10 : 6 })),
+            planets: saturnMarsConjunctPlanets().map((p, i) => ({
+                ...p,
+                sign: i === 0 ? 10 : 6,
+                house: i === 0 ? 10 : 6,
+            })),
         });
         const absentResponse = await search("shani mangala");
         expect((await absentResponse.json()).results).toHaveLength(0);
@@ -332,8 +419,30 @@ describe("search: Yoga/Dosha catalog names (SR-YD-800..805)", () => {
                 planets: [
                     // Sign exchange (Saturn in Aries / Mars in Capricorn) on a 2/12 house placement —
                     // NOT a 4-10 or 7th pair, so Shani Mangala stays false while AM-04/05/08 fire.
-                    { name: 7, sign: 1, house: 1, degree: 15, absoluteDegree: 15, strength: PlanetaryStrength.SAMA, navamsaSign: 1, navamsaStrength: PlanetaryStrength.SAMA, nakshatra: 5, aspects: [] },
-                    { name: 3, sign: 10, house: 3, degree: 15, absoluteDegree: 75, strength: PlanetaryStrength.SAMA, navamsaSign: 10, navamsaStrength: PlanetaryStrength.SAMA, nakshatra: 8, aspects: [] },
+                    {
+                        name: 7,
+                        sign: 1,
+                        house: 1,
+                        degree: 15,
+                        absoluteDegree: 15,
+                        strength: PlanetaryStrength.SAMA,
+                        navamsaSign: 1,
+                        navamsaStrength: PlanetaryStrength.SAMA,
+                        nakshatra: 5,
+                        aspects: [],
+                    },
+                    {
+                        name: 3,
+                        sign: 10,
+                        house: 3,
+                        degree: 15,
+                        absoluteDegree: 75,
+                        strength: PlanetaryStrength.SAMA,
+                        navamsaSign: 10,
+                        navamsaStrength: PlanetaryStrength.SAMA,
+                        nakshatra: 8,
+                        aspects: [],
+                    },
                 ],
             }),
         );

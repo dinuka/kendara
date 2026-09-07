@@ -38,8 +38,10 @@ import {
  *  v7: Dharma Karmadhipati Yoga activated as the first yoga in the catalog (docs/
  *  dharma-karmadipathi-yogaya.md) — stored v6 yoga lists lack the entry, so they recompute.
  *  v8: DK-02 no longer treats a 0° conjunction record as a "mutual aspect" (yuti is not drishti,
- *  horoscope 6a68e63506d2d7cd52c6fa9d) — stored v7 yogas carry the bogus dk02 reason, recompute. */
-export const YOGA_DOSHA_VERSION = 8;
+ *  horoscope 6a68e63506d2d7cd52c6fa9d) — stored v7 yogas carry the bogus dk02 reason, recompute.
+ *  v9: Pancha Maha Purusha Yoga (docs/pancha-maha-pursha-yoga.md) — five new active yogas
+ *  (ruchaka/bhadra/hamsa/malavya/sasha) — stored v8 yoga lists lack these entries, so they recompute. */
+export const YOGA_DOSHA_VERSION = 9;
 
 export type PlanetLike = Pick<
     Planet,
