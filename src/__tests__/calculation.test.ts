@@ -391,8 +391,12 @@ describe("calculateHoroscope Yoga/Dosha tags (IT-YD-200..202)", () => {
         expect(agniMarutha?.isPresent).toBe(true);
         expect(agniMarutha?.formation.rulesTriggered).toContain("agniMarutha.am01");
 
-        // Manglik is domain-pending (never evaluated) so it is not present in the dosha list.
-        expect(result.doshas.doshas.some((d) => d.id === "manglik")).toBe(false);
+        // Kuja Dosha (docs/kuja-doshaya.md) — Mars in house 1 = 1st from Lagna (mk01) and, with the
+        // Moon in house 10, 4th from Moon (mk02); from Venus (house 9) it is 5th (not dosha).
+        const manglik = result.doshas.doshas.find((d) => d.id === "manglik");
+        expect(manglik).toBeDefined();
+        expect(manglik?.isPresent).toBe(true);
+        expect(manglik?.formation.rulesTriggered).toEqual(["manglik.mk01", "manglik.mk02"]);
 
         // The evaluations are plain JSON-serializable objects (Mongo Mixed round-trip).
         const persisted = JSON.parse(
@@ -402,7 +406,11 @@ describe("calculateHoroscope Yoga/Dosha tags (IT-YD-200..202)", () => {
         expect(persisted.yogas).toEqual([]);
         expect(persisted.doshas.doshas[0].id).toBe("shaniMangala");
         expect(persisted.doshas.doshas[0].formation.rulesTriggered).toContain("shaniMangala.sm01");
-        expect(persisted.doshas.doshas.map((d: { id: string }) => d.id)).toEqual(["shaniMangala", "agniMarutha"]);
+        expect(persisted.doshas.doshas.map((d: { id: string }) => d.id)).toEqual([
+            "shaniMangala",
+            "agniMarutha",
+            "manglik",
+        ]);
     });
 
     test("IT-YD-201: default chart output matches the era-stamped golden fixture (generator round-trip)", () => {

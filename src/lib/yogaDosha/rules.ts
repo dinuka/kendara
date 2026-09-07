@@ -11,6 +11,12 @@
  * is the BROAD Saturn–Mars relationship — AM-1..AM-8 (conjunction, one-directional aspects, sign
  * ownership, nakshatra ownership, parivartana). Rules are computed independently for each dosha;
  * every SM result is naturally covered on the AM side, but AM must never promote itself into SM.
+ *
+ * Kuja Dosha (docs/kuja-doshaya.md): Mars placement in houses [1, 2, 4, 7, 8, 12] evaluated
+ * independently from three reference points — Lagna (mk01), Moon (mk02), Venus (mk03). Each
+ * reference is tested and cancellation-checked independently. houseImpact records the
+ * reference-relative dosha house (same value as params.house), keeping context/themes inside
+ * the confirmed dosha-house set [1, 2, 4, 7, 8, 12].
  */
 import {
     areConjunct,
@@ -34,8 +40,13 @@ import {
 
 export const SHANI_MANGALA_PLANETS = [7, 3] as const; // Saturn, Mars
 export const AGNI_MARUTHA_PLANETS = [7, 3] as const; // Saturn, Mars
+export const KUJA_DOSHA_PLANETS = [3] as const; // Mars
 
-const MARRIAGE_HOUSES = [1, 4, 7, 8, 12];
+/**
+ * Houses that cause Kuja Dosha when Mars occupies them relative to a reference point
+ * (docs/kuja-doshaya.md §3): [1, 2, 4, 7, 8, 12]. Explicitly NOT house 3/5/6/9/10/11.
+ */
+export const KUJA_DOSHA_HOUSES = [1, 2, 4, 7, 8, 12];
 
 function absent(rule: RuleId): RuleEvaluation {
     return { rule, triggered: false, strength: 4, reasonKey: "" };
@@ -49,6 +60,14 @@ function fired(
     houseImpact?: number[],
 ): RuleEvaluation {
     return { rule, triggered: true, strength, reasonKey, params, houseImpact };
+}
+
+/** Whole-sign house of Mars counted from a reference sign (docs/kuja-doshaya.md §2).
+ *  House 1 = same sign as the reference. referenceSign/marsSign are ZodiacSign enums (1..12). */
+function marsHouseFromReference(marsHouse: number, referenceSign: number, ascendantSign: number): number {
+    const referenceHouse = referenceSign - ascendantSign + 1;
+    const normalizedReferenceHouse = ((referenceHouse - 1) % 12 + 12) % 12 + 1;
+    return ((marsHouse - normalizedReferenceHouse + 12) % 12) + 1;
 }
 
 function evaluateShaniMangalaRule(rule: ShaniMangalaRuleId, facts: ChartFacts): RuleEvaluation {
@@ -139,14 +158,43 @@ function evaluateAgniMaruthaRule(rule: AgniMaruthaRuleId, facts: ChartFacts): Ru
     }
 }
 
+/**
+ * Kuja Dosha — evaluated independently per reference point (docs/kuja-doshaya.md §4):
+ *  - MK-01 from Lagna
+ *  - MK-02 from Moon (Chandra)
+ *  - MK-03 from Venus (Shukra)
+ * Each reference independently identifies and is independently cancellation-tested.
+ */
 function evaluateManglikRule(rule: ManglikRuleId, facts: ChartFacts): RuleEvaluation {
+    const mars = planetFact(facts, KUJA_DOSHA_PLANETS[0]);
+    if (!mars) return absent(rule);
+
     switch (rule) {
+        // MK-01: Mars in a Kuja Dosha house from the Lagna / ascendant.
         case "manglik.mk01": {
-            const mars = planetFact(facts, 3);
-            if (!mars) return absent(rule);
-            if (!MARRIAGE_HOUSES.includes(mars.house)) return absent(rule);
-            return fired(rule, 2, "rule.mk01", { house: mars.house }, [mars.house]);
+            const marsHouse = marsHouseFromReference(mars.house, facts.ascendantSign, facts.ascendantSign);
+            if (!KUJA_DOSHA_HOUSES.includes(marsHouse)) return absent(rule);
+            return fired(rule, 2, "rule.mk01", { house: marsHouse, reference: "Lagna" }, [marsHouse]);
         }
+
+        // MK-02: Mars in a Kuja Dosha house from the Moon (Chandra).
+        case "manglik.mk02": {
+            const moon = planetFact(facts, 2);
+            if (!moon) return absent(rule);
+            const marsHouse = marsHouseFromReference(mars.house, moon.sign, facts.ascendantSign);
+            if (!KUJA_DOSHA_HOUSES.includes(marsHouse)) return absent(rule);
+            return fired(rule, 2, "rule.mk02", { house: marsHouse, reference: "Moon" }, [marsHouse]);
+        }
+
+        // MK-03: Mars in a Kuja Dosha house from Venus (Shukra).
+        case "manglik.mk03": {
+            const venus = planetFact(facts, 6);
+            if (!venus) return absent(rule);
+            const marsHouse = marsHouseFromReference(mars.house, venus.sign, facts.ascendantSign);
+            if (!KUJA_DOSHA_HOUSES.includes(marsHouse)) return absent(rule);
+            return fired(rule, 2, "rule.mk03", { house: marsHouse, reference: "Venus" }, [marsHouse]);
+        }
+
         default:
             return absent(rule);
     }

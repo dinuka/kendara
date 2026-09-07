@@ -37,7 +37,7 @@ export type AgniMaruthaRuleId =
     | "agniMarutha.am06"
     | "agniMarutha.am07"
     | "agniMarutha.am08";
-export type ManglikRuleId = "manglik.mk01";
+export type ManglikRuleId = "manglik.mk01" | "manglik.mk02" | "manglik.mk03";
 export type YogaRuleId = never;
 export type DoshaRuleId = ShaniMangalaRuleId | AgniMaruthaRuleId | ManglikRuleId;
 

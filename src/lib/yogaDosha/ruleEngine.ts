@@ -34,8 +34,13 @@ import {
 
 /** Bumped only when the persisted calculatedDetails evaluation shape changes
  *  (IT-YD-200 asserts === current). v3: Agni Marutha dosha added + Shani Mangala narrowed to its
- *  3 positional rules — stored v2 docs no longer match the current engine, so they recompute. */
-export const YOGA_DOSHA_VERSION = 4;
+ *  3 positional rules — stored v2 docs no longer match the current engine, so they recompute.
+ *  v5: Kuja Dosha (manglik) activated with per-reference rules (Lagna/Moon/Venus) — stored v4
+ *  dosha lists lack the manglik entry, so they recompute.
+ *  v6: manglik context.houseImpact/themes now record the reference-relative dosha house (was
+ *  absolute house — produced out-of-set theme keys like house9, e.g. a chart with Mars absolutely
+ *  in house 9 but 4th from the Moon) — stored v5 manglik evaluations are corrected on recompute. */
+export const YOGA_DOSHA_VERSION = 6;
 
 export type PlanetLike = Pick<
     Planet,

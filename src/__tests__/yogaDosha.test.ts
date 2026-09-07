@@ -52,7 +52,7 @@ import {
     ChartFacts,
     PlanetFact,
 } from "@/lib/yogaDosha/types";
-import { evaluateRule as evaluateRuleDirect } from "@/lib/yogaDosha/rules";
+import { evaluateRule as evaluateRuleDirect, KUJA_DOSHA_HOUSES } from "@/lib/yogaDosha/rules";
 
 jest.mock("@/lib/yogaDosha/catalog", () => {
     const actual = jest.requireActual("@/lib/yogaDosha/catalog") as Record<string, unknown>;
@@ -131,7 +131,7 @@ afterEach(() => {
 });
 
 describe("Catalog & enums (UT-YD-001..008)", () => {
-    test("UT-YD-001: catalog is registry-driven — both ACTIVE forms live in the dosha catalog", () => {
+    test("UT-YD-001: catalog is registry-driven — all ACTIVE doshas live in the dosha catalog", () => {
         expect(YOGA_CATALOG).toEqual([]);
         expect(DOSHA_CATALOG.map((e) => e.id)).toEqual(["shaniMangala", "agniMarutha", "manglik"]);
         expect(DOSHA_CATALOG[0].kind).toBe("dosha");
@@ -143,7 +143,7 @@ describe("Catalog & enums (UT-YD-001..008)", () => {
         expect(DOSHA_CATALOG[1].keywordEn).toBe("Agni Marutha Dosha");
         expect(DOSHA_CATALOG[1].keywordSi).toBe("අග්නි මාරුත දෝෂය");
         expect(DOSHA_CATALOG[2].kind).toBe("dosha");
-        expect(DOSHA_CATALOG[2].status).toBe("PENDING_DOMAIN");
+        expect(DOSHA_CATALOG[2].status).toBe("ACTIVE");
         // Every row carries the architect's registry columns.
         for (const entry of [...YOGA_CATALOG, ...DOSHA_CATALOG]) {
             expect(typeof entry.id).toBe("string");
@@ -187,6 +187,8 @@ describe("Catalog & enums (UT-YD-001..008)", () => {
         expect(DOSHA_CATALOG[1].mitigations).toEqual([]);
         expect(DOSHA_CATALOG[2].rules).toEqual([
             { rule: "manglik.mk01", strength: 2, reasonKey: "rule.mk01" },
+            { rule: "manglik.mk02", strength: 2, reasonKey: "rule.mk02" },
+            { rule: "manglik.mk03", strength: 2, reasonKey: "rule.mk03" },
         ]);
         expect(DOSHA_CATALOG[2].planets).toEqual([3]);
         expect(DOSHA_CATALOG[2].expressionKeys).toEqual(["expression.partnershipStress"]);
@@ -230,7 +232,7 @@ describe("Catalog & enums (UT-YD-001..008)", () => {
                 for (let house = 1; house <= 12; house++) keys.push(`${entry.i18nKey}.theme.house${house}`);
                 keys.push(`${entry.i18nKey}.dashaNote`);
             } else {
-                for (const house of [1, 4, 7, 8, 12]) keys.push(`${entry.i18nKey}.theme.house${house}`);
+                for (const house of [1, 2, 4, 7, 8, 12]) keys.push(`${entry.i18nKey}.theme.house${house}`);
             }
             for (const mitigation of "mitigations" in entry ? entry.mitigations : []) {
                 keys.push(`${entry.i18nKey}.mitigation.${mitigation.split(".").pop()}`);
@@ -253,7 +255,7 @@ describe("Catalog & enums (UT-YD-001..008)", () => {
             expect(typeof en.dosha.shaniMangala.theme[`house${house}`]).toBe("string");
             expect(typeof en.dosha.agniMarutha.theme[`house${house}`]).toBe("string");
         }
-        for (const house of [1, 4, 7, 8, 12]) {
+        for (const house of [1, 2, 4, 7, 8, 12]) {
             expect(typeof en.dosha.manglik.theme[`house${house}`]).toBe("string");
         }
         expect(en.dosha.shaniMangala.name).toBe("Shani Mangala Dosha");
@@ -276,8 +278,9 @@ describe("Catalog & enums (UT-YD-001..008)", () => {
         const extended = computeYogaDoshas(chart);
         expect(extended.doshas[0]).toEqual(baseline.doshas[0]);
         expect(extended.doshas[1]).toEqual(baseline.doshas[1]);
-        expect(extended.doshas[2].id).toBe("pendingExample");
-        expect(extended.doshas[2].isPresent).toBe(false);
+        expect(extended.doshas[2]).toEqual(baseline.doshas[2]);
+        expect(extended.doshas[3].id).toBe("pendingExample");
+        expect(extended.doshas[3].isPresent).toBe(false);
     });
 
     test("UT-YD-008: enum values and labels match the data-model §YogaStrength/§CancellationStatus", () => {
@@ -632,40 +635,116 @@ describe("Shani–Mangala + Agni–Marutha rules (UT-YD-040..047, AM-0x)", () =>
     });
 });
 
-describe("Dosha candidates (UT-YD-070)", () => {
-    test("UT-YD-070: manglik stays pending-domain — only ACTIVE doshas are evaluated", () => {
-        // Mars in the marriage houses satisfies MK-01, but manglik is pending-domain so it is
-        // filtered out (activeDoshaEntries keeps only ACTIVE rows). Shani-Mangala (ACTIVE) is
-        // evaluated and stays absent for these charts (no SM rule satisfied). House 8 is excluded:
-        // with Saturn in house 2 it is a gap-6 pair and now fires SM-02 positionally.
-        for (const house of [1, 4, 7, 12]) {
-            const chart = facts([
-                pf(7, { house: 2, sign: 5, nakshatra: 1 }),
-                pf(3, { house, sign: 5, nakshatra: 2 }),
-                pf(5, { house: 9, sign: 9, nakshatra: 3, aspects: [aspect(3, 120, 5)] }),
-            ]);
-            const engine = computeYogaDoshas(chart);
-            expect(engine.doshas.map((d) => d.id)).toEqual(["shaniMangala", "agniMarutha"]);
-            // Shani-Mangala needs one of its own positional rules (conjunction/7th/4-10) — Saturn
-            // house 2 vs the marriage-house Mars satisfies none of them.
-            expect(engine.doshas[0].isPresent).toBe(false);
-            // Agni Marutha may or may not fire its broad rules for the same pair, but the dosha id
-            // is always present in the evaluated list.
-            expect(engine.doshas[1].id).toBe("agniMarutha");
-            expect(engine.doshas.some((d) => d.id === "manglik")).toBe(false);
-        }
-        // If status ever flips to ACTIVE the rule is wired: MK-01 recognises the five houses.
-        const chart = facts([
-            pf(7, { house: 2, sign: 5, nakshatra: 1 }),
-            pf(3, { house: 7, sign: 5, nakshatra: 2 }),
-            pf(5, { house: 9, sign: 9, nakshatra: 3, aspects: [aspect(3, 120, 5)] }),
+describe("Kuja Dosha (UT-YD-070)", () => {
+    test("UT-YD-070: Kuja dosha evaluated independently from Lagna, Moon and Venus (docs/kuja-doshaya.md)", () => {
+        // facts() fixes ascendantSign 1, so a planet's whole-sign house equals its sign here.
+        // MK-01 (from Lagna): Mars 7th from Lagna → dosha; Moon 11th → Mars 9th from Moon (not);
+        // Venus 3rd → Mars 5th from Venus (not).
+        const fromLagna = facts([
+            pf(2, { sign: 11, house: 11 }),
+            pf(6, { sign: 3, house: 3 }),
+            pf(3, { sign: 7, house: 7 }),
         ]);
-        const mk = evaluateRuleDirect("manglik.mk01", chart);
-        expect(mk.triggered).toBe(true);
-        expect(mk.strength).toBe(2);
-        expect(mk.params).toEqual({ house: 7 });
-        const mkAbsent = facts([pf(7, { house: 2 }), pf(3, { house: 2 })]);
-        expect(evaluateRuleDirect("manglik.mk01", mkAbsent).triggered).toBe(false);
+        const lagnaEngine = computeYogaDoshas(fromLagna);
+        const lagnaManglik = lagnaEngine.doshas.find((d) => d.id === "manglik");
+        expect(lagnaManglik?.isPresent).toBe(true);
+        expect(lagnaManglik?.formation.rulesTriggered).toEqual(["manglik.mk01"]);
+        expect(lagnaManglik?.formation.reasons[0].params).toEqual({ reference: "Lagna", house: 7 });
+
+        // MK-02 (from Moon): Mars 4th from Moon → dosha; from Lagna Mars is 6th (not);
+        // Venus 1st → Mars 6th from Venus (not).
+        const fromMoon = facts([
+            pf(2, { sign: 3, house: 3 }),
+            pf(6, { sign: 1, house: 1 }),
+            pf(3, { sign: 6, house: 6 }),
+        ]);
+        const moonEngine = computeYogaDoshas(fromMoon);
+        const moonManglik = moonEngine.doshas.find((d) => d.id === "manglik");
+        expect(moonManglik?.isPresent).toBe(true);
+        expect(moonManglik?.formation.rulesTriggered).toEqual(["manglik.mk02"]);
+        expect(moonManglik?.formation.reasons[0].params).toEqual({ reference: "Moon", house: 4 });
+
+        // MK-03 (from Venus): Mars 4th from Venus → dosha; from Lagna Mars is 3rd (not);
+        // Moon 6th → Mars 10th from Moon (not).
+        const fromVenus = facts([
+            pf(2, { sign: 6, house: 6 }),
+            pf(6, { sign: 12, house: 12 }),
+            pf(3, { sign: 3, house: 3 }),
+        ]);
+        const venusEngine = computeYogaDoshas(fromVenus);
+        const venusManglik = venusEngine.doshas.find((d) => d.id === "manglik");
+        expect(venusManglik?.isPresent).toBe(true);
+        expect(venusManglik?.formation.rulesTriggered).toEqual(["manglik.mk03"]);
+        expect(venusManglik?.formation.reasons[0].params).toEqual({ reference: "Venus", house: 4 });
+
+        // Multiple reasons must be reported independently, never collapsed (docs §5).
+        const multiple = facts([
+            pf(2, { sign: 3, house: 3 }),
+            pf(6, { sign: 12, house: 12 }),
+            pf(3, { sign: 7, house: 7 }),
+        ]);
+        const multiEngine = computeYogaDoshas(multiple);
+        const multiManglik = multiEngine.doshas.find((d) => d.id === "manglik");
+        expect(multiManglik?.isPresent).toBe(true);
+        expect(multiManglik?.formation.rulesTriggered).toEqual(["manglik.mk01", "manglik.mk03"]);
+
+        // Safe placements (3/5/6/9/10/11 from every reference) never fire the dosha.
+        const safe = facts([
+            pf(2, { sign: 8, house: 8 }),
+            pf(6, { sign: 4, house: 4 }),
+            pf(3, { sign: 6, house: 6 }),
+        ]);
+        const safeEngine = computeYogaDoshas(safe);
+        const safeManglik = safeEngine.doshas.find((d) => d.id === "manglik");
+        expect(safeManglik?.isPresent).toBe(false);
+        expect(safeManglik?.formation.rulesTriggered).toEqual([]);
+    });
+
+    test("UT-YD-071: MK rules recognise every house in KUJA_DOSHA_HOUSES [1,2,4,7,8,12]", () => {
+        for (const house of [1, 2, 4, 7, 8, 12]) {
+            const mk = evaluateRuleDirect("manglik.mk01", facts([pf(3, { sign: house, house })]));
+            expect(mk.triggered).toBe(true);
+            expect(mk.params).toEqual({ reference: "Lagna", house });
+            expect(mk.houseImpact).toEqual([house]);
+        }
+        for (const house of [3, 5, 6, 9, 10, 11]) {
+            const mk = evaluateRuleDirect("manglik.mk01", facts([pf(3, { sign: house, house })]));
+            expect(mk.triggered).toBe(false);
+        }
+        // A missing reference (no Moon / Venus facts) fails that rule closed.
+        expect(evaluateRuleDirect("manglik.mk02", facts([pf(3, { sign: 7, house: 7 })])).triggered).toBe(false);
+        expect(evaluateRuleDirect("manglik.mk03", facts([pf(3, { sign: 7, house: 7 })])).triggered).toBe(false);
+    });
+
+    test("UT-YD-072: Kuja dosha never depends on Saturn — placement alone drives it (docs §9)", () => {
+        const chart = facts([
+            pf(7, { sign: 9, house: 9 }), // Saturn anywhere
+            pf(2, { sign: 3, house: 3 }),
+            pf(6, { sign: 12, house: 12 }),
+            pf(3, { sign: 7, house: 7 }), // Mars 7th from Lagna
+        ]);
+        const manglik = computeYogaDoshas(chart).doshas.find((d) => d.id === "manglik");
+        expect(manglik?.isPresent).toBe(true);
+        expect(manglik?.formation.rulesTriggered).toEqual(["manglik.mk01", "manglik.mk03"]);
+        expect(manglik?.formation.reasons.every((r) => r.params)).toBe(true);
+    });
+
+    test("UT-YD-073: manglik houseImpact/themes use the reference-relative house, never the absolute one", () => {
+        // Mars absolutely in house 9 (a NON-dosha house) — but 4th from Moon (mk02) and 7th from
+        // Venus (mk03). Regresses the absolute-house bug that produced theme.house9 → MISSING_MESSAGE.
+        const chart = facts([
+            pf(2, { sign: 6, house: 6 }),
+            pf(6, { sign: 3, house: 3 }),
+            pf(3, { sign: 9, house: 9 }),
+        ]);
+        const manglik = computeYogaDoshas(chart).doshas.find((d) => d.id === "manglik");
+        expect(manglik?.isPresent).toBe(true);
+        expect(manglik?.formation.rulesTriggered).toEqual(["manglik.mk02", "manglik.mk03"]);
+        const { houseImpact } = manglik!.context;
+        for (const house of houseImpact) expect(KUJA_DOSHA_HOUSES).toContain(house);
+        expect(houseImpact).toEqual([4, 7]);
+        const themeKeys = manglik!.interpretation.themes.map((t) => t.key);
+        expect(themeKeys).toEqual(["theme.house4", "theme.house7"]);
     });
 });
 
@@ -674,10 +753,13 @@ describe("Rule engine (UT-YD-080..090)", () => {
         const chart = facts(saturnMarsBoth({ aspects: [aspect(3, 0, 0)] }, { aspects: [aspect(7, 0, 0)] }));
         const engine = computeYogaDoshas(chart);
         expect(engine.yogas).toEqual([]);
-        expect(engine.doshas.map((d) => d.id)).toEqual(["shaniMangala", "agniMarutha"]);
-        // Default both-in-house-1 facts are a same-sign same-house conjunction → both present.
+        expect(engine.doshas.map((d) => d.id)).toEqual(["shaniMangala", "agniMarutha", "manglik"]);
+        // Default both-in-house-1 facts are a same-sign same-house conjunction → first two present.
+        // Mars in house 1 is also 1st from Lagna → Kuja dosha present (mk01).
         expect(engine.doshas[0].isPresent).toBe(true);
         expect(engine.doshas[1].isPresent).toBe(true);
+        expect(engine.doshas[2].isPresent).toBe(true);
+        expect(engine.doshas[2].formation.rulesTriggered).toEqual(["manglik.mk01"]);
     });
 
     test("UT-YD-081: structured output shape — never { yoga: true }", () => {
@@ -964,10 +1046,12 @@ describe("Legacy & manual resolution (UT-YD-150..155)", () => {
             pf(5, { house: 9, aspects: [aspect(3, 120, 5)] }),
         ]);
         const derived = computeYogaDoshas(chart).doshas;
-        // Only ACTIVE doshas are evaluated — manglik (pending) is absent; the ACTIVE shaniMangala
-        // is present:false here (Saturn house 2 vs Mars house 7 satisfies no SM rule).
-        expect(derived.map((d) => d.id)).toEqual(["shaniMangala", "agniMarutha"]);
+        // All three ACTIVE doshas are evaluated — Mars 7th from Lagna fires Kuja (mk01),
+        // no Moon/Venus facts so mk02/mk03 fail closed.
+        expect(derived.map((d) => d.id)).toEqual(["shaniMangala", "agniMarutha", "manglik"]);
         expect(derived[0].isPresent).toBe(false);
+        expect(derived[2].isPresent).toBe(true);
+        expect(derived[2].formation.rulesTriggered).toEqual(["manglik.mk01"]);
         // A stored, exactly-versioned manglik entry wins as-is (stored-first, no re-evaluation).
         const versioned = {
             yogaDoshaVersion: YOGA_DOSHA_VERSION,
@@ -998,8 +1082,9 @@ describe("Legacy & manual resolution (UT-YD-150..155)", () => {
             doshas: { doshas: [] },
         };
         const legacyResolved = resolveDoshas(legacy);
-        expect(legacyResolved?.map((d) => d.id)).toEqual(["shaniMangala", "agniMarutha"]);
+        expect(legacyResolved?.map((d) => d.id)).toEqual(["shaniMangala", "agniMarutha", "manglik"]);
         expect(legacyResolved?.[0].isPresent).toBe(false);
+        expect(legacyResolved?.[2].isPresent).toBe(true);
     });
 
     test("UT-YD-155: schema-invariant validator shared by engine outputs", () => {

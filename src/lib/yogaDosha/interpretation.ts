@@ -1,9 +1,9 @@
 /**
  * Yoga / Dosha — interpretation generation.
  * Produces theme keys (Result block groups by the house{n} prefix) and expression keys from the
- * rules a formation triggered. Theme meanings for houses other than the confirmed ones
- * (4/7/8/10 shaniMangala, 1/4/7/8/12 manglik) stay pending domain — their SI strings fall back
- * to English placeholders (BI-YD-703).
+ * rules a formation triggered. Theme meanings: 4/7/8/10 shaniMangala, 1/2/4/7/8/12 manglik
+ * (Kuja Dosha). Houses outside the confirmed set stay pending domain — their SI strings fall
+ * back to English placeholders (BI-YD-703).
  */
 import { RuleEvaluation, ThemeInfo } from "@/lib/yogaDosha/types";
 

@@ -1030,12 +1030,15 @@
             "dashaNote": "May become more noticeable during Saturn or Mars dasha periods."
         },
         "manglik": {
-            "name": "Manglik Dosha",
+            "name": "Kuja Dosha",
             "rule": {
-                "mk01": "Mars occupies house {house} from the lagna."
+                "mk01": "Mars occupies house {house} from the lagna.",
+                "mk02": "Mars occupies house {house} from the moon.",
+                "mk03": "Mars occupies house {house} from Venus."
             },
             "theme": {
                 "house1": "Relates to temperament and vitality.",
+                "house2": "Relates to resources and family accumulation.",
                 "house4": "Relates to domestic harmony.",
                 "house7": "Relates to the marriage partnership.",
                 "house8": "Relates to longevity and crisis.",

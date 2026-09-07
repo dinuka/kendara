@@ -379,12 +379,13 @@ describe("search text content (SR-YD-806..807, BI-YD-700)", () => {
     test("SR-YD-806: EN text content names doshas via catalog display names", () => {
         const en = getTextForBothLanguages(baseCalculation());
         // A conjunct pair is both the narrow Shani Mangala Dosha and the broad Agni Marutha Dosha.
-        expect(en.en).toContain("Doshas: Shani Mangala Dosha, Agni Marutha Dosha.");
+        // Mars in the 7th from Lagna adds the active Kuja (Manglik) dosha.
+        expect(en.en).toContain("Doshas: Shani Mangala Dosha, Agni Marutha Dosha, Kuja Dosha.");
     });
 
     test("SR-YD-807: SI text content uses the Sinhala catalog names", () => {
         const { si } = getTextForBothLanguages(baseCalculation());
-        expect(si).toContain("දෝෂ: ශනි මංගල දෝෂය, අග්නි මාරුත දෝෂය.");
+        expect(si).toContain("දෝෂ: ශනි මංගල දෝෂය, අග්නි මාරුත දෝෂය, කුජ දෝෂය.");
     });
 
     test("BI-YD-700: absent doshas are never listed in the snippet (no false claims)", () => {

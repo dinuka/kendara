@@ -1,10 +1,10 @@
 /**
  * Yoga / Dosha — rule catalog registry.
  * Mirrors the §Rule Catalog table in specs/business-analysis/data-model.md (registered rules,
- * strengths, tradition gates). English names are authoritative. Shani Mangala (narrow subset) and
- * Agni Marutha (broad Saturn–Mars relationship, docs/agni-marutha-dosha.md) are evaluated as
- * distinct doshas; the Yoga catalog is empty this release. Sinhala strings for pending-domain
- * themes stay English placeholders until confirmed (BI-YD-703).
+ * strengths, tradition gates). English names are authoritative. Shani Mangala (narrow subset),
+ * Agni Marutha (broad Saturn–Mars relationship, docs/agni-marutha-dosha.md) and Kuja Dosha
+ * (docs/kuja-doshaya.md) are evaluated as distinct doshas; the Yoga catalog is empty this release.
+ * Sinhala strings for pending-domain themes stay English placeholders until confirmed (BI-YD-703).
  */
 import { DashaActivation, DoshaId, DoshaRuleId, MitigationKey, Tradition, YogaId, YogaRuleId } from "@/lib/yogaDosha/types";
 
@@ -110,15 +110,19 @@ export const DOSHA_CATALOG: DoshaCatalogEntry[] = [
         kind: "dosha",
         id: "manglik",
         tradition: "MAIN_STREAM",
-        status: "PENDING_DOMAIN",
-        keywordEn: "Manglik",
-        keywordSi: "මංගල",
-        searchAliasesEn: ["Mangal", "Manglik dosha", "Kuja dosha"],
-        searchAliasesSi: ["මංගල දෝෂ", "කුජ දෝෂ"],
+        status: "ACTIVE",
+        keywordEn: "Kuja Dosha",
+        keywordSi: "කුජ දෝෂය",
+        searchAliasesEn: ["Mangal", "Manglik dosha", "Kuja dosha", "Manglik"],
+        searchAliasesSi: ["මංගල දෝෂ", "කුජ දෝෂ", "කුජ", "මංගල"],
         i18nKey: "dosha.manglik",
         planets: [3],
         expressionKeys: ["expression.partnershipStress"],
-        rules: [{ rule: "manglik.mk01", strength: 2, reasonKey: "rule.mk01" }],
+        rules: [
+            { rule: "manglik.mk01", strength: 2, reasonKey: "rule.mk01" },
+            { rule: "manglik.mk02", strength: 2, reasonKey: "rule.mk02" },
+            { rule: "manglik.mk03", strength: 2, reasonKey: "rule.mk03" },
+        ],
         mitigations: ["manglik.mitigation.mk-mit-001"],
         cancellations: [],
     },
