@@ -35,6 +35,7 @@ import {
 } from "@/lib/rashiAspects";
 import { computeShadBalaya, deriveDay } from "@/lib/shadBalaya";
 import { computeWargaKendara } from "@/lib/wargaKendara";
+import { buildChartFacts, computeYogaDoshas, YOGA_DOSHA_VERSION } from "@/lib/yogaDosha";
 
 const GRAHA_MAP: Record<string, number> = {
     Su: 1,
@@ -449,6 +450,13 @@ export function calculateHoroscope(
 
     // Warga Kendara (වර්ග කේනදර) computed once at calculation time so new CalculatedDetails docs
     // carry the four per-chart tables; legacy docs without the field are lazily derived at render.
+    // Yoga/Dosha separated tags (§Rule Catalog) computed once at calculation time so new
+    // CalculatedDetails docs carry versioned evaluations; legacy docs without the field are
+    // lazily resolved at render (see src/lib/yogaDosha/resolve.ts).
+    const yogaDoshas = computeYogaDoshas(
+        buildChartFacts({ ascendantSign: ascSign, source: "auto", planets: planetDetails, thithi }),
+    );
+
     const result: CalculationResult = {
         ascendant,
         houses,
@@ -480,8 +488,9 @@ export function calculateHoroscope(
         gandanthaPlanets: computeGandantha(planetDetails),
         gandamulaPlanets: computeGandamula(planetDetails),
         pushkaraPlanets: computePushkara(planetDetails),
-        yogas: [],
-        doshas: { doshas: [] },
+        yogas: yogaDoshas.yogas,
+        doshas: { doshas: yogaDoshas.doshas },
+        yogaDoshaVersion: YOGA_DOSHA_VERSION,
     };
 
     return {

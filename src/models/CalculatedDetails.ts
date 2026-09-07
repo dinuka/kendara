@@ -113,6 +113,10 @@ const CalculatedDetailsSchema = new Schema<ICalculatedDetails>({
     wargaKendara: { type: Schema.Types.Mixed },
     yogas: [{ type: Schema.Types.Mixed }],
     doshas: { type: Schema.Types.Mixed },
+    /** Yoga/Dosha evaluation shape version (see src/lib/yogaDosha). Absent on legacy documents —
+     *  those are lazily resolved at render. Additive-only: bumping YOGA_DOSHA_VERSION equals a new
+     *  evaluation shape. */
+    yogaDoshaVersion: { type: Number },
     manualHousePlacements: { type: Schema.Types.Mixed },
     derivedRanges: { type: Schema.Types.Mixed },
     createdAt: { type: Date, default: Date.now },

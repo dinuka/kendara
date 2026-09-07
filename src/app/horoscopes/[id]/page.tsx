@@ -14,6 +14,7 @@ import Notepad from "@/components/notepad/Notepad";
 import ShadBalaTable from "@/components/shadbalaya/ShadBalaTable";
 import WargaChartSection from "@/components/wargaKendara/WargaChartSection";
 import WargaIndicationTags from "@/components/wargaKendara/WargaIndicationTags";
+import YogaDoshaSection from "@/components/yogaDosha/YogaDoshaSection";
 import { useI18n } from "@/hooks/useI18n";
 import { useSession } from "next-auth/react";
 import { useParams, useRouter } from "next/navigation";
@@ -59,6 +60,7 @@ import { type ShadBalaya, computeShadBalaya, deriveDay, mergeShadBalaya } from "
 import type { WargaVargaKey } from "@/lib/wargaKendara";
 import { VARGA_CATALOG } from "@/lib/wargaKendara";
 import { resolveWargaKendara } from "@/lib/wargaKendara";
+import { resolveYogaDoshas } from "@/lib/yogaDosha";
 
 const STRENGTH_TRANSLATION_KEYS: Record<PlanetaryStrength, string> = {
     [PlanetaryStrength.ATHI_UCHCHA]: "athiUchcha",
@@ -442,6 +444,10 @@ export default function HoroscopeDetailPage() {
     // Warga Kendara tables: the stored value wins; legacy documents that predate the field are
     // re-derived from the stored chart data at render time (incl. the D1-only flags).
     const resolvedWargaKendara = resolveWargaKendara(calculatedDetails);
+
+    // Yogal/Dosha tags: computed-and-stored entries win (yogaDoshaVersion: 1); legacy documents
+    // are re-derived from the stored chart data at render time — same fallback as Warga Kendara.
+    const resolvedYogaDoshas = resolveYogaDoshas(calculatedDetails);
 
     // Per-planet Bhava Suchika values feed the D1 Planets table column. They are the existing
     // top-level calculatedDetails field — never part of the warga entry itself.
@@ -969,6 +975,7 @@ export default function HoroscopeDetailPage() {
         { id: "charts", label: t("horoscope.charts") },
         { id: "calculations", label: t("horoscope.calculations") },
         { id: "dashas", label: t("horoscope.dashas") },
+        { id: "yoga-doshas", label: t("horoscope.yogaDoshas") },
         { id: "metadata", label: t("horoscope.metadata") },
     ];
 
@@ -2149,6 +2156,12 @@ export default function HoroscopeDetailPage() {
                                 getPlanetName={getPlanetName}
                                 getDashaLevelName={getDashaLevelName}
                             />
+                        </div>
+                    )}
+
+                    {activeTab === "yoga-doshas" && calculatedDetails && (
+                        <div className="space-y-6">
+                            {resolvedYogaDoshas && <YogaDoshaSection result={resolvedYogaDoshas} />}
                         </div>
                     )}
 

@@ -19,6 +19,7 @@ import { computePlanetAspects } from "@/lib/planetAspects";
 import { DEFAULT_RASHI_ASPECTS, mergeRashiIntoPlanetAspects } from "@/lib/rashiAspects";
 import { computeShadBalaya } from "@/lib/shadBalaya";
 import { computeWargaKendara } from "@/lib/wargaKendara";
+import { buildChartFacts, computeYogaDoshas, YOGA_DOSHA_VERSION } from "@/lib/yogaDosha";
 
 export type ManualChartPayload = { ok: true; value: ManualChartInput } | { ok: false; error: string };
 
@@ -204,6 +205,11 @@ export function synthesizeCalculation(result: ManualChartResult, birthDate?: Dat
     const thithi = computeThithiFromPlanets(planets);
     const houses = buildWholeSignHouses(lagna);
     const otherDetails = synthesizeOtherDetails(manualHousePlacements, planets);
+    // Yoga/Dosha separated tags (§Rule Catalog): manual charts skip drishti-based families the
+    // manual entry cannot vouch for, so the source tag drives what the rules accept.
+    const yogaDoshas = computeYogaDoshas(
+        buildChartFacts({ ascendantSign: lagna, source: "manual", planets }),
+    );
     const calc: CalculationResult = {
         ascendant: synthesizeAscendant(lagna),
         houses,
@@ -224,8 +230,9 @@ export function synthesizeCalculation(result: ManualChartResult, birthDate?: Dat
             thithi,
             maranakaraka: otherDetails.maranakaraka,
         }),
-        yogas: [],
-        doshas: { doshas: [] },
+        yogas: yogaDoshas.yogas,
+        doshas: { doshas: yogaDoshas.doshas },
+        yogaDoshaVersion: YOGA_DOSHA_VERSION,
     };
 
     return {

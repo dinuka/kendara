@@ -12,7 +12,28 @@ import {
     ZODIAC_SIGN_LABELS_SI,
 } from "@/lib/astrologyEnums";
 import { resolveLagnaBhavaSuchika, resolvePlanetBhavaSuchika } from "@/lib/bhavaSuchika";
+import { catalogNameFor } from "@/lib/yogaDosha/catalog";
 import { BHAVA_SUCHIKA_NAMES_EN, BHAVA_SUCHIKA_NAMES_SI } from "@/lib/search/vocabulary";
+
+/** Dual-read display name for yoga/dosha entries: v1 evaluations carry a catalog id; legacy
+ *  entries carry a display string on `.name` (US-YD-011 — legacy snapshots without an id are
+ *  skipped by the id branch and fall back to `.name`). Only PRESENT entries are listed — v1
+ *  evaluations mark absence explicitly (`isPresent: false`), while legacy snapshots predate the
+ *  flag and were stored as the yogas that actually formed, so absence of the field means listed. */
+const yogaDoshaDisplayNames = (
+    entries: ReadonlyArray<{ id?: unknown; name?: unknown; isPresent?: boolean }>,
+    locale: "en" | "si",
+): string[] =>
+    entries
+        .filter((entry) => entry.isPresent !== false)
+        .map((entry) => {
+            if (typeof entry.id === "string") {
+                const name = catalogNameFor(entry.id, locale);
+                if (name) return name;
+            }
+            return typeof entry.name === "string" ? entry.name : "";
+        })
+        .filter(Boolean);
 
 // Bhava Suchika (භාව සුචික) sentences share the persistence rules with the render path (stored
 // value wins; corrupt stored → skip; absent → pure-function fallback; manual charts without entered
@@ -86,18 +107,20 @@ const textPartsEn = (calc: CalculationResult): string[] => {
         parts.push(`Mahadasha sequence: ${dashaSeq.join(", ")}.`);
     }
 
-    if (calc.yogas.length > 0) {
-        const yogaNames = calc.yogas.map((y) => (y as Record<string, unknown>).name as string).filter(Boolean);
+    if (calc.yogas.some((y) => y.isPresent !== false)) {
+        const yogaNames = yogaDoshaDisplayNames(calc.yogas, "en");
         if (yogaNames.length > 0) {
             parts.push(`Yogas: ${yogaNames.join(", ")}.`);
         } else {
-            parts.push(`${calc.yogas.length} yoga formations present.`);
+            parts.push(`${calc.yogas.filter((y) => y.isPresent !== false).length} yoga formations present.`);
         }
     }
 
     if (calc.doshas.doshas?.length > 0) {
-        const doshaList = calc.doshas.doshas as Array<Record<string, unknown>>;
-        const presentDoshas = doshaList.filter((d) => d.isPresent).map((d) => d.name as string);
+        const presentDoshas = yogaDoshaDisplayNames(
+            calc.doshas.doshas.filter((d) => d.isPresent !== false),
+            "en",
+        );
         if (presentDoshas.length > 0) {
             parts.push(`Doshas: ${presentDoshas.join(", ")}.`);
         } else {
@@ -185,18 +208,20 @@ const textPartsSi = (calc: CalculationResult): string[] => {
         parts.push(`මහා දශා අනුපිළිවෙළ: ${dashaSeq.join(", ")}.`);
     }
 
-    if (calc.yogas.length > 0) {
-        const yogaNames = calc.yogas.map((y) => (y as Record<string, unknown>).name as string).filter(Boolean);
+    if (calc.yogas.some((y) => y.isPresent !== false)) {
+        const yogaNames = yogaDoshaDisplayNames(calc.yogas, "si");
         if (yogaNames.length > 0) {
             parts.push(`යෝග: ${yogaNames.join(", ")}.`);
         } else {
-            parts.push(`යෝග ${calc.yogas.length} ක් පවතී.`);
+            parts.push(`යෝග ${calc.yogas.filter((y) => y.isPresent !== false).length} ක් පවතී.`);
         }
     }
 
     if (calc.doshas.doshas?.length > 0) {
-        const doshaList = calc.doshas.doshas as Array<Record<string, unknown>>;
-        const presentDoshas = doshaList.filter((d) => d.isPresent).map((d) => d.name as string);
+        const presentDoshas = yogaDoshaDisplayNames(
+            calc.doshas.doshas.filter((d) => d.isPresent !== false),
+            "si",
+        );
         if (presentDoshas.length > 0) {
             parts.push(`දෝෂ: ${presentDoshas.join(", ")}.`);
         } else {

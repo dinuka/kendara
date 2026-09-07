@@ -10,6 +10,7 @@ import { PLANET_NAMES, ZODIAC_SIGN_NAMES } from "@/lib/astrologyEnums";
 import { connectDB } from "@/lib/db";
 import logger from "@/lib/logger";
 import { getAnonymousPlaceholder } from "@/lib/privacy";
+import { catalogNameFor } from "@/lib/yogaDosha/catalog";
 
 const RATE_LIMIT_WINDOW_MS = 60 * 1000;
 const RATE_LIMIT_MAX = 10;
@@ -145,15 +146,33 @@ export async function GET(req: NextRequest) {
 
         const nakshatra = cd?.nakshatra ? JSON.stringify(cd.nakshatra) : "";
 
-        const yogas = cd?.yogas ? (cd.yogas as Array<Record<string, unknown>>).map((y) => y.name).join("; ") : "";
+        // Dual-read names: v1 evaluations carry a catalog id (resolved to the display name via the
+    // catalog); legacy entries carry a display string on `.name` (US-YD-011).
+    const yogas = cd?.yogas
+        ? (cd.yogas as Array<Record<string, unknown>>)
+              .map((y) => {
+                  if (typeof y.id === "string") {
+                      const name = catalogNameFor(y.id, "en");
+                      if (name) return name;
+                  }
+                  return y.name;
+              })
+              .join("; ")
+        : "";
 
-        const doshas = cd?.doshas
-            ? (cd.doshas as Record<string, unknown>).doshas
-                ? ((cd.doshas as Record<string, unknown>).doshas as Array<Record<string, unknown>>)
-                      .map((d) => d.name)
-                      .join("; ")
-                : ""
-            : "";
+    const doshas = cd?.doshas
+        ? (cd.doshas as Record<string, unknown>).doshas
+            ? ((cd.doshas as Record<string, unknown>).doshas as Array<Record<string, unknown>>)
+                  .map((d) => {
+                      if (typeof d.id === "string") {
+                          const name = catalogNameFor(d.id, "en");
+                          if (name) return name;
+                      }
+                      return d.name;
+                  })
+                  .join("; ")
+            : ""
+        : "";
 
         const row = [
             `"${h.name}"`,

@@ -79,6 +79,21 @@ export enum PlanetaryStrength {
     SAMA = 0,
 }
 
+/** Yoga/Dosha severity (data-model §Yoga Strength): lower value = stronger/more severe. */
+export enum YogaStrength {
+    VERY_STRONG = 1,
+    STRONG = 2,
+    MODERATE = 3,
+    WEAK = 4,
+}
+
+/** Cancellation / mitigation status (data-model §CancellationStatus). */
+export enum CancellationStatus {
+    NOT_CANCELLED = 1,
+    CANCELLED = 2,
+    MITIGATED = 3,
+}
+
 export const STRENGTH_LABELS: Record<string, PlanetaryStrength> = {
     උච්ච: PlanetaryStrength.UCHCHA,
     උච්චව: PlanetaryStrength.UCHCHA,

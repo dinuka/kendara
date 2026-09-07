@@ -1,5 +1,6 @@
 import { PanchaPakshi, PlanetaryStrength } from "./astrologyEnums";
 import type { ShadBalaya } from "./shadBalaya";
+import type { DoshaEvaluation, YogaEvaluation } from "./yogaDosha/types";
 import type { WargaKendara } from "./wargaKendara";
 
 export const PLANET_SYMBOLS: Record<number, string> = {
@@ -452,7 +453,7 @@ export interface DashaInfo {
 }
 
 export interface DoshaInfo {
-    doshas: unknown[];
+    doshas: DoshaEvaluation[];
 }
 
 export interface CalculationResult {
@@ -500,6 +501,9 @@ export interface CalculationResult {
      *  src/lib/wargaKendara.ts). Optional because legacy documents predate the field and are lazily
      *  derived at render. */
     wargaKendara?: WargaKendara;
-    yogas: unknown[];
+    yogas: YogaEvaluation[];
     doshas: DoshaInfo;
+    /** Version of the yoga/dosha evaluation shape stored on CalculatedDetails (see
+     *  src/lib/yogaDosha). Absent on legacy documents — those are lazily resolved at render. */
+    yogaDoshaVersion?: number;
 }

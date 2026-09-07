@@ -1,10 +1,23 @@
 import { NAKSHATRA_NAMES, PLANET_NAMES, STRENGTH_LABELS, ZODIAC_SIGN_NAMES } from "@/lib/astrologyEnums";
+import { DOSHA_CATALOG, YOGA_CATALOG } from "@/lib/yogaDosha/catalog";
 import { stripJoiners } from "@/lib/search/utils";
 
 export const SINHALA_YOGA = ["යෝග", "යෝගය", "යෝග තිබෙන"];
 export const ENGLISH_YOGA = ["yoga", "yogas", "yogic"];
 export const ASCENDANT_WORDS = ["ලග්නයේ", "ලග්නය", "ලග්න", "ascendant", "lagna"];
 export const DOSHA_WORDS = ["දෝෂය", "දෝෂ", "dosha", "doshas"];
+
+// Yoga/Dosha catalog display names + aliases → catalog id (e.g. "ශනි කුජ" → "shaniMangala").
+// The catalog (src/lib/yogaDosha/catalog.ts) is the single source of aliases — deriving this map
+// keeps search vocabulary and the catalog in lock-step (normalize the candidate word with
+// vocabularySkeleton before lookup).
+export const YOGA_DOSHA_NAME_WORDS: Record<string, string> = Object.fromEntries(
+    [...YOGA_CATALOG, ...DOSHA_CATALOG].flatMap((entry) =>
+        [entry.keywordEn, entry.keywordSi, ...entry.searchAliasesEn, ...entry.searchAliasesSi].map(
+            (word) => [stripJoiners(word).toLowerCase(), entry.id] as const,
+        ),
+    ),
+);
 
 // Words that refer to the Navamsa (D9) chart itself — a sign paired with one of
 // these words (e.g. "Mesha lagna Mesha Navanshaka") means the navamsa lagna sign,
@@ -115,7 +128,14 @@ export const PLANET_ROLE_WORDS: Record<PlanetRoleKey, string[]> = {
 
 const ROLE_TRIGGER_WORDS = Object.values(PLANET_ROLE_WORDS).flat();
 
-const TRIGGER_WORDS = [...SINHALA_YOGA, ...ENGLISH_YOGA, ...ASCENDANT_WORDS, ...DOSHA_WORDS, ...ROLE_TRIGGER_WORDS];
+const TRIGGER_WORDS = [
+    ...SINHALA_YOGA,
+    ...ENGLISH_YOGA,
+    ...ASCENDANT_WORDS,
+    ...DOSHA_WORDS,
+    ...Object.keys(YOGA_DOSHA_NAME_WORDS),
+    ...ROLE_TRIGGER_WORDS,
+];
 
 // Every word the search API can actually parse into a filter — sign, planet,
 // nakshatra (including colloquial Sinhala forms), strength, and trigger words.

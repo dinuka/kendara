@@ -33,7 +33,11 @@ import {
     PLANET_ROLE_WORDS,
     PlanetRoleKey,
     SINHALA_YOGA,
+    YOGA_DOSHA_NAME_WORDS,
 } from "@/lib/search/vocabulary";
+import { DOSHA_CATALOG, YOGA_CATALOG, doshaCatalogEntry, yogaCatalogEntry } from "@/lib/yogaDosha/catalog";
+import type { DoshaId, YogaId } from "@/lib/yogaDosha/types";
+import { resolveYogaDoshas } from "@/lib/yogaDosha/resolve";
 
 type ExactCondition =
     | { type: "ascendant"; sign: number }
@@ -46,7 +50,9 @@ type ExactCondition =
     | { type: "planet_strength"; planet: number; strength: PlanetaryStrength }
     | { type: "planet_role"; role: PlanetRoleKey; planet: number }
     | { type: "bhava_suchika"; value: number }
-    | { type: "planet_bhava_suchika"; planet: number; value: number };
+    | { type: "planet_bhava_suchika"; planet: number; value: number }
+    | { type: "yoga_id"; yogaId: string }
+    | { type: "dosha_id"; doshaId: string };
 
 type ExactMatch = ExactCondition[];
 
@@ -639,6 +645,43 @@ const getExactMatch = (query: string): ExactMatch => {
         }
     }
 
+    // Yoga/Dosha catalog names + aliases ("ශනි කුජ", "Shani Mangala", "මංගල") resolve to the
+    // catalog id (US-YD-011). Generic "යෝග"/"dosha" trigger words alone stay in the keyword
+    // scoring path (hasYoga/hasDosha) — no id is known without a name.
+    // Name-collision precedence (SR-YD-323): a catalog word matches ONLY at word boundaries (so
+    // "Mangal" never fires inside "Shani-Mangala"), AND when a LONGER registered catalog word
+    // covers the same span the shorter one is dropped — otherwise "මංගල" (manglik keyword) would
+    // fire inside "ශනි මංගල" (Shani Mangala) or "මංගල දෝෂ", and the ANDed conditions would demand
+    // a present manglik that no chart carries. The full catalog name wins.
+    const UNICODE_LETTER = /\p{L}/u;
+    const catalogWordSpans: Array<{ word: string; id: string; index: number }> = [];
+    for (const [word, id] of Object.entries(YOGA_DOSHA_NAME_WORDS)) {
+        const index = q.indexOf(word);
+        if (index === -1) continue;
+        const before = q[index - 1];
+        const after = q[index + word.length];
+        if (
+            (before === undefined || !UNICODE_LETTER.test(before)) &&
+            (after === undefined || !UNICODE_LETTER.test(after))
+        ) {
+            catalogWordSpans.push({ word, id, index });
+        }
+    }
+    for (const match of catalogWordSpans) {
+        const overshadowed = catalogWordSpans.some(
+            (other) =>
+                other.word.length > match.word.length &&
+                other.index <= match.index &&
+                other.index + other.word.length >= match.index + match.word.length,
+        );
+        if (overshadowed) continue;
+        if (yogaCatalogEntry(match.id as YogaId)) {
+            conditions.push({ type: "yoga_id", yogaId: match.id });
+        } else if (doshaCatalogEntry(match.id as DoshaId)) {
+            conditions.push({ type: "dosha_id", doshaId: match.id });
+        }
+    }
+
     for (const [planetValue, house] of explicitHouseByPlanet) {
         conditions.push({ type: "planet_in_house", planet: planetValue, house });
     }
@@ -918,7 +961,14 @@ const scoreHoroscope = (
         }
     }
 
-    const hasYoga = SINHALA_YOGA.some((w) => q.includes(w)) || ENGLISH_YOGA.some((w) => q.includes(w));
+    const hasYoga =
+        SINHALA_YOGA.some((w) => q.includes(w)) ||
+        ENGLISH_YOGA.some((w) => q.includes(w)) ||
+        YOGA_CATALOG.some((entry) =>
+            [entry.keywordEn, entry.keywordSi, ...entry.searchAliasesEn, ...entry.searchAliasesSi].some((word) =>
+                q.includes(stripJoiners(word.toLowerCase())),
+            ),
+        );
 
     const planetRole = getPlanetRole(query);
     if (planetRole !== null) {
@@ -940,14 +990,26 @@ const scoreHoroscope = (
     if (hasYoga) {
         if (calculatedDetails?.yogas) {
             const yogas = calculatedDetails.yogas as Array<Record<string, unknown>>;
-            if (yogas.length > 0) {
+            const presentYogas = yogas.filter((y) => y.isPresent);
+            if (presentYogas.length > 0) {
                 score += 0.4;
-                matchedConditions.push(`yoga_present=${yogas.length}_yogas`);
+                for (const y of presentYogas) {
+                    const catalogEntry = typeof y.id === "string" ? yogaCatalogEntry(y.id as YogaId) : undefined;
+                    matchedConditions.push(`yoga=${catalogEntry ? catalogEntry.keywordEn : y.name}`);
+                }
             }
         }
     }
 
-    const hasDosha = q.includes("දෝෂ") || q.includes("dosha") || q.includes("මංගල");
+    const hasDosha =
+        q.includes("දෝෂ") ||
+        q.includes("dosha") ||
+        q.includes("මංගල") ||
+        DOSHA_CATALOG.some((entry) =>
+            [entry.keywordEn, entry.keywordSi, ...entry.searchAliasesEn, ...entry.searchAliasesSi].some((word) =>
+                q.includes(stripJoiners(word.toLowerCase())),
+            ),
+        );
 
     if (hasDosha) {
         if (calculatedDetails?.doshas) {
@@ -957,7 +1019,8 @@ const scoreHoroscope = (
                 score += 0.4;
                 for (const d of doshaList) {
                     if (d.isPresent) {
-                        matchedConditions.push(`dosha=${d.name}`);
+                        const catalogEntry = typeof d.id === "string" ? doshaCatalogEntry(d.id as DoshaId) : undefined;
+                        matchedConditions.push(`dosha=${catalogEntry ? catalogEntry.keywordEn : d.name}`);
                     }
                 }
             }
@@ -1061,9 +1124,23 @@ export async function POST(req: NextRequest) {
     for (const h of horoscopes) {
         const hId = h._id.toString();
 
-        const calculatedDetails = await CalculatedDetails.findOne({
+        const rawCalculated = await CalculatedDetails.findOne({
             "horoscope.id": hId,
         }).lean();
+
+        // Yoga/dosha name queries match the SAME read-time view the detail panel renders:
+        // stored v2 evaluations win; legacy/v1 docs recompute purely from stored chart facts
+        // (resolveYogaDoshas). Without this, a pre-v2 horoscope that shows the Shani Mangala
+        // Dosha tag could never be found by name. Other fields flow through untouched.
+        const resolvedYogaDoshas = resolveYogaDoshas(rawCalculated);
+        const calculatedDetails =
+            rawCalculated && resolvedYogaDoshas
+                ? {
+                      ...rawCalculated,
+                      yogas: resolvedYogaDoshas.yogas,
+                      doshas: { doshas: resolvedYogaDoshas.doshas },
+                  }
+                : rawCalculated;
 
         if (groups.length === 0) continue;
 
@@ -1160,6 +1237,20 @@ export async function POST(req: NextRequest) {
                             case "planet_bhava_suchika": {
                                 return (
                                     resolvePlanetBhavaSuchika(calculatedDetails, condition.planet) === condition.value
+                                );
+                            }
+                            case "yoga_id": {
+                                const yogas = calculatedDetails?.yogas as
+                                    | Array<Record<string, unknown>>
+                                    | undefined;
+                                return !!yogas && yogas.some((y) => y.id === condition.yogaId && y.isPresent === true);
+                            }
+                            case "dosha_id": {
+                                const doshas = calculatedDetails?.doshas as Record<string, unknown> | undefined;
+                                const doshaList = doshas?.doshas as Array<Record<string, unknown>> | undefined;
+                                return (
+                                    !!doshaList &&
+                                    doshaList.some((d) => d.id === condition.doshaId && d.isPresent === true)
                                 );
                             }
                             default:

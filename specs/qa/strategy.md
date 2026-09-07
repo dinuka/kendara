@@ -572,3 +572,64 @@ The Bhava Suchika feature (US-BS-001…008, incl. search) adds the Navamsa house
 | US-SN-014 | IT-SN-200..205/226, RE-SN-901, SR-SN-1000/1002, E2E-SN-1102 |
 | US-SN-015 | BI-SN-800..805, E2E-SN-1104 |
 | US-SN-016 | UT-SN-100..117, IT-SN-224, UI-SN-414/415, E2E-SN-1101 |
+
+## Yoga / Dosha (යෝග සහ දෝෂ) — Testing Considerations
+
+> Full test plan: `specs/qa/20260906-0837-yoga-dosha-tags-test-plan.md`
+
+The Yoga/Dosha separated-tags feature (US-YD-001…013) delivers: a static Yoga/Dosha Rule Catalog + deterministic rule engine (`src/lib/yogaDosha/` — catalog, relationships, rules, ruleEngine, interpretation, cancellation, index) evaluated over already-stored chart facts; structured per-yoga/per-dosha evaluations persisted on `CalculatedDetails.yogas`/`doshas.doshas` at calc-time for both `source:"auto"` and `"manual"` with a `yogaDoshaVersion: 2` discriminator (rev 3 — Shani Mangala reclassified to the Dosha group as `dosha: { id: "shaniMangala" }`, seed `shaniMangala` → `dosha`, `YogaId`/`yoga` empty this phase, rule ids unchanged, v1 stored docs reclassify at render); `resolveYogas`/`resolveDoshas` render-time pure recompute for legacy docs; cancelled = strikethrough tags with expanded detail panels on the horoscope detail view; and search compatibility (textContent catalog names with legacy fallback, `YOGA_DOSHA_NAME_WORDS` vocabulary, generic yoga/dosha catalog-id exact conditions in the route, `hasDosha` scoring covering dosha catalog words/aliases, `isPresent`-based cards/export unchanged). New numeric enums `YogaStrength` (1–4) and `CancellationStatus` (1–3). Read-only everywhere — no new routes, no mutations, no recalc-job code changes.
+
+### Scope of Yoga/Dosha testing
+
+| Level | Scope | Key files |
+|-------|-------|-----------|
+| Unit (Jest, pure) | Catalog integrity (ids, rule refs, bilingual name maps, i18n key resolution in BOTH locales, `house{n}` theme-key invariant, additive extension); relationships (mutual-7th gap-6 mod-12 wrap, 4/10 gaps 3/9, 2/12 gaps 1/11, parivartana via `houses[].lord`, mutual Graha Drishti from stored aspect lists both directions); SM-01..SM-06 rules (SM-06 2/12 tradition-GATED — no-op under MAIN_STREAM); MK-01 registered `pending-domain` and NEVER evaluated; engine (all-satisfied rules, primary ranking, dedup, fail-closed, determinism); cancellation vs mitigation separation (Jupiter aspect = REDUCES_SEVERITY only, never status 2); finalAssessment weighting clamped 1–4; dashaActivation soft note; `buildChartFacts` + manual degree fallback (navamsa midpoint → sign midpoint 15°); `resolveYogas`/`resolveDoshas` stored-first vs legacy recompute vs corrupt-warn | `src/lib/yogaDosha/*` (all new), `src/__tests__/yogaDosha.test.ts` (new) |
+| Integration | `calculateHoroscope` (auto) + `synthesizeCalculation` (manual) emit the structured fields + `yogaDoshaVersion` via `...calculated`/`...synth` spreads; era-stamped golden fixture `fixtures/yoga-dosha-default-2026-09.json`; auto↔manual rule-outcome equivalence; GET horoscope/share additive read-only; recalc job zero-change regression | `src/lib/calculation.ts`, `src/lib/manualChartDetails.ts`, `src/lib/recalculationJob.ts` (no change), `src/__tests__/calculation.test.ts` |
+| Search | textContent SI/EN catalog-name sentences + legacy string fallback; `YOGA_DOSHA_NAME_WORDS` in vocabulary; generic `yoga_id`/`dosha_id` exact conditions + `hasYoga`/`hasDosha` scoring (dosha/yoga catalog words trigger) evaluated against the **render-time view** (`resolveYogaDoshas` — legacy/v1 docs recompute, so name queries find exactly the charts that render the tag, SR-YD-808/809); specific-name queries both languages; name-collision precedence; legacy snapshot without `id` skipped+logged; privacy filter; cards + CSV export resolve catalog names, `isPresent` unchanged | `src/lib/search/textContent.ts`, `src/lib/search/vocabulary.ts`, `src/app/api/search/route.ts`, `src/app/api/search/export/route.ts`, `src/app/search/page.tsx`, `src/__tests__/yogaDoshaSearch.test.ts` (new) |
+| Component / UI | Dedicated `yoga-doshas` tab (between Dashas and Metadata, label key `horoscope.yogaDoshas`) hosting the section; Calculations tab unchanged; two independently-empty-stated groups + `(n)` count badges; tag state matrix (present / cancelled-strikethrough / mitigated-Reduced / unknown dashed chip); multi-open disclosure panels with fixed block order; `(n)` counts include cancelled tags; severity pill from `finalAssessment.severity`; legacy no-flicker; read-only on own/public/share; Sinhala 360px wrap; mobile 44px tap targets; locale-switch re-render | `src/components/yogaDosha/*` (new), `src/app/horoscopes/[id]/page.tsx`, `src/__tests__/yogaDoshaComponents.test.tsx` (new) |
+| E2E | Manual test scripts (no Playwright installed — flagged Developer/PM decision) | — |
+| Accessibility | Disclosure button/region contract, `role="group"` labels, `role="status"` empty states, `aria-label` = name+strength+status word, SR output of cancelled tags, unknown chip not focusable, focus ring, colour-not-only-channel, AA contrast, InfoGlyph tooltip | `src/components/yogaDosha/*` |
+| Bilingual | `yogaDosha.*` / `yoga.*` / `dosha.*` / `yogaStrength.*` / `cancellationStatus.*` / `tradition.*` key parity SI↔EN; no hardcoded strings; enum labels reused; SI keys fully translated (2026-09-06, was SI-pending → EN fallback — never raw key leak) | `src/messages/en.json`, `src/messages/si.json` |
+
+### Key risk areas (prioritised)
+
+1. **`src/lib/yogaDosha/` does not exist yet** (verified 2026-09-06) — QA asserts the architect's typed contract (`ChartFacts`, `YogaEvaluation`, `DoshaEvaluation`, `CancellationResult`, …), not code; Developer must deliver the module before `pnpm build` passes (astrology.ts retype `yogas: unknown[]` → `YogaEvaluation[]`, `DoshaInfo.doshas` → `DoshaEvaluation[]`).
+2. **Legacy-vs-computed-empty ambiguity** — pre-feature docs store `yogas: []` and post-feature `[]` legitimately means "no yogas"; `yogaDoshaVersion: 1` (additive schema field, no migration) is the ONLY discriminator. `resolveYogas`/`resolveDoshas` must be stored-first with pure render-time recompute for legacy docs and warn-log on corrupt stored values — never a crash, never a flicker (resolveWargaKendara precedent).
+3. **SM-02/SM-03 co-fire for 7th-house pairs** — 180° is in the default aspect degree set, so both rules fire for gap-6 pairs BY CONSTRUCTION (Architect OQ-2: both reason lines render vs SM-03 subsuming). QA must assert both reasons (per-rule-per-relationship) and NOT a single-rule outcome until the domain decides.
+4. **Cancellation ≠ mitigation** — a mitigation factor (Jupiter aspect, dignity) may at most set `status: 3` at final assessment; it NEVER sets `status: 2`; only a tradition-registered cancellation rule may. The UI renders them as visually distinct blocks.
+5. **SM-06 2/12 is tradition-gated** — a no-op under `MAIN_STREAM` (the phase-1 default); tests must switch `facts.tradition` to a gating tradition to prove firing. Gating keeps existing charts free of 2/12 noise.
+6. **Manglik seed is `pending-domain`** — registered but skipped; MK-01 (Mars in 1/4/7/8/12) must NEVER produce `exists: true` until the domain confirms (BA OQ-9). The Dosha group legitimately shows "දෝෂ නොමැත" at launch.
+7. **Domain content OQs block golden freezing** — parivartana strength (OQ-1), SM-02/03 phrasing (OQ-2), 2/12 tradition (OQ-3), Manglik rules (OQ-4), cancellation/mitigation rules (OQ-5), SI translations (OQ-6). Invariant tests gate until then; the era-stamped fixture is provisional.
+8. **Search compatibility is compatibility-first** — textContent/cards/export keep legacy string reads via a DUAL read (`id.id ?? (y as {name}).name`); legacy snapshots without `id` are skipped + logged by the id filter; `isPresent` dosha filtering unchanged; the `ExactCondition` union extends generically (no hardcoded ids in the route).
+9. **jest `testMatch` NOW INCLUDES `.tsx`** — verified `jest.config.js`: `["**/__tests__/**/*.test.{ts,tsx}"]` (supersedes the "tsx excluded" notes in the bhava-suchika §7 risk 6 / notepad §7 risk 6). RTL 16.3.2 + jest-dom + jsdom env present; component tests can be `.test.tsx` with the per-file `@jest-environment jsdom` precedent (`notepadComponents.test.tsx`). Still no Playwright/Cypress in `package.json` — E2E stays manual.
+10. **UI count semantics** — the `(n)` badge counts all rendered tag chips including cancelled/mitigated (UX asked BA; QA locks this until confirmed); unknown-id chips count as rendered chips; badge hidden at 0.
+11. **Name-collision parsing** in search ("parivartana" vs planet/sign alias words) has no documented precedence yet — add a parsing-precedence note when the route lands.
+
+### Environment & data setup
+
+| Item | Setup |
+|------|-------|
+| Unit fixtures | Synthetic `ChartFacts` builders (shadBalaya helper style): `planet(name, house, sign, absoluteDegree, strength, retrograde, aspects[])` + 12 whole-sign `houses[]` with `lord`. Per-rule present/absent/edge fixtures for SM-01..SM-06, MK-01-both-traditions, cancellation/mitigation, dedup, uniqueness |
+| API/search tests | Mocked `getServerSession` (owner-1/student) + `connectDB` + Horoscope/CalculatedDetails/Chart + `@/lib/search/embedding` (`generateEmbedding → null`) + `@/lib/search/qdrant` (mandatory — Transformers.js otherwise downloads); copy `search-bhava-suchika.test.ts` skeleton |
+| Golden | `calculateHoroscope(baseData)` (1990-06-15 08:30 Colombo) → schema invariants + era-stamped `fixtures/yoga-dosha-default-2026-09.json` (provisional until domain OQs resolve); manual `synthesizeCalculation` from the same placements → same rule outcomes |
+| Component | `@testing-library/react` + per-file jsdom; stubbed `useI18n`; seeded catalogs + fixture evaluations as props |
+| i18n parity | fs-read `en.json`/`si.json`; every catalog + renderer key resolves in both locales (notepadCatalogs pattern) |
+| E2E/manual | Golden auto horoscope, manual with same placements, manual without navamsa, legacy doc (strip `yogaDoshaVersion`), unknown-id doc, share link; SI + EN sessions; 360px viewport for wrap |
+
+### Yoga/Dosha acceptance-criteria traceability
+
+| User story | QA test IDs (see test plan) |
+|-----------|------------------------------|
+| US-YD-001 | UT-YD-001..009, UI-YD-513, AX-YD-605, BI-YD-700, E2E-YD-804 |
+| US-YD-002 | UT-YD-010/020..025/040..047/080/082/084/087/090, IT-YD-202, E2E-YD-801 |
+| US-YD-003 | UT-YD-006/085/086/116, UI-YD-533/538 |
+| US-YD-004 | UT-YD-008/110..118, UI-YD-511/512/534/535/536 |
+| US-YD-005 | UT-YD-081/088/089/152..155, IT-YD-200..206, UI-YD-540, E2E-YD-800/802, RE-YD-900..907 |
+| US-YD-006 | UT-YD-020..025/040..047/090/130, UI-YD-530/531/537, E2E-YD-800 |
+| US-YD-007 | UT-YD-001/070/080, UI-YD-503, BI-YD-703, E2E-YD-803 |
+| US-YD-008 | IT-YD-205, UI-YD-500..505/510..514, AX-YD-601/602/603/607, E2E-YD-804 |
+| US-YD-009 | UI-YD-520..538, AX-YD-600/603/604, E2E-YD-800 |
+| US-YD-010 | UI-YD-512/514/530/534/535/536, BI-YD-702 |
+| US-YD-011 | SR-YD-300..333, UI-YD-502, BI-YD-705, E2E-YD-803, RE-YD-901..903 |
+| US-YD-012 | UT-YD-005, BI-YD-700..705, UI-YD-532/552, SR-YD-300/301 |
+| US-YD-013 | UT-YD-003/007, BI-YD-700, RE-YD-907 |

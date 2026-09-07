@@ -125,8 +125,8 @@
 | marakaPlanets | JSON | Maraka planets — see [MarakaPlanets](#marakaplanets) structure |
 | atmakaraka | String | Atmakaraka planet |
 | maranakaraka | JSON | Maranakaraka planets (`number[]`, numeric Planet enums) — each planet occupying its designated death house (lagna chart only, never D9); legacy docs stored a single `0`/`n` and are normalized at read time |
-| yogas | JSON | Yoga formations — see [Yogas](#yogas) structure |
-| doshas | JSON | Dosha calculations — see [Doshas](#doshas) structure |
+| yogas | JSON | Yoga evaluations — structured per-yoga results from the deterministic rule + interpretation engines (formation rules triggered, strength, house context, themes, mitigation, cancellation, final assessment, dasha activation) — see [Yogas](#yogas) structure and the [Yoga/Dosha Rule Catalog (static reference data)](#yogadosha-rule-catalog-static-reference-data) |
+| doshas | JSON | Dosha evaluations — structured per-dosha results (formation, context, interpretation, mitigation, cancellation, final assessment) with `isPresent` preserved for search/export compatibility — see [Doshas](#doshas) structure |
 | manualHousePlacements | JSON | Manual chart input for `source: "manual"` horoscopes — see [ManualHousePlacements](#manualhouseplacements) structure |
 | derivedRanges | JSON | Derived probable birth ranges for manual horoscopes — see [DerivedRanges](#derivedranges) structure |
 | shadbalaya | JSON | Shad Bala (ෂඩ් බලය) — the six strengths per planet (Sthana, Cheshta, Kala, Dig, Drishti, Naisargika) with tooltip reasons and user overrides — see [ShadBalaya](#shadbalaya) structure |
@@ -143,6 +143,7 @@
 - The bulk recalculation job (triggered by an `AstrologySettings` update) overwrites the computed fields of every stored snapshot using the current system-wide settings. For `source: "auto"` horoscopes it re-runs `calculateHoroscope` from the stored birth details; for `source: "manual"` horoscopes it recomputes from the stored `manualHousePlacements` — which is the single source of truth for the manual chart and is **never overwritten** by the job (US-SAS-009). The same job recomputes `shadbalaya`, but a bala flagged `overridden: true` (a user's manual checkbox toggle) is **never overwritten** — the user's value is preserved exactly as `manualHousePlacements` is never overwritten (US-SB-013)
 - `lagnaBhavaSuchika` and `bhavaSuchika` are stored for **both** `source: "auto"` and `source: "manual"` horoscopes (manual only when Navamsa data has been entered — `navamsaLagna` / `navamsaHouses`). The AstrologySettings recalculation job recomputes them like any other derived value — there are **no user overrides** for Bhava Suchika (see `20260814-2055-bhava-suchika.md`). Legacy documents missing the fields fall back to a render-time derivation from the always-stored `ascendant`, `houses` and per-planet navamsa sign (or entered Navamsa data), mirroring the `computeAscendantSpecialFlags` fallback pattern
 - `wargaKendara` is stored for **both** `source: "auto"` and `source: "manual"` horoscopes (manual limited to the chart data derivable from the entered placements — see `20260815-1129-warga-kendara.md`). The AstrologySettings recalculation job recomputes it like any other derived value — there are **no user overrides**. Legacy documents missing the field fall back to a render-time pure-function derivation from the stored D1 data plus the derived D9 / Surya Lagna / Chandra Lagna charts
+- `yogas` and `doshas` are computed for **both** `source: "auto"` and `source: "manual"` horoscopes — manual charts evaluate the same rule functions against the entered `manualHousePlacements` (see `20260906-0707-yoga-dosha-tags.md`). The AstrologySettings recalculation job recomputes them like any other derived value — there are **no user overrides**. Legacy documents predating the feature (currently always `yogas: []` / `doshas: { doshas: [] }`) render the empty ("no yogas/doshas") states until the next full recalculation — no eager migration
 
 **Relationships**:
 
@@ -428,6 +429,35 @@ Every Zodiac Sign belongs to exactly one fixed category. Used by the Rashi Aspec
 | 0.1 | Mitra (Friend) | මිත්‍ර |
 | -0.1 | Shatru (Enemy) | සතුරු |
 | 0 | Sama (Neutral) | සම |
+
+### Yoga Strength
+
+Formation strength of a yoga and final severity / dosha severity share one scale (per `docs/shani-mangala-yoga.md` — several strength levels, never a boolean). Numeric values for i18n; display names resolved per locale.
+
+| Value | English | Sinhala |
+|-------|---------|---------|
+| 1 | Very Strong | අති ප්‍රබල |
+| 2 | Strong | ප්‍රබල |
+| 3 | Moderate | මධ්‍යම |
+| 4 | Weak | දුර්වල |
+
+**Notes:**
+- Used as `formation.strength` (how strongly the formation rules are satisfied — e.g. conjunction is Very Strong (1), pure mutual-7th-house is Strong (2)) and as `finalAssessment.severity` / dosha severity after the mitigation/cancellation weighing
+- Lower numeric value = stronger relationship / higher severity; ranking the primary formation rule picks the strongest satisfied rule (lowest value) per the catalog's strength table
+
+### Cancellation Status
+
+Cancellation of a yoga/dosha per the registered tradition. **Cancellation is evaluated separately from mitigation** (`docs/shani-mangala-yoga.md` §6): only a rule the selected tradition explicitly defines as cancellation may set status 2; mitigation factors reduce severity and may set status 3 at final-assessment time but are never rendered as "cancelled".
+
+| Value | English | Sinhala |
+|-------|---------|---------|
+| 1 | Not Cancelled | අවලංගු නොකෙරේ |
+| 2 | Cancelled | අවලංගු කෙරේ |
+| 3 | Mitigated | අවම කර ඇත |
+
+**Notes:**
+- Every cancellation/mitigation factor carries its rule ID + tradition/source provenance — conflicting tradition rules are never silently combined (see [Yogas](#yogas) structure, `cancellation`/`mitigation` fields)
+- `status: 3` (Mitigated) is the outcome of the weighted synthesis (formation → affliction → mitigation → cancellation → house relevance) — the yoga still exists but expresses with reduced severity
 
 ### Aspect Type
 
@@ -878,24 +908,95 @@ Computed (and persisted) probable birth ranges derived from Ravi's and Shani's p
 
 ### Yogas
 
+Structured per-yoga evaluation results, produced by the deterministic rule + interpretation engines from the stored chart facts and the static [Yoga/Dosha Rule Catalog (static reference data)](#yogadosha-rule-catalog-static-reference-data). The shape follows `docs/shani-mangala-yoga.md`: multiple formation rules (never a boolean), separation of formation / mitigation / cancellation / final assessment, tradition provenance on every rule, house-specific interpretation, and dasha activation as a soft note. **No display text is stored** — every user-facing string is composed at render time from i18n keys + numeric enum params.
+
 ```json
 [
   {
-    "name": "Parivartana Yoga",
-    "description": "Mutual exchange between 1st and 5th lords",
-    "planetsInvolved": [1, 5],
-    "housesInvolved": [1, 5],
-    "isBeneficial": true
-  },
-  {
-    "name": "Dharma-karmadhipati Yoga",
-    "description": "Lord of 1st and 9th in mutual aspect",
-    "planetsInvolved": [3, 5],
-    "housesInvolved": [1, 9],
-    "isBeneficial": true
+    "id": "shaniMangala",
+    "exists": true,
+    "tradition": "MAIN_STREAM",
+    "formation": {
+      "rulesTriggered": ["shaniMangala.sm01"],
+      "primaryRule": "shaniMangala.sm01",
+      "strength": 1,
+      "reasons": [
+        {
+          "rule": "shaniMangala.sm01",
+          "reasonKey": "dosha.shaniMangala.rule.sm01",
+          "params": {
+            "planet": 7,
+            "sign": 10,
+            "house": 7,
+            "otherPlanet": 3,
+            "otherSign": 10,
+            "otherHouse": 7
+          }
+        }
+      ]
+    },
+    "context": {
+      "houseImpact": [7],
+      "planets": [
+        { "planet": 7, "house": 7, "sign": 10, "strength": 0.5 },
+        { "planet": 3, "house": 7, "sign": 10, "strength": 1 }
+      ]
+    },
+    "interpretation": {
+      "themes": [
+        { "key": "yoga.shaniMangala.theme.house7.relationshipConflict" },
+        { "key": "yoga.shaniMangala.theme.house7.delayedMarriage" }
+      ]
+    },
+    "mitigation": [
+      {
+        "ruleId": "SM-MIT-001",
+        "factor": "JUPITER_ASPECT",
+        "effect": "REDUCES_SEVERITY",
+        "target": 3,
+        "tradition": "MAIN_STREAM",
+        "confidence": 2
+      }
+    ],
+    "cancellation": {
+      "status": 1,
+      "factors": []
+    },
+    "finalAssessment": {
+      "severity": 2,
+      "expressionKeys": ["yoga.shaniMangala.expression.disciplinedAction"]
+    },
+    "dashaActivation": {
+      "planets": [7, 3],
+      "noteKey": "yoga.shaniMangala.dashaNote"
+    }
   }
 ]
 ```
+
+**Field meanings:**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| id | String | Stable catalog key of the yoga (e.g. `shaniMangala`) from the static Yoga/Dosha Rule Catalog — display name resolved via i18n per locale, never stored as text |
+| exists | Boolean | Whether the yoga is present in this horoscope per the evaluated rules |
+| tradition | String | Tradition/source key under which the formation was evaluated (from the catalog) — provenance labeling; conflicting traditions are never merged |
+| formation | JSON | Formation result — see sub-fields below |
+| formation.rulesTriggered | JSON | Array of satisfied rule IDs (e.g. `["SM-01","SM-03"]`) — **all** satisfied rules, never a single boolean; equivalent/duplicate reasons deduplicated |
+| formation.primaryRule | String | The strongest satisfied rule (catalog ranking) — drives the headline "why" explanation |
+| formation.strength | Integer | Numeric `YogaStrength` enum (1 = Very Strong … 4 = Weak) — strength of the relationship as formed |
+| formation.reasons[] | JSON | One reason object per satisfied rule: `rule` (rule ID), `reasonKey` (i18n message key), `params` (numeric enum fields — planet/sign/house — used as i18n template parameters) |
+| context | JSON | Chart facts relevant to this yoga: `houseImpact` (houses affected by the combination, 1-12) and `planets` (per involved planet: numeric `Planet`, `house`, `sign`, `PlanetaryStrength`) |
+| interpretation | JSON | House-specific interpretation — the "result" of the yoga: `themes[]` = i18n theme keys per affected house, resolved per locale; tendency language only, never deterministic predictions |
+| mitigation | JSON | Array of mitigation factors that reduce the difficult expression — per factor: `ruleId`, `factor` (e.g. `JUPITER_ASPECT`, `MARS_OWN_SIGN`), `effect` (e.g. `REDUCES_SEVERITY`), optional `target` (numeric Planet), `tradition`, `confidence` (numeric) |
+| cancellation | JSON | Cancellation result: `status` (numeric `CancellationStatus` enum) and `factors[]` (per-factor cancellation rules — `ruleId`, condition, planets/houses involved, `tradition`) — never set by a mitigation factor alone |
+| finalAssessment | JSON | Weighted synthesis: `severity` (numeric `YogaStrength` enum after formation → affliction → mitigation → cancellation → house relevance) and `expressionKeys` (i18n keys describing how the combination expresses — e.g. disciplined action vs blocked action) |
+| dashaActivation | JSON | Optional — which planets' dashas activate the yoga (`planets`, numeric `Planet` enums) plus a `noteKey` i18n note ("may become active during Saturn/Mars periods") — a soft note, never a timing prediction |
+
+**Notes:**
+- Follows the numeric-enum convention: planets 1-9, signs 1-12, houses 1-12, `PlanetaryStrength`, `YogaStrength`, `CancellationStatus` — never display strings in storage
+- Entries with `exists: false` are omitted by the engine (or stored sparingly for debugging — architect decision); the UI renders tags only for present entries
+- Legacy documents (stored before the feature) have `yogas: []` — the UI renders the "no yogas" empty state until the next full recalculation
 
 ### ShadBalaya
 
@@ -1352,20 +1453,77 @@ The static catalog mapping each planet to its significations (from `docs/student
 
 ### Doshas
 
+Structured per-dosha evaluation results, produced by the same rule + interpretation engines as yogas (see [Yogas](#yogas) — doshas use the identical shape, with `isPresent` preserved for the existing search result cards, export and route filtering). Replaces the legacy flat shape (`name`/`severity`/`affectingHouses`/`planetsInvolved` string fields) — legacy documents' string values are normalized at read time and consumers resolve `id` → bilingual name from the catalog. **No display text is stored.**
+
 ```json
 {
   "doshas": [
     {
-      "name": "Manglik Dosha",
-      "description": "Mars in 1st, 4th, 7th, 8th, or 12th house",
+      "id": "manglik",
       "isPresent": true,
-      "severity": "Medium",
-      "affectingHouses": [1, 7],
-      "planetsInvolved": [3]
+      "tradition": "MAIN_STREAM",
+      "formation": {
+        "rulesTriggered": ["MK-01"],
+        "primaryRule": "MK-01",
+        "strength": 2,
+        "reasons": [
+          {
+            "rule": "MK-01",
+            "reasonKey": "dosha.manglik.rule.mk01",
+            "params": { "planet": 3, "house": 7 }
+          }
+        ]
+      },
+      "context": {
+        "houseImpact": [7],
+        "planets": [{ "planet": 3, "house": 7, "sign": 2, "strength": -0.1 }]
+      },
+      "interpretation": {
+        "themes": [{ "key": "dosha.manglik.theme.house7.partnershipTension" }]
+      },
+      "mitigation": [],
+      "cancellation": {
+        "status": 1,
+        "factors": []
+      },
+      "finalAssessment": {
+        "severity": 2,
+        "expressionKeys": ["dosha.manglik.expression.partnershipStress"]
+      }
     }
   ]
 }
 ```
+
+**Field meanings:**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| id | String | Stable catalog key of the dosha (e.g. `manglik`) from the static Yoga/Dosha Rule Catalog — display name resolved via i18n per locale, never stored as text |
+| isPresent | Boolean | Whether the dosha is present in this horoscope — preserved for the existing search card / export / route `isPresent` filtering |
+| tradition | String | Tradition/source key under which the dosha was evaluated (provenance) |
+| formation / context / interpretation / mitigation / cancellation / finalAssessment | JSON | Identical sub-structures to [Yogas](#yogas) — formation rules with reasons, affected houses + involved planets, house-specific themes, mitigation factors, cancellation status with provenance, weighted final severity + expression keys |
+
+**Notes:**
+- `severity` is now the numeric `YogaStrength` enum on `finalAssessment.severity` (and optionally mirrored as `formation.strength`); the legacy string `severity` ("High"/"Medium") is normalized at read time until consumers are updated
+- The legacy `affectingHouses` / `planetsInvolved` fields are replaced by `context.houseImpact` / `context.planets`
+- Legacy documents (stored before the feature) have `doshas: { doshas: [] }` — the UI renders the "no doshas" empty state until the next full recalculation
+
+### Yoga/Dosha Rule Catalog (static reference data)
+
+The static registry behind the yoga/dosha evaluation: it defines which yogas/doshas the platform evaluates, their stable IDs, tradition/source labels, and formation-rule metadata. This is **static, system-wide reference data** — resolved via i18n message keys (names, themes, reasons, cancellations per locale); it is **not stored per horoscope** and is not user-editable. The domain guides new entries **one by one** — each addition is a new catalog row + deterministic rule functions + i18n keys, additive and non-breaking (the engine, storage, UI and search stay generic and catalog-driven — see `20260906-0707-yoga-dosha-tags.md` US-YD-001/US-YD-013). English names are authoritative (from `docs/shani-mangala-yoga.md` and domain guidance); Sinhala translations are pending domain confirmation.
+
+| Catalog ID | Type | Name (EN) | Name (SI) | Tradition | Formation rules (phase-1 seed) | Status |
+|------------|------|-----------|-----------|-----------|--------------------------------|--------|
+| shaniMangala | Dosha | Shani–Mangala Dosha (Saturn–Mars positional) | ශනි මංගල දෝෂය | Mainstream (3 rules) | SM-01 conjunction (Very Strong 1); SM-02 7th-from-each-other + mutual 180° drishti record (Strong 2); SM-03 mutual 4-10 + mutual 90°/270° drishti record (Strong 2) | Positional **on the per-planet orbs**: SM-01 = same sign + house AND mutual stored 0° (conjunction) records (records exist only within each planet's orb — 6a74b291: same Vrishchika/7th but 13.57° apart → not combined); SM-02/03 + mutual graha drishti record — an ordinary one-way aspect (e.g. 6a68e773) is Agni Marutha only (see `docs/agni-marutha-dosha.md` §2) |
+| agniMarutha | Dosha | Agni Marutha Dosha (Saturn–Mars broad relationship) | අග්නි මාරුත දෝෂය | Mainstream (8 rules) | AM-01 conjunct (1); AM-02 Mars aspects Saturn (2); AM-03 Saturn aspects Mars (2); AM-04 Saturn in Mars sign (2); AM-05 Mars in Saturn sign (2); AM-06 Saturn in Mars nakshatra (3); AM-07 Mars in Saturn nakshatra (3); AM-08 parivartana/sign exchange (1) | Broad relationship — AM-01 shares SM-01's stored mutual 0°-record (orb) requirement; SM ⊂ AM by nature (see `docs/agni-marutha-dosha.md` §3) |
+| manglik | Dosha | Manglik (Kuja) Dosha | මංගල දෝෂය | Standard house-based (proposed) | MK-01 Mars in houses 1, 4, 7, 8 or 12 (rule + cancellation per confirmed tradition) | Proposed seed — pending domain confirmation |
+
+**Notes:**
+- Rule IDs are stable string keys (e.g. `shaniMangala.sm01`, `agniMarutha.am08`, `manglik.mk01`) — referenced by `formation.rulesTriggered` / `formation.reasons[].rule` and by cancellation/mitigation `ruleId`s; display text resolution goes through the i18n `reasonKey`, never the rule ID itself
+- `yogaDoshaVersion` stamps the writer version (currently `3`); legacy documents stored under older versions recompute their `yogas`/`doshas` from chart facts at render/search (the resolver reads chart planets + houses + aspects + nakshatra lordship)
+- Cancellation/mitigation rules are registered **per tradition** with provenance — conflicting tradition rules are never silently combined
+- The catalog is the only place the calculation path references yoga/dosha identity; everything downstream (engine, storage, UI, search) is generic
 
 ### Chart Data
 

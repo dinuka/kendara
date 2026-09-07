@@ -27,6 +27,7 @@ import { toBirthChartData } from "@/lib/chartDataTransform";
 import { aspectPointSignedDelta } from "@/lib/planetAspects";
 import { getSuggestions, insertSuggestion, splitLastToken } from "@/lib/search/suggestions";
 import { detectLanguage } from "@/lib/search/utils";
+import { catalogNameFor } from "@/lib/yogaDosha";
 import Link from "next/link";
 
 const STRENGTH_TRANSLATION_KEYS: Record<PlanetaryStrength, string> = {
@@ -556,10 +557,27 @@ const SearchResultCard = ({
     onBookmark: () => void;
     isBookmarked: boolean;
 }) => {
-    const { t } = useI18n();
+    const { t, locale } = useI18n();
     const [expandedPlanets, setExpandedPlanets] = useState<Set<number>>(new Set());
     const h = result.horoscope;
     const cd = h.calculatedDetails as Record<string, unknown> | undefined;
+
+    // Yoga/dosha display name: v1 stored entries carry a catalog `id` (preferred); pre-v1 docs
+    // only have a display `name`. Resolve per-locale so both shapes render correctly (SR-YD-330).
+    const displayName = (entry: Record<string, unknown>): string => {
+        if (typeof entry.id === "string") {
+            const name = catalogNameFor(entry.id, locale as "en" | "si");
+            if (name) return name;
+        }
+        return typeof entry.name === "string" ? entry.name : "";
+    };
+
+    const doshaDotIsHigh = (d: Record<string, unknown>): boolean => {
+        const legacySeverity = typeof d.severity === "string" ? d.severity.toLowerCase() : "";
+        if (legacySeverity === "high") return true;
+        const v1Severity = (d.finalAssessment as Record<string, unknown> | undefined)?.severity;
+        return typeof v1Severity === "number" && v1Severity >= 1 && v1Severity <= 2;
+    };
     // Maranakaraka recomputed from the lagna chart (never D9); legacy docs stored a single planet.
     // Uses the planet's whole-sign Rashi house (p.house), never the cusp-boundary range.
     const maranakarakaPlanets = cd?.planets
@@ -1217,7 +1235,7 @@ const SearchResultCard = ({
                                         {(cd!.yogas as Array<Record<string, unknown>>).map((y, i) => (
                                             <div key={i} className="flex items-center gap-1.5 text-xs">
                                                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0" />
-                                                <span className="font-medium text-gray-700">{y.name as string}</span>
+                                                <span className="font-medium text-gray-700">{displayName(y)}</span>
                                                 {y.isBeneficial === false && (
                                                     <span className="text-[10px] px-1 rounded bg-red-50 text-red-600">
                                                         {t("search.card.malefic")}
@@ -1251,11 +1269,9 @@ const SearchResultCard = ({
                                             .map((d, i) => (
                                                 <div key={i} className="flex items-center gap-1.5 text-xs">
                                                     <span
-                                                        className={`w-1.5 h-1.5 rounded-full shrink-0 ${((d.severity as string) || "").toLowerCase() === "high" ? "bg-red-400" : "bg-amber-400"}`}
+                                                        className={`w-1.5 h-1.5 rounded-full shrink-0 ${doshaDotIsHigh(d) ? "bg-red-400" : "bg-amber-400"}`}
                                                     />
-                                                    <span className="font-medium text-gray-700">
-                                                        {d.name as string}
-                                                    </span>
+                                                    <span className="font-medium text-gray-700">{displayName(d)}</span>
                                                     <span className="text-gray-400">
                                                         {(d.severity as string) || ""}
                                                     </span>

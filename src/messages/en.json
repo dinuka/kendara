@@ -71,6 +71,7 @@
         "charts": "Charts",
         "calculations": "Calculations",
         "dashas": "Dashas",
+        "yogaDoshas": "Yogas & Doshas",
         "metadata": "Metadata",
         "download": "Download",
         "share": "Share",
@@ -931,6 +932,122 @@
         "previous": "Previous",
         "next": "Next",
         "page_of": "Page {page} of {total}"
+    },
+    "yogaDosha": {
+        "title": "Yogas & Doshas",
+        "infoGlyph": "Yogas combine planetary placements into auspicious patterns; doshas mark challenging ones. Strength and status are shown on each tag — select a tag to see why it formed.",
+        "yogaGroup": "Yogas",
+        "doshaGroup": "Doshas",
+        "countLabel": "({count})",
+        "emptyYogas": "No yogas detected in this chart.",
+        "emptyDoshas": "No doshas detected in this chart.",
+        "unknownName": "not available",
+        "houseHeading": "House {house}",
+        "itemGroup": "General",
+        "whyItForms": "Why it forms",
+        "result": "Result",
+        "expression": "Expression",
+        "cancellation": "Cancellation",
+        "mitigation": "Mitigation",
+        "mitigationNote": "Mitigation softens the effect — it does not cancel the yoga or dosha.",
+        "groupYogaAria": "Yogas",
+        "groupDoshaAria": "Doshas"
+    },
+    "yogaStrength": {
+        "1": "Very strong",
+        "2": "Strong",
+        "3": "Moderate",
+        "4": "Weak"
+    },
+    "cancellationStatus": {
+        "1": "Not cancelled",
+        "2": "Cancelled",
+        "3": "Mitigated"
+    },
+    "tradition": {
+        "MAIN_STREAM": "Mainstream"
+    },
+    "yoga": {},
+    "dosha": {
+        "shaniMangala": {
+            "name": "Shani Mangala Dosha",
+            "rule": {
+                "sm01": "Saturn and Mars conjoin in one sign and house.",
+                "sm02": "Saturn and Mars sit 7th from each other.",
+                "sm03": "Mars is 10th from Saturn and Saturn is 4th from Mars."
+            },
+            "theme": {
+                "house1": "Relates to self and vitality.",
+                "house2": "Relates to family and wealth.",
+                "house3": "Relates to courage and effort.",
+                "house4": "Relates to home, property and domestic life.",
+                "house5": "Relates to creativity and children.",
+                "house6": "Relates to obstacles and service.",
+                "house7": "Relates to partnerships and marriage.",
+                "house8": "Relates to longevity, inheritance and hidden matters.",
+                "house9": "Relates to fortune and higher learning.",
+                "house10": "Relates to career, status and karma.",
+                "house11": "Relates to gains and networks.",
+                "house12": "Relates to losses and foreign lands."
+            },
+            "expression": {
+                "main": "Its results tend to surface strongly in kendra-related matters and during Saturn or Mars periods."
+            },
+            "dashaNote": "May become more noticeable during Saturn or Mars dasha periods.",
+            "mitigation": {
+                "sm-mit-001": "Jupiter's influence tends to soften this dosha."
+            }
+        },
+        "agniMarutha": {
+            "name": "Agni Marutha Dosha",
+            "rule": {
+                "am01": "Saturn and Mars conjoin in one sign and house.",
+                "am02": "Mars aspects Saturn.",
+                "am03": "Saturn aspects Mars.",
+                "am04": "Saturn is placed in a sign owned by Mars.",
+                "am05": "Mars is placed in a sign owned by Saturn.",
+                "am06": "Saturn is placed in a nakshatra owned by Mars.",
+                "am07": "Mars is placed in a nakshatra owned by Saturn.",
+                "am08": "Saturn and Mars exchange signs (parivartana)."
+            },
+            "theme": {
+                "house1": "Relates to self and vitality.",
+                "house2": "Relates to family and wealth.",
+                "house3": "Relates to courage and effort.",
+                "house4": "Relates to home, property and domestic life.",
+                "house5": "Relates to creativity and children.",
+                "house6": "Relates to obstacles and service.",
+                "house7": "Relates to partnerships and marriage.",
+                "house8": "Relates to longevity, inheritance and hidden matters.",
+                "house9": "Relates to fortune and higher learning.",
+                "house10": "Relates to career, status and karma.",
+                "house11": "Relates to gains and networks.",
+                "house12": "Relates to losses and foreign lands."
+            },
+            "expression": {
+                "main": "Its results tend to surface in matters of discipline, effort and friction, especially during Saturn or Mars periods."
+            },
+            "dashaNote": "May become more noticeable during Saturn or Mars dasha periods."
+        },
+        "manglik": {
+            "name": "Manglik Dosha",
+            "rule": {
+                "mk01": "Mars occupies house {house} from the lagna."
+            },
+            "theme": {
+                "house1": "Relates to temperament and vitality.",
+                "house4": "Relates to domestic harmony.",
+                "house7": "Relates to the marriage partnership.",
+                "house8": "Relates to longevity and crisis.",
+                "house12": "Relates to expenditure and losses."
+            },
+            "expression": {
+                "partnershipStress": "It tends to create friction in partnership matters; its weight depends on the whole chart."
+            },
+            "mitigation": {
+                "mk-mit-001": "Jupiter's aspect tends to soften this dosha."
+            }
+        }
     },
     "notepad": {
         "title": "Student Notepad",
