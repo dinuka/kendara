@@ -151,6 +151,7 @@ describe("search: Yoga/Dosha catalog names (SR-YD-800..805)", () => {
             "malavya",
             "sasha",
             "deeptaYoga",
+            "dhanaYoga",
         ]);
         expect(result.yogas[0].isPresent).toBe(false);
         expect(result.doshas[0].isPresent).toBe(true);

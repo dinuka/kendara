@@ -289,6 +289,20 @@
             "cancellation": {
                 "status": 1
             }
+        },
+        {
+            "id": "dhanaYoga",
+            "isPresent": true,
+            "formation": {
+                "primaryRule": "dhanaYoga.dh01",
+                "strength": 1
+            },
+            "finalAssessment": {
+                "severity": 1
+            },
+            "cancellation": {
+                "status": 1
+            }
         }
     ],
     "doshas": [

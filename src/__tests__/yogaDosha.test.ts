@@ -133,6 +133,7 @@ describe("Catalog & enums (UT-YD-001..008)", () => {
             "malavya",
             "sasha",
             "deeptaYoga",
+            "dhanaYoga",
         ]);
         expect(YOGA_CATALOG[0].kind).toBe("yoga");
         expect(YOGA_CATALOG[0].status).toBe("ACTIVE");
@@ -277,6 +278,9 @@ describe("Catalog & enums (UT-YD-001..008)", () => {
             "malavya.pmp04",
             "sasha.pmp05",
             "deeptaYoga.dy01",
+            "dhanaYoga.dh01",
+            "dhanaYoga.dh02",
+            "dhanaYoga.dh03",
         ]);
         expect(YOGA_CATALOG[0].rules.map((r) => r.strength)).toEqual([1, 2, 1]);
         expect(YOGA_CATALOG[0].planets).toEqual([1, 2, 3, 4, 5, 6, 7]);
@@ -433,6 +437,9 @@ describe("Catalog & enums (UT-YD-001..008)", () => {
                 for (let house = 1; house <= 12; house++) keys.push(`${entry.i18nKey}.theme.house${house}`);
             } else if (PMP_IDS.includes(entry.id)) {
                 for (const house of [1, 4, 7, 10]) keys.push(`${entry.i18nKey}.theme.house${house}`);
+            } else if (entry.id === "dhanaYoga") {
+                // Dhana Yoga (docs/dhana-yoga.md) connects the dhana houses 2, 5, 9, 11.
+                for (const house of [2, 5, 9, 11]) keys.push(`${entry.i18nKey}.theme.house${house}`);
             } else {
                 for (const house of [1, 2, 4, 7, 8, 12]) keys.push(`${entry.i18nKey}.theme.house${house}`);
             }
@@ -1275,7 +1282,7 @@ describe("Parashara Sambandha Yoga (UT-PS-001..010)", () => {
             expect(validateYogaDoshaShape(entry)).toEqual([]);
         }
         // The family covers every adjacent pair EXCEPT none — all ten catalog yogas evaluated.
-        expect(engine.yogas.map((y) => y.id)).toHaveLength(17);
+        expect(engine.yogas.map((y) => y.id)).toHaveLength(18);
     });
 });
 
@@ -1633,6 +1640,7 @@ describe("Rule engine (UT-YD-080..090)", () => {
             "malavya",
             "sasha",
             "deeptaYoga",
+            "dhanaYoga",
         ]);
         expect(engine.yogas[0].isPresent).toBe(false);
         expect(engine.doshas.map((d) => d.id)).toEqual([
@@ -1928,6 +1936,7 @@ describe("Legacy & manual resolution (UT-YD-150..155)", () => {
             "malavya",
             "sasha",
             "deeptaYoga",
+            "dhanaYoga",
         ]);
         expect(engine.yogas[0].isPresent).toBe(false);
         expect(engine.doshas[0].isPresent).toBe(true);
@@ -1993,6 +2002,7 @@ describe("Legacy & manual resolution (UT-YD-150..155)", () => {
             "malavya",
             "sasha",
             "deeptaYoga",
+            "dhanaYoga",
         ]);
         expect(resolved?.[0].isPresent).toBe(false);
         // Corrupt stored entry → warn + derive (never crash).
@@ -2020,6 +2030,7 @@ describe("Legacy & manual resolution (UT-YD-150..155)", () => {
             "malavya",
             "sasha",
             "deeptaYoga",
+            "dhanaYoga",
         ]);
         expect(resolveYogas(corrupt)?.[0].isPresent).toBe(false);
         // Nothing derivable → undefined.
@@ -2163,6 +2174,7 @@ describe("Legacy & manual resolution (UT-YD-150..155)", () => {
             "malavya",
             "sasha",
             "deeptaYoga",
+            "dhanaYoga",
         ]);
         expect(engine.yogas[0].isPresent).toBe(false);
         expect(engine.doshas[0].isPresent).toBe(false);
@@ -2196,6 +2208,7 @@ describe("Legacy & manual resolution (UT-YD-150..155)", () => {
             "malavya",
             "sasha",
             "deeptaYoga",
+            "dhanaYoga",
         ]);
         expect(combined?.yogas?.[0]?.isPresent).toBe(false);
         expect(combined?.doshas?.[0]?.isPresent).toBe(true);

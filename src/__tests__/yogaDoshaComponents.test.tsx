@@ -62,6 +62,7 @@ jest.mock("@/hooks/useI18n", () => {
         "yogaDosha.references.Lagna": "Lagna",
         "yogaDosha.references.Moon": "Moon lagna (Chandra lagna)",
         "yogaDosha.references.Sun": "Sun lagna (Surya lagna)",
+        "yogaDosha.references.Venus": "Venus lagna (Shukra lagna)",
         "yoga.deeptaYoga.classification.Guru": "Guru Deeptha Yoga",
         "yoga.deeptaYoga.classification.Kuja": "Kuja Deeptha Yoga",
         "yoga.deeptaYoga.expression.Guru":
@@ -145,6 +146,7 @@ const engineDosha = (jupiterAspects?: boolean): DoshaEvaluation => {
         "malavya",
         "sasha",
         "deeptaYoga",
+        "dhanaYoga",
     ]);
     // The Dharma Karmadhipati Yoga stays absent in both variants: without Jupiter the 9th lord is
     // missing, and with Jupiter a one-directional 120° drishti fails the DK-02 mutual requirement.

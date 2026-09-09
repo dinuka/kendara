@@ -29,7 +29,18 @@ export type ParasharaYogaId =
 
 /** Yoga catalog ids (registered in catalog.ts). */
 export type YogaId =
-    "dharmaKarmadhipati" | ParasharaYogaId | "ruchaka" | "bhadra" | "hamsa" | "malavya" | "sasha" | "deeptaYoga";
+    | "dharmaKarmadhipati"
+    | ParasharaYogaId
+    | "ruchaka"
+    | "bhadra"
+    | "hamsa"
+    | "malavya"
+    | "sasha"
+    | "deeptaYoga"
+    | "dhanaYoga";
+
+/** Dhana Yoga rule ids (docs/dhana-yoga.md) — lords of houses 2, 5, 9, 11 relationship. */
+export type DhanaYogaRuleId = "dhanaYoga.dh01" | "dhanaYoga.dh02" | "dhanaYoga.dh03";
 
 /** Dosha catalog ids (registered in catalog.ts). */
 export type DoshaId = "shaniMangala" | "agniMarutha" | "manglik" | "kalaSarpa" | "kalaAmurtha";
@@ -68,7 +79,8 @@ export type YogaRuleId =
     | MalavyaRuleId
     | SashaRuleId
     | DeeptaYogaRuleId
-    | ParasharaYogaRuleId;
+    | ParasharaYogaRuleId
+    | DhanaYogaRuleId;
 export type DoshaRuleId = ShaniMangalaRuleId | AgniMaruthaRuleId | ManglikRuleId | KalaSarpaRuleId | KalaAmurthaRuleId;
 
 /** Registered mitigation rule ids (cancellation.ts). */

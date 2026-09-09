@@ -35,6 +35,7 @@ import {
     BhadraRuleId,
     ChartFacts,
     DeeptaYogaRuleId,
+    DhanaYogaRuleId,
     DharmaKarmadhipatiRuleId,
     HamsaRuleId,
     KalaAmurthaRuleId,
@@ -506,6 +507,67 @@ function evaluateKalaAmurthaRule(rule: KalaAmurthaRuleId, facts: ChartFacts): Ru
     return fired(rule, 1, "rule.ka01", undefined, [rahu.house, ketu.house]);
 }
 
+/**
+ * Dhana Yoga (docs/dhana-yoga.md): the owners of houses 2, 5, 9 and 11 must have a relationship
+ * (conjunction, mutual aspect, or parivartana/exchange) with at least one other dhana house lord.
+ * Evaluated from three reference points — Lagna, Moon (Chandra Lagna) and Sun (Surya Lagna).
+ * Same-lord exclusion applies: if the same planet owns both houses of a pair, that pair is skipped.
+ */
+const DHANA_HOUSES = [2, 5, 9, 11];
+
+function evaluateDhanaYogaRule(rule: DhanaYogaRuleId, facts: ChartFacts): RuleEvaluation {
+    const sambandha = rule.split(".")[1].slice(-2); // "01" | "02" | "03"
+    if (!facts.ascendantSign) return absent(rule);
+
+    const references: Array<{ name: string; sign: number | undefined }> = [
+        { name: "Lagna", sign: facts.ascendantSign },
+        { name: "Moon", sign: planetFact(facts, 2)?.sign },
+        { name: "Sun", sign: planetFact(facts, 1)?.sign },
+    ];
+
+    const strength = sambandha === "02" ? 2 : 1;
+
+    for (const reference of references) {
+        if (!reference.sign) continue;
+
+        for (let i = 0; i < DHANA_HOUSES.length; i++) {
+            for (let j = i + 1; j < DHANA_HOUSES.length; j++) {
+                const lord1 = lordOfSign(reference.sign, DHANA_HOUSES[i]);
+                const lord2 = lordOfSign(reference.sign, DHANA_HOUSES[j]);
+                if (lord1 === lord2) continue;
+
+                const planet1 = planetFact(facts, lord1);
+                const planet2 = planetFact(facts, lord2);
+                if (!planet1 || !planet2) continue;
+
+                const connected =
+                    sambandha === "01"
+                        ? areConjunct(planet1, planet2)
+                        : sambandha === "02"
+                          ? hasMutualAspectByDrishti(planet1, planet2)
+                          : isParivartana(planet1, planet2);
+                if (!connected) continue;
+
+                return fired(
+                    rule,
+                    strength,
+                    `rule.${sambandha === "01" ? "dh01" : sambandha === "02" ? "dh02" : "dh03"}`,
+                    {
+                        house1: DHANA_HOUSES[i],
+                        house2: DHANA_HOUSES[j],
+                        lord1,
+                        lord2,
+                        reference: reference.name,
+                    },
+                    [DHANA_HOUSES[i], DHANA_HOUSES[j]],
+                );
+            }
+        }
+    }
+
+    return absent(rule);
+}
+
 /** The ten Parashara sub-yogas besides Dharma Karmadhipati (docs/parashara-yoga.md) — their
  *  `ps01..ps03` rules all route to the shared evaluateParasharaRule. */
 const PARASHARA_YOGA_IDS = [
@@ -529,6 +591,7 @@ export function evaluateRule(rule: RuleId, facts: ChartFacts): RuleEvaluation {
     if (rule.startsWith("kalaSarpa.")) return evaluateKalaSarpaRule(rule as KalaSarpaRuleId, facts);
     if (rule.startsWith("kalaAmurtha.")) return evaluateKalaAmurthaRule(rule as KalaAmurthaRuleId, facts);
     if (rule.startsWith("deeptaYoga.")) return evaluateDeeptaYogaRule(rule as DeeptaYogaRuleId, facts);
+    if (rule.startsWith("dhanaYoga.")) return evaluateDhanaYogaRule(rule as DhanaYogaRuleId, facts);
     if (rule.startsWith("dharmaKarmadhipati."))
         return evaluateDharmaKarmadhipatiRule(rule as DharmaKarmadhipatiRuleId, facts);
     if (PARASHARA_YOGA_IDS.some((id) => rule.startsWith(`${id}.`)))

@@ -948,7 +948,8 @@
         "references": {
             "Lagna": "Lagna",
             "Moon": "Moon lagna (Chandra lagna)",
-            "Sun": "Sun lagna (Surya lagna)"
+            "Sun": "Sun lagna (Surya lagna)",
+            "Venus": "Venus lagna (Shukra lagna)"
         },
         "result": "Result",
         "expression": "Expression",
@@ -1356,6 +1357,23 @@
             },
             "expression": {
                 "main": "This yoga brings emotional and mental strain and a tendency toward careless or excessive expenditure."
+            }
+        },
+        "dhanaYoga": {
+            "name": "Dhana Yoga",
+            "rule": {
+                "dh01": "From the {reference}, the lords of houses {house1} ({lord1Name}) and {house2} ({lord2Name}) conjoin in one sign and house.",
+                "dh02": "From the {reference}, the lords of houses {house1} ({lord1Name}) and {house2} ({lord2Name}) aspect each other.",
+                "dh03": "From the {reference}, the lords of houses {house1} ({lord1Name}) and {house2} ({lord2Name}) exchange signs (parivartana)."
+            },
+            "theme": {
+                "house2": "Relates to family and wealth.",
+                "house5": "Relates to creativity and children.",
+                "house9": "Relates to fortune, dharma and higher learning.",
+                "house11": "Relates to gains and networks."
+            },
+            "expression": {
+                "main": "This yoga connects the wealth-producing houses, favouring accumulation of wealth and material prosperity."
             }
         }
     },
