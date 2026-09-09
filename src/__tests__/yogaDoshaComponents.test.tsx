@@ -55,6 +55,10 @@ jest.mock("@/hooks/useI18n", () => {
         "dosha.manglik.expression.partnershipStress": "Partnership stress indicator.",
         "dosha.manglik.mitigation.mk-mit-001": "Jupiter's aspect mitigates the dosha.",
         "yoga.dharmaKarmadhipati.name": "Dharma Karmadhipati Yoga",
+        "yoga.deeptaYoga.classification.Guru": "Guru Deeptha Yoga",
+        "yoga.deeptaYoga.classification.Kuja": "Kuja Deeptha Yoga",
+        "yoga.deeptaYoga.expression.Guru":
+            "Wealth is gained, renown and praise come, and advisory services are provided.",
     };
 
     return {
@@ -123,6 +127,7 @@ const engineDosha = (jupiterAspects?: boolean): DoshaEvaluation => {
         "hamsa",
         "malavya",
         "sasha",
+        "deeptaYoga",
     ]);
     // The Dharma Karmadhipati Yoga stays absent in both variants: without Jupiter the 9th lord is
     // missing, and with Jupiter a one-directional 120° drishti fails the DK-02 mutual requirement.
@@ -370,6 +375,41 @@ describe("AX-YD-603/604: tag labels, cancelled chips, unknown chips", () => {
             screen.getByRole("button", { name: "Shani Mangala Dosha, Very strong, Not cancelled" }),
         ).toBeInTheDocument();
         expect(screen.getByRole("button", { name: "Manglik, Strong, Not cancelled" })).toBeInTheDocument();
+    });
+
+    test("deeptaYoga tag + panel are named after the classifying planet ('Guru Deeptha Yoga')", () => {
+        const result: YogaDoshaResult = {
+            yogas: [
+                presentYoga({
+                    id: "deeptaYoga",
+                    classification: "Guru",
+                    formation: {
+                        rulesTriggered: ["deeptaYoga.dy01"],
+                        primaryRule: "deeptaYoga.dy01",
+                        strength: YogaStrength.STRONG,
+                        reasons: [
+                            {
+                                rule: "deeptaYoga.dy01",
+                                reasonKey: "rule.dy01",
+                                params: { planet: 5, classification: "Guru" },
+                            },
+                        ],
+                    },
+                }),
+            ],
+            doshas: [],
+        };
+        render(<YogaDoshaSection result={result} />);
+
+        const tag = screen.getByRole("button", { name: "Guru Deeptha Yoga, Strong, Not cancelled" });
+        fireEvent.click(tag);
+        // The region name and the panel h4 both come from the classification-qualified name.
+        expect(screen.getByRole("region", { name: "Guru Deeptha Yoga" })).toBeInTheDocument();
+        expect(screen.getByRole("heading", { name: "Guru Deeptha Yoga" })).toBeInTheDocument();
+        // The expression paragraph resolves to the classification-specific (Guru) text, not the generic main.
+        expect(
+            screen.getByText("Wealth is gained, renown and praise come, and advisory services are provided."),
+        ).toBeInTheDocument();
     });
 });
 

@@ -1,8 +1,5 @@
 "use client";
 
-import { useI18n } from "@/hooks/useI18n";
-import { YogaDoshaEvaluation } from "@/lib/yogaDosha";
-
 import CancellationBlock from "@/components/yogaDosha/CancellationBlock";
 import DashaNoteBlock from "@/components/yogaDosha/DashaNoteBlock";
 import ExpressionBlock from "@/components/yogaDosha/ExpressionBlock";
@@ -11,6 +8,9 @@ import ReasonBlock from "@/components/yogaDosha/ReasonBlock";
 import ResultBlock from "@/components/yogaDosha/ResultBlock";
 import StateBadge from "@/components/yogaDosha/StateBadge";
 import YogaStrengthPill from "@/components/yogaDosha/YogaStrengthPill";
+import { useI18n } from "@/hooks/useI18n";
+
+import { YogaDoshaEvaluation, classificationNameKey } from "@/lib/yogaDosha";
 
 interface YogaDoshaDetailPanelProps {
     entry: YogaDoshaEvaluation;
@@ -22,6 +22,7 @@ interface YogaDoshaDetailPanelProps {
 const YogaDoshaDetailPanel = ({ entry, panelId, titleId }: YogaDoshaDetailPanelProps) => {
     const { t } = useI18n();
     const root = `${entry.kind}.${entry.id}`;
+    const titleKey = classificationNameKey(entry) ?? `${root}.name`;
 
     return (
         <div
@@ -32,7 +33,7 @@ const YogaDoshaDetailPanel = ({ entry, panelId, titleId }: YogaDoshaDetailPanelP
         >
             <div className="flex flex-wrap items-center gap-2">
                 <h4 id={titleId} className="text-sm font-semibold text-gray-900">
-                    {t(`${root}.name`)}
+                    {t(titleKey)}
                 </h4>
                 <span className="rounded px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-indigo-700 bg-indigo-50 border border-indigo-200">
                     {t(`tradition.${entry.tradition}`)}

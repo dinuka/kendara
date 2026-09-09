@@ -135,6 +135,20 @@
             "cancellation": {
                 "status": 1
             }
+        },
+        {
+            "id": "deeptaYoga",
+            "isPresent": false,
+            "formation": {
+                "primaryRule": "",
+                "strength": 4
+            },
+            "finalAssessment": {
+                "severity": 4
+            },
+            "cancellation": {
+                "status": 1
+            }
         }
     ],
     "doshas": [
@@ -149,6 +163,14 @@
         {
             "id": "manglik",
             "isPresent": true
+        },
+        {
+            "id": "kalaSarpa",
+            "isPresent": true
+        },
+        {
+            "id": "kalaAmurtha",
+            "isPresent": false
         }
     ]
 }

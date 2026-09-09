@@ -416,6 +416,7 @@ describe("calculateHoroscope Yoga/Dosha tags (IT-YD-200..202)", () => {
             "hamsa",
             "malavya",
             "sasha",
+            "deeptaYoga",
         ]);
         expect(persisted.yogas[0].isPresent).toBe(true);
         expect(persisted.doshas.doshas[0].id).toBe("shaniMangala");
@@ -424,6 +425,8 @@ describe("calculateHoroscope Yoga/Dosha tags (IT-YD-200..202)", () => {
             "shaniMangala",
             "agniMarutha",
             "manglik",
+            "kalaSarpa",
+            "kalaAmurtha",
         ]);
     });
 

@@ -34,8 +34,11 @@ import {
     AgniMaruthaRuleId,
     BhadraRuleId,
     ChartFacts,
+    DeeptaYogaRuleId,
     DharmaKarmadhipatiRuleId,
     HamsaRuleId,
+    KalaAmurthaRuleId,
+    KalaSarpaRuleId,
     MalavyaRuleId,
     ManglikRuleId,
     RuchakaRuleId,
@@ -68,6 +71,39 @@ const PMP_PLANET_DATA: Record<number, { ownSigns: number[]; exaltSign: number }>
  */
 export const KUJA_DOSHA_HOUSES = [1, 2, 4, 7, 8, 12];
 
+/** The seven classical planets considered by Kala Sarpa / Kala Amurtha / Deepta Yoga
+ *  (docs/kala sarpa dosha.md §1). Rahu (8) and Ketu (9) are the reference points, never counted. */
+export const CLASSICAL_PLANETS = [1, 2, 3, 4, 5, 6, 7];
+
+/** Planets capable of producing a Pancha Maha Purusha Yoga / Deepta Yoga (the five non-luminaries).
+ *  Sun, Moon, Rahu and Ketu can never be the Deepta Yoga planet. */
+export const DEEPTA_YOGA_PLANETS = [3, 4, 5, 6, 7];
+
+/** Deepta Yoga display classifications keyed by planet (docs/kala sarpa dosha.md §2). */
+export const DEEPTA_YOGA_NAMES: Record<number, string> = {
+    3: "Kuja",
+    4: "Budha",
+    5: "Guru",
+    6: "Shukra",
+    7: "Shani",
+};
+
+/** Kala Sarpa type classifications keyed by Rahu's house (1..12, docs/kala sarpa dosha.md §5). */
+export const KALA_SARPA_NAMES: Record<number, string> = {
+    1: "Ananta",
+    2: "Kulika",
+    3: "Vasuki",
+    4: "Shankhapala",
+    5: "Padma",
+    6: "Mahapadma",
+    7: "Takshaka",
+    8: "Karkotaka",
+    9: "Shankhachooda",
+    10: "Ghataka",
+    11: "Vishadhara",
+    12: "Sheshanaga",
+};
+
 function absent(rule: RuleId): RuleEvaluation {
     return { rule, triggered: false, strength: 4, reasonKey: "" };
 }
@@ -78,8 +114,9 @@ function fired(
     reasonKey: string,
     params?: RuleEvaluation["params"],
     houseImpact?: number[],
+    classification?: string,
 ): RuleEvaluation {
-    return { rule, triggered: true, strength, reasonKey, params, houseImpact };
+    return { rule, triggered: true, strength, reasonKey, params, houseImpact, classification };
 }
 
 /** Whole-sign house of Mars counted from a reference sign (docs/kuja-doshaya.md §2).
@@ -325,11 +362,108 @@ function evaluatePanchaMahaPurushaRule(
     );
 }
 
+/**
+ * Direction helper shared by Kala Sarpa / Kala Amurtha / Deepta Yoga: given Rahu and Ketu
+ * (whole-sign zodiacal degrees), compute the angular span of the Rahu→Ketu arc (0..360, the
+ * forward/clockwise direction along the zodiac from Rahu to Ketu). A classical planet lies:
+ *  - on the Rahu→Ketu arc (Ketu-directed side — heading toward Ketu), or
+ *  - on the complementary Ketu→Rahu arc (Rahu-directed side — heading toward Rahu).
+ * Absolute degrees are 0..360 so the arc is measured directly on the zodiac circle.
+ */
+function rahuToKetuArcDegrees(rahu: PlanetFact, ketu: PlanetFact): number {
+    return (((ketu.absoluteDegree - rahu.absoluteDegree) % 360) + 360) % 360;
+}
+
+/** True when a planet lies on the Rahu→Ketu (Ketu-directed) arc of the zodiac. */
+function isOnKetuDirectedSide(planetAbs: number, rahuAbs: number, ketuAbs: number, rahuToKetu: number): boolean {
+    return (((planetAbs - rahuAbs) % 360) + 360) % 360 <= rahuToKetu;
+}
+
+/**
+ * Deepta Yoga (docs/kala sarpa dosha.md §2): of the seven classical planets exactly one lies
+ * outside the Kala Sarpa enclosure — six classical planets sit on the Rahu-directed (Ketu → Rahu)
+ * arc while the lone planet is on the Ketu-directed (Rahu → Ketu) arc (a 6-1 split). The lone
+ * planet must be capable of a Pancha Maha Purusha Yoga (Mars, Mercury, Jupiter, Venus or Saturn);
+ * Sun and Moon are never eligible. A 6-1 split with the six on the Ketu-directed side (Kala
+ * Amurtha frame) is NOT Deepta — that is the reverse directional configuration.
+ */
+function evaluateDeeptaYogaRule(rule: DeeptaYogaRuleId, facts: ChartFacts): RuleEvaluation {
+    const rahu = planetFact(facts, 8);
+    const ketu = planetFact(facts, 9);
+    if (!rahu || !ketu) return absent(rule);
+
+    const arc = rahuToKetuArcDegrees(rahu, ketu);
+    const classical = facts.planets.filter((p) => CLASSICAL_PLANETS.includes(p.planetName));
+    if (classical.length !== CLASSICAL_PLANETS.length) return absent(rule);
+
+    const onKetuSide = classical.filter((p) =>
+        isOnKetuDirectedSide(p.absoluteDegree, rahu.absoluteDegree, ketu.absoluteDegree, arc),
+    );
+    const onRahuSide = classical.filter(
+        (p) => !isOnKetuDirectedSide(p.absoluteDegree, rahu.absoluteDegree, ketu.absoluteDegree, arc),
+    );
+
+    if (onRahuSide.length !== 6 || onKetuSide.length !== 1) return absent(rule);
+    const lone = onKetuSide[0];
+    if (!DEEPTA_YOGA_PLANETS.includes(lone.planetName)) return absent(rule);
+
+    const classification = DEEPTA_YOGA_NAMES[lone.planetName];
+    return fired(rule, 2, "rule.dy01", { planet: lone.planetName, classification }, [lone.house], classification);
+}
+
+/**
+ * Kala Sarpa Dosha (docs/kala sarpa dosha.md §4): all seven classical planets lie in the same
+ * Rahu–Ketu half of the zodiac, proceeding in the direction of Rahu — i.e. all on the
+ * Ketu → Rahu arc (heading toward Rahu). None may be on the opposite (Rahu → Ketu, Ketu-directed)
+ * side. The type is classified by Rahu's Lagna-based house (§5).
+ */
+function evaluateKalaSarpaRule(rule: KalaSarpaRuleId, facts: ChartFacts): RuleEvaluation {
+    const rahu = planetFact(facts, 8);
+    const ketu = planetFact(facts, 9);
+    if (!rahu || !ketu) return absent(rule);
+
+    const arc = rahuToKetuArcDegrees(rahu, ketu);
+    const classical = facts.planets.filter((p) => CLASSICAL_PLANETS.includes(p.planetName));
+    if (classical.length !== CLASSICAL_PLANETS.length) return absent(rule);
+
+    const allRahuDirected = classical.every(
+        (p) => !isOnKetuDirectedSide(p.absoluteDegree, rahu.absoluteDegree, ketu.absoluteDegree, arc),
+    );
+    if (!allRahuDirected) return absent(rule);
+
+    const classification = KALA_SARPA_NAMES[rahu.house];
+    return fired(rule, 1, "rule.ks01", { classification, rahuHouse: rahu.house }, [rahu.house], classification);
+}
+
+/**
+ * Kala Amurtha Dosha (docs/kala sarpa dosha.md §7): the opposite directional configuration to
+ * Kala Sarpa — all seven classical planets lie on the Rahu → Ketu arc (heading toward Ketu).
+ */
+function evaluateKalaAmurthaRule(rule: KalaAmurthaRuleId, facts: ChartFacts): RuleEvaluation {
+    const rahu = planetFact(facts, 8);
+    const ketu = planetFact(facts, 9);
+    if (!rahu || !ketu) return absent(rule);
+
+    const arc = rahuToKetuArcDegrees(rahu, ketu);
+    const classical = facts.planets.filter((p) => CLASSICAL_PLANETS.includes(p.planetName));
+    if (classical.length !== CLASSICAL_PLANETS.length) return absent(rule);
+
+    const allKetuDirected = classical.every((p) =>
+        isOnKetuDirectedSide(p.absoluteDegree, rahu.absoluteDegree, ketu.absoluteDegree, arc),
+    );
+    if (!allKetuDirected) return absent(rule);
+
+    return fired(rule, 1, "rule.ka01", undefined, [rahu.house, ketu.house]);
+}
+
 /** Evaluates every catalog rule of an entry (catalog order). Triggers dedupe upstream. */
 export function evaluateRule(rule: RuleId, facts: ChartFacts): RuleEvaluation {
     if (rule.startsWith("shaniMangala.")) return evaluateShaniMangalaRule(rule as ShaniMangalaRuleId, facts);
     if (rule.startsWith("agniMarutha.")) return evaluateAgniMaruthaRule(rule as AgniMaruthaRuleId, facts);
     if (rule.startsWith("manglik.")) return evaluateManglikRule(rule as ManglikRuleId, facts);
+    if (rule.startsWith("kalaSarpa.")) return evaluateKalaSarpaRule(rule as KalaSarpaRuleId, facts);
+    if (rule.startsWith("kalaAmurtha.")) return evaluateKalaAmurthaRule(rule as KalaAmurthaRuleId, facts);
+    if (rule.startsWith("deeptaYoga.")) return evaluateDeeptaYogaRule(rule as DeeptaYogaRuleId, facts);
     if (rule.startsWith("dharmaKarmadhipati."))
         return evaluateDharmaKarmadhipatiRule(rule as DharmaKarmadhipatiRuleId, facts);
     if (

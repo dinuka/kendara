@@ -1,7 +1,8 @@
 "use client";
 
 import { useI18n } from "@/hooks/useI18n";
-import { YogaDoshaEvaluation } from "@/lib/yogaDosha";
+
+import { YogaDoshaEvaluation, classificationExpressionKey } from "@/lib/yogaDosha";
 
 interface ExpressionBlockProps {
     entry: YogaDoshaEvaluation;
@@ -16,12 +17,10 @@ const ExpressionBlock = ({ entry }: ExpressionBlockProps) => {
 
     return (
         <div>
-            <h5 className="font-semibold text-xs text-gray-700 uppercase tracking-wide">
-                {t("yogaDosha.expression")}
-            </h5>
+            <h5 className="font-semibold text-xs text-gray-700 uppercase tracking-wide">{t("yogaDosha.expression")}</h5>
             <div className="mt-1 space-y-1 text-sm text-gray-800">
                 {entry.finalAssessment.expressionKeys.map((key) => (
-                    <p key={key}>{t(`${root}.${key}`)}</p>
+                    <p key={key}>{t(classificationExpressionKey(entry) ?? `${root}.${key}`)}</p>
                 ))}
             </div>
         </div>

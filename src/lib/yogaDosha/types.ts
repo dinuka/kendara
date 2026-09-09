@@ -18,7 +18,7 @@ export type CatalogKind = "yoga" | "dosha";
 export type YogaId = "dharmaKarmadhipati" | "ruchaka" | "bhadra" | "hamsa" | "malavya" | "sasha";
 
 /** Dosha catalog ids (registered in catalog.ts). */
-export type DoshaId = "shaniMangala" | "agniMarutha" | "manglik";
+export type DoshaId = "shaniMangala" | "agniMarutha" | "manglik" | "kalaSarpa" | "kalaAmurtha";
 
 /** Registered rule ids per catalog entry (rules.ts).
  *  Shani Mangala (narrow subset) and Agni Marutha (broad Saturn–Mars relationship) are distinct
@@ -35,6 +35,8 @@ export type AgniMaruthaRuleId =
     | "agniMarutha.am07"
     | "agniMarutha.am08";
 export type ManglikRuleId = "manglik.mk01" | "manglik.mk02" | "manglik.mk03";
+export type KalaSarpaRuleId = "kalaSarpa.ks01";
+export type KalaAmurthaRuleId = "kalaAmurtha.ka01";
 export type DharmaKarmadhipatiRuleId =
     "dharmaKarmadhipati.dk01" | "dharmaKarmadhipati.dk02" | "dharmaKarmadhipati.dk03";
 export type RuchakaRuleId = "ruchaka.pmp01";
@@ -42,9 +44,16 @@ export type BhadraRuleId = "bhadra.pmp02";
 export type HamsaRuleId = "hamsa.pmp03";
 export type MalavyaRuleId = "malavya.pmp04";
 export type SashaRuleId = "sasha.pmp05";
+export type DeeptaYogaRuleId = "deeptaYoga.dy01";
 export type YogaRuleId =
-    DharmaKarmadhipatiRuleId | RuchakaRuleId | BhadraRuleId | HamsaRuleId | MalavyaRuleId | SashaRuleId;
-export type DoshaRuleId = ShaniMangalaRuleId | AgniMaruthaRuleId | ManglikRuleId;
+    | DharmaKarmadhipatiRuleId
+    | RuchakaRuleId
+    | BhadraRuleId
+    | HamsaRuleId
+    | MalavyaRuleId
+    | SashaRuleId
+    | DeeptaYogaRuleId;
+export type DoshaRuleId = ShaniMangalaRuleId | AgniMaruthaRuleId | ManglikRuleId | KalaSarpaRuleId | KalaAmurthaRuleId;
 
 /** Registered mitigation rule ids (cancellation.ts). */
 export type MitigationKey = "shaniMangala.mitigation.sm-mit-001" | "manglik.mitigation.mk-mit-001";
@@ -55,7 +64,8 @@ export type MitigationConfidence = 1 | 2 | 3;
 /** Registered cancellation rule ids (cancellation.ts — none registered yet). */
 export type CancellationKey = "shaniMangala.cancellation.sm-can-001";
 
-export type RuleId = YogaRuleId | DoshaRuleId | MitigationKey | CancellationKey;
+export type RuleId =
+    YogaRuleId | DoshaRuleId | MitigationKey | CancellationKey | KalaSarpaRuleId | KalaAmurthaRuleId | DeeptaYogaRuleId;
 
 /** A single planet as the engine consumes it (subset of the stored Planet record). */
 export interface PlanetFact {
@@ -171,11 +181,15 @@ interface RuleEvaluationBase {
 export interface YogaEvaluation extends RuleEvaluationBase {
     id: YogaId;
     kind: "yoga";
+    /** Sub-type classification (e.g. "Kuja" for Deepta Yoga). */
+    classification?: string;
 }
 
 export interface DoshaEvaluation extends RuleEvaluationBase {
     id: DoshaId;
     kind: "dosha";
+    /** Sub-type classification (e.g. "Ananta" for Kala Sarpa, "Kuja" for Deepta Yoga). */
+    classification?: string;
 }
 
 export type YogaDoshaEvaluation = YogaEvaluation | DoshaEvaluation;
@@ -195,4 +209,6 @@ export interface RuleEvaluation {
     params?: Record<string, string | number>;
     /** Houses the rule's result emphasises (feeds context.houseImpact). */
     houseImpact?: number[];
+    /** Sub-type classification for doshas/yogas with multiple variants (e.g. "Ananta"). */
+    classification?: string;
 }

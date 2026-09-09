@@ -10,9 +10,12 @@
 import {
     BhadraRuleId,
     DashaActivation,
+    DeeptaYogaRuleId,
     DoshaId,
     DoshaRuleId,
     HamsaRuleId,
+    KalaAmurthaRuleId,
+    KalaSarpaRuleId,
     MalavyaRuleId,
     MitigationKey,
     RuchakaRuleId,
@@ -189,6 +192,42 @@ export const YOGA_CATALOG: YogaCatalogEntry[] = [
         rules: [{ rule: "sasha.pmp05", strength: 2, reasonKey: "rule.pmp05" }],
         mitigations: [],
     },
+    {
+        kind: "yoga",
+        id: "deeptaYoga",
+        tradition: "MAIN_STREAM",
+        status: "ACTIVE",
+        keywordEn: "Deeptha Yoga",
+        keywordSi: "දීප්ත යෝගය",
+        searchAliasesEn: [
+            // Both spellings resolve (SR-…): "Deeptha" is the display spelling, "Deepta" is kept
+            // as a search alias so legacy / transliteration queries still resolve to this yoga.
+            "Deeptha Yoga",
+            "Deeptha",
+            "Deepta Yoga",
+            "Deepta",
+            // Planet-qualified classifications match the i18n classification display names and
+            // the user-facing phrasing ("Guru Deeptha Yoghaya", "Kuja Deepta Yoghaya").
+            "Kuja Deeptha Yoga",
+            "Kuja Deepta Yoga",
+            "Budha Deeptha Yoga",
+            "Budha Deepta Yoga",
+            "Guru Deeptha Yoga",
+            "Guru Deepta Yoga",
+            "Shukra Deeptha Yoga",
+            "Shukra Deepta Yoga",
+            "Shani Deeptha Yoga",
+            "Shani Deepta Yoga",
+            "Pancha Maha Purusha partial",
+            "One planet outside Rahu Ketu",
+        ],
+        searchAliasesSi: ["දීප්ත යෝග", "දීප්ත"],
+        i18nKey: "yoga.deeptaYoga",
+        planets: [3, 4, 5, 6, 7],
+        expressionKeys: ["expression.main"],
+        rules: [{ rule: "deeptaYoga.dy01", strength: 2, reasonKey: "rule.dy01" }],
+        mitigations: [],
+    },
 ];
 
 export const DOSHA_CATALOG: DoshaCatalogEntry[] = [
@@ -267,6 +306,40 @@ export const DOSHA_CATALOG: DoshaCatalogEntry[] = [
         mitigations: ["manglik.mitigation.mk-mit-001"],
         cancellations: [],
     },
+    {
+        kind: "dosha",
+        id: "kalaSarpa",
+        tradition: "MAIN_STREAM",
+        status: "ACTIVE",
+        keywordEn: "Kala Sarpa Dosha",
+        keywordSi: "කාල සර්ප දෝෂය",
+        searchAliasesEn: ["Kala Sarpa", "Kala Sarpa Dosha", "Kalasarpa", "Kala Sarpa yoga"],
+        searchAliasesSi: ["කාල සර්ප", "කාල සර්ප දෝෂ", "කාලසර්ප"],
+        i18nKey: "dosha.kalaSarpa",
+        planets: [8, 9],
+        expressionKeys: ["expression.main"],
+        dashaActivation: { planets: [8], noteKey: "dosha.kalaSarpa.dashaNote" },
+        rules: [{ rule: "kalaSarpa.ks01", strength: 1, reasonKey: "rule.ks01" }],
+        mitigations: [],
+        cancellations: [],
+    },
+    {
+        kind: "dosha",
+        id: "kalaAmurtha",
+        tradition: "MAIN_STREAM",
+        status: "ACTIVE",
+        keywordEn: "Kala Amurtha Dosha",
+        keywordSi: "කාල අමුර්ත දෝෂය",
+        searchAliasesEn: ["Kala Amurtha", "Kala Amurtha Dosha", "Kala Amrita"],
+        searchAliasesSi: ["කාල අමුර්ත", "කාල අමෘත"],
+        i18nKey: "dosha.kalaAmurtha",
+        planets: [8, 9],
+        expressionKeys: ["expression.main"],
+        dashaActivation: { planets: [9], noteKey: "dosha.kalaAmurtha.dashaNote" },
+        rules: [{ rule: "kalaAmurtha.ka01", strength: 1, reasonKey: "rule.ka01" }],
+        mitigations: [],
+        cancellations: [],
+    },
 ];
 
 export function yogaCatalogEntry(id: YogaId): YogaCatalogEntry | undefined {
@@ -284,6 +357,30 @@ export function activeYogaEntries(): YogaCatalogEntry[] {
 
 export function activeDoshaEntries(): DoshaCatalogEntry[] {
     return DOSHA_CATALOG.filter((entry) => entry.status === "ACTIVE");
+}
+
+/** i18n key for an entry's classification-qualified display name, when one exists. Only
+ *  deeptaYoga renders planet-qualified names today (e.g. `yoga.deeptaYoga.classification.Guru`
+ *  → "Guru Deeptha Yoga"); other entries fall back to their base `name` key. */
+export function classificationNameKey(entry: { kind: string; id: string; classification?: string }): string | null {
+    if (entry.kind === "yoga" && entry.id === "deeptaYoga" && entry.classification) {
+        return `yoga.deeptaYoga.classification.${entry.classification}`;
+    }
+    return null;
+}
+
+/** i18n key for an entry's classification-qualified expression, when one exists. Only
+ *  deeptaYoga has per-planet expression text today (e.g. `yoga.deeptaYoga.expression.Guru`);
+ *  other entries keep their generic `expression.main` key. */
+export function classificationExpressionKey(entry: {
+    kind: string;
+    id: string;
+    classification?: string;
+}): string | null {
+    if (entry.kind === "yoga" && entry.id === "deeptaYoga" && entry.classification) {
+        return `yoga.deeptaYoga.expression.${entry.classification}`;
+    }
+    return null;
 }
 
 /** Display name for an evaluation (used by search results and CSV export). */

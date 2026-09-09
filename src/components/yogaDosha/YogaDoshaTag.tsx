@@ -3,7 +3,7 @@
 import { useI18n } from "@/hooks/useI18n";
 
 import { CancellationStatus } from "@/lib/astrologyEnums";
-import { YogaDoshaEvaluation, doshaCatalogEntry, yogaCatalogEntry } from "@/lib/yogaDosha";
+import { YogaDoshaEvaluation, classificationNameKey, doshaCatalogEntry, yogaCatalogEntry } from "@/lib/yogaDosha";
 
 interface YogaDoshaTagProps {
     entry: YogaDoshaEvaluation;
@@ -24,7 +24,10 @@ const YogaDoshaTag = ({ entry, open, onToggle }: YogaDoshaTagProps) => {
     const known = isKnownId(entry);
     const strength = t(`yogaStrength.${entry.finalAssessment.severity}`);
     const status = t(`cancellationStatus.${entry.cancellation.status}`);
-    const name = known ? t(`${entry.kind}.${entry.id}.name`) : t("yogaDosha.unknownName");
+    const nameKey = known
+        ? (classificationNameKey(entry) ?? `${entry.kind}.${entry.id}.name`)
+        : "yogaDosha.unknownName";
+    const name = t(nameKey);
     const isCancelled = entry.cancellation.status === CancellationStatus.CANCELLED;
     const isDosha = entry.kind === "dosha";
     // Color direction: a present dosha is a red tag; a present yoga is a green tag; a cancelled

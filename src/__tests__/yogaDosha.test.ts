@@ -122,13 +122,14 @@ describe("Catalog & enums (UT-YD-001..008)", () => {
             "hamsa",
             "malavya",
             "sasha",
+            "deeptaYoga",
         ]);
         expect(YOGA_CATALOG[0].kind).toBe("yoga");
         expect(YOGA_CATALOG[0].status).toBe("ACTIVE");
         expect(YOGA_CATALOG[0].keywordEn).toBe("Dharma Karmadhipati Yoga");
         expect(YOGA_CATALOG[0].keywordSi).toBe("ධර්ම කර්මාධිපති යෝගය");
         // Pancha Maha Purusha Yoga — five ACTIVE yogas (docs/pancha-maha-pursha-yoga.md).
-        const pmp = YOGA_CATALOG.slice(1).map((e) => e.id);
+        const pmp = YOGA_CATALOG.slice(1, 6).map((e) => e.id);
         expect(pmp).toEqual(["ruchaka", "bhadra", "hamsa", "malavya", "sasha"]);
         expect(YOGA_CATALOG[1].keywordEn).toBe("Ruchaka Yoga");
         expect(YOGA_CATALOG[1].keywordSi).toBe("රැචක යෝගය");
@@ -140,7 +141,27 @@ describe("Catalog & enums (UT-YD-001..008)", () => {
         expect(YOGA_CATALOG[4].keywordSi).toBe("මාලව්‍ය යෝගය");
         expect(YOGA_CATALOG[5].keywordEn).toBe("Sasha Yoga");
         expect(YOGA_CATALOG[5].keywordSi).toBe("ශශ යෝගය");
-        expect(DOSHA_CATALOG.map((e) => e.id)).toEqual(["shaniMangala", "agniMarutha", "manglik"]);
+        expect(YOGA_CATALOG[6].keywordEn).toBe("Deeptha Yoga");
+        expect(YOGA_CATALOG[6].keywordSi).toBe("දීප්ත යෝගය");
+        // Both spellings resolve (UT-YD-004d): "Deeptha" is the display spelling, "Deepta" is kept
+        // as a search alias so trans-literation / legacy queries still resolve to this yoga.
+        for (const alias of [
+            "Deeptha Yoga",
+            "Deeptha",
+            "Deepta Yoga",
+            "Deepta",
+            "Guru Deeptha Yoga",
+            "Guru Deepta Yoga",
+        ]) {
+            expect(YOGA_CATALOG[6].searchAliasesEn).toContain(alias);
+        }
+        expect(DOSHA_CATALOG.map((e) => e.id)).toEqual([
+            "shaniMangala",
+            "agniMarutha",
+            "manglik",
+            "kalaSarpa",
+            "kalaAmurtha",
+        ]);
         expect(DOSHA_CATALOG[0].kind).toBe("dosha");
         expect(DOSHA_CATALOG[0].status).toBe("ACTIVE");
         expect(DOSHA_CATALOG[0].keywordEn).toBe("Shani Mangala Dosha");
@@ -151,6 +172,12 @@ describe("Catalog & enums (UT-YD-001..008)", () => {
         expect(DOSHA_CATALOG[1].keywordSi).toBe("අග්නි මාරුත දෝෂය");
         expect(DOSHA_CATALOG[2].kind).toBe("dosha");
         expect(DOSHA_CATALOG[2].status).toBe("ACTIVE");
+        expect(DOSHA_CATALOG[2].keywordEn).toBe("Kuja Dosha");
+        expect(DOSHA_CATALOG[2].keywordSi).toBe("කුජ දෝෂය");
+        expect(DOSHA_CATALOG[3].keywordEn).toBe("Kala Sarpa Dosha");
+        expect(DOSHA_CATALOG[3].keywordSi).toBe("කාල සර්ප දෝෂය");
+        expect(DOSHA_CATALOG[4].keywordEn).toBe("Kala Amurtha Dosha");
+        expect(DOSHA_CATALOG[4].keywordSi).toBe("කාල අමුර්ත දෝෂය");
         // Every row carries the architect's registry columns.
         for (const entry of [...YOGA_CATALOG, ...DOSHA_CATALOG]) {
             expect(typeof entry.id).toBe("string");
@@ -175,6 +202,7 @@ describe("Catalog & enums (UT-YD-001..008)", () => {
             "hamsa.pmp03",
             "malavya.pmp04",
             "sasha.pmp05",
+            "deeptaYoga.dy01",
         ]);
         expect(YOGA_CATALOG[0].rules.map((r) => r.strength)).toEqual([1, 2, 1]);
         expect(YOGA_CATALOG[0].planets).toEqual([1, 2, 3, 4, 5, 6, 7]);
@@ -185,13 +213,17 @@ describe("Catalog & enums (UT-YD-001..008)", () => {
         // (Sasha). Rules carry the catalog default strength 2 (own sign); exaltation upgrades it
         // to 1 in the evaluator.
         const pmpPlanets = [3, 4, 5, 6, 7];
-        YOGA_CATALOG.slice(1).forEach((entry, i) => {
+        YOGA_CATALOG.slice(1, 6).forEach((entry, i) => {
             expect(entry.planets).toEqual([pmpPlanets[i]]);
             expect(entry.rules).toHaveLength(1);
             expect(entry.rules[0].strength).toBe(2);
             expect(entry.expressionKeys).toEqual(["expression.main"]);
             expect(entry.mitigations).toEqual([]);
         });
+        // Deepta Yoga — eligible planets are the five Pancha Maha Purusha dignitaries.
+        expect(YOGA_CATALOG[6].planets).toEqual([3, 4, 5, 6, 7]);
+        expect(YOGA_CATALOG[6].rules).toHaveLength(1);
+        expect(YOGA_CATALOG[6].expressionKeys).toEqual(["expression.main"]);
         expect(DOSHA_CATALOG[0].rules.map((r) => r.rule)).toEqual([
             "shaniMangala.sm01",
             "shaniMangala.sm02",
@@ -224,6 +256,13 @@ describe("Catalog & enums (UT-YD-001..008)", () => {
         ]);
         expect(DOSHA_CATALOG[2].planets).toEqual([3]);
         expect(DOSHA_CATALOG[2].expressionKeys).toEqual(["expression.partnershipStress"]);
+        // Kala Sarpa & Kala Amurtha — single Rahu/Ketu-axis detection rules each.
+        expect(DOSHA_CATALOG[3].rules).toEqual([{ rule: "kalaSarpa.ks01", strength: 1, reasonKey: "rule.ks01" }]);
+        expect(DOSHA_CATALOG[3].planets).toEqual([8, 9]);
+        expect(DOSHA_CATALOG[3].expressionKeys).toEqual(["expression.main"]);
+        expect(DOSHA_CATALOG[4].rules).toEqual([{ rule: "kalaAmurtha.ka01", strength: 1, reasonKey: "rule.ka01" }]);
+        expect(DOSHA_CATALOG[4].planets).toEqual([8, 9]);
+        expect(DOSHA_CATALOG[4].expressionKeys).toEqual(["expression.main"]);
     });
 
     test("UT-YD-003: ids unique + every rule id resolves a pure evaluator without throwing", () => {
@@ -247,9 +286,12 @@ describe("Catalog & enums (UT-YD-001..008)", () => {
             "hamsa",
             "malavya",
             "sasha",
+            "deeptaYoga",
             "shaniMangala",
             "agniMarutha",
             "manglik",
+            "kalaSarpa",
+            "kalaAmurtha",
         ]) {
             expect(catalogNameFor(id, "en").length).toBeGreaterThan(0);
             expect(catalogNameFor(id, "si").length).toBeGreaterThan(0);
@@ -275,6 +317,10 @@ describe("Catalog & enums (UT-YD-001..008)", () => {
             if (entry.id === "shaniMangala" || entry.id === "agniMarutha" || entry.id === "dharmaKarmadhipati") {
                 for (let house = 1; house <= 12; house++) keys.push(`${entry.i18nKey}.theme.house${house}`);
                 if (entry.id !== "dharmaKarmadhipati") keys.push(`${entry.i18nKey}.dashaNote`);
+            } else if (entry.id === "kalaSarpa" || entry.id === "kalaAmurtha" || entry.id === "deeptaYoga") {
+                // Directional Rahu/Ketu entries can emphasise any of the twelve houses via houseImpact.
+                for (let house = 1; house <= 12; house++) keys.push(`${entry.i18nKey}.theme.house${house}`);
+                if (entry.id !== "deeptaYoga") keys.push(`${entry.i18nKey}.dashaNote`);
             } else if (PMP_IDS.includes(entry.id)) {
                 for (const house of [1, 4, 7, 10]) keys.push(`${entry.i18nKey}.theme.house${house}`);
             } else {
@@ -325,8 +371,10 @@ describe("Catalog & enums (UT-YD-001..008)", () => {
         expect(extended.doshas[0]).toEqual(baseline.doshas[0]);
         expect(extended.doshas[1]).toEqual(baseline.doshas[1]);
         expect(extended.doshas[2]).toEqual(baseline.doshas[2]);
-        expect(extended.doshas[3].id).toBe("pendingExample");
-        expect(extended.doshas[3].isPresent).toBe(false);
+        expect(extended.doshas[3]).toEqual(baseline.doshas[3]);
+        expect(extended.doshas[4]).toEqual(baseline.doshas[4]);
+        expect(extended.doshas[5].id).toBe("pendingExample");
+        expect(extended.doshas[5].isPresent).toBe(false);
     });
 
     test("UT-YD-008: enum values and labels match the data-model §YogaStrength/§CancellationStatus", () => {
@@ -1136,6 +1184,156 @@ describe("Pancha Maha Purusha Yoga (UT-PMP-001..018)", () => {
     });
 });
 
+describe("Kala Sarpa / Kala Amurtha / Deepta Yoga (UT-KS-001..020)", () => {
+    /** All seven classical planets on the Rahu-directed (Ketu → Rahu) arc → Kala Sarpa.
+     *  Rahu at 0°, Ketu at 180°; the Rahu-directed arc spans 180°..360° (from Ketu toward Rahu). */
+    const all7 = (override: Partial<PlanetFact>[] = []): PlanetFact[] => {
+        const bases: Partial<PlanetFact>[] = [
+            { planetName: 1, house: 3, absoluteDegree: 200 },
+            { planetName: 2, house: 4, absoluteDegree: 220 },
+            { planetName: 3, house: 5, absoluteDegree: 240 },
+            { planetName: 4, house: 6, absoluteDegree: 260 },
+            { planetName: 5, house: 7, absoluteDegree: 280 },
+            { planetName: 6, house: 8, absoluteDegree: 300 },
+            { planetName: 7, house: 9, absoluteDegree: 320 },
+        ];
+        return bases.map((b, i) => pf(b.planetName as number, { ...b, ...(override[i] ?? {}) }));
+    };
+
+    /** Rahu at 0°, Ketu at 180° → the Ketu-directed (Rahu→Ketu) arc spans 0°..180°. */
+    const baseNodes = [
+        pf(9, { planetName: 9, house: 7, absoluteDegree: 180 }),
+        pf(8, { planetName: 8, house: 1, absoluteDegree: 0 }),
+    ];
+
+    test("UT-KS-001: kalaSarpa fires when all 7 classical planets are on the Rahu-directed arc", () => {
+        const chart = facts([...all7([]), ...baseNodes]);
+        const ks = evaluateRuleDirect("kalaSarpa.ks01", chart);
+        expect(ks.triggered).toBe(true);
+        expect(ks.strength).toBe(1);
+        expect(ks.classification).toBe("Ananta"); // Rahu in Lagna (house 1)
+    });
+
+    test("UT-KS-002: kalaSarpa absent when even one planet is on the Ketu-directed arc", () => {
+        // Move Sun (planet 1) onto the Ketu-directed side (absolute 90 in the 0..180 arc).
+        const planets = all7([]);
+        planets[0] = pf(1, { planetName: 1, house: 4, absoluteDegree: 90 });
+        const chart = facts([...planets, ...baseNodes]);
+        expect(evaluateRuleDirect("kalaSarpa.ks01", chart).triggered).toBe(false);
+    });
+
+    test("UT-KS-003: classification follows Rahu's Lagna-based house for each of the 12 types", () => {
+        const names: Record<number, string> = {
+            1: "Ananta",
+            2: "Kulika",
+            3: "Vasuki",
+            4: "Shankhapala",
+            5: "Padma",
+            6: "Mahapadma",
+            7: "Takshaka",
+            8: "Karkotaka",
+            9: "Shankhachooda",
+            10: "Ghataka",
+            11: "Vishadhara",
+            12: "Sheshanaga",
+        } as const;
+        for (const house of [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]) {
+            const chart = facts([
+                ...all7([]),
+                pf(9, { planetName: 9, house: house, absoluteDegree: 180 }),
+                pf(8, { planetName: 8, house: house, absoluteDegree: 0 }),
+            ]);
+            const ks = evaluateRuleDirect("kalaSarpa.ks01", chart);
+            expect(ks.triggered).toBe(true);
+            expect(ks.classification).toBe(names[house]);
+        }
+    });
+
+    test("UT-KS-004: kalaAmurtha fires when all 7 classical planets are on the Ketu-directed arc", () => {
+        const planets = all7([]).map((p) => ({ ...p, absoluteDegree: 90 }));
+        const chart = facts([...planets, ...baseNodes]);
+        const ka = evaluateRuleDirect("kalaAmurtha.ka01", chart);
+        expect(ka.triggered).toBe(true);
+        // Complement of kalaSarpa — mutually exclusive.
+        expect(evaluateRuleDirect("kalaSarpa.ks01", chart).triggered).toBe(false);
+    });
+
+    test("UT-KS-005: kalaAmurtha absent when planets are on the Rahu-directed arc", () => {
+        const chart = facts([...all7([]), ...baseNodes]);
+        expect(evaluateRuleDirect("kalaAmurtha.ka01", chart).triggered).toBe(false);
+    });
+
+    test("UT-KS-006: both absent when planets straddle both arcs", () => {
+        const planets = all7([]);
+        planets[0] = pf(1, { planetName: 1, house: 4, absoluteDegree: 90 });
+        const chart = facts([...planets, ...baseNodes]);
+        expect(evaluateRuleDirect("kalaSarpa.ks01", chart).triggered).toBe(false);
+        expect(evaluateRuleDirect("kalaAmurtha.ka01", chart).triggered).toBe(false);
+    });
+
+    test("UT-KS-007: Deepta Yoga fires for a 6-1 split when six are on the Rahu-directed arc and the lone is PMP-eligible", () => {
+        // Base all7 keep six on the Rahu-directed arc; move Mars (planet 3) to the Ketu-directed
+        // arc (abs 90) → Deepta "Kuja". The lone must sit on the Ketu side of a Kala Sarpa frame.
+        const planets = all7([]);
+        for (let i = 0; i < 7; i++) {
+            if (planets[i].planetName === 3) planets[i] = { ...planets[i], absoluteDegree: 90 };
+        }
+        const chart = facts([...planets, ...baseNodes]);
+        const dy = evaluateRuleDirect("deeptaYoga.dy01", chart);
+        expect(dy.triggered).toBe(true);
+        expect(dy.strength).toBe(2);
+        expect(dy.classification).toBe("Kuja");
+    });
+
+    test("UT-KS-007b: Deepta Yoga absent when six are on the Ketu-directed arc and the lone is on the Rahu side (Kala Amurtha frame)", () => {
+        // Mirror of UT-KS-007: six on Ketu side, one (Guru/Jupiter) on Rahu side — the reverse
+        // directional configuration, reported by the user for horoscope 6a68e36d150a9f9377fad101.
+        const planets = all7([]).map((p) => ({ ...p, absoluteDegree: 90 }));
+        for (let i = 0; i < 7; i++) {
+            if (planets[i].planetName === 5) planets[i] = { ...planets[i], absoluteDegree: 200 };
+        }
+        const chart = facts([...planets, ...baseNodes]);
+        expect(evaluateRuleDirect("deeptaYoga.dy01", chart).triggered).toBe(false);
+    });
+
+    test("UT-KS-008: Deepta Yoga absent when the lone planet is the Sun or Moon", () => {
+        const planets = all7([]);
+        for (let i = 0; i < 7; i++) {
+            if (planets[i].planetName === 1) planets[i] = { ...planets[i], absoluteDegree: 90 };
+        }
+        const chart = facts([...planets, ...baseNodes]);
+        expect(evaluateRuleDirect("deeptaYoga.dy01", chart).triggered).toBe(false);
+    });
+
+    test("UT-KS-009: Deepta Yoga absent without a 6-1 split (7-0 or 0-7)", () => {
+        const chart = facts([...all7([]), ...baseNodes]);
+        const allKetu = facts([...all7([]).map((p) => ({ ...p, absoluteDegree: 90 })), ...baseNodes]);
+        expect(evaluateRuleDirect("deeptaYoga.dy01", chart).triggered).toBe(false);
+        expect(evaluateRuleDirect("deeptaYoga.dy01", allKetu).triggered).toBe(false);
+    });
+
+    test("UT-KS-010: engine — kalaSarpa classification is carried onto the dosha evaluation", () => {
+        const chart = facts([...all7([]), ...baseNodes]);
+        const engine = computeYogaDoshas(chart);
+        const ks = engine.doshas.find((d) => d.id === "kalaSarpa");
+        expect(ks?.isPresent).toBe(true);
+        expect(ks?.classification).toBe("Ananta");
+        expect(engine.doshas.find((d) => d.id === "kalaAmurtha")?.isPresent).toBe(false);
+    });
+
+    test("UT-KS-011: engine — deeptaYoga classification carried onto the yoga evaluation", () => {
+        const planets = all7([]);
+        for (let i = 0; i < 7; i++) {
+            if (planets[i].planetName === 5) planets[i] = { ...planets[i], absoluteDegree: 90 };
+        }
+        const chart = facts([...planets, ...baseNodes]);
+        const engine = computeYogaDoshas(chart);
+        const dy = engine.yogas.find((y) => y.id === "deeptaYoga");
+        expect(dy?.isPresent).toBe(true);
+        expect(dy?.classification).toBe("Guru");
+    });
+});
+
 describe("Rule engine (UT-YD-080..090)", () => {
     test("UT-YD-080: only active catalog entries evaluated", () => {
         const chart = facts(saturnMarsBoth({ aspects: [aspect(3, 0, 0)] }, { aspects: [aspect(7, 0, 0)] }));
@@ -1149,15 +1347,25 @@ describe("Rule engine (UT-YD-080..090)", () => {
             "hamsa",
             "malavya",
             "sasha",
+            "deeptaYoga",
         ]);
         expect(engine.yogas[0].isPresent).toBe(false);
-        expect(engine.doshas.map((d) => d.id)).toEqual(["shaniMangala", "agniMarutha", "manglik"]);
+        expect(engine.doshas.map((d) => d.id)).toEqual([
+            "shaniMangala",
+            "agniMarutha",
+            "manglik",
+            "kalaSarpa",
+            "kalaAmurtha",
+        ]);
         // Default both-in-house-1 facts are a same-sign same-house conjunction → first two present.
         // Mars in house 1 is also 1st from Lagna → Kuja dosha present (mk01).
         expect(engine.doshas[0].isPresent).toBe(true);
         expect(engine.doshas[1].isPresent).toBe(true);
         expect(engine.doshas[2].isPresent).toBe(true);
         expect(engine.doshas[2].formation.rulesTriggered).toEqual(["manglik.mk01"]);
+        // No Rahu/Ketu in this fixture → the directional doshas fail closed.
+        expect(engine.doshas[3].isPresent).toBe(false);
+        expect(engine.doshas[4].isPresent).toBe(false);
     });
 
     test("UT-YD-081: structured output shape — never { yoga: true }", () => {
@@ -1424,6 +1632,7 @@ describe("Legacy & manual resolution (UT-YD-150..155)", () => {
             "hamsa",
             "malavya",
             "sasha",
+            "deeptaYoga",
         ]);
         expect(engine.yogas[0].isPresent).toBe(false);
         expect(engine.doshas[0].isPresent).toBe(true);
@@ -1478,6 +1687,7 @@ describe("Legacy & manual resolution (UT-YD-150..155)", () => {
             "hamsa",
             "malavya",
             "sasha",
+            "deeptaYoga",
         ]);
         expect(resolved?.[0].isPresent).toBe(false);
         // Corrupt stored entry → warn + derive (never crash).
@@ -1494,6 +1704,7 @@ describe("Legacy & manual resolution (UT-YD-150..155)", () => {
             "hamsa",
             "malavya",
             "sasha",
+            "deeptaYoga",
         ]);
         expect(resolveYogas(corrupt)?.[0].isPresent).toBe(false);
         // Nothing derivable → undefined.
@@ -1510,7 +1721,13 @@ describe("Legacy & manual resolution (UT-YD-150..155)", () => {
         const derived = computeYogaDoshas(chart).doshas;
         // All three ACTIVE doshas are evaluated — Mars 7th from Lagna fires Kuja (mk01),
         // no Moon/Venus facts so mk02/mk03 fail closed.
-        expect(derived.map((d) => d.id)).toEqual(["shaniMangala", "agniMarutha", "manglik"]);
+        expect(derived.map((d) => d.id)).toEqual([
+            "shaniMangala",
+            "agniMarutha",
+            "manglik",
+            "kalaSarpa",
+            "kalaAmurtha",
+        ]);
         expect(derived[0].isPresent).toBe(false);
         expect(derived[2].isPresent).toBe(true);
         expect(derived[2].formation.rulesTriggered).toEqual(["manglik.mk01"]);
@@ -1544,7 +1761,13 @@ describe("Legacy & manual resolution (UT-YD-150..155)", () => {
             doshas: { doshas: [] },
         };
         const legacyResolved = resolveDoshas(legacy);
-        expect(legacyResolved?.map((d) => d.id)).toEqual(["shaniMangala", "agniMarutha", "manglik"]);
+        expect(legacyResolved?.map((d) => d.id)).toEqual([
+            "shaniMangala",
+            "agniMarutha",
+            "manglik",
+            "kalaSarpa",
+            "kalaAmurtha",
+        ]);
         expect(legacyResolved?.[0].isPresent).toBe(false);
         expect(legacyResolved?.[2].isPresent).toBe(true);
     });
@@ -1614,6 +1837,7 @@ describe("Legacy & manual resolution (UT-YD-150..155)", () => {
             "hamsa",
             "malavya",
             "sasha",
+            "deeptaYoga",
         ]);
         expect(engine.yogas[0].isPresent).toBe(false);
         expect(engine.doshas[0].isPresent).toBe(false);
@@ -1636,6 +1860,7 @@ describe("Legacy & manual resolution (UT-YD-150..155)", () => {
             "hamsa",
             "malavya",
             "sasha",
+            "deeptaYoga",
         ]);
         expect(combined?.yogas?.[0]?.isPresent).toBe(false);
         expect(combined?.doshas?.[0]?.isPresent).toBe(true);

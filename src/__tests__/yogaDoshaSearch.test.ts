@@ -140,6 +140,7 @@ describe("search: Yoga/Dosha catalog names (SR-YD-800..805)", () => {
             "hamsa",
             "malavya",
             "sasha",
+            "deeptaYoga",
         ]);
         expect(result.yogas[0].isPresent).toBe(false);
         expect(result.doshas[0].isPresent).toBe(true);
@@ -469,6 +470,52 @@ describe("search: Yoga/Dosha catalog names (SR-YD-800..805)", () => {
         // The AM-only chart must NOT be surfaced by a Shani Mangala name query.
         const smResponse = await search("shani mangala");
         expect((await smResponse.json()).results).toHaveLength(0);
+    });
+
+    test("SR-YD-812: Deeptha/Deepta yoga resolves for BOTH spellings — 'Deeptha' is the display spelling, 'Deepta' stays a search alias", async () => {
+        // Hand-built present deeptaYoga in the stored evaluation shape (classification "Guru"
+        // matches the engine's DEEPTA_YOGA_NAMES { 5 → "Guru" }); the yoga_id condition only
+        // requires a present entry carrying this id.
+        const fixture = {
+            yogaDoshaVersion: YOGA_DOSHA_VERSION,
+            yogas: [
+                {
+                    id: "deeptaYoga",
+                    kind: "yoga",
+                    isPresent: true,
+                    tradition: "MAIN_STREAM",
+                    classification: "Guru",
+                    formation: {
+                        rulesTriggered: ["deeptaYoga.dy01"],
+                        primaryRule: "deeptaYoga.dy01",
+                        strength: 2,
+                        reasons: [
+                            {
+                                rule: "deeptaYoga.dy01",
+                                reasonKey: "rule.dy01",
+                                params: { planet: 5, classification: "Guru" },
+                            },
+                        ],
+                    },
+                    context: { houseImpact: [1] },
+                    interpretation: { themes: [{ key: "theme.house1", params: { house: 1 } }] },
+                    mitigation: [],
+                    cancellation: { status: 1, factors: [] },
+                    finalAssessment: { severity: 2, expressionKeys: ["expression.main"] },
+                },
+            ],
+            doshas: { doshas: [] },
+        };
+        withCalculated({ ascendant: { sign: 4, degree: 4.76 }, ...fixture });
+
+        for (const query of ["Deeptha Yoga", "Guru Deeptha Yoga", "Deepta Yoga", "Guru Deepta Yoga"]) {
+            const response = await search(query);
+            const body = await response.json();
+            expect(body.queryUnderstanding.exactMatch.flat(Infinity)).toContainEqual({
+                type: "yoga_id",
+                yogaId: "deeptaYoga",
+            });
+        }
     });
 });
 

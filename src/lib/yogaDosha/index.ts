@@ -10,6 +10,8 @@ export {
     activeYogaEntries,
     catalogAliasesFor,
     catalogNameFor,
+    classificationExpressionKey,
+    classificationNameKey,
     doshaCatalogEntry,
     yogaCatalogEntry,
 } from "@/lib/yogaDosha/catalog";

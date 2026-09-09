@@ -40,8 +40,12 @@ import {
  *  v8: DK-02 no longer treats a 0° conjunction record as a "mutual aspect" (yuti is not drishti,
  *  horoscope 6a68e63506d2d7cd52c6fa9d) — stored v7 yogas carry the bogus dk02 reason, recompute.
  *  v9: Pancha Maha Purusha Yoga (docs/pancha-maha-pursha-yoga.md) — five new active yogas
- *  (ruchaka/bhadra/hamsa/malavya/sasha) — stored v8 yoga lists lack these entries, so they recompute. */
-export const YOGA_DOSHA_VERSION = 9;
+ *  (ruchaka/bhadra/hamsa/malavya/sasha) — stored v8 yoga lists lack these entries, so they recompute.
+ *  v10: Deepta Yoga (docs/kala sarpa dosha.md §2) + Kala Sarpa Dosha (§4/§5) + Kala Amurtha Dosha
+ *  (§7) — three new directional Rahu/Ketu classifications with per-type sub-classification
+ *  (Ananta/Kulika/…/Sheshanaga and Kuja/Budha/Guru/Shukra/Shani) — stored v9 lists lack these
+ *  entries and their classification field, so they recompute. */
+export const YOGA_DOSHA_VERSION = 10;
 
 export type PlanetLike = Pick<
     Planet,
@@ -102,6 +106,7 @@ interface FormationResult {
     reasons: Array<{ rule: string; reasonKey: string; params?: Record<string, string | number> }>;
     houseImpact: number[];
     ruleResults: RuleEvaluation[];
+    classification?: string;
 }
 
 function formFromRules(entry: CatalogEntry, facts: ChartFacts): FormationResult {
@@ -125,6 +130,7 @@ function formFromRules(entry: CatalogEntry, facts: ChartFacts): FormationResult 
     const strength = Math.min(...ruleResults.map((r) => r.strength), 4);
     const houseImpact = [...new Set(ruleResults.flatMap((r) => r.houseImpact ?? []))].sort((a, b) => a - b);
     const reasons = ruleResults.map((r) => ({ rule: r.rule, reasonKey: r.reasonKey, params: r.params }));
+    const classification = ruleResults.find((r) => r.classification)?.classification;
     return {
         rulesTriggered,
         primaryRule: rulesTriggered[0],
@@ -132,6 +138,7 @@ function formFromRules(entry: CatalogEntry, facts: ChartFacts): FormationResult 
         reasons,
         houseImpact,
         ruleResults,
+        classification,
     };
 }
 
@@ -208,6 +215,7 @@ function evaluateEntry(entry: CatalogEntry, facts: ChartFacts): YogaEvaluation |
             kind: entry.kind,
             isPresent: true,
             tradition: "MAIN_STREAM",
+            classification: formation.classification,
             formation: {
                 rulesTriggered: formation.rulesTriggered,
                 primaryRule: formation.primaryRule,

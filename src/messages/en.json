@@ -1067,6 +1067,41 @@
             "expression": {
                 "main": "This yoga grants authority, discipline and enduring status, favouring position earned through steady effort."
             }
+        },
+        "deeptaYoga": {
+            "name": "Deeptha Yoga",
+            "rule": {
+                "dy01": "Exactly one planetary dignitary ({planetName}) lies outside the Rahu–Ketu enclosure."
+            },
+            "classification": {
+                "Kuja": "Kuja Deeptha Yoga",
+                "Budha": "Budha Deeptha Yoga",
+                "Guru": "Guru Deeptha Yoga",
+                "Shukra": "Shukra Deeptha Yoga",
+                "Shani": "Shani Deeptha Yoga"
+            },
+            "theme": {
+                "house1": "Relates to self and vitality.",
+                "house2": "Relates to resources and family.",
+                "house3": "Relates to courage and effort.",
+                "house4": "Relates to home and comfort.",
+                "house5": "Relates to children and romance.",
+                "house6": "Relates to obstacles and service.",
+                "house7": "Relates to partnerships and marriage.",
+                "house8": "Relates to longevity and hidden matters.",
+                "house9": "Relates to fortune and higher learning.",
+                "house10": "Relates to career and standing.",
+                "house11": "Relates to gains and networks.",
+                "house12": "Relates to losses and foreign lands."
+            },
+            "expression": {
+                "main": "The qualities of the single outside planet are strongly emphasised and amplified across life.",
+                "Kuja": "Confident and courageous. Never falls. Difficult to advance by working under someone else.",
+                "Budha": "Pleasant and agreeable. Intelligent; skilled at accounts and similar work; good at speaking.",
+                "Guru": "Wealth is gained, renown and praise come, and advisory services are provided.",
+                "Shukra": "Pleasant-mannered. Comforts, wealth, vehicles and property are gained. Auspicious for marriage.",
+                "Shani": "Through life's problems, obstacles and troubles, rises to a very high and advanced position."
+            }
         }
     },
     "dosha": {
@@ -1151,6 +1186,68 @@
             "mitigation": {
                 "mk-mit-001": "Jupiter's aspect tends to soften this dosha."
             }
+        },
+        "kalaSarpa": {
+            "name": "Kala Sarpa Dosha",
+            "rule": {
+                "ks01": "All seven classical planets lie on the Rahu-directed side of the Rahu–Ketu axis."
+            },
+            "classification": {
+                "Ananta": "Ananta Kala Sarpa",
+                "Kulika": "Kulika Kala Sarpa",
+                "Vasuki": "Vasuki Kala Sarpa",
+                "Shankhapala": "Shankhapala Kala Sarpa",
+                "Padma": "Padma Kala Sarpa",
+                "Mahapadma": "Mahapadma Kala Sarpa",
+                "Takshaka": "Takshaka Kala Sarpa",
+                "Karkotaka": "Karkotaka Kala Sarpa",
+                "Shankhachooda": "Shankhachooda Kala Sarpa",
+                "Ghataka": "Ghataka Kala Sarpa",
+                "Vishadhara": "Vishadhara Kala Sarpa",
+                "Sheshanaga": "Sheshanaga Kala Sarpa"
+            },
+            "theme": {
+                "house1": "Relates to the self, vitality and marriage.",
+                "house2": "Relates to resources, family and health.",
+                "house3": "Relates to siblings, neighbours and effort.",
+                "house4": "Relates to home, property and family harmony.",
+                "house5": "Relates to children, romance and friendships.",
+                "house6": "Relates to obstacles, enemies and debt.",
+                "house7": "Relates to partnerships and marriage.",
+                "house8": "Relates to longevity, crisis and sudden events.",
+                "house9": "Relates to religion, fortune and higher learning.",
+                "house10": "Relates to career, paternal support and standing.",
+                "house11": "Relates to gains, friends and elder siblings.",
+                "house12": "Relates to confinement, losses and health."
+            },
+            "expression": {
+                "main": "An area of deficiency or difficulty may be present, shaped strongly by Rahu's influence and often experienced mentally."
+            },
+            "dashaNote": "May become more noticeable during Rahu dasha periods."
+        },
+        "kalaAmurtha": {
+            "name": "Kala Amurtha Dosha",
+            "rule": {
+                "ka01": "All seven classical planets lie on the Ketu-directed side of the Rahu–Ketu axis."
+            },
+            "theme": {
+                "house1": "Relates to the self and vitality.",
+                "house2": "Relates to resources and family.",
+                "house3": "Relates to siblings and effort.",
+                "house4": "Relates to home and comfort.",
+                "house5": "Relates to children and romance.",
+                "house6": "Relates to obstacles and enmity.",
+                "house7": "Relates to partnerships and marriage.",
+                "house8": "Relates to longevity and hidden matters.",
+                "house9": "Relates to fortune and higher learning.",
+                "house10": "Relates to career and standing.",
+                "house11": "Relates to gains and friends.",
+                "house12": "Relates to confinement and losses."
+            },
+            "expression": {
+                "main": "An area of deficiency may be present, but it is associated with Ketu and can be overcome through understanding and awareness."
+            },
+            "dashaNote": "May become more noticeable during Ketu dasha periods."
         }
     },
     "notepad": {
