@@ -44,8 +44,13 @@ import {
  *  v10: Deepta Yoga (docs/kala sarpa dosha.md §2) + Kala Sarpa Dosha (§4/§5) + Kala Amurtha Dosha
  *  (§7) — three new directional Rahu/Ketu classifications with per-type sub-classification
  *  (Ananta/Kulika/…/Sheshanaga and Kuja/Budha/Guru/Shukra/Shani) — stored v9 lists lack these
- *  entries and their classification field, so they recompute. */
-export const YOGA_DOSHA_VERSION = 10;
+ *  entries and their classification field, so they recompute.
+ *  v11: Parashara Sambandha yogas (docs/parashara-yoga.md) — ten new active yogas
+ *  (pushkala/rajaChitta/champaka/amathya/dharukaKarma/priyamrityu/bhagyaVyaya/bhumiDravya/
+ *  rinaVyaya/chittaHani) and Dharma Karmadhipati re-evaluated from Lagna + Moon + Sun with the
+ *  same-lord exclusion — stored v10 lists lack these entries and carry outdated DHCP params, so
+ *  they recompute. */
+export const YOGA_DOSHA_VERSION = 11;
 
 export type PlanetLike = Pick<
     Planet,

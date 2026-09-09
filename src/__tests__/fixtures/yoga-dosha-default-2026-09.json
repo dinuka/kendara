@@ -67,6 +67,146 @@
             }
         },
         {
+            "id": "pushkala",
+            "isPresent": false,
+            "formation": {
+                "primaryRule": "",
+                "strength": 4
+            },
+            "finalAssessment": {
+                "severity": 4
+            },
+            "cancellation": {
+                "status": 1
+            }
+        },
+        {
+            "id": "rajaChitta",
+            "isPresent": false,
+            "formation": {
+                "primaryRule": "",
+                "strength": 4
+            },
+            "finalAssessment": {
+                "severity": 4
+            },
+            "cancellation": {
+                "status": 1
+            }
+        },
+        {
+            "id": "champaka",
+            "isPresent": false,
+            "formation": {
+                "primaryRule": "",
+                "strength": 4
+            },
+            "finalAssessment": {
+                "severity": 4
+            },
+            "cancellation": {
+                "status": 1
+            }
+        },
+        {
+            "id": "amathya",
+            "isPresent": false,
+            "formation": {
+                "primaryRule": "",
+                "strength": 4
+            },
+            "finalAssessment": {
+                "severity": 4
+            },
+            "cancellation": {
+                "status": 1
+            }
+        },
+        {
+            "id": "dharukaKarma",
+            "isPresent": false,
+            "formation": {
+                "primaryRule": "",
+                "strength": 4
+            },
+            "finalAssessment": {
+                "severity": 4
+            },
+            "cancellation": {
+                "status": 1
+            }
+        },
+        {
+            "id": "priyamrityu",
+            "isPresent": false,
+            "formation": {
+                "primaryRule": "",
+                "strength": 4
+            },
+            "finalAssessment": {
+                "severity": 4
+            },
+            "cancellation": {
+                "status": 1
+            }
+        },
+        {
+            "id": "bhagyaVyaya",
+            "isPresent": false,
+            "formation": {
+                "primaryRule": "",
+                "strength": 4
+            },
+            "finalAssessment": {
+                "severity": 4
+            },
+            "cancellation": {
+                "status": 1
+            }
+        },
+        {
+            "id": "bhumiDravya",
+            "isPresent": false,
+            "formation": {
+                "primaryRule": "",
+                "strength": 4
+            },
+            "finalAssessment": {
+                "severity": 4
+            },
+            "cancellation": {
+                "status": 1
+            }
+        },
+        {
+            "id": "rinaVyaya",
+            "isPresent": false,
+            "formation": {
+                "primaryRule": "",
+                "strength": 4
+            },
+            "finalAssessment": {
+                "severity": 4
+            },
+            "cancellation": {
+                "status": 1
+            }
+        },
+        {
+            "id": "chittaHani",
+            "isPresent": true,
+            "formation": {
+                "primaryRule": "chittaHani.ps01",
+                "strength": 1
+            },
+            "finalAssessment": {
+                "severity": 1
+            },
+            "cancellation": {
+                "status": 1
+            }
+        },
+        {
             "id": "ruchaka",
             "isPresent": false,
             "formation": {

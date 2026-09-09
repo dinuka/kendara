@@ -411,6 +411,16 @@ describe("calculateHoroscope Yoga/Dosha tags (IT-YD-200..202)", () => {
         expect(persisted.yogaDoshaVersion).toBe(YOGA_DOSHA_VERSION);
         expect(persisted.yogas.map((y: { id: string }) => y.id)).toEqual([
             "dharmaKarmadhipati",
+            "pushkala",
+            "rajaChitta",
+            "champaka",
+            "amathya",
+            "dharukaKarma",
+            "priyamrityu",
+            "bhagyaVyaya",
+            "bhumiDravya",
+            "rinaVyaya",
+            "chittaHani",
             "ruchaka",
             "bhadra",
             "hamsa",

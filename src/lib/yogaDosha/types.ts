@@ -14,8 +14,22 @@ export type Tradition = "MAIN_STREAM";
 
 export type CatalogKind = "yoga" | "dosha";
 
+/** The ten Parashara sub-yogas besides Dharma Karmadhipati (docs/parashara-yoga.md). */
+export type ParasharaYogaId =
+    | "pushkala"
+    | "rajaChitta"
+    | "champaka"
+    | "amathya"
+    | "dharukaKarma"
+    | "priyamrityu"
+    | "bhagyaVyaya"
+    | "bhumiDravya"
+    | "rinaVyaya"
+    | "chittaHani";
+
 /** Yoga catalog ids (registered in catalog.ts). */
-export type YogaId = "dharmaKarmadhipati" | "ruchaka" | "bhadra" | "hamsa" | "malavya" | "sasha";
+export type YogaId =
+    "dharmaKarmadhipati" | ParasharaYogaId | "ruchaka" | "bhadra" | "hamsa" | "malavya" | "sasha" | "deeptaYoga";
 
 /** Dosha catalog ids (registered in catalog.ts). */
 export type DoshaId = "shaniMangala" | "agniMarutha" | "manglik" | "kalaSarpa" | "kalaAmurtha";
@@ -45,6 +59,7 @@ export type HamsaRuleId = "hamsa.pmp03";
 export type MalavyaRuleId = "malavya.pmp04";
 export type SashaRuleId = "sasha.pmp05";
 export type DeeptaYogaRuleId = "deeptaYoga.dy01";
+export type ParasharaYogaRuleId = `${ParasharaYogaId}.${"ps01" | "ps02" | "ps03"}`;
 export type YogaRuleId =
     | DharmaKarmadhipatiRuleId
     | RuchakaRuleId
@@ -52,7 +67,8 @@ export type YogaRuleId =
     | HamsaRuleId
     | MalavyaRuleId
     | SashaRuleId
-    | DeeptaYogaRuleId;
+    | DeeptaYogaRuleId
+    | ParasharaYogaRuleId;
 export type DoshaRuleId = ShaniMangalaRuleId | AgniMaruthaRuleId | ManglikRuleId | KalaSarpaRuleId | KalaAmurthaRuleId;
 
 /** Registered mitigation rule ids (cancellation.ts). */

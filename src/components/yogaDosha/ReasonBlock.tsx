@@ -24,6 +24,15 @@ const ReasonBlock = ({ entry }: ReasonBlockProps) => {
                     if (typeof params.planet === "number") {
                         params.planetName = t(`astrology.planetNames.${String(params.planet)}`);
                     }
+                    if (typeof params.lord1 === "number") {
+                        params.lord1Name = t(`astrology.planetNames.${String(params.lord1)}`);
+                    }
+                    if (typeof params.lord2 === "number") {
+                        params.lord2Name = t(`astrology.planetNames.${String(params.lord2)}`);
+                    }
+                    if (typeof params.reference === "string") {
+                        params.reference = t(`yogaDosha.references.${params.reference}`);
+                    }
                     return <li key={reason.rule}>{t(`${root}.${reason.reasonKey}`, params)}</li>;
                 })}
             </ul>

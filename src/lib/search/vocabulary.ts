@@ -1,7 +1,7 @@
 import { NAKSHATRA_NAMES, PLANET_NAMES, STRENGTH_LABELS, ZODIAC_SIGN_NAMES } from "@/lib/astrologyEnums";
+import { stripJoiners } from "@/lib/search/utils";
 import { DOSHA_CATALOG, YOGA_CATALOG } from "@/lib/yogaDosha/catalog";
 import type { YogaId } from "@/lib/yogaDosha/types";
-import { stripJoiners } from "@/lib/search/utils";
 
 export const SINHALA_YOGA = ["යෝග", "යෝගය", "යෝග තිබෙන"];
 export const ENGLISH_YOGA = ["yoga", "yogas", "yogic"];
@@ -16,6 +16,19 @@ export const DOSHA_WORDS = ["දෝෂය", "දෝෂ", "dosha", "doshas"];
 // the yoga catalog (which must stay one-entry-per-yoga for per-yoga evaluation/reasoning).
 export const YOGA_FAMILIES: Record<string, YogaId[]> = {
     panchaMahaPurusha: ["ruchaka", "bhadra", "hamsa", "malavya", "sasha"],
+    parasharaYoga: [
+        "pushkala",
+        "rajaChitta",
+        "champaka",
+        "amathya",
+        "dharukaKarma",
+        "priyamrityu",
+        "bhagyaVyaya",
+        "dharmaKarmadhipati",
+        "bhumiDravya",
+        "rinaVyaya",
+        "chittaHani",
+    ],
 };
 
 // Family group-term aliases (bilingual) → familyId. Keyed on the same stripJoiners().lowercase()
@@ -29,6 +42,14 @@ export const FAMILY_NAME_WORDS: Record<string, string> = Object.fromEntries(
             "The Five Maha Purusha Yogas",
             "පංච මහා පුරුෂ යෝග",
             "පංච මහා පුරුෂ යෝගය",
+        ],
+        parasharaYoga: [
+            "Parashara Yoga",
+            "Parashara Yogas",
+            "Parashara Sambandha Yoga",
+            "පරාශර යෝග",
+            "පරාශර යෝගය",
+            "පරාශර සම්බන්ධ යෝග",
         ],
     }).flatMap(([familyId, words]) => words.map((word) => [stripJoiners(word).toLowerCase(), familyId] as const)),
 );

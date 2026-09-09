@@ -55,6 +55,13 @@ jest.mock("@/hooks/useI18n", () => {
         "dosha.manglik.expression.partnershipStress": "Partnership stress indicator.",
         "dosha.manglik.mitigation.mk-mit-001": "Jupiter's aspect mitigates the dosha.",
         "yoga.dharmaKarmadhipati.name": "Dharma Karmadhipati Yoga",
+        "yoga.dharmaKarmadhipati.rule.dk01":
+            "From the {reference}, the 9th lord {lord1Name} and 10th lord {lord2Name} conjoin in one sign and house.",
+        "astrology.planetNames.5": "Jupiter",
+        "astrology.planetNames.6": "Venus",
+        "yogaDosha.references.Lagna": "Lagna",
+        "yogaDosha.references.Moon": "Moon lagna (Chandra lagna)",
+        "yogaDosha.references.Sun": "Sun lagna (Surya lagna)",
         "yoga.deeptaYoga.classification.Guru": "Guru Deeptha Yoga",
         "yoga.deeptaYoga.classification.Kuja": "Kuja Deeptha Yoga",
         "yoga.deeptaYoga.expression.Guru":
@@ -122,6 +129,16 @@ const engineDosha = (jupiterAspects?: boolean): DoshaEvaluation => {
     const result = computeYogaDoshas(buildChartFacts({ ascendantSign: 1, source: "auto", planets }));
     expect(result.yogas.map((y) => y.id)).toEqual([
         "dharmaKarmadhipati",
+        "pushkala",
+        "rajaChitta",
+        "champaka",
+        "amathya",
+        "dharukaKarma",
+        "priyamrityu",
+        "bhagyaVyaya",
+        "bhumiDravya",
+        "rinaVyaya",
+        "chittaHani",
         "ruchaka",
         "bhadra",
         "hamsa",
@@ -166,7 +183,13 @@ const presentYoga = (over: Partial<YogaEvaluation> = {}): YogaEvaluation => ({
         rulesTriggered: ["dharmaKarmadhipati.dk01"],
         primaryRule: "dharmaKarmadhipati.dk01",
         strength: YogaStrength.STRONG,
-        reasons: [{ rule: "dharmaKarmadhipati.dk01", reasonKey: "rule.dk01", params: { dharmaLord: 4, karmaLord: 6 } }],
+        reasons: [
+            {
+                rule: "dharmaKarmadhipati.dk01",
+                reasonKey: "rule.dk01",
+                params: { lord1: 5, lord2: 6, reference: "Lagna" },
+            },
+        ],
     },
     context: { houseImpact: [9, 10] },
     interpretation: { themes: [{ key: "theme.house9", params: { house: 9 } }] },
@@ -409,6 +432,14 @@ describe("AX-YD-603/604: tag labels, cancelled chips, unknown chips", () => {
         // The expression paragraph resolves to the classification-specific (Guru) text, not the generic main.
         expect(
             screen.getByText("Wealth is gained, renown and praise come, and advisory services are provided."),
+        ).toBeInTheDocument();
+    });
+
+    test("DHCP reason line names the reference that formed it (multi-reference clarity)", () => {
+        render(<YogaDoshaSection result={{ yogas: [presentYoga()], doshas: [] }} />);
+        fireEvent.click(screen.getByRole("button", { name: "Dharma Karmadhipati Yoga, Strong, Not cancelled" }));
+        expect(
+            screen.getByText("From the Lagna, the 9th lord Jupiter and 10th lord Venus conjoin in one sign and house."),
         ).toBeInTheDocument();
     });
 });

@@ -117,6 +117,16 @@ describe("Catalog & enums (UT-YD-001..008)", () => {
     test("UT-YD-001: catalog is registry-driven — all ACTIVE doshas live in the dosha catalog", () => {
         expect(YOGA_CATALOG.map((e) => e.id)).toEqual([
             "dharmaKarmadhipati",
+            "pushkala",
+            "rajaChitta",
+            "champaka",
+            "amathya",
+            "dharukaKarma",
+            "priyamrityu",
+            "bhagyaVyaya",
+            "bhumiDravya",
+            "rinaVyaya",
+            "chittaHani",
             "ruchaka",
             "bhadra",
             "hamsa",
@@ -128,21 +138,55 @@ describe("Catalog & enums (UT-YD-001..008)", () => {
         expect(YOGA_CATALOG[0].status).toBe("ACTIVE");
         expect(YOGA_CATALOG[0].keywordEn).toBe("Dharma Karmadhipati Yoga");
         expect(YOGA_CATALOG[0].keywordSi).toBe("ධර්ම කර්මාධිපති යෝගය");
+        // Parashara Sambandha family (docs/parashara-yoga.md) — the ten adjacent-lord yogas.
+        const parashara = YOGA_CATALOG.slice(1, 11).map((e) => e.id);
+        expect(parashara).toEqual([
+            "pushkala",
+            "rajaChitta",
+            "champaka",
+            "amathya",
+            "dharukaKarma",
+            "priyamrityu",
+            "bhagyaVyaya",
+            "bhumiDravya",
+            "rinaVyaya",
+            "chittaHani",
+        ]);
+        expect(YOGA_CATALOG[1].keywordEn).toBe("Pushkala Yoga");
+        expect(YOGA_CATALOG[1].keywordSi).toBe("පුෂ්කල යෝගය");
+        expect(YOGA_CATALOG[2].keywordEn).toBe("Raja Chitta Yoga");
+        expect(YOGA_CATALOG[2].keywordSi).toBe("රාජ චිත්ත යෝගය");
+        expect(YOGA_CATALOG[3].keywordEn).toBe("Champaka Yoga");
+        expect(YOGA_CATALOG[3].keywordSi).toBe("චම්පක යෝගය");
+        expect(YOGA_CATALOG[4].keywordEn).toBe("Amathya Yoga");
+        expect(YOGA_CATALOG[4].keywordSi).toBe("අමාත්‍ය යෝගය");
+        expect(YOGA_CATALOG[5].keywordEn).toBe("Dharuka Karma Yoga");
+        expect(YOGA_CATALOG[5].keywordSi).toBe("ධාරුක කර්ම යෝගය");
+        expect(YOGA_CATALOG[6].keywordEn).toBe("Priyamrityu Yoga");
+        expect(YOGA_CATALOG[6].keywordSi).toBe("ප්‍රියමෘත්‍ය යෝගය");
+        expect(YOGA_CATALOG[7].keywordEn).toBe("Bhagya Vyaya Yoga");
+        expect(YOGA_CATALOG[7].keywordSi).toBe("භාග්‍ය වැය යෝගය");
+        expect(YOGA_CATALOG[8].keywordEn).toBe("Bhumi Dravya Yoga");
+        expect(YOGA_CATALOG[8].keywordSi).toBe("භූමි ද්‍රව්‍ය යෝගය");
+        expect(YOGA_CATALOG[9].keywordEn).toBe("Rina Vyaya Yoga");
+        expect(YOGA_CATALOG[9].keywordSi).toBe("ඍණ වැය යෝගය");
+        expect(YOGA_CATALOG[10].keywordEn).toBe("Chitta Hani Yoga");
+        expect(YOGA_CATALOG[10].keywordSi).toBe("චිත්ත හානි යෝගය");
         // Pancha Maha Purusha Yoga — five ACTIVE yogas (docs/pancha-maha-pursha-yoga.md).
-        const pmp = YOGA_CATALOG.slice(1, 6).map((e) => e.id);
+        const pmp = YOGA_CATALOG.slice(11, 16).map((e) => e.id);
         expect(pmp).toEqual(["ruchaka", "bhadra", "hamsa", "malavya", "sasha"]);
-        expect(YOGA_CATALOG[1].keywordEn).toBe("Ruchaka Yoga");
-        expect(YOGA_CATALOG[1].keywordSi).toBe("රැචක යෝගය");
-        expect(YOGA_CATALOG[2].keywordEn).toBe("Bhadra Yoga");
-        expect(YOGA_CATALOG[2].keywordSi).toBe("බද්‍රා යෝගය");
-        expect(YOGA_CATALOG[3].keywordEn).toBe("Hamsa Yoga");
-        expect(YOGA_CATALOG[3].keywordSi).toBe("හංස යෝගය");
-        expect(YOGA_CATALOG[4].keywordEn).toBe("Malavya Yoga");
-        expect(YOGA_CATALOG[4].keywordSi).toBe("මාලව්‍ය යෝගය");
-        expect(YOGA_CATALOG[5].keywordEn).toBe("Sasha Yoga");
-        expect(YOGA_CATALOG[5].keywordSi).toBe("ශශ යෝගය");
-        expect(YOGA_CATALOG[6].keywordEn).toBe("Deeptha Yoga");
-        expect(YOGA_CATALOG[6].keywordSi).toBe("දීප්ත යෝගය");
+        expect(YOGA_CATALOG[11].keywordEn).toBe("Ruchaka Yoga");
+        expect(YOGA_CATALOG[11].keywordSi).toBe("රැචක යෝගය");
+        expect(YOGA_CATALOG[12].keywordEn).toBe("Bhadra Yoga");
+        expect(YOGA_CATALOG[12].keywordSi).toBe("බද්‍රා යෝගය");
+        expect(YOGA_CATALOG[13].keywordEn).toBe("Hamsa Yoga");
+        expect(YOGA_CATALOG[13].keywordSi).toBe("හංස යෝගය");
+        expect(YOGA_CATALOG[14].keywordEn).toBe("Malavya Yoga");
+        expect(YOGA_CATALOG[14].keywordSi).toBe("මාලව්‍ය යෝගය");
+        expect(YOGA_CATALOG[15].keywordEn).toBe("Sasha Yoga");
+        expect(YOGA_CATALOG[15].keywordSi).toBe("ශශ යෝගය");
+        expect(YOGA_CATALOG[16].keywordEn).toBe("Deeptha Yoga");
+        expect(YOGA_CATALOG[16].keywordSi).toBe("දීප්ත යෝගය");
         // Both spellings resolve (UT-YD-004d): "Deeptha" is the display spelling, "Deepta" is kept
         // as a search alias so trans-literation / legacy queries still resolve to this yoga.
         for (const alias of [
@@ -153,7 +197,7 @@ describe("Catalog & enums (UT-YD-001..008)", () => {
             "Guru Deeptha Yoga",
             "Guru Deepta Yoga",
         ]) {
-            expect(YOGA_CATALOG[6].searchAliasesEn).toContain(alias);
+            expect(YOGA_CATALOG[16].searchAliasesEn).toContain(alias);
         }
         expect(DOSHA_CATALOG.map((e) => e.id)).toEqual([
             "shaniMangala",
@@ -197,6 +241,36 @@ describe("Catalog & enums (UT-YD-001..008)", () => {
             "dharmaKarmadhipati.dk01",
             "dharmaKarmadhipati.dk02",
             "dharmaKarmadhipati.dk03",
+            "pushkala.ps01",
+            "pushkala.ps02",
+            "pushkala.ps03",
+            "rajaChitta.ps01",
+            "rajaChitta.ps02",
+            "rajaChitta.ps03",
+            "champaka.ps01",
+            "champaka.ps02",
+            "champaka.ps03",
+            "amathya.ps01",
+            "amathya.ps02",
+            "amathya.ps03",
+            "dharukaKarma.ps01",
+            "dharukaKarma.ps02",
+            "dharukaKarma.ps03",
+            "priyamrityu.ps01",
+            "priyamrityu.ps02",
+            "priyamrityu.ps03",
+            "bhagyaVyaya.ps01",
+            "bhagyaVyaya.ps02",
+            "bhagyaVyaya.ps03",
+            "bhumiDravya.ps01",
+            "bhumiDravya.ps02",
+            "bhumiDravya.ps03",
+            "rinaVyaya.ps01",
+            "rinaVyaya.ps02",
+            "rinaVyaya.ps03",
+            "chittaHani.ps01",
+            "chittaHani.ps02",
+            "chittaHani.ps03",
             "ruchaka.pmp01",
             "bhadra.pmp02",
             "hamsa.pmp03",
@@ -208,12 +282,21 @@ describe("Catalog & enums (UT-YD-001..008)", () => {
         expect(YOGA_CATALOG[0].planets).toEqual([1, 2, 3, 4, 5, 6, 7]);
         expect(YOGA_CATALOG[0].expressionKeys).toEqual(["expression.main"]);
         expect(YOGA_CATALOG[0].mitigations).toEqual([]);
+        // Each Parashara yoga carries the three sambandha rules (conjunction 1 / mutual aspect 2 /
+        // parivartana 1) — identical per-entry strengths, eligibility across all seven classical lords.
+        YOGA_CATALOG.slice(1, 11).forEach((entry) => {
+            expect(entry.planets).toEqual([1, 2, 3, 4, 5, 6, 7]);
+            expect(entry.rules.map((r) => r.strength)).toEqual([1, 2, 1]);
+            expect(entry.rules.map((r) => r.reasonKey)).toEqual(["rule.ps01", "rule.ps02", "rule.ps03"]);
+            expect(entry.expressionKeys).toEqual(["expression.main"]);
+            expect(entry.mitigations).toEqual([]);
+        });
         // Each Pancha Maha Purusha yoga is keyed to exactly one non-luminary planet: Mars → 3
         // (Ruchaka), Mercury → 4 (Bhadra), Jupiter → 5 (Hamsa), Venus → 6 (Malavya), Saturn → 7
         // (Sasha). Rules carry the catalog default strength 2 (own sign); exaltation upgrades it
         // to 1 in the evaluator.
         const pmpPlanets = [3, 4, 5, 6, 7];
-        YOGA_CATALOG.slice(1, 6).forEach((entry, i) => {
+        YOGA_CATALOG.slice(11, 16).forEach((entry, i) => {
             expect(entry.planets).toEqual([pmpPlanets[i]]);
             expect(entry.rules).toHaveLength(1);
             expect(entry.rules[0].strength).toBe(2);
@@ -221,9 +304,9 @@ describe("Catalog & enums (UT-YD-001..008)", () => {
             expect(entry.mitigations).toEqual([]);
         });
         // Deepta Yoga — eligible planets are the five Pancha Maha Purusha dignitaries.
-        expect(YOGA_CATALOG[6].planets).toEqual([3, 4, 5, 6, 7]);
-        expect(YOGA_CATALOG[6].rules).toHaveLength(1);
-        expect(YOGA_CATALOG[6].expressionKeys).toEqual(["expression.main"]);
+        expect(YOGA_CATALOG[16].planets).toEqual([3, 4, 5, 6, 7]);
+        expect(YOGA_CATALOG[16].rules).toHaveLength(1);
+        expect(YOGA_CATALOG[16].expressionKeys).toEqual(["expression.main"]);
         expect(DOSHA_CATALOG[0].rules.map((r) => r.rule)).toEqual([
             "shaniMangala.sm01",
             "shaniMangala.sm02",
@@ -281,6 +364,16 @@ describe("Catalog & enums (UT-YD-001..008)", () => {
     test("UT-YD-004: bilingual name maps keyed by catalog id, both locales, frozen lookup", () => {
         for (const id of [
             "dharmaKarmadhipati",
+            "pushkala",
+            "rajaChitta",
+            "champaka",
+            "amathya",
+            "dharukaKarma",
+            "priyamrityu",
+            "bhagyaVyaya",
+            "bhumiDravya",
+            "rinaVyaya",
+            "chittaHani",
             "ruchaka",
             "bhadra",
             "hamsa",
@@ -309,6 +402,20 @@ describe("Catalog & enums (UT-YD-001..008)", () => {
         };
         // Pancha Maha Purusha entries provide theme keys only for Kendra houses (houseImpact ∈ {1,4,7,10}).
         const PMP_IDS = ["ruchaka", "bhadra", "hamsa", "malavya", "sasha"];
+        // Parashara entries connect ADJACENT houses 1-2 … 12-1, so any of the twelve can be a
+        // houseImpact (priyamrityu covers 6-7/7-8, chittaHani 12-1) — all twelve theme keys needed.
+        const PARASHARA_IDS = [
+            "pushkala",
+            "rajaChitta",
+            "champaka",
+            "amathya",
+            "dharukaKarma",
+            "priyamrityu",
+            "bhagyaVyaya",
+            "bhumiDravya",
+            "rinaVyaya",
+            "chittaHani",
+        ];
         const keys: string[] = [];
         for (const entry of [...YOGA_CATALOG, ...DOSHA_CATALOG]) {
             keys.push(`${entry.i18nKey}.name`);
@@ -321,6 +428,9 @@ describe("Catalog & enums (UT-YD-001..008)", () => {
                 // Directional Rahu/Ketu entries can emphasise any of the twelve houses via houseImpact.
                 for (let house = 1; house <= 12; house++) keys.push(`${entry.i18nKey}.theme.house${house}`);
                 if (entry.id !== "deeptaYoga") keys.push(`${entry.i18nKey}.dashaNote`);
+            } else if (PARASHARA_IDS.includes(entry.id)) {
+                // Parashara entries are plain yogas — twelve theme keys, no dasha note.
+                for (let house = 1; house <= 12; house++) keys.push(`${entry.i18nKey}.theme.house${house}`);
             } else if (PMP_IDS.includes(entry.id)) {
                 for (const house of [1, 4, 7, 10]) keys.push(`${entry.i18nKey}.theme.house${house}`);
             } else {
@@ -848,7 +958,7 @@ describe("Dharma Karmadhipati Yoga (UT-DK-001..011)", () => {
         expect(dk.triggered).toBe(true);
         expect(dk.strength).toBe(1);
         expect(dk.reasonKey).toBe("rule.dk01");
-        expect(dk.params).toEqual({ dharmaLord: 5, karmaLord: 7 });
+        expect(dk.params).toEqual({ house1: 9, house2: 10, lord1: 5, lord2: 7, reference: "Lagna" });
         expect(dk.houseImpact).toEqual([9, 10]);
     });
 
@@ -924,7 +1034,13 @@ describe("Dharma Karmadhipati Yoga (UT-DK-001..011)", () => {
         const dk = engine.yogas.find((y) => y.id === "dharmaKarmadhipati");
         expect(dk?.isPresent).toBe(true);
         expect(dk?.formation.primaryRule).toBe("dharmaKarmadhipati.dk01");
-        expect(dk?.formation.reasons[0].params).toEqual({ dharmaLord: 5, karmaLord: 7 });
+        expect(dk?.formation.reasons[0].params).toEqual({
+            house1: 9,
+            house2: 10,
+            lord1: 5,
+            lord2: 7,
+            reference: "Lagna",
+        });
         expect(dk?.context.houseImpact).toEqual([9, 10]);
         expect(dk?.formation.strength).toBe(1);
         // Shape validation on present yoga entries.
@@ -1001,6 +1117,165 @@ describe("Dharma Karmadhipati Yoga (UT-DK-001..011)", () => {
         const dk = engine.yogas.find((y) => y.id === "dharmaKarmadhipati");
         expect(dk?.isPresent).toBe(true);
         expect(dk?.formation.rulesTriggered).toEqual(["dharmaKarmadhipati.dk01", "dharmaKarmadhipati.dk02"]);
+    });
+
+    test("UT-DK-012: the 9th/10th sambandha is evaluated from the Moon reference too (Parashara overrides)", () => {
+        // docs/parashara-yoga.md note "මේවා චන්ද්ර ලග්නයෙන් හා සුර්ය ලග්නයෙන්ද සෑදේ". Lagna
+        // (Aries) lords Jupiter(5)/Saturn(7) — Saturn absent → Lagna reference skipped. Moon in
+        // Cancer (4): 9th house = Pisces (lord Jupiter 5), 10th = Aries (lord Mars 3) — Jupiter and
+        // Mars are conjunct → the yoga fires from the Moon reference with its lords/params.
+        const chart = facts([
+            pf(2, { sign: 4, house: 4 }),
+            pf(5, { sign: 1, house: 1, aspects: [aspect(3, 0, 0)] }),
+            pf(3, { sign: 1, house: 1, aspects: [aspect(5, 0, 0)] }),
+        ]);
+        const dk = evaluateRuleDirect("dharmaKarmadhipati.dk01", chart);
+        expect(dk.triggered).toBe(true);
+        expect(dk.params).toEqual({ house1: 9, house2: 10, lord1: 5, lord2: 3, reference: "Moon" });
+    });
+});
+
+describe("Parashara Sambandha Yoga (UT-PS-001..010)", () => {
+    // docs/parashara-yoga.md: each yoga connects two ADJACENT house lords through one of three
+    // sambandhas (conjunction ps01 / mutual aspect ps02 / parivartana ps03), lordships evaluated
+    // from Lagna → Moon → Sun references, with the "same planet rules both houses" exclusion.
+    // Aries ascendant (1): pushkala pair 1-2 = Aries lord Mars(3) + Taurus lord Venus(6).
+
+    test("UT-PS-001: conjunction — ps01 fires with strength 1 and the four lord/house params", () => {
+        const chart = facts([
+            pf(3, { sign: 2, house: 2, aspects: [aspect(6, 0, 0)] }),
+            pf(6, { sign: 2, house: 2, aspects: [aspect(3, 0, 0)] }),
+        ]);
+        const ps = evaluateRuleDirect("pushkala.ps01", chart);
+        expect(ps.triggered).toBe(true);
+        expect(ps.strength).toBe(1);
+        expect(ps.params).toEqual({ house1: 1, house2: 2, lord1: 3, lord2: 6, reference: "Lagna" });
+        expect(ps.houseImpact).toEqual([1, 2]);
+    });
+
+    test("UT-PS-002: mutual aspect — ps02 fires with the aspect strength 2", () => {
+        const chart = facts([
+            pf(3, { sign: 1, house: 1, aspects: [aspect(6, 120, 5)] }),
+            pf(6, { sign: 1, house: 1, aspects: [aspect(3, 120, 5)] }),
+        ]);
+        const ps = evaluateRuleDirect("pushkala.ps02", chart);
+        expect(ps.triggered).toBe(true);
+        expect(ps.strength).toBe(2);
+        expect(ps.reasonKey).toBe("rule.ps02");
+        expect(ps.params.reference).toBe("Lagna");
+    });
+
+    test("UT-PS-003: parivartana — ps03 fires with strength 1", () => {
+        // Mars in Taurus (lord Venus) + Venus in Aries (lord Mars) → sign exchange.
+        const chart = facts([pf(3, { sign: 2, house: 2 }), pf(6, { sign: 1, house: 1 })]);
+        const ps = evaluateRuleDirect("pushkala.ps03", chart);
+        expect(ps.triggered).toBe(true);
+        expect(ps.strength).toBe(1);
+        expect(ps.params).toEqual({ house1: 1, house2: 2, lord1: 3, lord2: 6, reference: "Lagna" });
+    });
+
+    test("UT-PS-004: no qualifying sambandha → absent, never a raw boolean", () => {
+        const chart = facts([pf(3, { sign: 1, house: 1, aspects: [] }), pf(6, { sign: 7, house: 7, aspects: [] })]);
+        const pushkala = computeYogaDoshas(chart).yogas.find((y) => y.id === "pushkala");
+        expect(pushkala?.isPresent).toBe(false);
+        expect(pushkala?.formation.rulesTriggered).toEqual([]);
+    });
+
+    test("UT-PS-005: Moon reference — a pair anchored on the Moon forms the yoga when the Lagna pair fails", () => {
+        // Lagna (Aries) pushkala lords Mars(3)/Venus(6) are absent → Lagna reference skipped. Moon
+        // in Sagittarius (9): 1st = Sagittarius (lord Jupiter 5), 2nd = Capricorn (lord Saturn 7);
+        // Jupiter and Saturn are conjunct → fires, reporting reference:"Moon".
+        const chart = facts([
+            pf(2, { sign: 9, house: 9 }),
+            pf(5, { sign: 10, house: 10, aspects: [aspect(7, 0, 0)] }),
+            pf(7, { sign: 10, house: 10, aspects: [aspect(5, 0, 0)] }),
+        ]);
+        const ps = evaluateRuleDirect("pushkala.ps01", chart);
+        expect(ps.triggered).toBe(true);
+        expect(ps.params).toEqual({ house1: 1, house2: 2, lord1: 5, lord2: 7, reference: "Moon" });
+    });
+
+    test("UT-PS-006: Sun reference — a pair anchored on the Sun fires when earlier references fail", () => {
+        // Lagna lords and the Moon are absent; Sun in Sagittarius (9) anchors the same 1-2 = Jup/Sat.
+        const chart = facts([
+            pf(1, { sign: 9, house: 9 }),
+            pf(5, { sign: 10, house: 10, aspects: [aspect(7, 0, 0)] }),
+            pf(7, { sign: 10, house: 10, aspects: [aspect(5, 0, 0)] }),
+        ]);
+        const ps = evaluateRuleDirect("pushkala.ps01", chart);
+        expect(ps.triggered).toBe(true);
+        expect(ps.params).toEqual({ house1: 1, house2: 2, lord1: 5, lord2: 7, reference: "Sun" });
+    });
+
+    test("UT-PS-007: same-lord exclusion — a Saturn-ruled 10/11 pair never forms bhumiDravya (doc 'එකම ග්රහයා වුවහොත්')", () => {
+        // From Aries, the 10th (Capricorn) and 11th (Aquarius) houses are BOTH ruled by Saturn —
+        // bhumiDravya must stay absent even though the very same conjunct pair forms the adjacent
+        // dharmaKarmadhipati (9th=Jupiter / 10th=Saturn) from the Lagna reference.
+        const chart = facts([
+            pf(5, { sign: 10, house: 10, aspects: [aspect(7, 0, 0)] }),
+            pf(7, { sign: 10, house: 10, aspects: [aspect(5, 0, 0)] }),
+        ]);
+        const engine = computeYogaDoshas(chart);
+        const bhumi = engine.yogas.find((y) => y.id === "bhumiDravya");
+        const dk = engine.yogas.find((y) => y.id === "dharmaKarmadhipati");
+        expect(bhumi?.isPresent).toBe(false);
+        expect(bhumi?.formation.rulesTriggered).toEqual([]);
+        expect(dk?.isPresent).toBe(true);
+        // A same-lord pair is skipped, not errored — the rule evaluation is a clean absent.
+        expect(evaluateRuleDirect("bhumiDravya.ps01", chart).triggered).toBe(false);
+    });
+
+    test("UT-PS-008: priyamrityu forms from EITHER the 6-7 pair OR the 7-8 pair", () => {
+        // Aries ascendant: 6-7 = Virgo(4)/Libra(6); 7-8 = Libra(6)/Scorpio(3).
+        const via67 = facts([
+            pf(4, { sign: 2, house: 2, aspects: [aspect(6, 0, 0)] }),
+            pf(6, { sign: 2, house: 2, aspects: [aspect(4, 0, 0)] }),
+        ]);
+        const via78 = facts([
+            pf(6, { sign: 1, house: 1, aspects: [aspect(3, 0, 0)] }),
+            pf(3, { sign: 1, house: 1, aspects: [aspect(6, 0, 0)] }),
+        ]);
+        const r67 = evaluateRuleDirect("priyamrityu.ps01", via67);
+        expect(r67.triggered).toBe(true);
+        expect(r67.params).toEqual({ house1: 6, house2: 7, lord1: 4, lord2: 6, reference: "Lagna" });
+        const r78 = evaluateRuleDirect("priyamrityu.ps01", via78);
+        expect(r78.triggered).toBe(true);
+        expect(r78.params).toEqual({ house1: 7, house2: 8, lord1: 6, lord2: 3, reference: "Lagna" });
+        // The reported params disambiguate WHICH pair formed Priyamrityu.
+        expect(r67.params.house2).not.toBe(r78.params.house2);
+    });
+
+    test("UT-PS-009: all coexistence — conjunction and mutual aspect both report with strengths 1/2", () => {
+        // Pushkala lords Mars & Venus conjunct in Aries AND at a genuine 90° mutual drishti.
+        const chart = facts([
+            pf(3, { sign: 1, house: 1, aspects: [aspect(6, 0, 0), aspect(6, 90, 5)] }),
+            pf(6, { sign: 1, house: 1, aspects: [aspect(3, 0, 0), aspect(3, 90, 5)] }),
+        ]);
+        const engine = computeYogaDoshas(chart);
+        const pushkala = engine.yogas.find((y) => y.id === "pushkala");
+        expect(pushkala?.isPresent).toBe(true);
+        expect(pushkala?.formation.rulesTriggered).toEqual(["pushkala.ps01", "pushkala.ps02"]);
+        // Both reasons are reported; the formation strength is the strongest (min) of the two.
+        expect(pushkala?.formation.reasons.map((r) => r.rule)).toEqual(["pushkala.ps01", "pushkala.ps02"]);
+        expect(pushkala?.formation.strength).toBe(1);
+        expect(validateYogaDoshaShape(pushkala)).toEqual([]);
+    });
+
+    test("UT-PS-010: full-family engine run — a two-lord chart only fires the pairs its lordships satisfy", () => {
+        // Mars & Venus conjunct: from Aries these two rule pushkala (1-2), rajaChitta (2-3 = Venus/
+        // Mercury — Mercury absent) etc. Only pushkala and priyamrityu (7-8 = Venus/Mars) qualify.
+        const chart = facts([
+            pf(3, { sign: 1, house: 1, aspects: [aspect(6, 0, 0)] }),
+            pf(6, { sign: 1, house: 1, aspects: [aspect(3, 0, 0)] }),
+        ]);
+        const engine = computeYogaDoshas(chart);
+        const present = engine.yogas.filter((y) => y.isPresent).map((y) => y.id);
+        expect(present).toEqual(expect.arrayContaining(["pushkala", "priyamrityu"]));
+        for (const entry of engine.yogas) {
+            expect(validateYogaDoshaShape(entry)).toEqual([]);
+        }
+        // The family covers every adjacent pair EXCEPT none — all ten catalog yogas evaluated.
+        expect(engine.yogas.map((y) => y.id)).toHaveLength(17);
     });
 });
 
@@ -1342,6 +1617,16 @@ describe("Rule engine (UT-YD-080..090)", () => {
         // but still evaluated and stored (fail-closed, US-YD-005 Edge).
         expect(engine.yogas.map((y) => y.id)).toEqual([
             "dharmaKarmadhipati",
+            "pushkala",
+            "rajaChitta",
+            "champaka",
+            "amathya",
+            "dharukaKarma",
+            "priyamrityu",
+            "bhagyaVyaya",
+            "bhumiDravya",
+            "rinaVyaya",
+            "chittaHani",
             "ruchaka",
             "bhadra",
             "hamsa",
@@ -1627,6 +1912,16 @@ describe("Legacy & manual resolution (UT-YD-150..155)", () => {
         // Ascendant Aries → 9th lord Jupiter absent from this manual fixture → yoga absent.
         expect(engine.yogas.map((y) => y.id)).toEqual([
             "dharmaKarmadhipati",
+            "pushkala",
+            "rajaChitta",
+            "champaka",
+            "amathya",
+            "dharukaKarma",
+            "priyamrityu",
+            "bhagyaVyaya",
+            "bhumiDravya",
+            "rinaVyaya",
+            "chittaHani",
             "ruchaka",
             "bhadra",
             "hamsa",
@@ -1682,6 +1977,16 @@ describe("Legacy & manual resolution (UT-YD-150..155)", () => {
         const resolved = resolveYogas(legacy);
         expect(resolved?.map((y) => y.id)).toEqual([
             "dharmaKarmadhipati",
+            "pushkala",
+            "rajaChitta",
+            "champaka",
+            "amathya",
+            "dharukaKarma",
+            "priyamrityu",
+            "bhagyaVyaya",
+            "bhumiDravya",
+            "rinaVyaya",
+            "chittaHani",
             "ruchaka",
             "bhadra",
             "hamsa",
@@ -1699,6 +2004,16 @@ describe("Legacy & manual resolution (UT-YD-150..155)", () => {
         };
         expect(resolveYogas(corrupt)?.map((y) => y.id)).toEqual([
             "dharmaKarmadhipati",
+            "pushkala",
+            "rajaChitta",
+            "champaka",
+            "amathya",
+            "dharukaKarma",
+            "priyamrityu",
+            "bhagyaVyaya",
+            "bhumiDravya",
+            "rinaVyaya",
+            "chittaHani",
             "ruchaka",
             "bhadra",
             "hamsa",
@@ -1832,6 +2147,16 @@ describe("Legacy & manual resolution (UT-YD-150..155)", () => {
         // Ascendant Aries → 9th lord Jupiter absent → yoga absent (fail-closed).
         expect(engine.yogas.map((y) => y.id)).toEqual([
             "dharmaKarmadhipati",
+            "pushkala",
+            "rajaChitta",
+            "champaka",
+            "amathya",
+            "dharukaKarma",
+            "priyamrityu",
+            "bhagyaVyaya",
+            "bhumiDravya",
+            "rinaVyaya",
+            "chittaHani",
             "ruchaka",
             "bhadra",
             "hamsa",
@@ -1855,6 +2180,16 @@ describe("Legacy & manual resolution (UT-YD-150..155)", () => {
         const combined = resolveYogaDoshas(doc);
         expect(combined?.yogas?.map((y) => y.id)).toEqual([
             "dharmaKarmadhipati",
+            "pushkala",
+            "rajaChitta",
+            "champaka",
+            "amathya",
+            "dharukaKarma",
+            "priyamrityu",
+            "bhagyaVyaya",
+            "bhumiDravya",
+            "rinaVyaya",
+            "chittaHani",
             "ruchaka",
             "bhadra",
             "hamsa",

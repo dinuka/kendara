@@ -41,6 +41,8 @@ import {
     KalaSarpaRuleId,
     MalavyaRuleId,
     ManglikRuleId,
+    ParasharaYogaRuleId,
+    PlanetFact,
     RuchakaRuleId,
     RuleEvaluation,
     RuleId,
@@ -51,7 +53,6 @@ import {
 export const SHANI_MANGALA_PLANETS = [7, 3] as const; // Saturn, Mars
 export const AGNI_MARUTHA_PLANETS = [7, 3] as const; // Saturn, Mars
 export const KUJA_DOSHA_PLANETS = [3] as const; // Mars
-export const DHARMA_KARMADHIPATI_HOUSES = [9, 10] as const; // Dharma (9th) & Karma (10th)
 
 /** Kendra houses from Lagna for Pancha Maha Purusha Yoga (1st, 4th, 7th, 10th). */
 const KENDRA_HOUSES = [1, 4, 7, 10];
@@ -258,65 +259,114 @@ function evaluateManglikRule(rule: ManglikRuleId, facts: ChartFacts): RuleEvalua
 }
 
 /**
- * Dharma Karmadhipati Yoga — the 9th lord (Dharma) connects with the 10th lord (Karma)
- * via one of the qualifying sambandha relationships (docs/dharma-karmadipathi-yogaya.md):
- *  - DK-01 Conjunction: both lords in the same sign/house
- *  - DK-02 Mutual aspect: the lords aspect each other on the per-planet orbs (stored drishti)
- *  - DK-03 Parivartana: each lord occupies the sign owned by the other
- * Formation only — strength of the lords is NOT used to create the yoga.
+ * Parashara Sambandha yogas (docs/parashara-yoga.md): each yoga forms when the lords of a defined
+ * pair of adjacent houses — 1-2 Pushkala, 2-3 Raja Chitta, 3-4 Champaka, 4-5 Amathya, 5-6 Dharuka
+ * Karma, 6-7 Priyamrityu, 8-9 Bhagya Vyaya, 9-10 Dharma Karmadhipati, 10-11 Bhumi Dravya, 11-12
+ * Rina Vyaya, 12-1 Chitta Hani — are CONNECTED through any one of the three qualifying sambandhas:
+ *  - Conjunction: both lords in the same sign/house (mutual stored 0° records)
+ *  - Mutual aspect: the lords aspect each other on the per-planet orbs (stored graha drishti)
+ *  - Parivartana: each lord occupies the sign owned by the other
+ * House lordships are evaluated from THREE reference points — Lagna, Moon and Sun (the doc adds
+ * "මේවා චන්ද්ර ලග්නයෙන් හා සුර්ය ලග්නයෙන්ද සෑදේ"). A yoga does NOT form when the same planet
+ * rules both houses (the doc's "එකම ග්රහයා වුවහොත් මෙය නොයැදේ" — e.g. Saturn owns both Makara and
+ * Kumbha, so a reference whose two houses fall on Capricorn/Aquarius can never create a Parashara
+ * yoga). Priyamrityu forms from EITHER the 6-7 pair OR the 7-8 pair. Formation only — strength of
+ * the lords is NOT used to create the yoga.
  */
 
-/** Whole-sign sign of house N counted from the ascendant (house 1 = ascendant sign). */
-function signOfHouseFromAscendant(ascendantSign: number, house: number): number {
-    return ((ascendantSign + house - 2) % 12) + 1;
+/** Whole-sign sign of house N counted from a reference sign (house 1 = the reference sign itself). */
+function signOfHouseFromReference(referenceSign: number, house: number): number {
+    return ((referenceSign + house - 2) % 12) + 1;
 }
 
-/** Lord planet of a whole-sign house from the ascendant (via SIGN_LORDS). */
-function lordOfHouse(ascendantSign: number, house: number): number {
-    const sign = signOfHouseFromAscendant(ascendantSign, house);
-    return SIGN_LORDS[sign];
+/** Lord planet of a whole-sign house counted from a reference sign (via SIGN_LORDS). */
+function lordOfSign(referenceSign: number, house: number): number {
+    return SIGN_LORDS[signOfHouseFromReference(referenceSign, house)];
 }
 
-function evaluateDharmaKarmadhipatiRule(rule: DharmaKarmadhipatiRuleId, facts: ChartFacts): RuleEvaluation {
-    if (!facts.ascendantSign) return absent(rule);
+/** House pairs each Parashara yoga connects (docs/parashara-yoga.md). */
+const PARASHARA_YOGA_HOUSE_PAIRS: Record<string, number[][]> = {
+    pushkala: [[1, 2]],
+    rajaChitta: [[2, 3]],
+    champaka: [[3, 4]],
+    amathya: [[4, 5]],
+    dharukaKarma: [[5, 6]],
+    priyamrityu: [
+        [6, 7],
+        [7, 8],
+    ],
+    bhagyaVyaya: [[8, 9]],
+    dharmaKarmadhipati: [[9, 10]],
+    bhumiDravya: [[10, 11]],
+    rinaVyaya: [[11, 12]],
+    chittaHani: [[12, 1]],
+};
 
-    const dharmaLord = lordOfHouse(facts.ascendantSign, 9);
-    const karmaLord = lordOfHouse(facts.ascendantSign, 10);
-    const dharmaPlanet = planetFact(facts, dharmaLord);
-    const karmaPlanet = planetFact(facts, karmaLord);
-    if (!dharmaPlanet || !karmaPlanet) return absent(rule);
+/** Parashara sambandha strengths by rule-suffix digits (conjunction 1 / mutual aspect 2 / parivartana 1). */
+const PARASHARA_SAMBADHA_STRENGTH: Record<string, number> = { "01": 1, "02": 2, "03": 1 };
 
-    switch (rule) {
-        // DK-01: 9th and 10th lords are conjunct (same sign + house, mutual 0° records in orb).
-        case "dharmaKarmadhipati.dk01":
-            if (!areConjunct(dharmaPlanet, karmaPlanet)) return absent(rule);
-            return fired(rule, 1, "rule.dk01", { dharmaLord, karmaLord }, [
-                DHARMA_KARMADHIPATI_HOUSES[0],
-                DHARMA_KARMADHIPATI_HOUSES[1],
-            ]);
+/**
+ * Generic Parashara sambandha evaluator shared by all eleven yogas (Dharma Karmadhipati's dk01-03
+ * fan in here; the doc note "Dharmakarmadipathi is one of Parashara yoga — override it with this"
+ * is implemented as DHCP being computed by the same multi-reference, same-lord-excluding rule).
+ * `rule` is `<id>.ps01|ps02|ps03` or `dharmaKarmadhipati.dk01-03`; the suffix's final two digits
+ * select the sambandha: 01 conjunction, 02 mutual aspect, 03 parivartana. A sambandha is
+ * `triggered` when ANY reference (Lagna → Moon → Sun, in that preference order) yields the
+ * connection between two DIFFERENT house lords of a qualifying pair.
+ */
+function evaluateParasharaRule(
+    rule: ParasharaYogaRuleId | DharmaKarmadhipatiRuleId,
+    facts: ChartFacts,
+): RuleEvaluation {
+    const id = rule.split(".")[0];
+    const reasonKey = rule.split(".")[1];
+    const sambandha = reasonKey.slice(-2); // "01" | "02" | "03"
+    const pairs = PARASHARA_YOGA_HOUSE_PAIRS[id];
+    const strength = PARASHARA_SAMBADHA_STRENGTH[sambandha];
+    if (!pairs || !strength || !facts.ascendantSign) return absent(rule);
 
-        // DK-02: 9th and 10th lords MUTUALLY aspect each other (docs/dharma-karmadipathi-yogaya.md §19 —
-        // "9th lord aspects 10th lord AND 10th lord aspects 9th lord" — both directions required). A
-        // 0° conjunction record is yuti, not drishti, so it never satisfies DK-02; conjunction charts
-        // report DK-01 only (reported for horoscope 6a68e63506d2d7cd52c6fa9d).
-        case "dharmaKarmadhipati.dk02":
-            if (!hasMutualAspectByDrishti(dharmaPlanet, karmaPlanet)) return absent(rule);
-            return fired(rule, 2, "rule.dk02", { dharmaLord, karmaLord }, [
-                DHARMA_KARMADHIPATI_HOUSES[0],
-                DHARMA_KARMADHIPATI_HOUSES[1],
-            ]);
+    const references: Array<{ name: string; sign: number | undefined }> = [
+        { name: "Lagna", sign: facts.ascendantSign },
+        { name: "Moon", sign: planetFact(facts, 2)?.sign },
+        { name: "Sun", sign: planetFact(facts, 1)?.sign },
+    ];
 
-        // DK-03: 9th and 10th lords exchange signs (parivartana).
-        case "dharmaKarmadhipati.dk03":
-            if (!isParivartana(dharmaPlanet, karmaPlanet)) return absent(rule);
-            return fired(rule, 1, "rule.dk03", { dharmaLord, karmaLord }, [
-                DHARMA_KARMADHIPATI_HOUSES[0],
-                DHARMA_KARMADHIPATI_HOUSES[1],
-            ]);
+    for (const reference of references) {
+        if (!reference.sign) continue;
+        for (const [house1, house2] of pairs) {
+            const lord1 = lordOfSign(reference.sign, house1);
+            const lord2 = lordOfSign(reference.sign, house2);
+            if (lord1 === lord2) continue; // the same planet owns both houses → the yoga never forms
+            const planet1 = planetFact(facts, lord1);
+            const planet2 = planetFact(facts, lord2);
+            if (!planet1 || !planet2) continue;
 
-        default:
-            return absent(rule);
+            const connected =
+                sambandha === "01"
+                    ? areConjunct(planet1, planet2)
+                    : sambandha === "02"
+                      ? hasMutualAspectByDrishti(planet1, planet2)
+                      : isParivartana(planet1, planet2);
+            if (!connected) continue;
+
+            return fired(
+                rule,
+                strength,
+                `rule.${reasonKey}`,
+                { house1, house2, lord1, lord2, reference: reference.name },
+                [house1, house2],
+            );
+        }
     }
+
+    return absent(rule);
+}
+
+/** Dharma Karmadhipati Yoga — the 9th (Dharma) & 10th (Karma) lord sambandha, a member of the
+ *  Parashara family (docs/parashara-yoga.md overrides docs/dharma-karmadipathi-yogaya.md: evaluated
+ *  from Lagna + Moon + Sun with the same-lord exclusion via the generic Parashara rule). */
+function evaluateDharmaKarmadhipatiRule(rule: DharmaKarmadhipatiRuleId, facts: ChartFacts): RuleEvaluation {
+    return evaluateParasharaRule(rule, facts);
 }
 
 /**
@@ -456,6 +506,21 @@ function evaluateKalaAmurthaRule(rule: KalaAmurthaRuleId, facts: ChartFacts): Ru
     return fired(rule, 1, "rule.ka01", undefined, [rahu.house, ketu.house]);
 }
 
+/** The ten Parashara sub-yogas besides Dharma Karmadhipati (docs/parashara-yoga.md) — their
+ *  `ps01..ps03` rules all route to the shared evaluateParasharaRule. */
+const PARASHARA_YOGA_IDS = [
+    "pushkala",
+    "rajaChitta",
+    "champaka",
+    "amathya",
+    "dharukaKarma",
+    "priyamrityu",
+    "bhagyaVyaya",
+    "bhumiDravya",
+    "rinaVyaya",
+    "chittaHani",
+];
+
 /** Evaluates every catalog rule of an entry (catalog order). Triggers dedupe upstream. */
 export function evaluateRule(rule: RuleId, facts: ChartFacts): RuleEvaluation {
     if (rule.startsWith("shaniMangala.")) return evaluateShaniMangalaRule(rule as ShaniMangalaRuleId, facts);
@@ -466,6 +531,8 @@ export function evaluateRule(rule: RuleId, facts: ChartFacts): RuleEvaluation {
     if (rule.startsWith("deeptaYoga.")) return evaluateDeeptaYogaRule(rule as DeeptaYogaRuleId, facts);
     if (rule.startsWith("dharmaKarmadhipati."))
         return evaluateDharmaKarmadhipatiRule(rule as DharmaKarmadhipatiRuleId, facts);
+    if (PARASHARA_YOGA_IDS.some((id) => rule.startsWith(`${id}.`)))
+        return evaluateParasharaRule(rule as ParasharaYogaRuleId, facts);
     if (
         rule.startsWith("ruchaka.") ||
         rule.startsWith("bhadra.") ||

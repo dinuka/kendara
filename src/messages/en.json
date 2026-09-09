@@ -945,6 +945,11 @@
         "houseHeading": "House {house}",
         "itemGroup": "General",
         "whyItForms": "Why it forms",
+        "references": {
+            "Lagna": "Lagna",
+            "Moon": "Moon lagna (Chandra lagna)",
+            "Sun": "Sun lagna (Surya lagna)"
+        },
         "result": "Result",
         "expression": "Expression",
         "cancellation": "Cancellation",
@@ -971,9 +976,9 @@
         "dharmaKarmadhipati": {
             "name": "Dharma Karmadhipati Yoga",
             "rule": {
-                "dk01": "The 9th lord and 10th lord conjoin in one sign and house.",
-                "dk02": "The 9th lord and 10th lord aspect each other.",
-                "dk03": "The 9th lord and 10th lord exchange signs (parivartana)."
+                "dk01": "From the {reference}, the 9th lord {lord1Name} and 10th lord {lord2Name} conjoin in one sign and house.",
+                "dk02": "From the {reference}, the 9th lord {lord1Name} and 10th lord {lord2Name} aspect each other.",
+                "dk03": "From the {reference}, the 9th lord {lord1Name} and 10th lord {lord2Name} exchange signs (parivartana)."
             },
             "theme": {
                 "house1": "Relates to self and vitality.",
@@ -1101,6 +1106,256 @@
                 "Guru": "Wealth is gained, renown and praise come, and advisory services are provided.",
                 "Shukra": "Pleasant-mannered. Comforts, wealth, vehicles and property are gained. Auspicious for marriage.",
                 "Shani": "Through life's problems, obstacles and troubles, rises to a very high and advanced position."
+            }
+        },
+        "pushkala": {
+            "name": "Pushkala Yoga",
+            "rule": {
+                "ps01": "From the {reference}, the lords of houses {house1} and {house2} ({lord1Name} and {lord2Name}) conjoin in one sign and house.",
+                "ps02": "From the {reference}, the lords of houses {house1} and {house2} ({lord1Name} and {lord2Name}) aspect each other.",
+                "ps03": "From the {reference}, the lords of houses {house1} and {house2} ({lord1Name} and {lord2Name}) exchange signs (parivartana)."
+            },
+            "theme": {
+                "house1": "Relates to self and vitality.",
+                "house2": "Relates to family and wealth.",
+                "house3": "Relates to courage and effort.",
+                "house4": "Relates to home, property and domestic life.",
+                "house5": "Relates to creativity and children.",
+                "house6": "Relates to obstacles and service.",
+                "house7": "Relates to partnerships and marriage.",
+                "house8": "Relates to longevity, inheritance and hidden matters.",
+                "house9": "Relates to fortune, dharma and higher learning.",
+                "house10": "Relates to career, karma and public standing.",
+                "house11": "Relates to gains and networks.",
+                "house12": "Relates to losses and foreign lands."
+            },
+            "expression": {
+                "main": "This yoga brings accumulation and growth of wealth and material comforts."
+            }
+        },
+        "rajaChitta": {
+            "name": "Raja Chitta Yoga",
+            "rule": {
+                "ps01": "From the {reference}, the lords of houses {house1} and {house2} ({lord1Name} and {lord2Name}) conjoin in one sign and house.",
+                "ps02": "From the {reference}, the lords of houses {house1} and {house2} ({lord1Name} and {lord2Name}) aspect each other.",
+                "ps03": "From the {reference}, the lords of houses {house1} and {house2} ({lord1Name} and {lord2Name}) exchange signs (parivartana)."
+            },
+            "theme": {
+                "house1": "Relates to self and vitality.",
+                "house2": "Relates to family and wealth.",
+                "house3": "Relates to courage and effort.",
+                "house4": "Relates to home, property and domestic life.",
+                "house5": "Relates to creativity and children.",
+                "house6": "Relates to obstacles and service.",
+                "house7": "Relates to partnerships and marriage.",
+                "house8": "Relates to longevity, inheritance and hidden matters.",
+                "house9": "Relates to fortune, dharma and higher learning.",
+                "house10": "Relates to career, karma and public standing.",
+                "house11": "Relates to gains and networks.",
+                "house12": "Relates to losses and foreign lands."
+            },
+            "expression": {
+                "main": "This yoga confers royal favour, reputation and victory over rivals, favouring growth in status."
+            }
+        },
+        "champaka": {
+            "name": "Champaka Yoga",
+            "rule": {
+                "ps01": "From the {reference}, the lords of houses {house1} and {house2} ({lord1Name} and {lord2Name}) conjoin in one sign and house.",
+                "ps02": "From the {reference}, the lords of houses {house1} and {house2} ({lord1Name} and {lord2Name}) aspect each other.",
+                "ps03": "From the {reference}, the lords of houses {house1} and {house2} ({lord1Name} and {lord2Name}) exchange signs (parivartana)."
+            },
+            "theme": {
+                "house1": "Relates to self and vitality.",
+                "house2": "Relates to family and wealth.",
+                "house3": "Relates to courage and effort.",
+                "house4": "Relates to home, property and domestic life.",
+                "house5": "Relates to creativity and children.",
+                "house6": "Relates to obstacles and service.",
+                "house7": "Relates to partnerships and marriage.",
+                "house8": "Relates to longevity, inheritance and hidden matters.",
+                "house9": "Relates to fortune, dharma and higher learning.",
+                "house10": "Relates to career, karma and public standing.",
+                "house11": "Relates to gains and networks.",
+                "house12": "Relates to losses and foreign lands."
+            },
+            "expression": {
+                "main": "This yoga bestows strength, courage and the capacity to overcome enemies and hardships."
+            }
+        },
+        "amathya": {
+            "name": "Amathya Yoga",
+            "rule": {
+                "ps01": "From the {reference}, the lords of houses {house1} and {house2} ({lord1Name} and {lord2Name}) conjoin in one sign and house.",
+                "ps02": "From the {reference}, the lords of houses {house1} and {house2} ({lord1Name} and {lord2Name}) aspect each other.",
+                "ps03": "From the {reference}, the lords of houses {house1} and {house2} ({lord1Name} and {lord2Name}) exchange signs (parivartana)."
+            },
+            "theme": {
+                "house1": "Relates to self and vitality.",
+                "house2": "Relates to family and wealth.",
+                "house3": "Relates to courage and effort.",
+                "house4": "Relates to home, property and domestic life.",
+                "house5": "Relates to creativity and children.",
+                "house6": "Relates to obstacles and service.",
+                "house7": "Relates to partnerships and marriage.",
+                "house8": "Relates to longevity, inheritance and hidden matters.",
+                "house9": "Relates to fortune, dharma and higher learning.",
+                "house10": "Relates to career, karma and public standing.",
+                "house11": "Relates to gains and networks.",
+                "house12": "Relates to losses and foreign lands."
+            },
+            "expression": {
+                "main": "This yoga confers advisory and diplomatic skill, sharp memory and sound decision-making."
+            }
+        },
+        "dharukaKarma": {
+            "name": "Dharuka Karma Yoga",
+            "rule": {
+                "ps01": "From the {reference}, the lords of houses {house1} and {house2} ({lord1Name} and {lord2Name}) conjoin in one sign and house.",
+                "ps02": "From the {reference}, the lords of houses {house1} and {house2} ({lord1Name} and {lord2Name}) aspect each other.",
+                "ps03": "From the {reference}, the lords of houses {house1} and {house2} ({lord1Name} and {lord2Name}) exchange signs (parivartana)."
+            },
+            "theme": {
+                "house1": "Relates to self and vitality.",
+                "house2": "Relates to family and wealth.",
+                "house3": "Relates to courage and effort.",
+                "house4": "Relates to home, property and domestic life.",
+                "house5": "Relates to creativity and children.",
+                "house6": "Relates to obstacles and service.",
+                "house7": "Relates to partnerships and marriage.",
+                "house8": "Relates to longevity, inheritance and hidden matters.",
+                "house9": "Relates to fortune, dharma and higher learning.",
+                "house10": "Relates to career, karma and public standing.",
+                "house11": "Relates to gains and networks.",
+                "house12": "Relates to losses and foreign lands."
+            },
+            "expression": {
+                "main": "This yoga empowers the native to subdue enemies and health afflictions, though it also tends to test matters of children."
+            }
+        },
+        "priyamrityu": {
+            "name": "Priyamrityu Yoga",
+            "rule": {
+                "ps01": "From the {reference}, the lords of houses {house1} and {house2} ({lord1Name} and {lord2Name}) conjoin in one sign and house.",
+                "ps02": "From the {reference}, the lords of houses {house1} and {house2} ({lord1Name} and {lord2Name}) aspect each other.",
+                "ps03": "From the {reference}, the lords of houses {house1} and {house2} ({lord1Name} and {lord2Name}) exchange signs (parivartana)."
+            },
+            "theme": {
+                "house1": "Relates to self and vitality.",
+                "house2": "Relates to family and wealth.",
+                "house3": "Relates to courage and effort.",
+                "house4": "Relates to home, property and domestic life.",
+                "house5": "Relates to creativity and children.",
+                "house6": "Relates to obstacles and service.",
+                "house7": "Relates to partnerships and marriage.",
+                "house8": "Relates to longevity, inheritance and hidden matters.",
+                "house9": "Relates to fortune, dharma and higher learning.",
+                "house10": "Relates to career, karma and public standing.",
+                "house11": "Relates to gains and networks.",
+                "house12": "Relates to losses and foreign lands."
+            },
+            "expression": {
+                "main": "This yoga tends to create friction or illness around the spouse, while also granting some kendra-like benefits among the results."
+            }
+        },
+        "bhagyaVyaya": {
+            "name": "Bhagya Vyaya Yoga",
+            "rule": {
+                "ps01": "From the {reference}, the lords of houses {house1} and {house2} ({lord1Name} and {lord2Name}) conjoin in one sign and house.",
+                "ps02": "From the {reference}, the lords of houses {house1} and {house2} ({lord1Name} and {lord2Name}) aspect each other.",
+                "ps03": "From the {reference}, the lords of houses {house1} and {house2} ({lord1Name} and {lord2Name}) exchange signs (parivartana)."
+            },
+            "theme": {
+                "house1": "Relates to self and vitality.",
+                "house2": "Relates to family and wealth.",
+                "house3": "Relates to courage and effort.",
+                "house4": "Relates to home, property and domestic life.",
+                "house5": "Relates to creativity and children.",
+                "house6": "Relates to obstacles and service.",
+                "house7": "Relates to partnerships and marriage.",
+                "house8": "Relates to longevity, inheritance and hidden matters.",
+                "house9": "Relates to fortune, dharma and higher learning.",
+                "house10": "Relates to career, karma and public standing.",
+                "house11": "Relates to gains and networks.",
+                "house12": "Relates to losses and foreign lands."
+            },
+            "expression": {
+                "main": "This yoga tends to consume fortune and undermine the results of dharma and past merits."
+            }
+        },
+        "bhumiDravya": {
+            "name": "Bhumi Dravya Yoga",
+            "rule": {
+                "ps01": "From the {reference}, the lords of houses {house1} and {house2} ({lord1Name} and {lord2Name}) conjoin in one sign and house.",
+                "ps02": "From the {reference}, the lords of houses {house1} and {house2} ({lord1Name} and {lord2Name}) aspect each other.",
+                "ps03": "From the {reference}, the lords of houses {house1} and {house2} ({lord1Name} and {lord2Name}) exchange signs (parivartana)."
+            },
+            "theme": {
+                "house1": "Relates to self and vitality.",
+                "house2": "Relates to family and wealth.",
+                "house3": "Relates to courage and effort.",
+                "house4": "Relates to home, property and domestic life.",
+                "house5": "Relates to creativity and children.",
+                "house6": "Relates to obstacles and service.",
+                "house7": "Relates to partnerships and marriage.",
+                "house8": "Relates to longevity, inheritance and hidden matters.",
+                "house9": "Relates to fortune, dharma and higher learning.",
+                "house10": "Relates to career, karma and public standing.",
+                "house11": "Relates to gains and networks.",
+                "house12": "Relates to losses and foreign lands."
+            },
+            "expression": {
+                "main": "This yoga favours gains of land, property, vehicles and other material assets."
+            }
+        },
+        "rinaVyaya": {
+            "name": "Rina Vyaya Yoga",
+            "rule": {
+                "ps01": "From the {reference}, the lords of houses {house1} and {house2} ({lord1Name} and {lord2Name}) conjoin in one sign and house.",
+                "ps02": "From the {reference}, the lords of houses {house1} and {house2} ({lord1Name} and {lord2Name}) aspect each other.",
+                "ps03": "From the {reference}, the lords of houses {house1} and {house2} ({lord1Name} and {lord2Name}) exchange signs (parivartana)."
+            },
+            "theme": {
+                "house1": "Relates to self and vitality.",
+                "house2": "Relates to family and wealth.",
+                "house3": "Relates to courage and effort.",
+                "house4": "Relates to home, property and domestic life.",
+                "house5": "Relates to creativity and children.",
+                "house6": "Relates to obstacles and service.",
+                "house7": "Relates to partnerships and marriage.",
+                "house8": "Relates to longevity, inheritance and hidden matters.",
+                "house9": "Relates to fortune, dharma and higher learning.",
+                "house10": "Relates to career, karma and public standing.",
+                "house11": "Relates to gains and networks.",
+                "house12": "Relates to losses and foreign lands."
+            },
+            "expression": {
+                "main": "This yoga tends to bring expenditure through debts, loans and paying off obligations."
+            }
+        },
+        "chittaHani": {
+            "name": "Chitta Hani Yoga",
+            "rule": {
+                "ps01": "From the {reference}, the lords of houses {house1} and {house2} ({lord1Name} and {lord2Name}) conjoin in one sign and house.",
+                "ps02": "From the {reference}, the lords of houses {house1} and {house2} ({lord1Name} and {lord2Name}) aspect each other.",
+                "ps03": "From the {reference}, the lords of houses {house1} and {house2} ({lord1Name} and {lord2Name}) exchange signs (parivartana)."
+            },
+            "theme": {
+                "house1": "Relates to self and vitality.",
+                "house2": "Relates to family and wealth.",
+                "house3": "Relates to courage and effort.",
+                "house4": "Relates to home, property and domestic life.",
+                "house5": "Relates to creativity and children.",
+                "house6": "Relates to obstacles and service.",
+                "house7": "Relates to partnerships and marriage.",
+                "house8": "Relates to longevity, inheritance and hidden matters.",
+                "house9": "Relates to fortune, dharma and higher learning.",
+                "house10": "Relates to career, karma and public standing.",
+                "house11": "Relates to gains and networks.",
+                "house12": "Relates to losses and foreign lands."
+            },
+            "expression": {
+                "main": "This yoga brings emotional and mental strain and a tendency toward careless or excessive expenditure."
             }
         }
     },

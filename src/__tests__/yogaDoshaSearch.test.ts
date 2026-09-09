@@ -135,6 +135,16 @@ describe("search: Yoga/Dosha catalog names (SR-YD-800..805)", () => {
         );
         expect(result.yogas.map((y) => y.id)).toEqual([
             "dharmaKarmadhipati",
+            "pushkala",
+            "rajaChitta",
+            "champaka",
+            "amathya",
+            "dharukaKarma",
+            "priyamrityu",
+            "bhagyaVyaya",
+            "bhumiDravya",
+            "rinaVyaya",
+            "chittaHani",
             "ruchaka",
             "bhadra",
             "hamsa",
@@ -145,6 +155,47 @@ describe("search: Yoga/Dosha catalog names (SR-YD-800..805)", () => {
         expect(result.yogas[0].isPresent).toBe(false);
         expect(result.doshas[0].isPresent).toBe(true);
         expect(result.doshas[0].id).toBe("shaniMangala");
+        return {
+            yogaDoshaVersion: YOGA_DOSHA_VERSION,
+            yogas: result.yogas,
+            doshas: { doshas: result.doshas },
+        };
+    };
+
+    /** Engine result with a present Parashara yoga (Mars + Venus conjunct, Aries ascendant → Pushkala). */
+    const presentPushkalaFixture = () => {
+        const result = computeYogaDoshas(
+            buildChartFacts({
+                ascendantSign: 1,
+                source: "auto",
+                planets: [
+                    {
+                        name: 3,
+                        sign: 2,
+                        house: 2,
+                        degree: 15,
+                        absoluteDegree: 45,
+                        strength: PlanetaryStrength.SAMA,
+                        navamsaSign: 2,
+                        navamsaStrength: PlanetaryStrength.SAMA,
+                        nakshatra: 5,
+                        aspects: [{ planetName: 6, aspectType: 0, degreeGap: 0 }],
+                    },
+                    {
+                        name: 6,
+                        sign: 2,
+                        house: 2,
+                        degree: 15,
+                        absoluteDegree: 45,
+                        strength: PlanetaryStrength.SAMA,
+                        navamsaSign: 2,
+                        navamsaStrength: PlanetaryStrength.SAMA,
+                        nakshatra: 5,
+                        aspects: [{ planetName: 3, aspectType: 0, degreeGap: 0 }],
+                    },
+                ],
+            }),
+        );
         return {
             yogaDoshaVersion: YOGA_DOSHA_VERSION,
             yogas: result.yogas,
@@ -215,11 +266,29 @@ describe("search: Yoga/Dosha catalog names (SR-YD-800..805)", () => {
         expect((await absentResponse.json()).results).toHaveLength(0);
     });
 
+    test("SR-YD-805c: 'Parashara Yoga' resolves the parasharaYoga family OR across all eleven member ids", async () => {
+        // Pushkala (1st/2nd lords Mars + Venus conjunct under an Aries ascendant) is present — the
+        // family term must fire on that single member without ANDing every Parashara yoga.
+        const fixture = presentPushkalaFixture();
+        expect(fixture.yogas.find((y) => y.id === "pushkala")?.isPresent).toBe(true);
+
+        withCalculated({ ascendant: { sign: 1, degree: 4.76 }, ...fixture });
+        const response = await search("Parashara Yoga");
+        const body = await response.json();
+        expect(body.results).toHaveLength(1);
+        const conditions = body.queryUnderstanding.exactMatch.flat(Infinity) as Array<Record<string, unknown>>;
+        expect(conditions).toContainEqual({ type: "yoga_family", familyId: "parasharaYoga" });
+        expect(conditions.filter((c) => c.type === "yoga_id")).not.toContainEqual({
+            type: "yoga_id",
+            yogaId: "dharmaKarmadhipati",
+        });
+    });
+
     test("UT-YD-004e: family group terms live in the shared search vocabulary (suggestions resolve)", async () => {
         expect(Object.keys(FAMILY_NAME_WORDS).length).toBeGreaterThan(0);
         for (const [word, familyId] of Object.entries(FAMILY_NAME_WORDS)) {
             expect(word.length).toBeGreaterThan(0);
-            expect(["panchaMahaPurusha"]).toContain(familyId);
+            expect(["panchaMahaPurusha", "parasharaYoga"]).toContain(familyId);
             expect(FAMILY_NAME_WORDS[vocabularySkeleton(word)]).toBe(familyId);
         }
     });
