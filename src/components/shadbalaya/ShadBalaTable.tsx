@@ -1,7 +1,9 @@
 "use client";
 
 import { useI18n } from "@/hooks/useI18n";
+import { useTooltipPosition } from "@/hooks/useTooltipPosition";
 import { useEffect, useId, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 
 import {
     SHADBALAYA_KEYS,
@@ -28,11 +30,6 @@ export interface ShadBalaTableProps {
     isEditable: boolean;
     getPlanetName: (planet: number) => string;
     getSignName: (sign: number) => string;
-}
-
-interface TooltipPosition {
-    top: number;
-    left: number;
 }
 
 const PLANET_NAMES = [1, 2, 3, 4, 5, 6, 7, 8, 9];
@@ -63,8 +60,9 @@ interface ShadBalaCellProps {
 }
 
 /** One bala checkbox + its reason tooltip (UX §7, §2.2). Hover (150ms delay) / focus / tap open the
- *  fixed-position tooltip; `Esc`, blur or mouseleave close it. The native checkbox toggles the bala
- *  (the dot marks a manual override); read-only mode disables it and shows an ⓘ info glyph. */
+ *  tooltip, portaled to `document.body` and measured after mount so it hugs the cell; `Esc`, blur or
+ *  mouseleave close it. The native checkbox toggles the bala (the dot marks a manual override);
+ *  read-only mode disables it and shows an ⓘ info glyph. */
 function ShadBalaCell({
     planet,
     bala,
@@ -92,23 +90,9 @@ function ShadBalaCell({
     });
 
     const [open, setOpen] = useState(false);
-    const [position, setPosition] = useState<TooltipPosition | null>(null);
     const hoverTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-    const labelRef = useRef<HTMLLabelElement>(null);
     const tooltipId = useId();
-
-    const updatePosition = () => {
-        const el = labelRef.current;
-        if (!el) return;
-        const rect = el.getBoundingClientRect();
-        const GAP = 8;
-        const ESTIMATED_HEIGHT = 120;
-        let top = rect.top - ESTIMATED_HEIGHT - GAP;
-        if (top < 8) top = rect.bottom + GAP;
-        let left = rect.left + rect.width / 2;
-        left = Math.min(Math.max(left, 160), window.innerWidth - 160);
-        setPosition({ top, left });
-    };
+    const { anchorRef, tooltipRef, position, updatePosition } = useTooltipPosition<HTMLLabelElement>(open);
 
     const openTooltip = () => {
         updatePosition();
@@ -128,7 +112,7 @@ function ShadBalaCell({
             window.removeEventListener("scroll", updatePosition, true);
             window.removeEventListener("resize", updatePosition);
         };
-    }, [open]);
+    }, [open, updatePosition]);
 
     useEffect(
         () => () => {
@@ -139,7 +123,7 @@ function ShadBalaCell({
 
     return (
         <label
-            ref={labelRef}
+            ref={anchorRef}
             aria-describedby={open ? tooltipId : undefined}
             onMouseEnter={() => {
                 if (hoverTimer.current) clearTimeout(hoverTimer.current);
@@ -151,7 +135,7 @@ function ShadBalaCell({
             onKeyDown={(event) => {
                 if (event.key === "Escape") {
                     closeTooltip();
-                    labelRef.current?.querySelector("input")?.focus();
+                    anchorRef.current?.querySelector("input")?.focus();
                 }
             }}
             className="inline-flex items-center justify-center gap-1 min-w-[44px] min-h-[44px] cursor-pointer"
@@ -175,23 +159,28 @@ function ShadBalaCell({
                     ⓘ
                 </span>
             )}
-            {open && position && (
-                <span
-                    className="fixed"
-                    role="presentation"
-                    style={{ top: position.top, left: position.left, transform: "translateX(-50%)" }}
-                >
-                    <ShadBalaTooltip
-                        id={tooltipId}
-                        heading={tooltip.heading}
-                        stateLine={tooltip.stateLine}
-                        lines={tooltip.lines}
-                        overrideFooter={tooltip.overrideFooter}
-                        title={tooltip.title}
-                        isSinhala={isSinhala}
-                    />
-                </span>
-            )}
+            {open &&
+                position &&
+                typeof document !== "undefined" &&
+                createPortal(
+                    <div
+                        ref={tooltipRef}
+                        className="fixed z-50"
+                        role="presentation"
+                        style={{ top: position.top, left: position.left, transform: "translateX(-50%)" }}
+                    >
+                        <ShadBalaTooltip
+                            id={tooltipId}
+                            heading={tooltip.heading}
+                            stateLine={tooltip.stateLine}
+                            lines={tooltip.lines}
+                            overrideFooter={tooltip.overrideFooter}
+                            title={tooltip.title}
+                            isSinhala={isSinhala}
+                        />
+                    </div>,
+                    document.body,
+                )}
         </label>
     );
 }

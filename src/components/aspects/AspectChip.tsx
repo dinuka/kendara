@@ -1,7 +1,9 @@
 "use client";
 
 import { useI18n } from "@/hooks/useI18n";
+import { useTooltipPosition } from "@/hooks/useTooltipPosition";
 import { useEffect, useId, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 
 import { composeAspectTooltip } from "@/lib/aspectTooltip";
 import type { AspectTooltipTokens } from "@/lib/aspectTooltip";
@@ -20,16 +22,12 @@ export interface AspectChipProps {
     house?: number;
 }
 
-interface TooltipPosition {
-    top: number;
-    left: number;
-}
-
 /** Planets/houses table aspect chip — planet name only (UX §8.1), anchoring the compact
  *  reason-line `AspectTooltip` (single-reason keeps the inline delta; multi-reason shows one line
  *  per reason + a shared `Δ {delta}` footer). Hover (150ms delay) / focus / tap open it; `Esc`,
  *  blur, mouseleave or tap-outside close. The `title` fallback carries the same full text (delta
- *  exactly once) for no-JS/print. */
+ *  exactly once) for no-JS/print. The tooltip is portaled to `document.body` and measured after
+ *  mount so it sits right next to the tag. */
 export default function AspectChip({ aspect, planetLabel, aspectingSign, house }: AspectChipProps) {
     const { t, locale } = useI18n();
     const tokens: AspectTooltipTokens = {
@@ -41,23 +39,9 @@ export default function AspectChip({ aspect, planetLabel, aspectingSign, house }
     const { lines, single, delta, title } = composeAspectTooltip(tokens, { aspect, aspectingSign, house });
 
     const [open, setOpen] = useState(false);
-    const [position, setPosition] = useState<TooltipPosition | null>(null);
     const hoverTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-    const buttonRef = useRef<HTMLButtonElement>(null);
     const tooltipId = useId();
-
-    const updatePosition = () => {
-        const el = buttonRef.current;
-        if (!el) return;
-        const rect = el.getBoundingClientRect();
-        const GAP = 8;
-        const ESTIMATED_HEIGHT = 96;
-        let top = rect.top - ESTIMATED_HEIGHT - GAP;
-        if (top < 8) top = rect.bottom + GAP;
-        let left = rect.left + rect.width / 2;
-        left = Math.min(Math.max(left, 160), window.innerWidth - 160);
-        setPosition({ top, left });
-    };
+    const { anchorRef, tooltipRef, position, updatePosition } = useTooltipPosition<HTMLButtonElement>(open);
 
     const openTooltip = () => {
         updatePosition();
@@ -77,7 +61,7 @@ export default function AspectChip({ aspect, planetLabel, aspectingSign, house }
             window.removeEventListener("scroll", updatePosition, true);
             window.removeEventListener("resize", updatePosition);
         };
-    }, [open]);
+    }, [open, updatePosition]);
 
     useEffect(
         () => () => {
@@ -89,7 +73,7 @@ export default function AspectChip({ aspect, planetLabel, aspectingSign, house }
     return (
         <span className="inline-flex">
             <button
-                ref={buttonRef}
+                ref={anchorRef}
                 type="button"
                 aria-describedby={open ? tooltipId : undefined}
                 title={title}
@@ -104,30 +88,35 @@ export default function AspectChip({ aspect, planetLabel, aspectingSign, house }
                 onKeyDown={(event) => {
                     if (event.key === "Escape") {
                         closeTooltip();
-                        buttonRef.current?.focus();
+                        anchorRef.current?.focus();
                     }
                 }}
                 className="inline-flex items-center gap-1 rounded border border-gray-200 bg-white px-1.5 py-0.5 text-xs text-gray-700 hover:border-indigo-300 hover:text-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
             >
                 {planetLabel}
             </button>
-            {open && position && (
-                <span
-                    className="fixed"
-                    role="presentation"
-                    style={{ top: position.top, left: position.left, transform: "translateX(-50%)" }}
-                >
-                    <AspectTooltip
-                        id={tooltipId}
-                        lines={lines}
-                        single={single}
-                        delta={delta}
-                        title={title}
-                        rashiVerbAria={t("astrology.drishti.rashiVerbAria")}
-                        isSinhala={locale === "si"}
-                    />
-                </span>
-            )}
+            {open &&
+                position &&
+                typeof document !== "undefined" &&
+                createPortal(
+                    <div
+                        ref={tooltipRef}
+                        className="fixed z-50"
+                        role="presentation"
+                        style={{ top: position.top, left: position.left, transform: "translateX(-50%)" }}
+                    >
+                        <AspectTooltip
+                            id={tooltipId}
+                            lines={lines}
+                            single={single}
+                            delta={delta}
+                            title={title}
+                            rashiVerbAria={t("astrology.drishti.rashiVerbAria")}
+                            isSinhala={locale === "si"}
+                        />
+                    </div>,
+                    document.body,
+                )}
         </span>
     );
 }

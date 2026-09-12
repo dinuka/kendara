@@ -1658,24 +1658,33 @@ export default function HoroscopeDetailPage() {
                                                     // Suba/Asuba (සුබ/අසුබ): stored verdict wins;
                                                     // legacy docs are lazily resolved at render.
                                                     const subaAsubaEntry = resolvedSubaAsuba?.[String(p.name)];
-                                                    const conjunct = calculatedDetails.planets
+                                                    const conjunctions: Aspect[] = calculatedDetails.planets
                                                         .filter((q) => q.name !== p.name)
                                                         .filter((q) => {
                                                             const dist = Math.abs(p.absoluteDegree - q.absoluteDegree);
                                                             const angularDist = Math.min(dist, 360 - dist);
-                                                            return angularDist < (orbMap[p.name] ?? 0);
+                                                            return (
+                                                                angularDist <
+                                                                Math.max(orbMap[p.name] ?? 0, orbMap[q.name] ?? 0)
+                                                            );
                                                         })
                                                         .map((q) => {
                                                             let diff = q.absoluteDegree - p.absoluteDegree;
                                                             if (diff > 180) diff -= 360;
                                                             if (diff < -180) diff += 360;
-                                                            const sign = diff >= 0 ? "+" : "-";
-                                                            const absDiff = Math.abs(diff);
-                                                            const totalVikala = Math.round(absDiff * 3600);
-                                                            const anshaka = Math.floor(totalVikala / 3600);
-                                                            const kala = Math.floor((totalVikala % 3600) / 60);
-                                                            const vikala = totalVikala % 60;
-                                                            return `${getPlanetName(q.name)} (${sign}${String(anshaka).padStart(2, "0")}:${String(kala).padStart(2, "0")}:${String(vikala).padStart(2, "0")})`;
+                                                            return {
+                                                                planetName: q.name,
+                                                                aspectType: 0,
+                                                                planetAbsoluteDegree: q.absoluteDegree,
+                                                                degreeGap: Math.min(
+                                                                    Math.abs(p.absoluteDegree - q.absoluteDegree),
+                                                                    360 - Math.abs(p.absoluteDegree - q.absoluteDegree),
+                                                                ),
+                                                                exactAspectDegree: 0,
+                                                                isBeneficial: false,
+                                                                delta: diff,
+                                                                reasons: [{ type: "planetary", angle: 0, delta: diff }],
+                                                            } satisfies Aspect;
                                                         });
                                                     const aspectRecords: Aspect[] =
                                                         horoscope.source === "manual"
@@ -1692,7 +1701,13 @@ export default function HoroscopeDetailPage() {
                                                                           a.aspectType,
                                                                           q.absoluteDegree,
                                                                       );
-                                                                      return Math.abs(diff) <= (orbMap[p.name] ?? 0);
+                                                                      return (
+                                                                          Math.abs(diff) <=
+                                                                          Math.max(
+                                                                              orbMap[p.name] ?? 0,
+                                                                              orbMap[q.name] ?? 0,
+                                                                          )
+                                                                      );
                                                                   });
                                                     const tags: {
                                                         key: string;
@@ -1840,7 +1855,20 @@ export default function HoroscopeDetailPage() {
                                                                     : "—"}
                                                             </td>
                                                             <td className="py-1 pr-3">
-                                                                {conjunct.length > 0 ? conjunct.join(", ") : "—"}
+                                                                {conjunctions.length > 0 ? (
+                                                                    <div className="flex flex-wrap gap-1">
+                                                                        {conjunctions.map((q) => (
+                                                                            <AspectChip
+                                                                                key={q.planetName}
+                                                                                aspect={q}
+                                                                                planetLabel={`${PLANET_SYMBOLS[q.planetName] ?? ""} ${getPlanetName(q.planetName)}`.trim()}
+                                                                                aspectingSign={p.sign}
+                                                                            />
+                                                                        ))}
+                                                                    </div>
+                                                                ) : (
+                                                                    "—"
+                                                                )}
                                                             </td>
                                                             <td className="py-1 pr-3">
                                                                 {aspectRecords.length > 0 ? (
@@ -1891,6 +1919,17 @@ export default function HoroscopeDetailPage() {
                                         .sort((a, b) => a.name - b.name)
                                         .map((p) => {
                                             const isExpanded = expandedPlanets.has(p.name);
+                                            const toggleExpanded = () => {
+                                                setExpandedPlanets((prev) => {
+                                                    const next = new Set(prev);
+                                                    if (next.has(p.name)) {
+                                                        next.delete(p.name);
+                                                    } else {
+                                                        next.add(p.name);
+                                                    }
+                                                    return next;
+                                                });
+                                            };
                                             const isRetrograde = p.retrograde && p.name !== 8 && p.name !== 9;
                                             // Planet house is its whole-sign Rashi location (p.house),
                                             // never the cusp-boundary range.
@@ -1905,24 +1944,32 @@ export default function HoroscopeDetailPage() {
                                             // are lazily resolved at render.
                                             const subaAsubaEntry = resolvedSubaAsuba?.[String(p.name)];
 
-                                            const conjunct = calculatedDetails.planets
+                                            const conjunctions: Aspect[] = calculatedDetails.planets
                                                 .filter((q) => q.name !== p.name)
                                                 .filter((q) => {
                                                     const dist = Math.abs(p.absoluteDegree - q.absoluteDegree);
                                                     const angularDist = Math.min(dist, 360 - dist);
-                                                    return angularDist < (orbMap[p.name] ?? 0);
+                                                    return (
+                                                        angularDist < Math.max(orbMap[p.name] ?? 0, orbMap[q.name] ?? 0)
+                                                    );
                                                 })
                                                 .map((q) => {
                                                     let diff = q.absoluteDegree - p.absoluteDegree;
                                                     if (diff > 180) diff -= 360;
                                                     if (diff < -180) diff += 360;
-                                                    const sign = diff >= 0 ? "+" : "-";
-                                                    const absDiff = Math.abs(diff);
-                                                    const totalVikala = Math.round(absDiff * 3600);
-                                                    const anshaka = Math.floor(totalVikala / 3600);
-                                                    const kala = Math.floor((totalVikala % 3600) / 60);
-                                                    const vikala = totalVikala % 60;
-                                                    return `${getPlanetName(q.name)} (${sign}${String(anshaka).padStart(2, "0")}:${String(kala).padStart(2, "0")}:${String(vikala).padStart(2, "0")})`;
+                                                    return {
+                                                        planetName: q.name,
+                                                        aspectType: 0,
+                                                        planetAbsoluteDegree: q.absoluteDegree,
+                                                        degreeGap: Math.min(
+                                                            Math.abs(p.absoluteDegree - q.absoluteDegree),
+                                                            360 - Math.abs(p.absoluteDegree - q.absoluteDegree),
+                                                        ),
+                                                        exactAspectDegree: 0,
+                                                        isBeneficial: false,
+                                                        delta: diff,
+                                                        reasons: [{ type: "planetary", angle: 0, delta: diff }],
+                                                    } satisfies Aspect;
                                                 });
 
                                             const aspectRecords: Aspect[] =
@@ -1940,7 +1987,10 @@ export default function HoroscopeDetailPage() {
                                                                   a.aspectType,
                                                                   q.absoluteDegree,
                                                               );
-                                                            return Math.abs(diff) <= (orbMap[p.name] ?? 0);
+                                                              return (
+                                                                  Math.abs(diff) <=
+                                                                  Math.max(orbMap[p.name] ?? 0, orbMap[q.name] ?? 0)
+                                                              );
                                                           });
 
                                             const tags: { key: string; text: string; strikethrough?: boolean }[] = [];
@@ -2018,19 +2068,18 @@ export default function HoroscopeDetailPage() {
 
                                             return (
                                                 <div key={p.name} className="border rounded overflow-hidden">
-                                                    <button
-                                                        onClick={() => {
-                                                            setExpandedPlanets((prev) => {
-                                                                const next = new Set(prev);
-                                                                if (next.has(p.name)) {
-                                                                    next.delete(p.name);
-                                                                } else {
-                                                                    next.add(p.name);
-                                                                }
-                                                                return next;
-                                                            });
+                                                    <div
+                                                        role="button"
+                                                        tabIndex={0}
+                                                        aria-expanded={isExpanded}
+                                                        onClick={toggleExpanded}
+                                                        onKeyDown={(event) => {
+                                                            if (event.key === "Enter" || event.key === " ") {
+                                                                event.preventDefault();
+                                                                toggleExpanded();
+                                                            }
                                                         }}
-                                                        className="w-full flex flex-wrap items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50 transition-colors text-left"
+                                                        className="w-full flex flex-wrap items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50 transition-colors text-left cursor-pointer"
                                                     >
                                                         <span className="font-medium whitespace-nowrap">
                                                             {PLANET_SYMBOLS[p.name]} {getPlanetName(p.name)}
@@ -2086,7 +2135,7 @@ export default function HoroscopeDetailPage() {
                                                         <span className="ml-auto text-gray-400 shrink-0">
                                                             {isExpanded ? "▼" : "▶"}
                                                         </span>
-                                                    </button>
+                                                    </div>
                                                     {isExpanded && (
                                                         <div className="border-t px-3 py-2 space-y-1.5 text-xs text-gray-600 bg-gray-50">
                                                             <p>
@@ -2097,12 +2146,21 @@ export default function HoroscopeDetailPage() {
                                                                     ? getPlanetDegreeRange(p)
                                                                     : formatDegree(p.degree)}
                                                             </p>
-                                                            {conjunct.length > 0 && (
+                                                            {conjunctions.length > 0 && (
                                                                 <p>
                                                                     <span className="font-medium text-gray-700">
                                                                         {t("astrology.conjunctions")}:
                                                                     </span>{" "}
-                                                                    {conjunct.join(", ")}
+                                                                    <span className="inline-flex flex-wrap gap-1">
+                                                                        {conjunctions.map((q) => (
+                                                                            <AspectChip
+                                                                                key={q.planetName}
+                                                                                aspect={q}
+                                                                                planetLabel={`${PLANET_SYMBOLS[q.planetName] ?? ""} ${getPlanetName(q.planetName)}`.trim()}
+                                                                                aspectingSign={p.sign}
+                                                                            />
+                                                                        ))}
+                                                                    </span>
                                                                 </p>
                                                             )}
                                                             {aspectRecords.length > 0 && (
