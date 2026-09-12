@@ -748,6 +748,25 @@
             "toast": {
                 "saveError": "ෂඩ් බලය සුරැකීමට අසමත් විය. නැවත උත්සාහ කරන්න."
             }
+        },
+        "papiGrahayan": {
+            "column": "නෛසර්ගික",
+            "suba": "සුබ",
+            "asuba": "අසුබ",
+            "reason": {
+                "naturalBenefic": "ස්වභාවයෙන්ම සුබ — {planet}",
+                "naturalMalefic": "ස්වභාවයෙන්ම අසුබ — {planet}",
+                "budhaAlone": "බුද (බුධ) වෙනත් ග්‍රහයකු සමඟ නොසිටියි — සුබ",
+                "budhaWithMalefic": "බුද (බුධ) පාප ග්‍රහයකු ({planets}) සමඟ සිටියි — අසුබ",
+                "budhaWithBenefic": "බුද (බුධ) සුබ ග්‍රහයකු ({planets}) සමඟ සිටියි — සුබ",
+                "moonWaxing": "සඳු දීප්තිමත් (ශුක්ල පක්ෂය, තිති {thithi}) — සුබ",
+                "moonWaning": "සඳු අවපැහැ (කෘෂ්ණ පක්ෂය, තිති {thithi}) — අසුබ",
+                "kendra": "{planet} කේන්ද්‍ර ගෘහයක හිමිකරු ({houses}) — අසුබ ලෙස සැලකේ"
+            },
+            "tooltip": {
+                "stateSuba": "සුබ වන්නේ මන්ද:",
+                "stateAsuba": "අසුබ වන්නේ මන්ද:"
+            }
         }
     },
     "locations": {

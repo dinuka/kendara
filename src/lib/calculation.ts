@@ -34,8 +34,9 @@ import {
     mergeRashiIntoPlanetAspects,
 } from "@/lib/rashiAspects";
 import { computeShadBalaya, deriveDay } from "@/lib/shadBalaya";
+import { computeSubaAsuba } from "@/lib/subaAsuba";
 import { computeWargaKendara } from "@/lib/wargaKendara";
-import { buildChartFacts, computeYogaDoshas, YOGA_DOSHA_VERSION } from "@/lib/yogaDosha";
+import { YOGA_DOSHA_VERSION, buildChartFacts, computeYogaDoshas } from "@/lib/yogaDosha";
 
 const GRAHA_MAP: Record<string, number> = {
     Su: 1,
@@ -448,6 +449,11 @@ export function calculateHoroscope(
     const lagnaBhavaSuchika = computeLagnaBhavaSuchika(ascSign, computeNavamsaLagnaSign(ascSign, ascLong % 30));
     const bhavaSuchika = computeBhavaSuchika(planetDetails, ascSign);
 
+    // Suba Asuba (සුබ අසුබ) computed once at calculation time so new CalculatedDetails docs carry
+    // the per-planet Naisargika benefic/malefic verdict and its reasons; legacy docs without the
+    // field are lazily recomputed at render (see src/lib/subaAsuba.ts).
+    const subaAsuba = computeSubaAsuba(planetDetails, houses, thithi);
+
     // Warga Kendara (වර්ග කේනදර) computed once at calculation time so new CalculatedDetails docs
     // carry the four per-chart tables; legacy docs without the field are lazily derived at render.
     // Yoga/Dosha separated tags (§Rule Catalog) computed once at calculation time so new
@@ -491,6 +497,7 @@ export function calculateHoroscope(
         yogas: yogaDoshas.yogas,
         doshas: { doshas: yogaDoshas.doshas },
         yogaDoshaVersion: YOGA_DOSHA_VERSION,
+        subaAsuba,
     };
 
     return {

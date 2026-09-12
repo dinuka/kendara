@@ -117,6 +117,10 @@ const CalculatedDetailsSchema = new Schema<ICalculatedDetails>({
      *  those are lazily resolved at render. Additive-only: bumping YOGA_DOSHA_VERSION equals a new
      *  evaluation shape. */
     yogaDoshaVersion: { type: Number },
+    /** Suba Asuba (සුබ අසුබ) — per-planet Naisargika benefic/malefic verdict keyed by planet enum
+     *  value ("1".."9"). Mixed (not a subdocument schema) because the shape is a derived snapshot.
+     *  Legacy docs predate the field and are lazily recomputed at render. */
+    subaAsuba: { type: Schema.Types.Mixed },
     manualHousePlacements: { type: Schema.Types.Mixed },
     derivedRanges: { type: Schema.Types.Mixed },
     createdAt: { type: Date, default: Date.now },

@@ -133,6 +133,7 @@
 | lagnaBhavaSuchika | Integer (1-12) | Lagna's භාව සුචික (Bhava Suchika) — the house (1-12) that the Navamsa (D9) lagna sign (the sign of the 1st house of the Navamsa chart) occupies in the Lagna (D1) chart. Absent on manual horoscopes without entered Navamsa data |
 | bhavaSuchika | JSON | Per-planet භාව සුචික (Bhava Suchika) — `Record<string, number>` keyed by numeric Planet enum string (`"1"`…`"9"`), each value the house (1-12) that the planet's Navamsa sign occupies in the Lagna chart — see [Bhava Suchika (House Index)](#bhava-suchika-house-index) structure |
 | wargaKendara | JSON | Per-chart Warga Kendara (වර්ග කේනදර) data — for each available divisional chart (phase 1: `d1`, `d9`, `suryaLagna`, `chandraLagna`) the chart's houses/planets and per-chart planet details (D1-only flags for D1; Maraka/Maranakaraka/Dig Bala for every chart) — see [WargaKendara](#wargakendara) structure |
+| subaAsuba | JSON | Per-planet සුබ/අසුබ (Suba/Asuba) Naisargika (natural) benefic/malefic verdict — `Record<string, Object>` keyed by numeric Planet enum string (`"1"`…`"9"`), each entry a `{ value, reasons }` pair: `value` ∈ `{ SUBA: 1, ASUBA: 2 }` (numeric enums, never display strings) and `reasons` the cause chain (natural kind, Budha/Moon association, Kendra override) as i18n key + numeric-enum params — see [Suba/Asuba](#subasuba) structure |
 | createdAt | DateTime | Record created |
 
 **Notes:**
@@ -143,6 +144,7 @@
 - The bulk recalculation job (triggered by an `AstrologySettings` update) overwrites the computed fields of every stored snapshot using the current system-wide settings. For `source: "auto"` horoscopes it re-runs `calculateHoroscope` from the stored birth details; for `source: "manual"` horoscopes it recomputes from the stored `manualHousePlacements` — which is the single source of truth for the manual chart and is **never overwritten** by the job (US-SAS-009). The same job recomputes `shadbalaya`, but a bala flagged `overridden: true` (a user's manual checkbox toggle) is **never overwritten** — the user's value is preserved exactly as `manualHousePlacements` is never overwritten (US-SB-013)
 - `lagnaBhavaSuchika` and `bhavaSuchika` are stored for **both** `source: "auto"` and `source: "manual"` horoscopes (manual only when Navamsa data has been entered — `navamsaLagna` / `navamsaHouses`). The AstrologySettings recalculation job recomputes them like any other derived value — there are **no user overrides** for Bhava Suchika (see `20260814-2055-bhava-suchika.md`). Legacy documents missing the fields fall back to a render-time derivation from the always-stored `ascendant`, `houses` and per-planet navamsa sign (or entered Navamsa data), mirroring the `computeAscendantSpecialFlags` fallback pattern
 - `wargaKendara` is stored for **both** `source: "auto"` and `source: "manual"` horoscopes (manual limited to the chart data derivable from the entered placements — see `20260815-1129-warga-kendara.md`). The AstrologySettings recalculation job recomputes it like any other derived value — there are **no user overrides**. Legacy documents missing the field fall back to a render-time pure-function derivation from the stored D1 data plus the derived D9 / Surya Lagna / Chandra Lagna charts
+- `subaAsuba` is stored for **both** `source: "auto"` and `source: "manual"` horoscopes (see [Suba/Asuba](#subasuba) and `docs/papi-grahayan.md`). The AstrologySettings recalculation job recomputes it like any other derived value — there are **no user overrides**; it is a D1-only concept (omitted from the D9 navamsa synthesis). Legacy documents missing the field fall back to a render-time pure-function derivation (`resolveSubaAsuba`) from the always-stored `planets` + `thithi`, mirroring the `wargaKendara` lazy-fallback pattern
 - `yogas` and `doshas` are computed for **both** `source: "auto"` and `source: "manual"` horoscopes — manual charts evaluate the same rule functions against the entered `manualHousePlacements` (see `20260906-0707-yoga-dosha-tags.md`). The AstrologySettings recalculation job recomputes them like any other derived value — there are **no user overrides**. Legacy documents predating the feature (currently always `yogas: []` / `doshas: { doshas: [] }`) render the empty ("no yogas/doshas") states until the next full recalculation — no eager migration
 
 **Relationships**:
@@ -1133,6 +1135,41 @@ Structured per-yoga evaluation results, produced by the deterministic rule + int
 - The Sinhala names are authoritative (from `docs/bhava-suchika.md`); the English column is a proposed transliteration pending domain confirmation (see Open Questions in `20260814-2055-bhava-suchika.md`).
 - Present on both chart sources when the source data exists; **absent on manual horoscopes without entered Navamsa data** (no `navamsaLagna` / `navamsaHouses` → the Lagna value and the per-planet values are omitted, mirroring the existing navamsa enrichment behaviour of the planets table).
 - Legacy documents missing the fields fall back to a render-time pure-function derivation from the always-stored `ascendant`, `houses` and per-planet navamsa sign (auto) or entered Navamsa data (manual) — the same fallback pattern as the ascendant Wargoththama/Gandamula flags.
+
+<a name="subasuba"></a>
+### Suba/Asuba
+
+සුබ/අසුබ (Suba/Asuba) — the per-planet Naisargika (natural) benefic/malefic verdict of the පාපී ග්‍රහයන් (papa grahayan) rule, computed once at calculation time so new `CalculatedDetails` docs carry the verdict and its reasons. Stored on `CalculatedDetails` as the `subaAsuba` field, keyed by numeric Planet enum string (`"1"`…`"9"`) following the `shadbalaya`/`bhavaSuchika` Record convention. Each planet entry holds the numeric `value` (never a display string) plus the ordered `reasons` chain that produced it — the natural kind and any Budha/Moon association first, then the Kendra override when it applied (see `docs/papi-grahayan.md`).
+
+```json
+{
+  "subaAsuba": {
+    "1": {
+      "value": 2,
+      "reasons": [{ "key": "papiGrahayan.reason.naturalMalefic", "params": { "planet": 1 } }]
+    },
+    "5": {
+      "value": 2,
+      "reasons": [
+        { "key": "papiGrahayan.reason.naturalBenefic", "params": { "planet": 5 } },
+        { "key": "papiGrahayan.reason.kendra", "params": { "planet": 5, "houses": "1,4" } }
+      ]
+    }
+  }
+}
+```
+
+**Classification rule (whole-sign houses of the D1 chart):**
+
+- **Suba (1) — auspicious**: Guru/Jupiter (5), Shukra/Venus (6); Budha/Mercury (4) when alone or accompanies a benefic; a waxing (Shukla Paksha) Moon (thithi 1-15).
+- **Asuba (2) — inauspicious**: Ravi/Sun (1), Kuja/Mars (3), Shani/Saturn (7), Rahu (8), Ketu (9); Budha/Mercury when accompanying a malefic (malefic presence wins even if benefics are also present — `params.planets` lists only the malefic companions); a waning (Krishna Paksha) Moon (thithi 16-30). Thithi is taken from the stored `thithi` (paksha boundaries: 1-15 waxing, 16-30 waning).
+- **Conjunction** for the Budha rule = sharing the same whole-sign house (`planet.house`) in the D1 chart.
+- **Kendra exception**: a suba-classified planet that **owns** a Kendra house — it is the sign-lord of the sign occupying house 1, 4, 7 or 10 by whole-sign lordship from the Lagna (house N's sign is `((lagna − 1 + N − 1) mod 12) + 1`) — is reclassified as Asuba, with the `kendra` reason appended *after* the natural association reason (`params` carry the numeric `planet` and the comma-joined owned Kendra `houses`, e.g. `"1,4"` when Jupiter owns both the Lagna and 4th house of a Sagittarius Lagna; house numbers need no localization).
+
+**Notes:**
+- Values/reasons are stored as numeric enums + i18n keys with numeric params — never localized strings; display labels (සුබ/අසුබ, reason lines) resolve per locale via `astrology.papiGrahayan.*` messages at render time.
+- Computed for **both** `source: "auto"` and `source: "manual"` horoscopes from the stored per-planet whole-sign houses + thithi. The AstrologySettings recalculation job recomputes it like any other derived value — there are **no user overrides**. It is a D1 (Lagna chart) concept: the D9 navamsa synthesis deliberately omits it.
+- Legacy documents missing the field fall back to a render-time pure-function derivation (`resolveSubaAsuba`) from the always-stored `planets` (whole-sign houses), `houses` (whole-sign lordship) and `thithi`, recomputing thithi from the stored Sun/Moon `absoluteDegree` when absent and deriving lordship from the stored ascendant sign when a Houses array is unavailable — the same lazy-fallback pattern as `wargaKendara`/Bhava Suchika.
 
 <a name="wargakendara"></a>
 ### WargaKendara

@@ -18,8 +18,9 @@ import {
 import { computePlanetAspects } from "@/lib/planetAspects";
 import { DEFAULT_RASHI_ASPECTS, mergeRashiIntoPlanetAspects } from "@/lib/rashiAspects";
 import { computeShadBalaya } from "@/lib/shadBalaya";
+import { computeSubaAsuba } from "@/lib/subaAsuba";
 import { computeWargaKendara } from "@/lib/wargaKendara";
-import { buildChartFacts, computeYogaDoshas, YOGA_DOSHA_VERSION } from "@/lib/yogaDosha";
+import { YOGA_DOSHA_VERSION, buildChartFacts, computeYogaDoshas } from "@/lib/yogaDosha";
 
 export type ManualChartPayload = { ok: true; value: ManualChartInput } | { ok: false; error: string };
 
@@ -204,12 +205,13 @@ export function synthesizeCalculation(result: ManualChartResult, birthDate?: Dat
     const moonNakshatra = moon ? computeMoonNakshatra(moon.sign, moon.navamsaSign) : { id: 1, pada: 1, lord: 9 };
     const thithi = computeThithiFromPlanets(planets);
     const houses = buildWholeSignHouses(lagna);
+    // Suba Asuba (සුබ අසුබ): per-planet Naisargika benefic/malefic verdict, with the Kendra-lordship
+    // exception resolved from the whole-sign houses (see src/lib/subaAsuba.ts).
+    const subaAsuba = computeSubaAsuba(planets, houses, thithi);
     const otherDetails = synthesizeOtherDetails(manualHousePlacements, planets);
     // Yoga/Dosha separated tags (§Rule Catalog): manual charts skip drishti-based families the
     // manual entry cannot vouch for, so the source tag drives what the rules accept.
-    const yogaDoshas = computeYogaDoshas(
-        buildChartFacts({ ascendantSign: lagna, source: "manual", planets }),
-    );
+    const yogaDoshas = computeYogaDoshas(buildChartFacts({ ascendantSign: lagna, source: "manual", planets }));
     const calc: CalculationResult = {
         ascendant: synthesizeAscendant(lagna),
         houses,
@@ -233,6 +235,7 @@ export function synthesizeCalculation(result: ManualChartResult, birthDate?: Dat
         yogas: yogaDoshas.yogas,
         doshas: { doshas: yogaDoshas.doshas },
         yogaDoshaVersion: YOGA_DOSHA_VERSION,
+        subaAsuba,
     };
 
     return {
@@ -279,6 +282,9 @@ export function synthesizeNavamsaCalculation(
     // D9 one) describes the BIRTH chart, so the D9 chart record reuses the same birth-chart tables.
     delete base.lagnaBhavaSuchika;
     delete base.bhavaSuchika;
+    // Suba/Asuba, like Bhava Suchika, is a Lagna-chart concept (its kendra rule and Budha/Moon
+    // association read the BIRTH-chart houses), so it must never ride along on the D9 result.
+    delete base.subaAsuba;
     return {
         ...base,
         ascendant: synthesizeAscendant(navamsaLagna),

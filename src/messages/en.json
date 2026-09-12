@@ -748,6 +748,25 @@
             "toast": {
                 "saveError": "Failed to save Shad Bala. Please try again."
             }
+        },
+        "papiGrahayan": {
+            "column": "Naisargika",
+            "suba": "Suba",
+            "asuba": "Asuba",
+            "reason": {
+                "naturalBenefic": "Naturally auspicious — {planet}",
+                "naturalMalefic": "Naturally inauspicious — {planet}",
+                "budhaAlone": "Mercury (Budha) is unassociated — auspicious",
+                "budhaWithMalefic": "Mercury (Budha) with malefic ({planets}) — inauspicious",
+                "budhaWithBenefic": "Mercury (Budha) with benefic ({planets}) — auspicious",
+                "moonWaxing": "Moon waxing (Shukla Paksha, thithi {thithi}) — auspicious",
+                "moonWaning": "Moon waning (Krishna Paksha, thithi {thithi}) — inauspicious",
+                "kendra": "{planet} owns a Kendra house ({houses}) — deemed inauspicious"
+            },
+            "tooltip": {
+                "stateSuba": "Suba because:",
+                "stateAsuba": "Asuba because:"
+            }
         }
     },
     "locations": {

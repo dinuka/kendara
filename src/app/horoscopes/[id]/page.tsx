@@ -11,6 +11,7 @@ import PrivacyToggle from "@/components/PrivacyToggle";
 import AspectChip from "@/components/aspects/AspectChip";
 import BhavaSuchikaTag from "@/components/bhavaSuchika/BhavaSuchikaTag";
 import Notepad from "@/components/notepad/Notepad";
+import SubaAsubaBadge from "@/components/papiGrahayan/SubaAsubaBadge";
 import ShadBalaTable from "@/components/shadbalaya/ShadBalaTable";
 import WargaChartSection from "@/components/wargaKendara/WargaChartSection";
 import WargaIndicationTags from "@/components/wargaKendara/WargaIndicationTags";
@@ -57,6 +58,7 @@ import {
 import type { DerivedRanges, ManualHouse, ManualHousePlacements } from "@/lib/manualChart";
 import { aspectPointSignedDelta, computeManualPlanetAspects } from "@/lib/planetAspects";
 import { type ShadBalaya, computeShadBalaya, deriveDay, mergeShadBalaya } from "@/lib/shadBalaya";
+import { resolveSubaAsuba } from "@/lib/subaAsuba";
 import type { WargaVargaKey } from "@/lib/wargaKendara";
 import { VARGA_CATALOG } from "@/lib/wargaKendara";
 import { resolveWargaKendara } from "@/lib/wargaKendara";
@@ -425,10 +427,9 @@ export default function HoroscopeDetailPage() {
     // legacy stored values (a single "any rule → Moon=2") don't stick. Every planet in its
     // designated death house is a Maranakaraka, so multiple planets can qualify. The house is the
     // planet's whole-sign Rashi house (p.house), never the cusp-boundary range.
-    const resolvedMaranakaraka =
-        calculatedDetails?.planets
-            ? computeMaranakaraka(calculatedDetails.planets)
-            : normalizeMaranakaraka(calculatedDetails?.maranakaraka);
+    const resolvedMaranakaraka = calculatedDetails?.planets
+        ? computeMaranakaraka(calculatedDetails.planets)
+        : normalizeMaranakaraka(calculatedDetails?.maranakaraka);
 
     // Yogakaraka depends only on the lagna sign (Kendra 4/7/10 + Trikona 5/9 lordship), so it is
     // recomputed at render so legacy docs without the stored field still show the tag.
@@ -448,6 +449,10 @@ export default function HoroscopeDetailPage() {
     // Yogal/Dosha tags: computed-and-stored entries win (yogaDoshaVersion: 1); legacy documents
     // are re-derived from the stored chart data at render time — same fallback as Warga Kendara.
     const resolvedYogaDoshas = resolveYogaDoshas(calculatedDetails);
+
+    // Suba/Asuba (සුබ/අසුබ) verdicts: stored entries win; legacy documents that predate the field
+    // are recomputed from the stored planets + thithi at render time (see src/lib/subaAsuba.ts).
+    const resolvedSubaAsuba = resolveSubaAsuba(calculatedDetails);
 
     // Per-planet Bhava Suchika values feed the D1 Planets table column. They are the existing
     // top-level calculatedDetails field — never part of the warga entry itself.
@@ -610,10 +615,7 @@ export default function HoroscopeDetailPage() {
                   computeShadBalaya(calculatedDetails.planets, calculatedDetails.houses, {
                       source: horoscope.source === "manual" ? "manual" : "auto",
                       thithi: getThithi(),
-                      day:
-                          horoscope.source !== "manual"
-                              ? deriveDay(calculatedDetails.planets)
-                              : undefined,
+                      day: horoscope.source !== "manual" ? deriveDay(calculatedDetails.planets) : undefined,
                       maranakaraka: resolvedMaranakaraka,
                   }),
                   calculatedDetails.shadbalaya,
@@ -1608,6 +1610,7 @@ export default function HoroscopeDetailPage() {
                                         <thead>
                                             <tr className="text-left text-gray-500 border-b">
                                                 <th className="py-1 pr-3">{t("astrology.planet")}</th>
+                                                <th className="py-1 pr-3">{t("astrology.papiGrahayan.column")}</th>
                                                 <th className="py-1 pr-3">
                                                     {t("astrology.sign")} ({t("astrology.degree")})
                                                 </th>
@@ -1652,6 +1655,9 @@ export default function HoroscopeDetailPage() {
                                                         calculatedDetails,
                                                         p.name,
                                                     );
+                                                    // Suba/Asuba (සුබ/අසුබ): stored verdict wins;
+                                                    // legacy docs are lazily resolved at render.
+                                                    const subaAsubaEntry = resolvedSubaAsuba?.[String(p.name)];
                                                     const conjunct = calculatedDetails.planets
                                                         .filter((q) => q.name !== p.name)
                                                         .filter((q) => {
@@ -1789,6 +1795,17 @@ export default function HoroscopeDetailPage() {
                                                                     : getPlanetName(p.name)}
                                                             </td>
                                                             <td className="py-1 pr-3">
+                                                                {subaAsubaEntry ? (
+                                                                    <SubaAsubaBadge
+                                                                        planet={p.name}
+                                                                        entry={subaAsubaEntry}
+                                                                        getPlanetName={getPlanetName}
+                                                                    />
+                                                                ) : (
+                                                                    "—"
+                                                                )}
+                                                            </td>
+                                                            <td className="py-1 pr-3">
                                                                 {getSignName(p.sign)} (
                                                                 {isManualChart
                                                                     ? getPlanetDegreeRange(p)
@@ -1884,6 +1901,9 @@ export default function HoroscopeDetailPage() {
                                                 calculatedDetails,
                                                 p.name,
                                             );
+                                            // Suba/Asuba (සුබ/අසුබ): stored verdict wins; legacy docs
+                                            // are lazily resolved at render.
+                                            const subaAsubaEntry = resolvedSubaAsuba?.[String(p.name)];
 
                                             const conjunct = calculatedDetails.planets
                                                 .filter((q) => q.name !== p.name)
@@ -1920,7 +1940,7 @@ export default function HoroscopeDetailPage() {
                                                                   a.aspectType,
                                                                   q.absoluteDegree,
                                                               );
-                                                              return Math.abs(diff) <= (orbMap[p.name] ?? 0);
+                                                            return Math.abs(diff) <= (orbMap[p.name] ?? 0);
                                                           });
 
                                             const tags: { key: string; text: string; strikethrough?: boolean }[] = [];
@@ -2015,6 +2035,13 @@ export default function HoroscopeDetailPage() {
                                                         <span className="font-medium whitespace-nowrap">
                                                             {PLANET_SYMBOLS[p.name]} {getPlanetName(p.name)}
                                                         </span>
+                                                        {subaAsubaEntry && (
+                                                            <SubaAsubaBadge
+                                                                planet={p.name}
+                                                                entry={subaAsubaEntry}
+                                                                getPlanetName={getPlanetName}
+                                                            />
+                                                        )}
                                                         {isRetrograde && (
                                                             <span className="text-amber-600 bg-amber-50 text-[10px] rounded px-1 leading-tight">
                                                                 {t("astrology.retrograde")}

@@ -1,7 +1,8 @@
 import { PanchaPakshi, PlanetaryStrength } from "./astrologyEnums";
 import type { ShadBalaya } from "./shadBalaya";
-import type { DoshaEvaluation, YogaEvaluation } from "./yogaDosha/types";
+import type { SubaAsubaByPlanet } from "./subaAsuba";
 import type { WargaKendara } from "./wargaKendara";
+import type { DoshaEvaluation, YogaEvaluation } from "./yogaDosha/types";
 
 export const PLANET_SYMBOLS: Record<number, string> = {
     1: "\u2609",
@@ -506,4 +507,8 @@ export interface CalculationResult {
     /** Version of the yoga/dosha evaluation shape stored on CalculatedDetails (see
      *  src/lib/yogaDosha). Absent on legacy documents — those are lazily resolved at render. */
     yogaDoshaVersion?: number;
+    /** Suba/Asuba (සුබ/අසුබ) per-planet Naisargika benefic/malefic verdict with reasons, keyed by
+     *  planet enum value ("1".."9") (see src/lib/subaAsuba.ts). Optional because legacy
+     *  CalculatedDetails documents predate the field and are lazily recomputed at render. */
+    subaAsuba?: SubaAsubaByPlanet;
 }
