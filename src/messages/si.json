@@ -1582,7 +1582,14 @@
                 "gandamula": "ගණ්ඩමූල",
                 "ashtamansha": "අෂ්ටමාංශ",
                 "nidhanamsha": "නිධනාම්ශ"
-            }
+            },
+            "conjunct": "{planet} සමග",
+            "aspectedBy": "{planet}ගේ දෘශ්ඨිය",
+            "conjunctionGap": "සංයෝග පරතරය {gap}",
+            "bhavaSuchika": "භාව සුචික {house}",
+            "ownsHouse": "{planet} හිමි ගෘහය {house}",
+            "houseOwner": "ගෘහ අධිපති {planet}",
+            "nakshatraOwner": "නැකත් අධිපති {planet}"
         },
         "housePurpose": {
             "0": {

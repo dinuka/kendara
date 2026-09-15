@@ -6,8 +6,15 @@
  * "මරණකාරක නොවේ" / "No Dig Bala" type tags). The planet ratio counts ONLY the shown (emitted) tags:
  * `{ green, green + red }` — white/informational tags are shown but never affect it.
  */
+import type { Aspect } from "@/lib/astrology";
 import type { CalculatedDetailsLike } from "@/lib/notepadObservations";
-import { computePlanetStrengths, nextPlanetFactorColor, planetStrengthOf, ratioColorOf } from "@/lib/planetStrength";
+import {
+    bhavaColorOf,
+    computePlanetStrengths,
+    nextPlanetFactorColor,
+    planetStrengthOf,
+    ratioColorOf,
+} from "@/lib/planetStrength";
 
 const calc = (overrides: Partial<CalculatedDetailsLike> = {}): CalculatedDetailsLike => ({
     ascendant: { sign: 1, degree: 0 },
@@ -59,7 +66,7 @@ describe("computePlanetStrengths — empty/null inputs (UT-PS-101)", () => {
 });
 
 describe("computePlanetStrengths — always-present polarity factors (UT-PS-102..108)", () => {
-    test("sign + house: kendra/trikona green, dusthana red, upachaya white", () => {
+    test("sign factor classifies polarity; the current-house chip is replaced by ownership context", () => {
         const result = computePlanetStrengths(
             calc({
                 planets: [
@@ -70,16 +77,12 @@ describe("computePlanetStrengths — always-present polarity factors (UT-PS-102.
             }),
         );
         const byPlanet = Object.fromEntries(result.map((entry) => [entry.planet, entry]));
-        expect(byPlanet[1].factors.map((f) => [f.key, f.color])).toEqual([
-            ["sign", "green"],
-            ["house", "green"],
-        ]);
-        expect(byPlanet[1].ratio).toEqual({ green: 2, total: 2 });
-        expect(byPlanet[2].factors.map((f) => [f.key, f.color])).toEqual([
-            ["sign", "red"],
-            ["house", "red"],
-        ]);
-        expect(byPlanet[2].ratio).toEqual({ green: 0, total: 2 });
+        // The `house` factor is no longer emitted (replaced by the ownership context tags) — the
+        // sign factor alone classifies polarity.
+        expect(byPlanet[1].factors.map((f) => [f.key, f.color])).toEqual([["sign", "green"]]);
+        expect(byPlanet[1].ratio).toEqual({ green: 1, total: 1 });
+        expect(byPlanet[2].factors.map((f) => [f.key, f.color])).toEqual([["sign", "red"]]);
+        expect(byPlanet[2].ratio).toEqual({ green: 0, total: 1 });
         // White (neutral) tags are shown but never affect the ratio.
         expect(byPlanet[3].ratio).toEqual({ green: 0, total: 0 });
     });
@@ -89,7 +92,7 @@ describe("computePlanetStrengths — always-present polarity factors (UT-PS-102.
             calc({ planets: [{ name: 2, sign: 5, house: 7, strength: 1.25, navamsaStrength: 0.75 }] }),
         );
         const keys = result[0].factors.map((f) => f.key);
-        expect(keys).toEqual(["sign", "navamsa", "house"]);
+        expect(keys).toEqual(["sign", "navamsa"]);
 
         // The sign factor carries { sign, strength }; navamsa carries them too when navamsaSign exists.
         const withNavSign = computePlanetStrengths(
@@ -127,15 +130,12 @@ describe("computePlanetStrengths — bala factors: gained only, no netha tags (U
             ["dig", "green"],
             ["cheshta", "green"],
         ]);
-        // green: sign, house, dig, cheshta = 4 of 4 shown tags.
-        expect(byPlanet[5].ratio).toEqual({ green: 4, total: 4 });
+        // green: sign, dig, cheshta = 3 of 3 shown tags.
+        expect(byPlanet[5].ratio).toEqual({ green: 3, total: 3 });
 
         // Lost balas → no tag at all (no "netha" tags, never red).
-        expect(byPlanet[6].factors.map((f) => [f.key, f.color])).toEqual([
-            ["sign", "green"],
-            ["house", "green"],
-        ]);
-        expect(byPlanet[6].ratio).toEqual({ green: 2, total: 2 });
+        expect(byPlanet[6].factors.map((f) => [f.key, f.color])).toEqual([["sign", "green"]]);
+        expect(byPlanet[6].ratio).toEqual({ green: 1, total: 1 });
     });
 
     test("dig never for Rahu/Ketu even when a digBala entry exists", () => {
@@ -158,7 +158,7 @@ describe("computePlanetStrengths — bala factors: gained only, no netha tags (U
 
     test("no shadbalaya at all → no bala factors (missing data is not a factor)", () => {
         const result = computePlanetStrengths(calc({ planets: [{ name: 5, sign: 9, house: 9, strength: 1.25 }] }));
-        expect(result[0].factors.map((f) => f.key)).toEqual(["sign", "house"]);
+        expect(result[0].factors.map((f) => f.key)).toEqual(["sign"]);
     });
 
     test("retrograde is informational white; combust emits only when true", () => {
@@ -173,14 +173,13 @@ describe("computePlanetStrengths — bala factors: gained only, no netha tags (U
         const byPlanet = Object.fromEntries(result.map((entry) => [entry.planet, entry]));
         expect(byPlanet[1].factors.map((f) => [f.key, f.color])).toEqual([
             ["sign", "green"],
-            ["house", "green"],
             ["retrograde", "white"],
             ["combust", "red"],
         ]);
-        expect(byPlanet[1].ratio).toEqual({ green: 2, total: 3 }); // combust red counts; retrograde white does not
+        expect(byPlanet[1].ratio).toEqual({ green: 1, total: 2 }); // combust red counts; retrograde white does not
         // Non-combust → no "not combust" tag.
-        expect(byPlanet[2].factors.map((f) => f.key)).toEqual(["sign", "house"]);
-        expect(byPlanet[2].ratio).toEqual({ green: 2, total: 2 });
+        expect(byPlanet[2].factors.map((f) => f.key)).toEqual(["sign"]);
+        expect(byPlanet[2].ratio).toEqual({ green: 1, total: 1 });
     });
 });
 
@@ -212,7 +211,7 @@ describe("computePlanetStrengths — karaka/varga flags: members only (UT-PS-107
         );
         const byPlanet = Object.fromEntries(result.map((entry) => [entry.planet, entry]));
 
-        const p5 = byPlanet[5].factors.filter((f) => f.key !== "sign" && f.key !== "house");
+        const p5 = byPlanet[5].factors.filter((f) => f.key !== "sign");
         expect(p5.map((f) => [f.key, f.color])).toEqual([
             ["atmakaraka", "green"],
             ["yogakaraka", "green"],
@@ -226,18 +225,18 @@ describe("computePlanetStrengths — karaka/varga flags: members only (UT-PS-107
             ["ashtamansha", "red"],
             ["nidhanamsha", "red"],
         ]);
-        expect(byPlanet[5].ratio).toEqual({ green: 6, total: 13 }); // sign+house + 4 benefic present vs 7 malefic present
+        expect(byPlanet[5].ratio).toEqual({ green: 5, total: 12 }); // sign + 4 benefic present vs 7 malefic present
 
         // Non-members → no flag tags at all, ratio stays clean (only shown tags count).
-        expect(byPlanet[6].factors.map((f) => f.key)).toEqual(["sign", "house"]);
-        expect(byPlanet[6].ratio).toEqual({ green: 2, total: 2 });
-        expect(byPlanet[7].factors.map((f) => f.key)).toEqual(["sign", "house"]);
-        expect(byPlanet[7].ratio).toEqual({ green: 2, total: 2 });
+        expect(byPlanet[6].factors.map((f) => f.key)).toEqual(["sign"]);
+        expect(byPlanet[6].ratio).toEqual({ green: 1, total: 1 });
+        expect(byPlanet[7].factors.map((f) => f.key)).toEqual(["sign"]);
+        expect(byPlanet[7].ratio).toEqual({ green: 1, total: 1 });
     });
 
     test("missing flag data is NOT a factor — no flag tags at all", () => {
         const result = computePlanetStrengths(calc({ planets: [{ name: 7, sign: 9, house: 9, strength: 1.25 }] }));
-        expect(result[0].factors.map((f) => f.key)).toEqual(["sign", "house"]);
+        expect(result[0].factors.map((f) => f.key)).toEqual(["sign"]);
     });
 
     test("an individual malefic flag is red while a benefic one is green — no aggregate wins", () => {
@@ -285,7 +284,6 @@ describe("computePlanetStrengths — order + denominator (UT-PS-105)", () => {
         expect(entry.factors.map((f) => f.key)).toEqual([
             "sign",
             "navamsa",
-            "house",
             "dig",
             "cheshta",
             "retrograde",
@@ -293,9 +291,9 @@ describe("computePlanetStrengths — order + denominator (UT-PS-105)", () => {
             "atmakaraka",
             "wargoththama",
         ]);
-        // green: sign, navamsa, house, dig, cheshta, atmakaraka, wargoththama = 7
+        // green: sign, navamsa, dig, cheshta, atmakaraka, wargoththama = 6
         // red: combust = 1   (kala/naisargika lost → not emitted; retrograde white shown, not counted)
-        expect(entry.ratio).toEqual({ green: 7, total: 8 });
+        expect(entry.ratio).toEqual({ green: 6, total: 7 });
         expect(entry.factors.filter((f) => f.color === "white")).toHaveLength(1); // retrograde only
     });
 
@@ -330,18 +328,19 @@ describe("computePlanetStrengths — student overrides (UT-PS-110)", () => {
             { "5": { house: "white", cheshta: "red" } },
         );
         const entry = result[0];
-        // Shown: sign, navamsa, house, dig, cheshta. Derived green: sign, navamsa, dig = 3
-        // (house forced neutral, cheshta forced red → red = 1).
+        // Shown: sign, navamsa, dig, cheshta. Derived green: sign, navamsa, dig = 3
+        // (cheshta forced red → red = 1). The stored `house` override is inert — the `house`
+        // factor no longer emits (kept in the validation catalog only so old overrides persist).
         expect(entry.ratio).toEqual({ green: 3, total: 4 });
-        expect(entry.factors.find((f) => f.key === "house")?.color).toBe("white");
+        expect(entry.factors.some((f) => f.key === "house")).toBe(false);
         expect(entry.factors.find((f) => f.key === "cheshta")?.color).toBe("red");
     });
 
     test("an override can make a neutral factor green (student determination)", () => {
         const result = computePlanetStrengths(calc({ planets: [{ name: 2, sign: 5, house: 3, strength: 0 }] }), {
-            "2": { house: "green" },
+            "2": { sign: "green" },
         });
-        // sign stays white (Sama), house overridden to green → 1 of 1 decidable.
+        // sign stays white (Sama) by default, overridden to green → 1 of 1 decidable.
         expect(result[0].ratio).toEqual({ green: 1, total: 1 });
     });
 
@@ -351,6 +350,127 @@ describe("computePlanetStrengths — student overrides (UT-PS-110)", () => {
                 "99": { nonexistent: "green" },
             }),
         ).not.toThrow();
+    });
+});
+
+describe("computePlanetStrengths — Graha bala context tags (TODO #25/#26/#27)", () => {
+    test("bhavaColorOf: 6/8/12 red, 1/5/9 green, anything else gray (white)", () => {
+        expect(bhavaColorOf(6)).toBe("red");
+        expect(bhavaColorOf(8)).toBe("red");
+        expect(bhavaColorOf(12)).toBe("red");
+        expect(bhavaColorOf(1)).toBe("green");
+        expect(bhavaColorOf(5)).toBe("green");
+        expect(bhavaColorOf(9)).toBe("green");
+        expect(bhavaColorOf(2)).toBe("white");
+        expect(bhavaColorOf(4)).toBe("white");
+        expect(bhavaColorOf(10)).toBe("white");
+    });
+
+    test("conjunctions: stored same-sign fallback carries the true-degree orb, enum order", () => {
+        const result = computePlanetStrengths(
+            calc({
+                planets: [
+                    { name: 1, sign: 5, house: 8, strength: 1.25, absoluteDegree: 120 },
+                    { name: 4, sign: 5, house: 8, strength: 1.25, absoluteDegree: 122.3 },
+                ],
+            }),
+        );
+        expect(result[0].conjunctions).toEqual([{ planet: 4, orb: 2.3 }]);
+        expect(result[1].conjunctions).toEqual([{ planet: 1, orb: 2.3 }]);
+    });
+
+    test("conjunctions: planets in different signs are NOT conjunct (no phantom tags)", () => {
+        const result = computePlanetStrengths(
+            calc({
+                planets: [
+                    { name: 1, sign: 5, house: 8, strength: 1.25 },
+                    { name: 2, sign: 9, house: 12, strength: 1.25 },
+                ],
+            }),
+        );
+        expect(result[0].conjunctions).toEqual([]);
+        expect(result[1].conjunctions).toEqual([]);
+    });
+
+    test("aspects received: stored records win (reasons kept), conjunctions (aspectType 0) excluded", () => {
+        const aspect: Aspect = {
+            planetName: 2,
+            aspectType: 60,
+            planetAbsoluteDegree: 90,
+            degreeGap: 1.2,
+            exactAspectDegree: 60,
+            isBeneficial: true,
+            delta: 1.2,
+            reasons: [{ type: "planetary", angle: 60, delta: 1.2 }],
+        };
+        const result = computePlanetStrengths(
+            calc({
+                planets: [
+                    { name: 1, sign: 5, house: 8, strength: 1.25, aspects: [{ planetName: 2, aspectType: 0 }, aspect] },
+                    { name: 2, sign: 9, house: 12, strength: 1.25 },
+                ],
+            }),
+        );
+        expect(result[1].receivedAspects).toEqual([
+            {
+                planet: 1,
+                aspectType: 60,
+                aspectingSign: 5,
+                aspect,
+            },
+        ]);
+        expect(result[0].receivedAspects).toEqual([]);
+    });
+
+    test("ownedHouses + houseOwner + houseOwnerHouses: whole-sign lordship from the lagna", () => {
+        const result = computePlanetStrengths(
+            calc({
+                ascendant: { sign: 1, degree: 0, lord: 3 },
+                planets: [{ name: 1, sign: 5, house: 7, strength: 1.25 }], // Sun in Leo (house 7)
+            }),
+        );
+        const entry = result[0];
+        expect(entry.ownedHouses).toEqual([5]); // Sun rules Leo → D1 house 5
+        expect(entry.houseOwner).toBe(6); // house 7 = Libra → Venus
+        expect(entry.houseOwnerHouses).toEqual([2, 7]); // Venus rules Taurus + Libra
+    });
+
+    test("nakshatra owner: the Vimshottari lord of the occupied nakshatra", () => {
+        const result = computePlanetStrengths(
+            calc({ planets: [{ name: 1, sign: 5, house: 7, strength: 1.25, nakshatra: 1 }] }),
+        );
+        expect(result[0].nakshatraOwner).toBe(9); // nakshatra 1 → Ketu
+        const without = computePlanetStrengths(calc({ planets: [{ name: 1, sign: 5, house: 7, strength: 1.25 }] }));
+        expect(without[0].nakshatraOwner).toBeUndefined();
+    });
+
+    test("bhavaSuchika: read from the stored per-planet record when present, absent otherwise", () => {
+        const withBhava = computePlanetStrengths(
+            calc({
+                planets: [{ name: 1, sign: 5, house: 7, strength: 1.25 }],
+                bhavaSuchika: { "1": 4 },
+            }),
+        );
+        expect(withBhava[0].bhavaSuchika).toBe(4);
+        const without = computePlanetStrengths(calc({ planets: [{ name: 1, sign: 5, house: 7, strength: 1.25 }] }));
+        expect(without[0].bhavaSuchika).toBeUndefined();
+    });
+
+    test("context tags never affect the factor ratio", () => {
+        const result = computePlanetStrengths(
+            calc({
+                planets: [
+                    { name: 1, sign: 5, house: 8, strength: 1.25, nakshatra: 1 },
+                    { name: 4, sign: 5, house: 8, strength: 1.25 },
+                ],
+                bhavaSuchika: { "1": 4 },
+            }),
+        );
+        for (const entry of result) {
+            expect(entry.factors.map((f) => f.key)).toEqual(["sign"]);
+        }
+        expect(result[0].ratio).toEqual({ green: 1, total: 1 });
+        expect(result[1].ratio).toEqual({ green: 1, total: 1 });
     });
 });
 

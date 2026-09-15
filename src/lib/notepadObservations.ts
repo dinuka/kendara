@@ -217,8 +217,9 @@ function notAvailableTag(): ObservationTagBase {
     return { kind: "load", color: "white", labelKey: NOT_AVAILABLE_LABEL_KEY };
 }
 
-/** Whole-sign sign of `houseNumber` (1-12) from the given lagna sign. */
-function wholeSignOf(lagnaSign: number | undefined, houseNumber: number): number | undefined {
+/** Whole-sign sign of `houseNumber` (1-12) from the given lagna sign. Exported for the Graha bala
+ *  context tags (planetStrength.ts) which derive whole-sign lordship the same way. */
+export function wholeSignOf(lagnaSign: number | undefined, houseNumber: number): number | undefined {
     if (typeof lagnaSign !== "number" || !Number.isInteger(lagnaSign) || lagnaSign < 1 || lagnaSign > 12) {
         return undefined;
     }
@@ -331,8 +332,9 @@ function sectionPlanetsInHouse(
     return { key: "planetsInHouse", tags, ratio: ratioOverTags(tags, "planetsInHouse", irrelevant, classify) };
 }
 
-/** Sign lords by sign (1-12) — whole-sign Vedic lordship. Local copy (astrology.ts's is private). */
-const SIGN_LORD: Record<number, number> = {
+/** Sign lords by sign (1-12) — whole-sign Vedic lordship. Exported for the Graha bala context tags
+ *  (planetStrength.ts) — local copy (astrology.ts's is private). */
+export const SIGN_LORD: Record<number, number> = {
     1: 3,
     2: 6,
     3: 4,
@@ -355,8 +357,9 @@ export function classifyHouseLordPosition(position: number): ObservationColor {
     return "lightGreen";
 }
 
-/** The houses (whole-sign from the lagna) whose sign the given planet lords over. */
-function ownedHousesOf(lagnaSign: number | undefined, lord: number): number[] {
+/** The houses (whole-sign from the lagna) whose sign the given planet lords over. Exported for the
+ *  Graha bala context tags (planetStrength.ts). */
+export function ownedHousesOf(lagnaSign: number | undefined, lord: number): number[] {
     const houses: number[] = [];
     if (typeof lagnaSign !== "number") return houses;
     for (let house = 1; house <= 12; house += 1) {
