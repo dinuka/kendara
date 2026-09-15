@@ -244,7 +244,11 @@ function computeDigBala(p: ShadBalaPlanet): ShadBalaValue {
     }
     const target = DIG_HOUSE[p.name];
     if (target !== undefined && p.house === target) {
-        return { value: true, overridden: false, reasons: [{ key: "shadbalaya.dig.reason.house", params: { house: p.house } }] };
+        return {
+            value: true,
+            overridden: false,
+            reasons: [{ key: "shadbalaya.dig.reason.house", params: { house: p.house } }],
+        };
     }
     return { value: false, overridden: false, reasons: [] };
 }

@@ -49,8 +49,10 @@ import {
  *  (pushkala/rajaChitta/champaka/amathya/dharukaKarma/priyamrityu/bhagyaVyaya/bhumiDravya/
  *  rinaVyaya/chittaHani) and Dharma Karmadhipati re-evaluated from Lagna + Moon + Sun with the
  *  same-lord exclusion — stored v10 lists lack these entries and carry outdated DHCP params, so
- *  they recompute. */
-export const YOGA_DOSHA_VERSION = 11;
+ *  they recompute. v12: Neecha Raja Yoga (docs/raja-yoga.md) — debilitated planet in upachaya
+ *  houses (2, 3, 4, 9, 10, 11) from Lagna forms a Raja Yoga — stored v11 yoga lists lack this
+ *  entry, so they recompute. */
+export const YOGA_DOSHA_VERSION = 12;
 
 export type PlanetLike = Pick<
     Planet,

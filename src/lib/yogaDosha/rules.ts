@@ -18,6 +18,7 @@
  * reference-relative dosha house (same value as params.house), keeping context/themes inside
  * the confirmed dosha-house set [1, 2, 4, 7, 8, 12].
  */
+import { PlanetaryStrength } from "@/lib/astrologyEnums";
 import {
     SIGN_LORDS,
     areConjunct,
@@ -42,6 +43,7 @@ import {
     KalaSarpaRuleId,
     MalavyaRuleId,
     ManglikRuleId,
+    NeechaRajaYogaRuleId,
     ParasharaYogaRuleId,
     PlanetFact,
     RuchakaRuleId,
@@ -105,6 +107,10 @@ export const KALA_SARPA_NAMES: Record<number, string> = {
     11: "Vishadhara",
     12: "Sheshanaga",
 };
+
+/** Upachaya houses (2, 3, 4, 9, 10, 11) for Neecha Raja Yoga (docs/raja-yoga.md).
+ *  A debilitated planet in any of these houses forms a Raja Yoga. */
+const UPACHAYA_HOUSES = [2, 3, 4, 9, 10, 11];
 
 function absent(rule: RuleId): RuleEvaluation {
     return { rule, triggered: false, strength: 4, reasonKey: "" };
@@ -568,6 +574,20 @@ function evaluateDhanaYogaRule(rule: DhanaYogaRuleId, facts: ChartFacts): RuleEv
     return absent(rule);
 }
 
+/**
+ * Neecha Raja Yoga (docs/raja-yoga.md): a debilitated (Neecha) planet placed in an upachaya
+ * house (2, 3, 4, 9, 10, or 11) from the Lagna forms a Raja Yoga. Any planet can trigger
+ * this yoga — the condition is purely positional (debilitation + house placement).
+ */
+function evaluateNeechaRajaYogaRule(rule: NeechaRajaYogaRuleId, facts: ChartFacts): RuleEvaluation {
+    for (const planet of facts.planets) {
+        if (planet.strength !== PlanetaryStrength.NEECHA) continue;
+        if (!UPACHAYA_HOUSES.includes(planet.house)) continue;
+        return fired(rule, 2, "rule.nr01", { planet: planet.planetName, house: planet.house }, [planet.house]);
+    }
+    return absent(rule);
+}
+
 /** The ten Parashara sub-yogas besides Dharma Karmadhipati (docs/parashara-yoga.md) — their
  *  `ps01..ps03` rules all route to the shared evaluateParasharaRule. */
 const PARASHARA_YOGA_IDS = [
@@ -592,6 +612,7 @@ export function evaluateRule(rule: RuleId, facts: ChartFacts): RuleEvaluation {
     if (rule.startsWith("kalaAmurtha.")) return evaluateKalaAmurthaRule(rule as KalaAmurthaRuleId, facts);
     if (rule.startsWith("deeptaYoga.")) return evaluateDeeptaYogaRule(rule as DeeptaYogaRuleId, facts);
     if (rule.startsWith("dhanaYoga.")) return evaluateDhanaYogaRule(rule as DhanaYogaRuleId, facts);
+    if (rule.startsWith("neechaRajaYoga.")) return evaluateNeechaRajaYogaRule(rule as NeechaRajaYogaRuleId, facts);
     if (rule.startsWith("dharmaKarmadhipati."))
         return evaluateDharmaKarmadhipatiRule(rule as DharmaKarmadhipatiRuleId, facts);
     if (PARASHARA_YOGA_IDS.some((id) => rule.startsWith(`${id}.`)))

@@ -1394,6 +1394,23 @@
             "expression": {
                 "main": "This yoga connects the wealth-producing houses, favouring accumulation of wealth and material prosperity."
             }
+        },
+        "neechaRajaYoga": {
+            "name": "Neecha Raja Yoga",
+            "rule": {
+                "nr01": "{planetName} is debilitated (Neecha) and placed in house {house}, an upachaya house from Lagna."
+            },
+            "theme": {
+                "house2": "Relates to family and wealth.",
+                "house3": "Relates to courage and effort.",
+                "house4": "Relates to home, property and domestic life.",
+                "house9": "Relates to fortune, dharma and higher learning.",
+                "house10": "Relates to career, karma and public standing.",
+                "house11": "Relates to gains and networks."
+            },
+            "expression": {
+                "main": "This yoga indicates that a debilitated planet's challenges are transformed into growth and eventual success through upachaya houses."
+            }
         }
     },
     "dosha": {

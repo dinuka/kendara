@@ -147,32 +147,32 @@ export async function GET(req: NextRequest) {
         const nakshatra = cd?.nakshatra ? JSON.stringify(cd.nakshatra) : "";
 
         // Dual-read names: v1 evaluations carry a catalog id (resolved to the display name via the
-    // catalog); legacy entries carry a display string on `.name` (US-YD-011).
-    const yogas = cd?.yogas
-        ? (cd.yogas as Array<Record<string, unknown>>)
-              .map((y) => {
-                  if (typeof y.id === "string") {
-                      const name = catalogNameFor(y.id, "en");
-                      if (name) return name;
-                  }
-                  return y.name;
-              })
-              .join("; ")
-        : "";
-
-    const doshas = cd?.doshas
-        ? (cd.doshas as Record<string, unknown>).doshas
-            ? ((cd.doshas as Record<string, unknown>).doshas as Array<Record<string, unknown>>)
-                  .map((d) => {
-                      if (typeof d.id === "string") {
-                          const name = catalogNameFor(d.id, "en");
+        // catalog); legacy entries carry a display string on `.name` (US-YD-011).
+        const yogas = cd?.yogas
+            ? (cd.yogas as Array<Record<string, unknown>>)
+                  .map((y) => {
+                      if (typeof y.id === "string") {
+                          const name = catalogNameFor(y.id, "en");
                           if (name) return name;
                       }
-                      return d.name;
+                      return y.name;
                   })
                   .join("; ")
-            : ""
-        : "";
+            : "";
+
+        const doshas = cd?.doshas
+            ? (cd.doshas as Record<string, unknown>).doshas
+                ? ((cd.doshas as Record<string, unknown>).doshas as Array<Record<string, unknown>>)
+                      .map((d) => {
+                          if (typeof d.id === "string") {
+                              const name = catalogNameFor(d.id, "en");
+                              if (name) return name;
+                          }
+                          return d.name;
+                      })
+                      .join("; ")
+                : ""
+            : "";
 
         const row = [
             `"${h.name}"`,

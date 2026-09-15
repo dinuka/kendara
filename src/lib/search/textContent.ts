@@ -12,8 +12,8 @@ import {
     ZODIAC_SIGN_LABELS_SI,
 } from "@/lib/astrologyEnums";
 import { resolveLagnaBhavaSuchika, resolvePlanetBhavaSuchika } from "@/lib/bhavaSuchika";
-import { catalogNameFor } from "@/lib/yogaDosha/catalog";
 import { BHAVA_SUCHIKA_NAMES_EN, BHAVA_SUCHIKA_NAMES_SI } from "@/lib/search/vocabulary";
+import { catalogNameFor } from "@/lib/yogaDosha/catalog";
 
 /** Dual-read display name for yoga/dosha entries: v1 evaluations carry a catalog id; legacy
  *  entries carry a display string on `.name` (US-YD-011 — legacy snapshots without an id are

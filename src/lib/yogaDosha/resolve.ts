@@ -6,10 +6,9 @@
  * When nothing derivable is present → undefined (caller shows the empty state).
  */
 import logger from "@/lib/logger";
-
-import { buildChartFacts, computeYogaDoshas, YOGA_DOSHA_VERSION } from "@/lib/yogaDosha/ruleEngine";
-import { ChartSource, YogaDoshaEvaluation, YogaDoshaResult } from "@/lib/yogaDosha/types";
+import { YOGA_DOSHA_VERSION, buildChartFacts, computeYogaDoshas } from "@/lib/yogaDosha/ruleEngine";
 import { PlanetLike } from "@/lib/yogaDosha/ruleEngine";
+import { ChartSource, YogaDoshaEvaluation, YogaDoshaResult } from "@/lib/yogaDosha/types";
 
 export interface ShapeProblem {
     path: string;
@@ -57,7 +56,10 @@ export function validateYogaDoshaShape(entry: unknown): ShapeProblem[] {
         const finalAssessment = e.finalAssessment as Record<string, unknown> | null | undefined;
         const severity = finalAssessment?.severity;
         if (typeof severity !== "number" || severity < 1 || severity > 4) {
-            problems.push({ path: "finalAssessment.severity", message: `severity out of range 1..4: ${String(severity)}` });
+            problems.push({
+                path: "finalAssessment.severity",
+                message: `severity out of range 1..4: ${String(severity)}`,
+            });
         }
     }
     const cancellation = e.cancellation as Record<string, unknown> | null | undefined;
@@ -108,17 +110,12 @@ export function resolveYogas(calculatedDetails: unknown, source?: ChartSource): 
 }
 
 /** Resolves doshas: stored v1 array wins; legacy docs recompute at render. */
-export function resolveDoshas(
-    calculatedDetails: unknown,
-    source?: ChartSource,
-): YogaDoshaResult["doshas"] | undefined {
+export function resolveDoshas(calculatedDetails: unknown, source?: ChartSource): YogaDoshaResult["doshas"] | undefined {
     const doc = (calculatedDetails ?? {}) as Record<string, unknown> | null | undefined;
     if (!doc) return undefined;
 
     const storedDoshas =
-        doc.doshas && typeof doc.doshas === "object"
-            ? (doc.doshas as Record<string, unknown>).doshas
-            : undefined;
+        doc.doshas && typeof doc.doshas === "object" ? (doc.doshas as Record<string, unknown>).doshas : undefined;
     if (doc.yogaDoshaVersion === YOGA_DOSHA_VERSION && Array.isArray(storedDoshas)) {
         const entries = storedDoshas.filter(isWellFormedEntry);
         if (entries.length === storedDoshas.length) return entries as YogaDoshaResult["doshas"];

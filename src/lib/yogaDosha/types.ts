@@ -27,6 +27,9 @@ export type ParasharaYogaId =
     | "rinaVyaya"
     | "chittaHani";
 
+/** Neecha Raja Yoga rule id (docs/raja-yoga.md) — debilitated planet in upachaya houses. */
+export type NeechaRajaYogaRuleId = "neechaRajaYoga.nr01";
+
 /** Yoga catalog ids (registered in catalog.ts). */
 export type YogaId =
     | "dharmaKarmadhipati"
@@ -37,7 +40,8 @@ export type YogaId =
     | "malavya"
     | "sasha"
     | "deeptaYoga"
-    | "dhanaYoga";
+    | "dhanaYoga"
+    | "neechaRajaYoga";
 
 /** Dhana Yoga rule ids (docs/dhana-yoga.md) — lords of houses 2, 5, 9, 11 relationship. */
 export type DhanaYogaRuleId = "dhanaYoga.dh01" | "dhanaYoga.dh02" | "dhanaYoga.dh03";
@@ -80,7 +84,8 @@ export type YogaRuleId =
     | SashaRuleId
     | DeeptaYogaRuleId
     | ParasharaYogaRuleId
-    | DhanaYogaRuleId;
+    | DhanaYogaRuleId
+    | NeechaRajaYogaRuleId;
 export type DoshaRuleId = ShaniMangalaRuleId | AgniMaruthaRuleId | ManglikRuleId | KalaSarpaRuleId | KalaAmurthaRuleId;
 
 /** Registered mitigation rule ids (cancellation.ts). */

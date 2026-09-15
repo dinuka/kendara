@@ -38,8 +38,8 @@ import {
     YOGA_FAMILIES,
 } from "@/lib/search/vocabulary";
 import { DOSHA_CATALOG, YOGA_CATALOG, doshaCatalogEntry, yogaCatalogEntry } from "@/lib/yogaDosha/catalog";
-import type { DoshaId, YogaId } from "@/lib/yogaDosha/types";
 import { resolveYogaDoshas } from "@/lib/yogaDosha/resolve";
+import type { DoshaId, YogaId } from "@/lib/yogaDosha/types";
 
 type ExactCondition =
     | { type: "ascendant"; sign: number }
@@ -1245,21 +1245,15 @@ export async function POST(req: NextRequest) {
                                 );
                             }
                             case "yoga_id": {
-                                const yogas = calculatedDetails?.yogas as
-                                    | Array<Record<string, unknown>>
-                                    | undefined;
+                                const yogas = calculatedDetails?.yogas as Array<Record<string, unknown>> | undefined;
                                 return !!yogas && yogas.some((y) => y.id === condition.yogaId && y.isPresent === true);
                             }
                             case "yoga_family": {
-                                const yogas = calculatedDetails?.yogas as
-                                    | Array<Record<string, unknown>>
-                                    | undefined;
+                                const yogas = calculatedDetails?.yogas as Array<Record<string, unknown>> | undefined;
                                 const memberIds = YOGA_FAMILIES[condition.familyId] ?? [];
                                 return (
                                     !!yogas &&
-                                    memberIds.some((id) =>
-                                        yogas.some((y) => y.id === id && y.isPresent === true),
-                                    )
+                                    memberIds.some((id) => yogas.some((y) => y.id === id && y.isPresent === true))
                                 );
                             }
                             case "dosha_id": {

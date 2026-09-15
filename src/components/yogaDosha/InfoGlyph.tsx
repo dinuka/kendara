@@ -1,8 +1,7 @@
 "use client";
 
-import { useId } from "react";
-
 import { useI18n } from "@/hooks/useI18n";
+import { useId } from "react";
 
 /** Small info glyph with a hover/focus tooltip (mirrors BhavaSuchikaTag's tooltip pattern). */
 const InfoGlyph = () => {

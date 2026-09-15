@@ -1,12 +1,11 @@
 "use client";
 
-import { useState } from "react";
-
-import { useI18n } from "@/hooks/useI18n";
-import { YogaEvaluation } from "@/lib/yogaDosha";
-
 import YogaDoshaDetailPanel from "@/components/yogaDosha/YogaDoshaDetailPanel";
 import YogaDoshaTag from "@/components/yogaDosha/YogaDoshaTag";
+import { useI18n } from "@/hooks/useI18n";
+import { useState } from "react";
+
+import { YogaEvaluation } from "@/lib/yogaDosha";
 
 interface YogaTagGroupProps {
     entries: YogaEvaluation[];
@@ -19,9 +18,7 @@ const YogaTagGroup = ({ entries }: YogaTagGroupProps) => {
     const present = entries.filter((entry) => entry.isPresent);
 
     const toggle = (id: string) =>
-        setOpenIds((current) =>
-            current.includes(id) ? current.filter((cur) => cur !== id) : [...current, id],
-        );
+        setOpenIds((current) => (current.includes(id) ? current.filter((cur) => cur !== id) : [...current, id]));
 
     return (
         <div role="group" aria-label={t("yogaDosha.groupYogaAria")}>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useI18n } from "@/hooks/useI18n";
+
 import { ThemeInfo, YogaDoshaEvaluation } from "@/lib/yogaDosha";
 
 interface ResultBlockProps {
@@ -27,9 +28,7 @@ const ResultBlock = ({ entry }: ResultBlockProps) => {
 
     return (
         <div>
-            <h5 className="font-semibold text-xs text-gray-700 uppercase tracking-wide">
-                {t("yogaDosha.result")}
-            </h5>
+            <h5 className="font-semibold text-xs text-gray-700 uppercase tracking-wide">{t("yogaDosha.result")}</h5>
             <dl className="mt-1 space-y-2 text-sm text-gray-800">
                 {[...grouped.entries()].map(([groupKey, themes]) => (
                     <div key={groupKey}>
