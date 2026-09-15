@@ -132,6 +132,20 @@ describe("mergeRashiIntoPlanetAspects", () => {
         expect(reasons.filter((r) => r.type === "planetary")).toHaveLength(1);
         expect(reasons.filter((r) => r.type === "rashi")).toHaveLength(1);
     });
+    test("planet target uses the pair's highest orb (rashi reason)", () => {
+        // Mars (orb 8) in Aries rashi-aspects Thira signs {5,8,11}. Sun in Leo (sign 5) sits 9° from the
+        // 120° rashi aspect point — beyond Mars's own orb 8 but within Sun's orb 15; max(8,15)=15 keeps
+        // the rashi reason, mirroring the planetary-arm pair-orb rule.
+        const marsSun = [
+            { name: 3, sign: 1, absoluteDegree: 15 },
+            { name: 1, sign: 5, absoluteDegree: 144 },
+        ];
+        const base: Record<number, any[]> = { 3: [], 1: [] };
+        const out = mergeRashiIntoPlanetAspects(base, marsSun, undefined, ON);
+        expect(out[3][0]).toMatchObject({ planetName: 1, aspectType: 120 });
+        expect(out[3][0].reasons?.[0].type).toBe("rashi");
+        expect(out[3][0].reasons?.[0].delta).toBeCloseTo(9, 1);
+    });
 });
 
 describe("house aspects with rashi arm", () => {

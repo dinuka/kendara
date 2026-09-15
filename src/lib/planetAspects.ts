@@ -177,13 +177,15 @@ export function derivePlanetAbsoluteDegree(
 }
 
 /** Planet-to-planet aspects. For each aspecting planet `i`, candidates = [0, ...configured degrees];
- *  orb = aspecting planet's `planetaryOrbs` value. Each candidate angle `d` maps to the two aspect
- *  points `abs_i ± d` (wrapped); `aspectPointSignedDelta` picks the nearer of those points to the
- *  target and an aspect to planet `j` is recorded when the nearest candidate's delta is within orb
- *  (`degreeGap <= orb`, inclusive). This point-based matching (shared with the house-aspect arm) lets
- *  special aspects past 180° register against targets sitting near the wrapped point — e.g. Saturn's
- *  10th (270° ≡ abs_i − 90) reaching a planet 90° behind. Ties between equidistant candidate angles
- *  resolve to the smaller angle. `isBeneficial` only for 60/120. */
+ *  orb = the *highest* of the two planets' `planetaryOrbs` values (max of aspecter and target) so
+ *  that a conjunction or aspect recorded in one direction is always mirrored in the other. Each
+ *  candidate angle `d` maps to the two aspect points `abs_i ± d` (wrapped); `aspectPointSignedDelta`
+ *  picks the nearer of those points to the target and an aspect to planet `j` is recorded when the
+ *  nearest candidate's delta is within orb (`degreeGap <= orb`, inclusive). This point-based matching
+ *  (shared with the house-aspect arm) lets special aspects past 180° register against targets
+ *  sitting near the wrapped point — e.g. Saturn's 10th (270° ≡ abs_i − 90) reaching a planet 90°
+ *  behind. Ties between equidistant candidate angles resolve to the smaller angle. `isBeneficial`
+ *  only for 60/120. */
 export function computePlanetAspects(
     planets: Array<Pick<Planet, "name" | "absoluteDegree">>,
     planetAspects?: PlanetAspectsMap,
@@ -194,10 +196,10 @@ export function computePlanetAspects(
         const i = aspecter.name;
         const absI = aspecter.absoluteDegree;
         const candidates = [0, ...resolveAspectDegrees(i, planetAspects)];
-        const orb = resolveOrb(i, planetaryOrbs);
         const aspects: Aspect[] = [];
         for (const target of planets) {
             if (target.name === i) continue;
+            const orb = Math.max(resolveOrb(i, planetaryOrbs), resolveOrb(target.name, planetaryOrbs));
             let nearest = candidates[0];
             let bestDelta = aspectPointSignedDelta(absI, nearest, target.absoluteDegree);
             let bestDiff = Math.abs(bestDelta);

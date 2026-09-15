@@ -214,13 +214,16 @@ export function computeRashiPlanetCandidates(
 
 /** Build the rashi aspect reason for a target (`planet` or house-middle degree) when the degree +
  *  orb ("rashmi") check passes, else null. `targetSign` is the aspected whole-sign (used both for the
- *  candidate-set membership and the zodiacal gap). Empty candidate set / disabled → null. */
+ *  candidate-set membership and the zodiacal gap). Empty candidate set / disabled → null. For planet
+ *  targets pass the target's orb via `targetOrb` so the pair uses the highest of the two orbs
+ *  (mirroring `computePlanetAspects`); house targets omit it and use the aspecting planet's own orb. */
 export function rashiReasonForTarget(
     aspecting: { name: number; sign: number; absoluteDegree: number },
     targetSign: number,
     targetAbs: number,
     planetaryOrbs?: Record<string, number>,
     setting: RashiAspectsSetting = DEFAULT_RASHI_ASPECTS,
+    targetOrb?: number,
 ): AspectReason | null {
     if (!isRashiEnabledForSign(aspecting.sign, setting)) return null;
     const aspectedSigns = computeRashiAspectSigns(aspecting.sign);
@@ -230,7 +233,7 @@ export function rashiReasonForTarget(
     const gapSigns = zodiacalArc(aspecting.sign, targetSign);
     const angle = gapSigns * 30;
     const delta = aspectPointSignedDelta(aspecting.absoluteDegree, angle, targetAbs);
-    const orb = resolveOrb(aspecting.name, planetaryOrbs);
+    const orb = Math.max(resolveOrb(aspecting.name, planetaryOrbs), targetOrb ?? 0);
     if (Math.abs(delta) > orb) return null;
     return { type: "rashi", angle, aspectedSign: targetSign, delta: +delta.toFixed(2) };
 }
@@ -312,7 +315,14 @@ export function mergeRashiIntoPlanetAspects(
         const rashiByTarget: Record<number, AspectReason> = {};
         for (const target of planets) {
             if (target.name === aspecter.name) continue;
-            const reason = rashiReasonForTarget(aspecter, target.sign, target.absoluteDegree, planetaryOrbs, setting);
+            const reason = rashiReasonForTarget(
+                aspecter,
+                target.sign,
+                target.absoluteDegree,
+                planetaryOrbs,
+                setting,
+                resolveOrb(target.name, planetaryOrbs),
+            );
             if (reason) rashiByTarget[target.name] = reason;
         }
         const merged: Aspect[] = [];

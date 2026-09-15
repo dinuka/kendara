@@ -112,18 +112,20 @@ describe("computePlanetAspects", () => {
         expect(a.reasons).toEqual([{ type: "planetary", angle: 60, delta: 0 }]);
     });
 
-    test("Rahu/Ketu (orb 0) aspect only at exact angle", () => {
+    test("Rahu/Ketu (orb 0) aspects follow the partner's orb when larger", () => {
+        // Rahu orb 0, Venus orb 7 → the pair orb is max(0, 7) = 7, so a 1° trine gap is within orb
+        // in both directions (not just at the exact angle).
         const aspects = computePlanetAspects([
             { name: 8, absoluteDegree: 100 },
             { name: 6, absoluteDegree: 220 },
         ]);
         expect(aspects[8][0].aspectType).toBe(120);
-        expect(
-            computePlanetAspects([
-                { name: 8, absoluteDegree: 100 },
-                { name: 6, absoluteDegree: 221 },
-            ])[8],
-        ).toHaveLength(0);
+        const off = computePlanetAspects([
+            { name: 8, absoluteDegree: 100 },
+            { name: 6, absoluteDegree: 221 },
+        ]);
+        expect(off[8][0]).toMatchObject({ planetName: 6, aspectType: 120, degreeGap: 1 });
+        expect(off[6][0]).toMatchObject({ planetName: 8, aspectType: 120, degreeGap: 1 });
     });
 
     test("conjunction is not beneficial", () => {
@@ -175,12 +177,50 @@ describe("computePlanetAspects", () => {
     });
 
     test("out-of-orb special point is not an aspect", () => {
-        // Same geometry but Mars at 150.68 (10° from Saturn's 270° point) exceeds Saturn orb 9.
+        // Same geometry but Mars at 150.68 (10° from Saturn's 270° point) exceeds the pair's max
+        // orb (Saturn 9 > Mars 8).
         const aspects = computePlanetAspects([
             { name: 7, absoluteDegree: 253.77 },
             { name: 3, absoluteDegree: 150.68 },
         ]);
         expect(aspects[7]).toHaveLength(0);
+        expect(aspects[3]).toHaveLength(0);
+    });
+
+    test("pair uses the highest orb of the two planets (bidirectional symmetry)", () => {
+        // Sun orb 15, Mars orb 8. A co-located gap of 10° is within Sun's orb but outside Mars's,
+        // so the conjunction must be recorded on BOTH rows using max(15, 8) = 15.
+        const aspects = computePlanetAspects([
+            { name: 1, absoluteDegree: 0 },
+            { name: 3, absoluteDegree: 10 },
+        ]);
+        expect(aspects[1][0]).toMatchObject({ planetName: 3, aspectType: 0, degreeGap: 10 });
+        expect(aspects[3][0]).toMatchObject({ planetName: 1, aspectType: 0, degreeGap: 10 });
+    });
+
+    test("pair orb respects custom planetaryOrbs override", () => {
+        // Sun 15 vs Mercury default 7; a 12° conjunction is inside max(15, 7) = 15 but the Solar
+        // custom orb of 9 keeps it out on both sides — the overridden value is used symmetrically.
+        const aspects = computePlanetAspects(
+            [
+                { name: 1, absoluteDegree: 0 },
+                { name: 4, absoluteDegree: 12 },
+            ],
+            undefined,
+            { "1": 9 },
+        );
+        expect(aspects[1]).toHaveLength(0);
+        expect(aspects[4]).toHaveLength(0);
+
+        const inOrb = computePlanetAspects(
+            [
+                { name: 1, absoluteDegree: 0 },
+                { name: 4, absoluteDegree: 8 },
+            ],
+            undefined,
+            { "1": 9 },
+        );
+        expect(inOrb[4][0]).toMatchObject({ planetName: 1, aspectType: 0 });
     });
 });
 
