@@ -55,8 +55,12 @@ import {
  *  v13: Pancha Maha Purusha Yoga now satisfies its Kendra from the Chandra lagna (Moon's sign)
  *  as well as the Lagna (single rule, params gain `kendraFrom`, houseImpact may hold both
  *  reference-relative kendra houses) — stored v12 PMP entries carry outdated params/houseImpact,
- *  so they recompute. */
-export const YOGA_DOSHA_VERSION = 13;
+ *  so they recompute.
+ *  v14: PMP reason params name the reference-relative Kendra house (`house` is 1/4/7/10 from the
+ *  reference, `moonHouse` carries the Moon-relative Kendra for the dual-reference case) instead of
+ *  the natal house (horoscope 6a68e36d150a9f9377fad101) — stored v13 PMP reasons carry the
+ *  natal-house value, so they recompute. */
+export const YOGA_DOSHA_VERSION = 14;
 
 export type PlanetLike = Pick<
     Planet,
@@ -149,11 +153,20 @@ function formFromRules(entry: CatalogEntry, facts: ChartFacts): FormationResult 
             .split(" / ")
             .map((reference) => reference.trim())
             .filter(Boolean);
-        if (references.length <= 1) return [{ rule: r.rule, reasonKey: r.reasonKey, params: r.params }];
+        const stripMoonHouse = ({ moonHouse: _moonHouse, ...params }: Record<string, string | number> = {}) => params;
+        if (references.length <= 1) {
+            return [{ rule: r.rule, reasonKey: r.reasonKey, params: stripMoonHouse(r.params) }];
+        }
         return references.map((reference) => ({
             rule: r.rule,
             reasonKey: r.reasonKey,
-            params: { ...r.params, kendraFrom: reference },
+            params: {
+                ...stripMoonHouse(r.params),
+                ...(reference === "Moon" && typeof r.params?.moonHouse === "number"
+                    ? { house: r.params.moonHouse }
+                    : {}),
+                kendraFrom: reference,
+            },
         }));
     });
     const classification = ruleResults.find((r) => r.classification)?.classification;

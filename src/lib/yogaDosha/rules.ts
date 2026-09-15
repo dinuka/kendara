@@ -437,10 +437,17 @@ function evaluatePanchaMahaPurushaRule(
         isExalted ? 1 : 2,
         `rule.${rule.split(".")[1]}`,
         {
-            house: planet.house,
+            // Reason lines must name an actual Kendra house (1/4/7/10) for their own reference:
+            // use the Lagna-relative house when the Lagna satisfied the Kendra, and otherwise the
+            // Moon-relative house. `moonHouse` lets engine formFromRules emit the Moon-relative
+            // kendra house on its expanded line when BOTH references fire.
+            house: kendraFromLagna ? planet.house : (planetHouseFromMoon ?? planet.house),
             sign: planet.sign,
             dignity: isExalted ? "exalted" : "own",
             kendraFrom: kendraFrom.join(" / "),
+            ...(kendraFromMoon && kendraFromLagna && planetHouseFromMoon !== undefined
+                ? { moonHouse: planetHouseFromMoon }
+                : {}),
         },
         houseImpact,
     );

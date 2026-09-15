@@ -1475,7 +1475,7 @@ describe("Pancha Maha Purusha Yoga (UT-PMP-001..018)", () => {
         const rchr = evaluateRuleDirect("ruchaka.pmp01", chart);
         expect(rchr.triggered).toBe(true);
         expect(rchr.strength).toBe(2);
-        expect(rchr.params).toEqual({ house: 8, sign: 8, dignity: "own", kendraFrom: "Moon" });
+        expect(rchr.params).toEqual({ house: 4, sign: 8, dignity: "own", kendraFrom: "Moon" });
         expect(rchr.houseImpact).toEqual([4]);
     });
 
@@ -1491,7 +1491,13 @@ describe("Pancha Maha Purusha Yoga (UT-PMP-001..018)", () => {
         const shs = evaluateRuleDirect("sasha.pmp05", chart);
         expect(shs.triggered).toBe(true);
         expect(shs.strength).toBe(1);
-        expect(shs.params).toEqual({ house: 10, sign: 7, dignity: "exalted", kendraFrom: "Lagna / Moon" });
+        expect(shs.params).toEqual({
+            house: 10,
+            sign: 7,
+            dignity: "exalted",
+            kendraFrom: "Lagna / Moon",
+            moonHouse: 7,
+        });
         expect(shs.houseImpact).toEqual([7, 10]);
     });
 
@@ -1508,7 +1514,7 @@ describe("Pancha Maha Purusha Yoga (UT-PMP-001..018)", () => {
         expect(malavya?.formation.reasons).toContainEqual({
             rule: "malavya.pmp04",
             reasonKey: "rule.pmp04",
-            params: { house: 12, sign: 12, dignity: "exalted", kendraFrom: "Moon" },
+            params: { house: 1, sign: 12, dignity: "exalted", kendraFrom: "Moon" },
         });
         expect(malavya?.interpretation.themes).toEqual([{ key: "theme.house1", params: { house: 1 } }]);
     });
@@ -1529,10 +1535,50 @@ describe("Pancha Maha Purusha Yoga (UT-PMP-001..018)", () => {
             {
                 rule: "sasha.pmp05",
                 reasonKey: "rule.pmp05",
-                params: { house: 10, sign: 7, dignity: "exalted", kendraFrom: "Moon" },
+                params: { house: 7, sign: 7, dignity: "exalted", kendraFrom: "Moon" },
             },
         ]);
         expect(sasha?.context.houseImpact).toEqual([7, 10]);
+    });
+
+    test("UT-PMP-024: regression — horoscope 6a68e36d150a9f9377fad101 renders its Chandra-lagna Sasha with the reference-relative Kendra house", () => {
+        // Real chart (Virgo asc, sign 6): Moon + Saturn conjunct in the 6th house (Aquarius 11,
+        // Saturn's own sign). Saturn is 6th from the Lagna (not a Kendra) but 1st from the Moon —
+        // the fired reason line must name house 1 (a real 1/4/7/10 Kendra), not the natal house 6.
+        const chart: ChartFacts = {
+            ascendantSign: 6,
+            source: "auto",
+            tradition: "MAIN_STREAM",
+            planets: [
+                pf(1, { house: 4, sign: 9 }),
+                pf(2, { house: 6, sign: 11 }),
+                pf(3, { house: 4, sign: 9 }),
+                pf(4, { house: 3, sign: 8 }),
+                pf(5, { house: 2, sign: 7 }),
+                pf(6, { house: 3, sign: 8 }),
+                pf(7, { house: 6, sign: 11 }),
+                pf(8, { house: 3, sign: 8 }),
+                pf(9, { house: 9, sign: 2 }),
+            ],
+        };
+        const shs = evaluateRuleDirect("sasha.pmp05", chart);
+        expect(shs.triggered).toBe(true);
+        expect(shs.strength).toBe(2);
+        expect(shs.params).toEqual({ house: 1, sign: 11, dignity: "own", kendraFrom: "Moon" });
+        expect(shs.houseImpact).toEqual([1]);
+
+        const engine = computeYogaDoshas(chart);
+        const sasha = engine.yogas.find((y) => y.id === "sasha");
+        expect(sasha?.formation.reasons).toEqual([
+            {
+                rule: "sasha.pmp05",
+                reasonKey: "rule.pmp05",
+                params: { house: 1, sign: 11, dignity: "own", kendraFrom: "Moon" },
+            },
+        ]);
+        for (const id of ["ruchaka", "bhadra", "hamsa", "malavya"]) {
+            expect(engine.yogas.find((y) => y.id === id)?.isPresent).toBe(false);
+        }
     });
 });
 
