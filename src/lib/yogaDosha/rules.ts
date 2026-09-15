@@ -18,7 +18,7 @@
  * reference-relative dosha house (same value as params.house), keeping context/themes inside
  * the confirmed dosha-house set [1, 2, 4, 7, 8, 12].
  */
-import { PlanetaryStrength } from "@/lib/astrologyEnums";
+import { Planet, PlanetaryStrength } from "@/lib/astrologyEnums";
 import {
     SIGN_LORDS,
     areConjunct,
@@ -57,7 +57,8 @@ export const SHANI_MANGALA_PLANETS = [7, 3] as const; // Saturn, Mars
 export const AGNI_MARUTHA_PLANETS = [7, 3] as const; // Saturn, Mars
 export const KUJA_DOSHA_PLANETS = [3] as const; // Mars
 
-/** Kendra houses from Lagna for Pancha Maha Purusha Yoga (1st, 4th, 7th, 10th). */
+/** Kendra houses (1st, 4th, 7th, 10th) — the Pancha Maha Purusha kendra condition, evaluated
+ *  against both the Lagna-based house and the Chandra (Moon) lagna. */
 const KENDRA_HOUSES = [1, 4, 7, 10];
 
 /** Pancha Maha Purusha Yoga: planet → [own signs, exaltation sign]. */
@@ -127,12 +128,13 @@ function fired(
     return { rule, triggered: true, strength, reasonKey, params, houseImpact, classification };
 }
 
-/** Whole-sign house of Mars counted from a reference sign (docs/kuja-doshaya.md §2).
- *  House 1 = same sign as the reference. referenceSign/marsSign are ZodiacSign enums (1..12). */
-function marsHouseFromReference(marsHouse: number, referenceSign: number, ascendantSign: number): number {
+/** Whole-sign house of a planet counted from a reference sign (docs/kuja-doshaya.md §2).
+ *  House 1 = same sign as the reference. planetHouse is the planet's Lagna-based house;
+ *  referenceSign/ascendantSign are ZodiacSign enums (1..12). */
+function houseFromReference(planetHouse: number, referenceSign: number, ascendantSign: number): number {
     const referenceHouse = referenceSign - ascendantSign + 1;
     const normalizedReferenceHouse = ((((referenceHouse - 1) % 12) + 12) % 12) + 1;
-    return ((marsHouse - normalizedReferenceHouse + 12) % 12) + 1;
+    return ((planetHouse - normalizedReferenceHouse + 12) % 12) + 1;
 }
 
 function evaluateShaniMangalaRule(rule: ShaniMangalaRuleId, facts: ChartFacts): RuleEvaluation {
@@ -237,25 +239,25 @@ function evaluateManglikRule(rule: ManglikRuleId, facts: ChartFacts): RuleEvalua
     switch (rule) {
         // MK-01: Mars in a Kuja Dosha house from the Lagna / ascendant.
         case "manglik.mk01": {
-            const marsHouse = marsHouseFromReference(mars.house, facts.ascendantSign, facts.ascendantSign);
+            const marsHouse = houseFromReference(mars.house, facts.ascendantSign, facts.ascendantSign);
             if (!KUJA_DOSHA_HOUSES.includes(marsHouse)) return absent(rule);
             return fired(rule, 2, "rule.mk01", { house: marsHouse, reference: "Lagna" }, [marsHouse]);
         }
 
         // MK-02: Mars in a Kuja Dosha house from the Moon (Chandra).
         case "manglik.mk02": {
-            const moon = planetFact(facts, 2);
+            const moon = planetFact(facts, Planet.MOON);
             if (!moon) return absent(rule);
-            const marsHouse = marsHouseFromReference(mars.house, moon.sign, facts.ascendantSign);
+            const marsHouse = houseFromReference(mars.house, moon.sign, facts.ascendantSign);
             if (!KUJA_DOSHA_HOUSES.includes(marsHouse)) return absent(rule);
             return fired(rule, 2, "rule.mk02", { house: marsHouse, reference: "Moon" }, [marsHouse]);
         }
 
         // MK-03: Mars in a Kuja Dosha house from Venus (Shukra).
         case "manglik.mk03": {
-            const venus = planetFact(facts, 6);
+            const venus = planetFact(facts, Planet.VENUS);
             if (!venus) return absent(rule);
-            const marsHouse = marsHouseFromReference(mars.house, venus.sign, facts.ascendantSign);
+            const marsHouse = houseFromReference(mars.house, venus.sign, facts.ascendantSign);
             if (!KUJA_DOSHA_HOUSES.includes(marsHouse)) return absent(rule);
             return fired(rule, 2, "rule.mk03", { house: marsHouse, reference: "Venus" }, [marsHouse]);
         }
@@ -379,10 +381,14 @@ function evaluateDharmaKarmadhipatiRule(rule: DharmaKarmadhipatiRuleId, facts: C
 /**
  * Pancha Maha Purusha Yoga (docs/pancha-maha-pursha-yoga.md): one of the five non-luminary
  * planets — Mars (Ruchaka), Mercury (Bhadra), Jupiter (Hamsa), Venus (Malavya), Saturn
- * (Sasha/Shasha) — placed in a Kendra from Lagna (1st/4th/7th/10th house) AND in its own sign
- * or exaltation sign. Both conditions must hold simultaneously (dignity resolved from the sign,
- * per the §Sashti/own-sign tables): exaltation forms a stronger yoga (strength 1) than own sign
- * (strength 2).
+ * (Sasha/Shasha) — placed in a Kendra AND in its own sign or exaltation sign. Both conditions
+ * must hold simultaneously (dignity resolved from the sign, per the §Sashti/own-sign tables):
+ * exaltation forms a stronger yoga (strength 1) than own sign (strength 2).
+ * The Kendra is satisfied from the Lagna (natal house) OR from the Chandra lagna (the Moon's
+ * sign, like Kuja Dosha mk02 / Dhana Yoga): a single rule fires when either reference puts the
+ * planet in [1, 4, 7, 10]. `params.kendraFrom` records which reference(s) satisfied the kendra
+ * ("Lagna", "Moon", or "Lagna / Moon"); `houseImpact` keeps the reference-relative kendra houses
+ * so context/themes stay inside the confirmed kendra set {1, 4, 7, 10}.
  */
 function evaluatePanchaMahaPurushaRule(
     rule: RuchakaRuleId | BhadraRuleId | HamsaRuleId | MalavyaRuleId | SashaRuleId,
@@ -400,11 +406,31 @@ function evaluatePanchaMahaPurushaRule(
     const planet = planetFact(facts, planetName);
     if (!planet || !dignities) return absent(rule);
 
-    if (!KENDRA_HOUSES.includes(planet.house)) return absent(rule);
+    // Kendra from Lagna: the natal house is already Lagna-relative (whole-sign).
+    const kendraFromLagna = KENDRA_HOUSES.includes(planet.house);
+
+    // Kendra from Chandra lagna: the planet's whole-sign house counted from the Moon's sign.
+    const moon = planetFact(facts, Planet.MOON);
+    const planetHouseFromMoon =
+        moon && facts.ascendantSign ? houseFromReference(planet.house, moon.sign, facts.ascendantSign) : undefined;
+    const kendraFromMoon = planetHouseFromMoon !== undefined && KENDRA_HOUSES.includes(planetHouseFromMoon);
+
+    if (!kendraFromLagna && !kendraFromMoon) return absent(rule);
 
     const isExalted = dignities.exaltSign === planet.sign;
     const isOwnSign = dignities.ownSigns.includes(planet.sign);
     if (!isExalted && !isOwnSign) return absent(rule);
+
+    const kendraFrom: Array<"Lagna" | "Moon"> = [];
+    if (kendraFromLagna) kendraFrom.push("Lagna");
+    if (kendraFromMoon) kendraFrom.push("Moon");
+
+    const houseImpact = [
+        ...new Set([
+            ...(kendraFromLagna ? [planet.house] : []),
+            ...(kendraFromMoon && planetHouseFromMoon !== undefined ? [planetHouseFromMoon] : []),
+        ]),
+    ].sort((a, b) => a - b);
 
     return fired(
         rule,
@@ -414,8 +440,9 @@ function evaluatePanchaMahaPurushaRule(
             house: planet.house,
             sign: planet.sign,
             dignity: isExalted ? "exalted" : "own",
+            kendraFrom: kendraFrom.join(" / "),
         },
-        [planet.house],
+        houseImpact,
     );
 }
 

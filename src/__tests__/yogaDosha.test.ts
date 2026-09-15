@@ -1302,7 +1302,7 @@ describe("Pancha Maha Purusha Yoga (UT-PMP-001..018)", () => {
         expect(rchr.triggered).toBe(true);
         expect(rchr.strength).toBe(1);
         expect(rchr.reasonKey).toBe("rule.pmp01");
-        expect(rchr.params).toEqual({ house: 10, sign: 10, dignity: "exalted" });
+        expect(rchr.params).toEqual({ house: 10, sign: 10, dignity: "exalted", kendraFrom: "Lagna" });
         expect(rchr.houseImpact).toEqual([10]);
     });
 
@@ -1316,7 +1316,7 @@ describe("Pancha Maha Purusha Yoga (UT-PMP-001..018)", () => {
         const rchr = evaluateRuleDirect("ruchaka.pmp01", chart);
         expect(rchr.triggered).toBe(true);
         expect(rchr.strength).toBe(2);
-        expect(rchr.params).toEqual({ house: 1, sign: 1, dignity: "own" });
+        expect(rchr.params).toEqual({ house: 1, sign: 1, dignity: "own", kendraFrom: "Lagna" });
     });
 
     test("UT-PMP-004: RUCHAKA absent — own-sign Mars NOT in a Kendra (Scorpio 8 in the 8th house)", () => {
@@ -1329,7 +1329,7 @@ describe("Pancha Maha Purusha Yoga (UT-PMP-001..018)", () => {
         const bdr = evaluateRuleDirect("bhadra.pmp02", chart);
         expect(bdr.triggered).toBe(true);
         expect(bdr.strength).toBe(1);
-        expect(bdr.params).toEqual({ house: 4, sign: 6, dignity: "exalted" });
+        expect(bdr.params).toEqual({ house: 4, sign: 6, dignity: "exalted", kendraFrom: "Lagna" });
     });
 
     test("UT-PMP-006: BHADRA fires — own-sign Mercury in the 7th house (Gemini 3) → strength 2", () => {
@@ -1345,7 +1345,7 @@ describe("Pancha Maha Purusha Yoga (UT-PMP-001..018)", () => {
         const hms = evaluateRuleDirect("hamsa.pmp03", chart);
         expect(hms.triggered).toBe(true);
         expect(hms.strength).toBe(1);
-        expect(hms.params).toEqual({ house: 4, sign: 4, dignity: "exalted" });
+        expect(hms.params).toEqual({ house: 4, sign: 4, dignity: "exalted", kendraFrom: "Lagna" });
     });
 
     test("UT-PMP-008: HAMSA fires — own-sign Jupiter in the 10th house (Sagittarius 9) → strength 2", () => {
@@ -1360,7 +1360,7 @@ describe("Pancha Maha Purusha Yoga (UT-PMP-001..018)", () => {
         const mlv = evaluateRuleDirect("malavya.pmp04", chart);
         expect(mlv.triggered).toBe(true);
         expect(mlv.strength).toBe(1);
-        expect(mlv.params).toEqual({ house: 4, sign: 12, dignity: "exalted" });
+        expect(mlv.params).toEqual({ house: 4, sign: 12, dignity: "exalted", kendraFrom: "Lagna" });
     });
 
     test("UT-PMP-010: MALAVYA fires — own-sign Venus in the 7th house (Taurus 2) → strength 2", () => {
@@ -1375,7 +1375,7 @@ describe("Pancha Maha Purusha Yoga (UT-PMP-001..018)", () => {
         const shs = evaluateRuleDirect("sasha.pmp05", chart);
         expect(shs.triggered).toBe(true);
         expect(shs.strength).toBe(1);
-        expect(shs.params).toEqual({ house: 10, sign: 7, dignity: "exalted" });
+        expect(shs.params).toEqual({ house: 10, sign: 7, dignity: "exalted", kendraFrom: "Lagna" });
     });
 
     test("UT-PMP-012: SASHA fires — own-sign Saturn in the 1st house (Capricorn 10) → strength 2", () => {
@@ -1468,6 +1468,71 @@ describe("Pancha Maha Purusha Yoga (UT-PMP-001..018)", () => {
             expect(resolve(en, `${entry.i18nKey}.name`).length).toBeGreaterThan(0);
             expect(resolve(si, `${entry.i18nKey}.expression.main`).length).toBeGreaterThan(0);
         }
+    });
+
+    test("UT-PMP-019: RUCHAKA fires from the Chandra lagna — own-sign Mars in the 8th house (Scorpio 8) is 4th from the Moon (Leo 5)", () => {
+        const chart = facts([pf(2, { sign: 5, house: 5 }), pf(3, { sign: 8, house: 8 })]);
+        const rchr = evaluateRuleDirect("ruchaka.pmp01", chart);
+        expect(rchr.triggered).toBe(true);
+        expect(rchr.strength).toBe(2);
+        expect(rchr.params).toEqual({ house: 8, sign: 8, dignity: "own", kendraFrom: "Moon" });
+        expect(rchr.houseImpact).toEqual([4]);
+    });
+
+    test("UT-PMP-020: absent — planet in a Kendra from the Chandra lagna but NOT dignified (Mars in Taurus)", () => {
+        // Asc Aries, Moon in Leo (5th). Mars in Taurus (8th from Moon = a Kendra) is not dignified.
+        const chart = facts([pf(2, { sign: 5, house: 5 }), pf(3, { sign: 2, house: 2 })]);
+        const rchr = evaluateRuleDirect("ruchaka.pmp01", chart);
+        expect(rchr.triggered).toBe(false);
+    });
+
+    test("UT-PMP-021: SASHA fires from BOTH the Lagna and the Chandra lagna — exalted Saturn in the 10th is also 7th from the Moon (Cancer 4)", () => {
+        const chart = facts([pf(2, { sign: 4, house: 4 }), pf(7, { sign: 7, house: 10 })]);
+        const shs = evaluateRuleDirect("sasha.pmp05", chart);
+        expect(shs.triggered).toBe(true);
+        expect(shs.strength).toBe(1);
+        expect(shs.params).toEqual({ house: 10, sign: 7, dignity: "exalted", kendraFrom: "Lagna / Moon" });
+        expect(shs.houseImpact).toEqual([7, 10]);
+    });
+
+    test("UT-PMP-022: engine — MALAVYA forms only via the Chandra lagna, themes resolve from the reference-relative Kendra", () => {
+        // Asc Aries. Venus in Pisces (exalted) conjunct the Moon in the 12th house → 1st from
+        // the Moon (a Kendra) but NOT a Kendra from the Lagna. houseImpact/themes use the
+        // Moon-relative kendra house.
+        const chart = facts([pf(2, { sign: 12, house: 12 }), pf(6, { sign: 12, house: 12 })]);
+        const engine = computeYogaDoshas(chart);
+        const malavya = engine.yogas.find((y) => y.id === "malavya");
+        expect(malavya?.isPresent).toBe(true);
+        expect(malavya?.formation.primaryRule).toBe("malavya.pmp04");
+        expect(malavya?.context.houseImpact).toEqual([1]);
+        expect(malavya?.formation.reasons).toContainEqual({
+            rule: "malavya.pmp04",
+            reasonKey: "rule.pmp04",
+            params: { house: 12, sign: 12, dignity: "exalted", kendraFrom: "Moon" },
+        });
+        expect(malavya?.interpretation.themes).toEqual([{ key: "theme.house1", params: { house: 1 } }]);
+    });
+
+    test("UT-PMP-023: engine — SASHA forming from BOTH references renders two separate reason lines", () => {
+        // Exalted Saturn in the 10th is a Kendra from the Lagna and the 7th from the Moon (Cancer).
+        // The reasons array expands the single triggered rule into one line per reference.
+        const chart = facts([pf(2, { sign: 4, house: 4 }), pf(7, { sign: 7, house: 10 })]);
+        const engine = computeYogaDoshas(chart);
+        const sasha = engine.yogas.find((y) => y.id === "sasha");
+        expect(sasha?.formation.rulesTriggered).toEqual(["sasha.pmp05"]);
+        expect(sasha?.formation.reasons).toEqual([
+            {
+                rule: "sasha.pmp05",
+                reasonKey: "rule.pmp05",
+                params: { house: 10, sign: 7, dignity: "exalted", kendraFrom: "Lagna" },
+            },
+            {
+                rule: "sasha.pmp05",
+                reasonKey: "rule.pmp05",
+                params: { house: 10, sign: 7, dignity: "exalted", kendraFrom: "Moon" },
+            },
+        ]);
+        expect(sasha?.context.houseImpact).toEqual([7, 10]);
     });
 });
 

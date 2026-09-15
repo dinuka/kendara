@@ -31,12 +31,22 @@ const YogaDoshaTag = ({ entry, open, onToggle }: YogaDoshaTagProps) => {
     const isCancelled = entry.cancellation.status === CancellationStatus.CANCELLED;
     const isDosha = entry.kind === "dosha";
     // Color direction: a present dosha is a red tag; a present yoga is a green tag; a cancelled
-    // entry (yoga or dosha) goes gray regardless of kind.
+    // entry (yoga or dosha) goes gray regardless of kind. The more "why it forms" reasons a tag
+    // carries, the darker its shade (1 line = lightest, 2 lines = mid, 3+ = darkest).
+    const reasonCount = entry.formation.reasons.length;
     const chipClass = isCancelled
         ? "line-through text-gray-500 bg-gray-100 border-gray-300"
         : isDosha
-          ? "bg-red-50 text-red-700 border-red-300 hover:border-red-500 hover:text-red-800"
-          : "bg-green-50 text-green-700 border-green-300 hover:border-green-500 hover:text-green-800";
+          ? reasonCount >= 3
+              ? "bg-red-200 text-red-900 border-red-500"
+              : reasonCount === 2
+                ? "bg-red-100 text-red-800 border-red-400 hover:border-red-600 hover:text-red-900"
+                : "bg-red-50 text-red-700 border-red-300 hover:border-red-500 hover:text-red-800"
+          : reasonCount >= 3
+            ? "bg-green-200 text-green-900 border-green-500"
+            : reasonCount === 2
+              ? "bg-green-100 text-green-800 border-green-400 hover:border-green-600 hover:text-green-900"
+              : "bg-green-50 text-green-700 border-green-300 hover:border-green-500 hover:text-green-800";
     const dotClass = isCancelled
         ? "bg-gray-500"
         : isDosha

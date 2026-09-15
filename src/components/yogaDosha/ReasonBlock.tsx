@@ -19,7 +19,7 @@ const ReasonBlock = ({ entry }: ReasonBlockProps) => {
         <div>
             <h5 className="font-semibold text-xs text-gray-700 uppercase tracking-wide">{t("yogaDosha.whyItForms")}</h5>
             <ul className="mt-1 space-y-1 text-sm text-gray-800">
-                {entry.formation.reasons.map((reason) => {
+                {entry.formation.reasons.map((reason, index) => {
                     const params = { ...reason.params };
                     if (typeof params.planet === "number") {
                         params.planetName = t(`astrology.planetNames.${String(params.planet)}`);
@@ -33,7 +33,15 @@ const ReasonBlock = ({ entry }: ReasonBlockProps) => {
                     if (typeof params.reference === "string") {
                         params.reference = t(`yogaDosha.references.${params.reference}`);
                     }
-                    return <li key={reason.rule}>{t(`${root}.${reason.reasonKey}`, params)}</li>;
+                    if (typeof params.kendraFrom === "string") {
+                        params.kendra = params.kendraFrom
+                            .split(" / ")
+                            .map((reference) => t(`yogaDosha.references.${reference}`))
+                            .join(" / ");
+                    }
+                    // A PMP rule may expand into one line per kendra reference, so the rule alone is
+                    // not unique — include the line index to keep React keys stable.
+                    return <li key={`${reason.rule}-${index}`}>{t(`${root}.${reason.reasonKey}`, params)}</li>;
                 })}
             </ul>
         </div>

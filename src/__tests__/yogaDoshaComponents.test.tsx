@@ -11,7 +11,7 @@ import YogaDoshaSection from "@/components/yogaDosha/YogaDoshaSection";
 
 import { CancellationStatus, PlanetaryStrength, YogaStrength } from "@/lib/astrologyEnums";
 import { buildChartFacts, computeYogaDoshas } from "@/lib/yogaDosha/ruleEngine";
-import { DoshaEvaluation, YogaDoshaResult, YogaEvaluation } from "@/lib/yogaDosha/types";
+import { DoshaEvaluation, RuleReason, YogaDoshaResult, YogaEvaluation } from "@/lib/yogaDosha/types";
 import "@testing-library/jest-dom";
 import { act, fireEvent, render, screen, within } from "@testing-library/react";
 
@@ -444,6 +444,112 @@ describe("AX-YD-603/604: tag labels, cancelled chips, unknown chips", () => {
         expect(
             screen.getByText("From the Lagna, the 9th lord Jupiter and 10th lord Venus conjoin in one sign and house."),
         ).toBeInTheDocument();
+    });
+
+    test("tag shade darkens as 'why it forms' reason lines increase", () => {
+        // One reason line → lightest green; two → mid; three+ → darkest (PMP can carry two when
+        // the Kendra is met from both the Lagna and the Chandra lagna).
+        const reason = (rule: string): RuleReason => ({
+            rule: rule as unknown as RuleReason["rule"],
+            reasonKey: "rule.dk01",
+            params: { lord1: 5, lord2: 6, reference: "Lagna" },
+        });
+
+        let cleanup!: () => void;
+
+        cleanup = render(<YogaDoshaSection result={{ yogas: [presentYoga()], doshas: [] }} />).unmount;
+        const single = screen.getByRole("button", { name: "Dharma Karmadhipati Yoga, Strong, Not cancelled" });
+        expect(single).toHaveClass("bg-green-50");
+        expect(single).toHaveClass("text-green-700");
+        expect(single).toHaveClass("border-green-300");
+        cleanup();
+
+        const withReasons = (rules: string[], severity: YogaStrength): YogaEvaluation => ({
+            ...presentYoga(),
+            formation: {
+                rulesTriggered: [...rules],
+                primaryRule: "dharmaKarmadhipati.dk01",
+                strength: YogaStrength.STRONG,
+                reasons: rules.map(reason),
+            },
+            finalAssessment: { severity, expressionKeys: ["expression.main"] },
+        });
+
+        cleanup = render(
+            <YogaDoshaSection
+                result={{
+                    yogas: [
+                        withReasons(["dharmaKarmadhipati.dk01", "dharmaKarmadhipati.dk02"], YogaStrength.VERY_STRONG),
+                    ],
+                    doshas: [],
+                }}
+            />,
+        ).unmount;
+        const two = screen.getByRole("button", { name: "Dharma Karmadhipati Yoga, Very strong, Not cancelled" });
+        expect(two).toHaveClass("bg-green-100");
+        expect(two).toHaveClass("text-green-800");
+        expect(two).toHaveClass("border-green-400");
+        cleanup();
+
+        cleanup = render(
+            <YogaDoshaSection
+                result={{
+                    yogas: [
+                        withReasons(
+                            ["dharmaKarmadhipati.dk01", "dharmaKarmadhipati.dk02", "dharmaKarmadhipati.dk03"],
+                            YogaStrength.MODERATE,
+                        ),
+                    ],
+                    doshas: [],
+                }}
+            />,
+        ).unmount;
+        const three = screen.getByRole("button", { name: "Dharma Karmadhipati Yoga, Moderate, Not cancelled" });
+        expect(three).toHaveClass("bg-green-200");
+        expect(three).toHaveClass("text-green-900");
+        expect(three).toHaveClass("border-green-500");
+    });
+
+    test("two reasons for one rule render as distinct lines without a duplicate-key warning", () => {
+        // A PMP rule expands into one line per kendra reference (e.g. sasha.pmp05 twice), so the
+        // reason list must not key children by reason.rule alone.
+        const errorSpy = jest.spyOn(console, "error").mockImplementation(() => {});
+        const result: YogaDoshaResult = {
+            yogas: [
+                presentYoga({
+                    formation: {
+                        rulesTriggered: ["dharmaKarmadhipati.dk01"],
+                        primaryRule: "dharmaKarmadhipati.dk01",
+                        strength: YogaStrength.STRONG,
+                        reasons: [
+                            {
+                                rule: "dharmaKarmadhipati.dk01",
+                                reasonKey: "rule.dk01",
+                                params: { lord1: 5, lord2: 6, reference: "Lagna" },
+                            },
+                            {
+                                rule: "dharmaKarmadhipati.dk01",
+                                reasonKey: "rule.dk01",
+                                params: { lord1: 5, lord2: 6, reference: "Moon" },
+                            },
+                        ],
+                    },
+                }),
+            ],
+            doshas: [],
+        };
+        render(<YogaDoshaSection result={result} />);
+        fireEvent.click(screen.getByRole("button", { name: "Dharma Karmadhipati Yoga, Strong, Not cancelled" }));
+        expect(
+            screen.getByText("From the Lagna, the 9th lord Jupiter and 10th lord Venus conjoin in one sign and house."),
+        ).toBeInTheDocument();
+        expect(
+            screen.getByText(
+                "From the Moon lagna (Chandra lagna), the 9th lord Jupiter and 10th lord Venus conjoin in one sign and house.",
+            ),
+        ).toBeInTheDocument();
+        expect(errorSpy).not.toHaveBeenCalledWith(expect.stringContaining("Encountered two children"));
+        errorSpy.mockRestore();
     });
 });
 

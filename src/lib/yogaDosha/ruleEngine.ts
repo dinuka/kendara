@@ -51,8 +51,12 @@ import {
  *  same-lord exclusion — stored v10 lists lack these entries and carry outdated DHCP params, so
  *  they recompute. v12: Neecha Raja Yoga (docs/raja-yoga.md) — debilitated planet in upachaya
  *  houses (2, 3, 4, 9, 10, 11) from Lagna forms a Raja Yoga — stored v11 yoga lists lack this
- *  entry, so they recompute. */
-export const YOGA_DOSHA_VERSION = 12;
+ *  entry, so they recompute.
+ *  v13: Pancha Maha Purusha Yoga now satisfies its Kendra from the Chandra lagna (Moon's sign)
+ *  as well as the Lagna (single rule, params gain `kendraFrom`, houseImpact may hold both
+ *  reference-relative kendra houses) — stored v12 PMP entries carry outdated params/houseImpact,
+ *  so they recompute. */
+export const YOGA_DOSHA_VERSION = 13;
 
 export type PlanetLike = Pick<
     Planet,
@@ -136,7 +140,22 @@ function formFromRules(entry: CatalogEntry, facts: ChartFacts): FormationResult 
     const rulesTriggered = ruleResults.map((r) => r.rule);
     const strength = Math.min(...ruleResults.map((r) => r.strength), 4);
     const houseImpact = [...new Set(ruleResults.flatMap((r) => r.houseImpact ?? []))].sort((a, b) => a - b);
-    const reasons = ruleResults.map((r) => ({ rule: r.rule, reasonKey: r.reasonKey, params: r.params }));
+    // One reason line per triggered rule, except a PMP rule that meets the Kendra from BOTH the
+    // Lagna and the Chandra lagna, which expands into two lines (one per reference) so each
+    // reference reads as its own "why it forms".
+    const reasons = ruleResults.flatMap((r) => {
+        const kendraFrom = typeof r.params?.kendraFrom === "string" ? r.params.kendraFrom : "";
+        const references = kendraFrom
+            .split(" / ")
+            .map((reference) => reference.trim())
+            .filter(Boolean);
+        if (references.length <= 1) return [{ rule: r.rule, reasonKey: r.reasonKey, params: r.params }];
+        return references.map((reference) => ({
+            rule: r.rule,
+            reasonKey: r.reasonKey,
+            params: { ...r.params, kendraFrom: reference },
+        }));
+    });
     const classification = ruleResults.find((r) => r.classification)?.classification;
     return {
         rulesTriggered,

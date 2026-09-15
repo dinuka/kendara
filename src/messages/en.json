@@ -1021,7 +1021,7 @@
         "ruchaka": {
             "name": "Ruchaka Yoga",
             "rule": {
-                "pmp01": "Mars is in house {house}, a Kendra from Lagna, in an own or exaltation sign."
+                "pmp01": "Mars is in house {house}, a Kendra from {kendra}, in an own or exaltation sign."
             },
             "theme": {
                 "house1": "Relates to self and vitality.",
@@ -1036,7 +1036,7 @@
         "bhadra": {
             "name": "Bhadra Yoga",
             "rule": {
-                "pmp02": "Mercury is in house {house}, a Kendra from Lagna, in an own or exaltation sign."
+                "pmp02": "Mercury is in house {house}, a Kendra from {kendra}, in an own or exaltation sign."
             },
             "theme": {
                 "house1": "Relates to self and vitality.",
@@ -1051,7 +1051,7 @@
         "hamsa": {
             "name": "Hamsa Yoga",
             "rule": {
-                "pmp03": "Jupiter is in house {house}, a Kendra from Lagna, in an own or exaltation sign."
+                "pmp03": "Jupiter is in house {house}, a Kendra from {kendra}, in an own or exaltation sign."
             },
             "theme": {
                 "house1": "Relates to self and vitality.",
@@ -1066,7 +1066,7 @@
         "malavya": {
             "name": "Malavya Yoga",
             "rule": {
-                "pmp04": "Venus is in house {house}, a Kendra from Lagna, in an own or exaltation sign."
+                "pmp04": "Venus is in house {house}, a Kendra from {kendra}, in an own or exaltation sign."
             },
             "theme": {
                 "house1": "Relates to self and vitality.",
@@ -1081,7 +1081,7 @@
         "sasha": {
             "name": "Sasha Yoga",
             "rule": {
-                "pmp05": "Saturn is in house {house}, a Kendra from Lagna, in an own or exaltation sign."
+                "pmp05": "Saturn is in house {house}, a Kendra from {kendra}, in an own or exaltation sign."
             },
             "theme": {
                 "house1": "Relates to self and vitality.",
