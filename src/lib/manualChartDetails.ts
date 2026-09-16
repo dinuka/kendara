@@ -12,6 +12,8 @@ import {
     calculateManualDashas,
     computeAscendantNakshatra,
     computeMoonNakshatra,
+    hasManualNavamsa,
+    nakshatraAndPada,
     navamsaLagnaOptions,
     synthesizeOtherDetails,
 } from "@/lib/manualChart";
@@ -156,10 +158,13 @@ export function getCurrentShani(lagna: number): CurrentShani | null {
  *  (toBirthChartData, generateChartSvg) work unchanged for manual horoscopes. */
 export function synthesizePlanets(result: ManualChartResult): Planet[] {
     return result.planetsTable.map((row) => {
-        const degree = row.navamsa ? (row.navamsa.degreeRangeStart + row.navamsa.degreeRangeEnd) / 2 : 0;
+        // Manual charts without Navamsa data treat every planet as sitting at the middle degree of
+        // its house (15° within the sign), and derive Nakshatra/Pada from that point — this is what
+        // later rules (dashas, ganita, search) resolve against (TODO.md manual-chart issues).
+        const degree = row.navamsa ? (row.navamsa.degreeRangeStart + row.navamsa.degreeRangeEnd) / 2 : 15;
         const { nakshatra, pada } = row.navamsa
             ? { nakshatra: row.navamsa.nakshatra, pada: row.navamsa.pada }
-            : { nakshatra: 1, pada: 1 };
+            : nakshatraAndPada((row.sign - 1) * 30 + 15);
         return {
             name: row.planet,
             sign: row.sign,
@@ -202,7 +207,11 @@ export function synthesizeCalculation(result: ManualChartResult, birthDate?: Dat
     }
     const moon = planets.find((p) => p.name === 2);
     const ascendantNakshatra = computeAscendantNakshatra(manualHousePlacements);
-    const moonNakshatra = moon ? computeMoonNakshatra(moon.sign, moon.navamsaSign) : { id: 1, pada: 1, lord: 9 };
+    // The Moon's Navamsa segment only exists when Navamsa data was entered — without it the sign
+    // midpoint (15°) is used, matching every other planet's house-middle synthesized position.
+    const moonNakshatra = moon
+        ? computeMoonNakshatra(moon.sign, hasManualNavamsa(manualHousePlacements) ? moon.navamsaSign : undefined)
+        : { id: 1, pada: 1, lord: 9 };
     const thithi = computeThithiFromPlanets(planets);
     const houses = buildWholeSignHouses(lagna);
     // Suba Asuba (සුබ අසුබ): per-planet Naisargika benefic/malefic verdict, with the Kendra-lordship

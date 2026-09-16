@@ -26,7 +26,7 @@ import { computeMaranakaraka, navamsaSign } from "@/lib/astrology";
 import { PlanetaryStrength } from "@/lib/astrologyEnums";
 import { getChartData } from "@/lib/chartDataTransform";
 import { ChartType } from "@/lib/chartTypes";
-import { SIGN_LORD, buildWholeSignHouses, computePlanetStrength } from "@/lib/manualChart";
+import { SIGN_LORD, buildWholeSignHouses, computePlanetStrength, hasManualNavamsa } from "@/lib/manualChart";
 import { computeDigBalaPlanets } from "@/lib/shadBalaya";
 
 /** One row of the per-chart Houses table (the chart's whole-sign houses, the planets occupying each
@@ -473,11 +473,15 @@ function buildRotatedEntry(
  *  result always yields the same four entries. */
 export function computeWargaKendara(result: CalculationResult, ctx: WargaKendaraContext): WargaKendara {
     const res: ResultLike = result;
+    // Manual horoscopes without entered Navamsa data are birth-chart-only: no Navamsa (D9) and no
+    // Surya/Chandra Lagna figures either — both are Navamsa/degree-driven and the entry carries
+    // neither, so the system must not generate them (TODO.md manual-chart issues).
+    const manualWithoutNavamsa = ctx.source === "manual" && !hasManualNavamsa(ctx.manualHousePlacements);
     return {
         d1: buildD1Entry(res),
         d9: ctx.source === "manual" ? buildManualD9Entry(ctx) : buildAutoD9Entry(res),
-        suryaLagna: buildRotatedEntry(res, ChartType.SURYA_LAGNA),
-        chandraLagna: buildRotatedEntry(res, ChartType.CHANDRA_LAGNA),
+        suryaLagna: manualWithoutNavamsa ? null : buildRotatedEntry(res, ChartType.SURYA_LAGNA),
+        chandraLagna: manualWithoutNavamsa ? null : buildRotatedEntry(res, ChartType.CHANDRA_LAGNA),
     };
 }
 

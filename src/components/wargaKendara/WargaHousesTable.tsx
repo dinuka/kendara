@@ -64,7 +64,7 @@ const WargaHousesTable = ({ houses, caption }: WargaHousesTableProps) => {
                     <AspectChip
                         key={aspect.planetName}
                         aspect={aspectChipRecord(aspect.planetName, aspect.aspectType)}
-                        planetLabel={planetCell(aspect.planetName)}
+                        planetLabel={getPlanetName(aspect.planetName)}
                         house={house.houseNumber}
                     />
                 ))}

@@ -85,7 +85,7 @@ describe("composeAspectTooltip — single reason", () => {
         expect(deltaCount(result.title)).toBe(1);
     });
 
-    it("omits the {house} token for a conjunction (0°) — single reason", () => {
+    it("renders ONLY the positional difference for a conjunction (0°) — no label, house, or angle", () => {
         const result = composeAspectTooltip(tokens, {
             aspect: aspect({
                 aspectType: 0,
@@ -94,7 +94,10 @@ describe("composeAspectTooltip — single reason", () => {
                 reasons: [{ type: "planetary", angle: 0, delta: 0.0833 }],
             }),
         });
-        expect(result.lines).toEqual(["Planet drishti (0) (+00:05:00)"]);
+        expect(result.single).toBe(true);
+        expect(result.lines).toEqual(["+00:05:00"]);
+        expect(result.title).toBe("+00:05:00");
+        expect(deltaCount(result.title)).toBe(1);
     });
 
     it("treats a legacy aspect (no reasons) as a single planetary line", () => {

@@ -4,6 +4,7 @@ import { BirthChart } from "@/components/BirthChart";
 
 import { toBirthChartData } from "@/lib/chartDataTransform";
 import type { ChartInput } from "@/lib/chartDataTransform";
+import type { Aspect } from "@/lib/astrology";
 import type { WargaChartEntry, WargaChartKey } from "@/lib/wargaKendara";
 
 import WargaHousesTable from "./WargaHousesTable";
@@ -27,6 +28,10 @@ interface WargaChartSectionProps {
     showAscendantDegree?: boolean;
     /** Per-planet Bhava Suchika values for the D1 Planets table (existing top-level field). */
     bhavaSuchika?: Record<number, number>;
+    /** Degree-based conjunction records for the D1 Planets table — the same orb-matched Aspect[]
+     *  records as the calculation tab (true deltas; Rahu/Ketu only via a partner's orb). When
+     *  present the D1 table renders these instead of the stored whole-sign conjunctions. */
+    conjunctionMap?: Record<number, Aspect[]>;
 }
 
 /** One Warga Kendara figure: caption, main-indication tag chips, the SVG chart, and the per-chart
@@ -41,6 +46,7 @@ const WargaChartSection = ({
     ascendantDegreeLabel,
     showAscendantDegree = true,
     bhavaSuchika,
+    conjunctionMap,
 }: WargaChartSectionProps) => {
     const isD1 = chartKey === "d1";
 
@@ -64,7 +70,13 @@ const WargaChartSection = ({
             {entry ? (
                 <>
                     <WargaHousesTable houses={entry.houses} caption={caption} />
-                    <WargaPlanetsTable entry={entry} caption={caption} isD1={isD1} bhavaSuchika={bhavaSuchika} />
+                    <WargaPlanetsTable
+                        entry={entry}
+                        caption={caption}
+                        isD1={isD1}
+                        bhavaSuchika={bhavaSuchika}
+                        conjunctionMap={isD1 ? conjunctionMap : undefined}
+                    />
                 </>
             ) : (
                 chartData !== null && (

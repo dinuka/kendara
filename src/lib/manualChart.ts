@@ -465,6 +465,28 @@ export function navamsaIndexForSign(birthSign: number, navamsaSignValue: number)
     return 1;
 }
 
+/** Whether a manual horoscope carries usable Navamsa (D9) data: an entered Navamsa Lagna (1-12)
+ *  AND at least one navamsa house placement. Navamsa is optional for manual charts — when absent
+ *  (or incomplete, e.g. a Navamsa Lagna chosen but no D9 house placements), the system must not
+ *  generate a Navamsa or any other Warga kendara chart, and must hide every Navamsa-derived
+ *  calculation (TODO.md — manual calculated horoscope issues). */
+export function hasManualNavamsa(
+    mhp:
+        | {
+              navamsaLagna?: number | null;
+              navamsaHouses?: ArrayLike<unknown> | null;
+          }
+        | null
+        | undefined,
+): boolean {
+    if (!mhp) return false;
+    const { navamsaLagna, navamsaHouses } = mhp;
+    if (navamsaLagna === undefined || navamsaLagna === null || navamsaLagna < 1 || navamsaLagna > 12) {
+        return false;
+    }
+    return !!navamsaHouses && navamsaHouses.length > 0;
+}
+
 /** Ascendant (Lagna) Nakshatra for a manual horoscope. Uses the absolute ascendant degree derived
  *  from `lagnaDegree` when recorded, otherwise the midpoint of the navamsa wedge implied by the
  *  stored navamsa lagna (matching `getAscendantAbsDeg`). Falls back to the sign midpoint (15°) when
@@ -682,7 +704,7 @@ export function calculateManualDashas(moonNakshatraId: number, pada: number, bir
     return { mahadasha: mahadashaList, currentPeriod };
 }
 
-function nakshatraAndPada(absoluteDegree: number): { nakshatra: number; pada: number } {
+export function nakshatraAndPada(absoluteDegree: number): { nakshatra: number; pada: number } {
     const normalized = ((absoluteDegree % 360) + 360) % 360;
     const nakNum = Math.floor(normalized / NAKSHATRA_ARC);
     const within = normalized - nakNum * NAKSHATRA_ARC;
@@ -1255,6 +1277,11 @@ export function synthesizeOtherDetails(
     const ascNavamsaSign = navamsaSign(lagna, ascNavamsaNum);
     const ascNavamsaLagna = manualHousePlacements.navamsaLagna ?? ascNavamsaSign;
     const hasNavamsa = !!manualHousePlacements.navamsaHouses?.length;
+    // Strict "has Navamsa" for the D9-derived flags below — requires both an entered Navamsa Lagna
+    // and navamsa house placements. Without them every fallback below is garbage (e.g. a planet's
+    // navamsaSign falls back to its birth sign, flagging every planet wargoththama), so those flags
+    // are suppressed entirely rather than emitting wrong values.
+    const hasNavamsaData = hasManualNavamsa(manualHousePlacements);
     const houses = buildWholeSignHouses(lagna);
     const ascNakshatra = computeAscendantNakshatra(manualHousePlacements);
     // Bhava Suchika (භාව සුචික) — whole-sign house of each point's Navamsa sign in the birth chart.
@@ -1285,7 +1312,9 @@ export function synthesizeOtherDetails(
     }
     return {
         lord22ndDrekkana: computeDrekkanaLord(lagna, ascDegree),
-        lord64thNavamsa: computeNavamsaLord(lagna, ascDegree),
+        // The 64th Navamsa Lord is a Navamsa (D9) concept — without entered Navamsa data there is no
+        // meaningful value (0 never matches a planet enum, so it never renders as a tag).
+        lord64thNavamsa: hasNavamsaData ? computeNavamsaLord(lagna, ascDegree) : 0,
         badhakaPlanet: computeBadhaka(lagna),
         marakaPlanets: computeMaraka(lagna),
         nidhanamshaPlanets: hasNavamsa ? computeNidhanamsha(lagna, ascNavamsaLagna, houses, planets) : [],
@@ -1293,14 +1322,14 @@ export function synthesizeOtherDetails(
         atmakaraka: computeAtmakaraka(planets),
         maranakaraka: computeMaranakaraka(planets),
         yogakaraka: computeYogakaraka(lagna),
-        isAscendantWargoththama: computeAscWargoththama(lagna, ascNavamsaSign),
+        isAscendantWargoththama: hasNavamsaData ? computeAscWargoththama(lagna, ascNavamsaSign) : false,
         isAscendantGandantha: computeAscendantGandantha(ascNakshatra.id, ascNakshatra.pada),
         isAscendantGandamula: computeAscendantGandamula(ascNakshatra.id, ascNakshatra.pada),
-        isAscendantPushkara: computeAscendantPushkara(lagna, ascNavamsaSign),
-        wargoththamaPlanets: computeWargoththama(planets),
+        isAscendantPushkara: hasNavamsaData ? computeAscendantPushkara(lagna, ascNavamsaSign) : false,
+        wargoththamaPlanets: hasNavamsaData ? computeWargoththama(planets) : [],
         gandanthaPlanets: computeGandantha(planets),
         gandamulaPlanets: computeGandamula(planets),
-        pushkaraPlanets: computePushkara(planets),
+        pushkaraPlanets: hasNavamsaData ? computePushkara(planets) : [],
         ...(lagnaBhavaSuchika !== undefined ? { lagnaBhavaSuchika } : {}),
         ...(bhavaSuchika !== undefined ? { bhavaSuchika } : {}),
     };

@@ -6,9 +6,14 @@
 
 ## Quick fixes
 
-### search query
+### Manual calculated horoscope issues
 
-- ලග්නය ධනු නවාංශකය මේෂ not working
+- Should possible adding without Navansaka. Then the system should not generate Navansaka or other Warga kendara for such horoscope.
+  - So Navansaka related calculation should hidden from calculation tables.
+  - Degree's no need to shows.
+  - Consider all planet in the house middle degree.  
+
+### search query
 
 ### Student notepad
 

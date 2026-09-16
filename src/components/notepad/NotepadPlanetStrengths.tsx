@@ -290,24 +290,17 @@ export function PlanetStrengthPanel({
                     {entry.conjunctions.map((conjunction) => {
                         const planetLabel = planetName(t, conjunction.planet);
                         const label = t("notepad.planetStrengths.conjunct", { planet: planetLabel });
-                        const gapLine =
-                            conjunction.orb !== undefined
-                                ? t("notepad.planetStrengths.conjunctionGap", {
-                                      gap: formatDegree(conjunction.orb),
-                                  })
-                                : null;
-                        const lines = gapLine ? [label, gapLine] : [label];
-                        const title = gapLine ? `${label} — ${gapLine}` : label;
+                        const gap = conjunction.orb !== undefined ? formatDegree(conjunction.orb) : "";
                         return (
                             <TooltipChip
                                 key={`conjunct-${conjunction.planet}`}
                                 color={refColorOf(conjunction.planet)}
                                 label={label}
-                                ariaLabel={title}
-                                lines={lines}
+                                ariaLabel={gap || label}
+                                lines={gap ? [gap] : [label]}
                                 single={true}
                                 delta=""
-                                title={title}
+                                title={gap || label}
                             />
                         );
                     })}

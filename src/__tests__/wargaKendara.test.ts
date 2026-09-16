@@ -8,7 +8,7 @@ import * as path from "path";
 import { navamsaSign } from "@/lib/astrology";
 import { Planet, PlanetaryStrength } from "@/lib/astrologyEnums";
 import { calculateHoroscope } from "@/lib/calculation";
-import { SIGN_LORD, compute, ownedHousesOf } from "@/lib/manualChart";
+import { SIGN_LORD, compute, hasManualNavamsa, ownedHousesOf } from "@/lib/manualChart";
 import { synthesizeCalculation } from "@/lib/manualChartDetails";
 import { computeDigBalaPlanets } from "@/lib/shadBalaya";
 import { VARGA_CATALOG, computeWargaKendara, computeWargaMaraka, resolveWargaKendara } from "@/lib/wargaKendara";
@@ -291,12 +291,38 @@ describe("Per-chart Maraka / Maranakaraka / Dig Bala (UT-WK-020..024)", () => {
 });
 
 describe("Manual pipeline (UT-WK-025..028)", () => {
-    test("UT-WK-025: manual without navamsa data → d9 null, d1/surya/chandra present", () => {
+    test("UT-WK-025: manual without navamsa data → birth-chart only: d1 present, d9/suryaLagna/chandraLagna null", () => {
         const calc = synthesizeCalculation(compute({ lagna: 1, houses: { "1": [Planet.SUN] } }));
         expect(calc.wargaKendara?.d1).not.toBeNull();
         expect(calc.wargaKendara?.d9).toBeNull();
-        expect(calc.wargaKendara?.suryaLagna).not.toBeNull();
-        expect(calc.wargaKendara?.chandraLagna).not.toBeNull();
+        expect(calc.wargaKendara?.suryaLagna).toBeNull();
+        expect(calc.wargaKendara?.chandraLagna).toBeNull();
+    });
+
+    test("UT-WK-025b: manual without navamsa data synthesizes planets at the house-middle degree", () => {
+        const calc = synthesizeCalculation(compute({ lagna: 1, houses: { "1": [Planet.SUN] } }));
+        for (const p of calc.planets) {
+            expect(p.degree).toBe(15);
+            expect(p.absoluteDegree).toBe((p.sign - 1) * 30 + 15);
+        }
+        // Nakshatra/Pada are derived from the sign-middle degree, not the old (1,1) fallback.
+        const sun = calc.planets.find((p) => p.name === Planet.SUN);
+        expect(sun?.nakshatra).toBeGreaterThanOrEqual(1);
+        expect(sun?.nakshatra).toBeLessThanOrEqual(27);
+        expect(sun?.pada).toBeGreaterThanOrEqual(1);
+        expect(sun?.pada).toBeLessThanOrEqual(4);
+    });
+
+    test("UT-WK-025c: hasManualNavamsa requires a valid navamsa lagna AND navamsa houses", () => {
+        expect(hasManualNavamsa(null)).toBe(false);
+        expect(hasManualNavamsa(undefined)).toBe(false);
+        expect(hasManualNavamsa({})).toBe(false);
+        expect(hasManualNavamsa({ navamsaLagna: 5 })).toBe(false);
+        expect(hasManualNavamsa({ navamsaHouses: [{ houseNumber: 1, sign: 5, planets: [] }] })).toBe(false);
+        expect(hasManualNavamsa({ navamsaLagna: 5, navamsaHouses: [] })).toBe(false);
+        expect(
+            hasManualNavamsa({ navamsaLagna: 5, navamsaHouses: [{ houseNumber: 1, sign: 5, planets: [Planet.MOON] }] }),
+        ).toBe(true);
     });
 
     test("UT-WK-026: manual with navamsa data → d9 populated from entered placements", () => {
@@ -314,6 +340,9 @@ describe("Manual pipeline (UT-WK-025..028)", () => {
         const names = (d9?.planets ?? []).map((p) => p.name);
         expect(names).toContain(Planet.MOON);
         expect(names).toContain(Planet.SUN);
+        // With entered Navamsa data the Surya/Chandra Lagna figures remain generated.
+        expect(calc.wargaKendara?.suryaLagna).not.toBeNull();
+        expect(calc.wargaKendara?.chandraLagna).not.toBeNull();
     });
 
     test("UT-WK-027: manual d1 entry uses the entered placements", () => {

@@ -54,6 +54,12 @@ const REASON_ORDER: Record<AspectReason["type"], number> = { planetary: 0, rashi
 export function composeAspectTooltip(tokens: AspectTooltipTokens, data: AspectTooltipData): AspectTooltipResult {
     const { aspect, aspectingSign } = data;
     const houseOverride = data.house ?? null;
+    // A conjunction (0°) tooltip carries ONLY the positional difference — no drishti label, no
+    //  house, no angle. The planets' angular separation IS the whole reason (UX §8.1.1 note).
+    if ((aspect.aspectType ?? aspect.exactAspectDegree ?? 0) <= 0) {
+        const deltaStr = formatSignedDelta(aspect.delta ?? aspect.degreeGap ?? 0);
+        return { lines: [deltaStr], single: true, delta: deltaStr, title: deltaStr };
+    }
     const reasons = [...(aspect.reasons ?? [])].sort((a, b) => REASON_ORDER[a.type] - REASON_ORDER[b.type]);
     const effectiveReasons: AspectReason[] =
         reasons.length > 0

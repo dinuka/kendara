@@ -1602,7 +1602,6 @@
             },
             "conjunct": "with {planet}",
             "aspectedBy": "{planet}'s drishti",
-            "conjunctionGap": "Conjunction gap {gap}",
             "bhavaSuchika": "Bhava Suchika {house}",
             "ownsHouse": "{planet} owns house {house}",
             "houseOwner": "House owner {planet}",

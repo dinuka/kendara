@@ -230,6 +230,44 @@ export function computePlanetAspects(
     return result;
 }
 
+/** Degree-based planet conjunctions — the authoritative conjunction list shared by the
+ *  calculation-tab planet tables and the D1 (Lagna) warga planets table. Two planets are conjunct
+ *  when their shortest angular separation is strictly below the pair's highest orb (`<`, mirroring
+ *  the calculation-tab rule); Rahu/Ketu (orbs 0) only ever qualify through the other planet's orb.
+ *  Every record carries the signed `delta` and `degreeGap` so chips/tooltips show the true
+ *  separation — never a placeholder 0°. */
+export function computePlanetConjunctions(
+    planets: Array<Pick<Planet, "name" | "absoluteDegree">>,
+    planetaryOrbs?: Record<number, number>,
+): Record<number, Aspect[]> {
+    const orbOf = (name: number): number => planetaryOrbs?.[name] ?? DEFAULT_ORBS[String(name)] ?? 0;
+    const result: Record<number, Aspect[]> = {};
+    for (const p of planets) {
+        const conjunctions: Aspect[] = [];
+        for (const q of planets) {
+            if (q.name === p.name) continue;
+            const dist = Math.abs(p.absoluteDegree - q.absoluteDegree);
+            const angularDist = Math.min(dist, 360 - dist);
+            if (angularDist >= Math.max(orbOf(p.name), orbOf(q.name))) continue;
+            let diff = q.absoluteDegree - p.absoluteDegree;
+            if (diff > 180) diff -= 360;
+            if (diff < -180) diff += 360;
+            conjunctions.push({
+                planetName: q.name,
+                aspectType: 0,
+                planetAbsoluteDegree: q.absoluteDegree,
+                degreeGap: angularDist,
+                exactAspectDegree: 0,
+                isBeneficial: false,
+                delta: diff,
+                reasons: [{ type: "planetary", angle: 0, delta: diff }],
+            });
+        }
+        result[p.name] = conjunctions;
+    }
+    return result;
+}
+
 /** Degree-based house aspects. A planet `i` aspects a house when:
  *   - the house is in the explicit arm — the configured `houses` (absolute numbers), or — for an
  *     unconfigured planet — the default aspect houses resolved as OFFSETS from the planet's whole-sign

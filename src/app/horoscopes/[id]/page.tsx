@@ -50,13 +50,14 @@ import {
     computeMoonNakshatra,
     deriveBirthTimeRange,
     formatNavamsaDegreeRange,
+    hasManualNavamsa,
     navamsaIndexForSign,
     ownedHousesOf,
     synthesizeOtherDetails,
     synthesizeValidation,
 } from "@/lib/manualChart";
 import type { DerivedRanges, ManualHouse, ManualHousePlacements } from "@/lib/manualChart";
-import { aspectPointSignedDelta, computeManualPlanetAspects } from "@/lib/planetAspects";
+import { aspectPointSignedDelta, computeManualPlanetAspects, computePlanetConjunctions } from "@/lib/planetAspects";
 import { type ShadBalaya, computeShadBalaya, deriveDay, mergeShadBalaya } from "@/lib/shadBalaya";
 import { resolveSubaAsuba } from "@/lib/subaAsuba";
 import type { WargaVargaKey } from "@/lib/wargaKendara";
@@ -149,11 +150,13 @@ function placementsRecord(manual: ManualHouse[]): Record<number, number[]> {
 
 /** Effective ascendant absolute degree (0-360) for a manual horoscope: the CENTER of the ascendant's
  *  navamsa wedge (the "mid of the degree range" the calculations tab shows), derived from the entered
- *  `lagnaDegree` when given, else the stored navamsa lagna. The chart's lagna line and house-1 bhava
- *  middle are anchored to this so they stay centered on the highlighted navamsa wedge. */
+ *  `lagnaDegree` when given, else the stored navamsa lagna. When neither is recorded (a manual chart
+ *  without Navamsa data) the chart has no degree values, so it falls back to the sign midpoint (15°),
+ *  matching the house-middle position every planet gets in that case. The chart's lagna line and
+ *  house-1 bhava middle are anchored to this so they stay centered on the highlighted navamsa wedge. */
 function manualAscAbsDeg(mhp: { lagna: number; lagnaDegree?: number; navamsaLagna?: number }): number {
     const arc = 30 / 9;
-    let index = 1;
+    let index = 5;
     if (mhp.lagnaDegree !== undefined) index = Math.floor(mhp.lagnaDegree / arc) + 1;
     else if (mhp.navamsaLagna !== undefined) index = navamsaIndexForSign(mhp.lagna, mhp.navamsaLagna);
     return (mhp.lagna - 1) * 30 + (index - 0.5) * arc;
@@ -360,7 +363,9 @@ export default function HoroscopeDetailPage() {
                         navamsaLagna: d.calculatedDetails.manualHousePlacements.navamsaLagna ?? undefined,
                     };
                     const moon = (d.calculatedDetails.planets as Planet[]).find((p) => p.name === 2);
-                    const moonNakshatra = moon ? computeMoonNakshatra(moon.sign, moon.navamsaSign) : undefined;
+                    const moonNakshatra = moon
+                        ? computeMoonNakshatra(moon.sign, hasManualNavamsa(mhp) ? moon.navamsaSign : undefined)
+                        : undefined;
                     const birthDate = d.horoscope?.birthDate ? new Date(d.horoscope.birthDate) : null;
                     d = {
                         ...d,
@@ -422,6 +427,19 @@ export default function HoroscopeDetailPage() {
     if (!data) return <div className="text-center py-20 text-gray-400">{t("common.error")}</div>;
 
     const { horoscope, calculatedDetails } = data;
+
+    const isManualChart = horoscope.source === "manual";
+
+    // Navamsa (D9) availability: auto (ephemeris) charts always carry it; manual charts only when a
+    // Navamsa Lagna AND navamsa house placements were entered. Manual charts without Navamsa data are
+    // birth-chart-only — no degree values, no Navamsa-derived columns/tags, no second warga chart
+    // (TODO.md manual-chart issues). Rendered sections gate on this flag below.
+    const navamsaAvailable = !isManualChart || hasManualNavamsa(calculatedDetails?.manualHousePlacements);
+
+    // Degree-based planet conjunctions (shared with the calc-tab planet tables): the authoritative
+    // conjunction list for the D1 (Lagna) warga Planets table, so its chips match the calc tab.
+    const resolvedConjunctionsByPlanet: Record<number, Aspect[]> =
+        calculatedDetails?.planets?.length ? computePlanetConjunctions(calculatedDetails.planets, orbMap) : {};
 
     // Maranakaraka is recomputed at render from planets (lagna chart only — never D9) so
     // legacy stored values (a single "any rule → Moon=2") don't stick. Every planet in its
@@ -632,8 +650,10 @@ export default function HoroscopeDetailPage() {
 
         if (horoscope.source === "manual" && calculatedDetails.manualHousePlacements) {
             const { navamsaLagna, navamsaHouses } = calculatedDetails.manualHousePlacements;
-            if (navamsaLagna !== undefined) {
-                const houses = buildWholeSignHouses(navamsaLagna);
+            if (hasManualNavamsa(calculatedDetails.manualHousePlacements)) {
+                // hasManualNavamsa guarantees navamsaLagna is present (1-12) — the fallback only
+                // satisfies the type checker.
+                const houses = buildWholeSignHouses(navamsaLagna ?? calculatedDetails.manualHousePlacements.lagna);
                 const planets: Planet[] = [];
                 navamsaHouses?.forEach(({ houseNumber, sign, planets: housePlanets }) => {
                     housePlanets.forEach((name) => {
@@ -655,12 +675,15 @@ export default function HoroscopeDetailPage() {
                     });
                 });
                 const ascendant: Ascendant = {
-                    sign: navamsaLagna,
+                    sign: navamsaLagna ?? calculatedDetails.manualHousePlacements.lagna,
                     degree: 0,
-                    lord: SIGN_LORD_MAP[navamsaLagna] ?? 1,
+                    lord: SIGN_LORD_MAP[navamsaLagna ?? calculatedDetails.manualHousePlacements.lagna] ?? 1,
                 };
                 return { planets, houses, ascendant };
             }
+            // Manual charts without entered Navamsa data have no Navamsa (D9) chart at all — never
+            // fall through to the auto derivation (which would fake one from a 0° ascendant).
+            return null;
         }
 
         const ascNavSign = getNavamsaSign(calculatedDetails.ascendant.sign, calculatedDetails.ascendant.degree);
@@ -736,10 +759,19 @@ export default function HoroscopeDetailPage() {
 
     /** Planets with degree re-synthesized to the midpoint of each planet's navamsa segment for
      *  manual horoscopes, so planet lines point at the middle of the navamsa wedge (the stored
-     *  `calculatedDetails.planets` use the segment start, written when the chart was created). */
+     *  `calculatedDetails.planets` use the segment start, written when the chart was created). Manual
+     *  charts WITHOUT Navamsa data have no segments — every planet sits at the house (sign) middle
+     *  degree 15°, matching `synthesizePlanets`. */
     const getManualAdjustedPlanets = (): Planet[] => {
         if (horoscope.source !== "manual" || !calculatedDetails?.manualHousePlacements)
             return calculatedDetails?.planets ?? [];
+        if (!navamsaAvailable) {
+            return calculatedDetails.planets.map((p) => ({
+                ...p,
+                degree: 15,
+                absoluteDegree: (p.sign - 1) * 30 + 15,
+            }));
+        }
         return calculatedDetails.planets.map((p) => {
             const index = navamsaIndexForSign(p.sign, p.navamsaSign ?? p.sign);
             const arc = 30 / 9;
@@ -747,8 +779,6 @@ export default function HoroscopeDetailPage() {
             return { ...p, degree, absoluteDegree: (p.sign - 1) * 30 + degree };
         });
     };
-
-    const isManualChart = horoscope.source === "manual";
 
     const NAVAMSA_ARC = 30 / 9;
 
@@ -1186,6 +1216,7 @@ export default function HoroscopeDetailPage() {
                     {activeTab === "charts" && (
                         <div className="space-y-6">
                             <section>
+                                {navamsaAvailable && (
                                 <div
                                     role="group"
                                     aria-label={t("astrology.wargaKendara.secondChartAria")}
@@ -1236,6 +1267,7 @@ export default function HoroscopeDetailPage() {
                                         );
                                     })}
                                 </div>
+                                )}
 
                                 {(() => {
                                     if (!calculatedDetails) {
@@ -1246,7 +1278,9 @@ export default function HoroscopeDetailPage() {
                                         );
                                     }
                                     return (
-                                        <div className="grid grid-cols-1 lg:grid-cols-[3fr_2fr] gap-4">
+                                        <div
+                                            className={`grid gap-4 ${navamsaAvailable ? "grid-cols-1 lg:grid-cols-[3fr_2fr]" : ""}`}
+                                        >
                                             <WargaChartSection
                                                 chartKey="d1"
                                                 caption={t("astrology.chartCaptions.birth")}
@@ -1259,31 +1293,33 @@ export default function HoroscopeDetailPage() {
                                                 noDataMessage={t("astrology.noChartData")}
                                                 ascendantDegreeLabel={getBirthChartAscendantDegreeLabel()}
                                                 bhavaSuchika={resolvedPlanetBhavaSuchika}
+                                                conjunctionMap={resolvedConjunctionsByPlanet}
                                             />
-                                            {isComputedChart(secondChart) ? (
-                                                <WargaChartSection
-                                                    key={secondChart}
-                                                    chartKey={secondChart}
-                                                    caption={t(SECOND_CHART_CAPTION_KEYS[secondChart])}
-                                                    chartData={getSecondChartData()}
-                                                    entry={resolvedWargaKendara?.[secondChart] ?? null}
-                                                    noDataMessage={t("astrology.noChartData")}
-                                                    showAscendantDegree={secondChart !== "d9"}
-                                                />
-                                            ) : (
-                                                <figure className="bg-white rounded-lg border p-4">
-                                                    <figcaption className="text-sm font-semibold text-gray-700">
-                                                        {t(`astrology.wargaKendara.vargas.${secondChart}.name`)} ( D
-                                                        {VARGA_CATALOG.find((v) => v.key === secondChart)?.d})
-                                                    </figcaption>
-                                                    <WargaIndicationTags chartKey={secondChart} />
-                                                    <div className="mt-4 bg-white rounded-lg border p-6 min-h-[150px] flex items-center justify-center">
-                                                        <p className="text-sm text-gray-400">
-                                                            {t("astrology.wargaKendara.comingSoon")}
-                                                        </p>
-                                                    </div>
-                                                </figure>
-                                            )}
+                                            {navamsaAvailable &&
+                                                (isComputedChart(secondChart) ? (
+                                                    <WargaChartSection
+                                                        key={secondChart}
+                                                        chartKey={secondChart}
+                                                        caption={t(SECOND_CHART_CAPTION_KEYS[secondChart])}
+                                                        chartData={getSecondChartData()}
+                                                        entry={resolvedWargaKendara?.[secondChart] ?? null}
+                                                        noDataMessage={t("astrology.noChartData")}
+                                                        showAscendantDegree={secondChart !== "d9"}
+                                                    />
+                                                ) : (
+                                                    <figure className="bg-white rounded-lg border p-4">
+                                                        <figcaption className="text-sm font-semibold text-gray-700">
+                                                            {t(`astrology.wargaKendara.vargas.${secondChart}.name`)} ( D
+                                                            {VARGA_CATALOG.find((v) => v.key === secondChart)?.d})
+                                                        </figcaption>
+                                                        <WargaIndicationTags chartKey={secondChart} />
+                                                        <div className="mt-4 bg-white rounded-lg border p-6 min-h-[150px] flex items-center justify-center">
+                                                            <p className="text-sm text-gray-400">
+                                                                {t("astrology.wargaKendara.comingSoon")}
+                                                            </p>
+                                                        </div>
+                                                    </figure>
+                                                ))}
                                         </div>
                                     );
                                 })()}
@@ -1366,10 +1402,18 @@ export default function HoroscopeDetailPage() {
                                         </h4>
                                         <p className="text-sm mb-1">
                                             {getSignName(calculatedDetails.ascendant.sign)} (
-                                            {getPlanetName(calculatedDetails.ascendant.lord)}){" "}
-                                            {isManualChart
-                                                ? formatNavamsaDegreeRange(getAscMidRange().start, getAscMidRange().end)
-                                                : formatDegree(calculatedDetails.ascendant.degree)}
+                                            {getPlanetName(calculatedDetails.ascendant.lord)})
+                                            {navamsaAvailable && (
+                                                <>
+                                                    {" "}
+                                                    {isManualChart
+                                                        ? formatNavamsaDegreeRange(
+                                                              getAscMidRange().start,
+                                                              getAscMidRange().end,
+                                                          )
+                                                        : formatDegree(calculatedDetails.ascendant.degree)}
+                                                </>
+                                            )}
                                         </p>
                                         <p className="text-sm text-gray-600">
                                             {getNakshatraName(calculatedDetails.nakshatra.ascendantNakshatra?.id ?? 0)}{" "}
@@ -1400,7 +1444,7 @@ export default function HoroscopeDetailPage() {
                                                 text: string;
                                                 strikethrough?: boolean;
                                             }[] = [];
-                                            if (calculatedDetails.isAscendantWargoththama) {
+                                            if (navamsaAvailable && calculatedDetails.isAscendantWargoththama) {
                                                 const crossed =
                                                     ascFlags.isAscendantGandantha || ascFlags.isAscendantGandamula;
                                                 ascTags.push({
@@ -1419,7 +1463,7 @@ export default function HoroscopeDetailPage() {
                                                     key: "gandamula",
                                                     text: t("astrology.gandamulaLabel"),
                                                 });
-                                            if (ascFlags.isAscendantPushkara)
+                                            if (navamsaAvailable && ascFlags.isAscendantPushkara)
                                                 ascTags.push({
                                                     key: "pushkara",
                                                     text: t("astrology.pushkaraLabel"),
@@ -1487,15 +1531,19 @@ export default function HoroscopeDetailPage() {
                                                 const planetsInHouse = getPlanetsInHouse(h.houseNumber);
                                                 const houseMidAbs = getHouseMidAbs(h);
                                                 const isManualRow = isManualChart;
-                                                const manualRange = isManualRow
-                                                    ? getManualHouseRange(
-                                                          h.houseNumber,
-                                                          h.sign,
-                                                          getAscMidRange().start,
-                                                          getAscMidRange().end,
-                                                          getAscendantAbsDeg() ?? 0,
-                                                      )
-                                                    : null;
+                                                // Without Navamsa data a manual chart carries no
+                                                // degree values: houses show the sign only.
+                                                const showSignOnly = isManualRow && !navamsaAvailable;
+                                                const manualRange =
+                                                    isManualRow && navamsaAvailable
+                                                        ? getManualHouseRange(
+                                                              h.houseNumber,
+                                                              h.sign,
+                                                              getAscMidRange().start,
+                                                              getAscMidRange().end,
+                                                              getAscendantAbsDeg() ?? 0,
+                                                          )
+                                                        : null;
                                                 const aspectsToHouse = getAspectsToHouse(h.houseNumber)
                                                     .map((a) => ({
                                                         ...a,
@@ -1513,42 +1561,48 @@ export default function HoroscopeDetailPage() {
                                                         <td className="py-1 pr-3 text-gray-600">
                                                             {manualRange
                                                                 ? manualRange.start
-                                                                : formatSignLordDegree(
-                                                                      h.startSign,
-                                                                      h.startLord,
-                                                                      h.startDegree,
-                                                                      h.sign,
-                                                                      h.lord,
-                                                                  )}
+                                                                : showSignOnly
+                                                                  ? getSignName(h.sign)
+                                                                  : formatSignLordDegree(
+                                                                        h.startSign,
+                                                                        h.startLord,
+                                                                        h.startDegree,
+                                                                        h.sign,
+                                                                        h.lord,
+                                                                    )}
                                                         </td>
                                                         <td className="py-1 pr-3 text-gray-600">
                                                             {manualRange
                                                                 ? manualRange.mid
-                                                                : formatSignLordDegree(
-                                                                      h.middleSign,
-                                                                      h.middleLord,
-                                                                      h.middleDegree,
-                                                                      h.sign,
-                                                                      h.lord,
-                                                                  )}
+                                                                : showSignOnly
+                                                                  ? getSignName(h.sign)
+                                                                  : formatSignLordDegree(
+                                                                        h.middleSign,
+                                                                        h.middleLord,
+                                                                        h.middleDegree,
+                                                                        h.sign,
+                                                                        h.lord,
+                                                                    )}
                                                         </td>
                                                         <td className="py-1 pr-3 text-gray-600">
                                                             {manualRange
                                                                 ? manualRange.end
-                                                                : formatSignLordDegree(
-                                                                      h.endSign,
-                                                                      h.endLord,
-                                                                      h.endDegree,
-                                                                      h.sign,
-                                                                      h.lord,
-                                                                  )}
+                                                                : showSignOnly
+                                                                  ? getSignName(h.sign)
+                                                                  : formatSignLordDegree(
+                                                                        h.endSign,
+                                                                        h.endLord,
+                                                                        h.endDegree,
+                                                                        h.sign,
+                                                                        h.lord,
+                                                                    )}
                                                         </td>
                                                         <td className="py-1 pr-3">
                                                             {planetsInHouse.length > 0
                                                                 ? planetsInHouse
                                                                       .map(
                                                                           (p) =>
-                                                                              `${getPlanetName(p.name)} (${manualRange ? getPlanetDegreeRange(p) : formatDegree(p.degree)})`,
+                                                                              `${getPlanetName(p.name)}${showSignOnly ? "" : ` (${manualRange ? getPlanetDegreeRange(p) : formatDegree(p.degree)})`}`,
                                                                       )
                                                                       .join(", ")
                                                                 : "—"}
@@ -1617,10 +1671,12 @@ export default function HoroscopeDetailPage() {
                                                 <th className="py-1 pr-3">{t("astrology.strength")}</th>
                                                 <th className="py-1 pr-3">{t("astrology.house")}</th>
                                                 <th className="py-1 pr-3">{t("astrology.ownership")}</th>
-                                                <th className="py-1 pr-3">{t("astrology.navamsa")}</th>
-                                                <th className="py-1 pr-3">
-                                                    {t("astrology.navamsa")} {t("astrology.strength")}
-                                                </th>
+                                                {navamsaAvailable && <th className="py-1 pr-3">{t("astrology.navamsa")}</th>}
+                                                {navamsaAvailable && (
+                                                    <th className="py-1 pr-3">
+                                                        {t("astrology.navamsa")} {t("astrology.strength")}
+                                                    </th>
+                                                )}
                                                 <th className="py-1 pr-3">
                                                     {t("astrology.nakshatra")} ({t("astrology.pada")})
                                                 </th>
@@ -1658,34 +1714,7 @@ export default function HoroscopeDetailPage() {
                                                     // Suba/Asuba (සුබ/අසුබ): stored verdict wins;
                                                     // legacy docs are lazily resolved at render.
                                                     const subaAsubaEntry = resolvedSubaAsuba?.[String(p.name)];
-                                                    const conjunctions: Aspect[] = calculatedDetails.planets
-                                                        .filter((q) => q.name !== p.name)
-                                                        .filter((q) => {
-                                                            const dist = Math.abs(p.absoluteDegree - q.absoluteDegree);
-                                                            const angularDist = Math.min(dist, 360 - dist);
-                                                            return (
-                                                                angularDist <
-                                                                Math.max(orbMap[p.name] ?? 0, orbMap[q.name] ?? 0)
-                                                            );
-                                                        })
-                                                        .map((q) => {
-                                                            let diff = q.absoluteDegree - p.absoluteDegree;
-                                                            if (diff > 180) diff -= 360;
-                                                            if (diff < -180) diff += 360;
-                                                            return {
-                                                                planetName: q.name,
-                                                                aspectType: 0,
-                                                                planetAbsoluteDegree: q.absoluteDegree,
-                                                                degreeGap: Math.min(
-                                                                    Math.abs(p.absoluteDegree - q.absoluteDegree),
-                                                                    360 - Math.abs(p.absoluteDegree - q.absoluteDegree),
-                                                                ),
-                                                                exactAspectDegree: 0,
-                                                                isBeneficial: false,
-                                                                delta: diff,
-                                                                reasons: [{ type: "planetary", angle: 0, delta: diff }],
-                                                            } satisfies Aspect;
-                                                        });
+                                                    const conjunctions: Aspect[] = resolvedConjunctionsByPlanet[p.name] ?? [];
                                                     const aspectRecords: Aspect[] =
                                                         horoscope.source === "manual"
                                                             ? getManualAspects(p)
@@ -1724,7 +1753,7 @@ export default function HoroscopeDetailPage() {
                                                             key: "drekkana",
                                                             text: t("astrology.drekkanaLordLabel"),
                                                         });
-                                                    if (calculatedDetails.lord64thNavamsa === p.name)
+if (navamsaAvailable && calculatedDetails.lord64thNavamsa === p.name)
                                                         tags.push({
                                                             key: "navamsa",
                                                             text: t("astrology.navamsaLordLabel"),
@@ -1761,7 +1790,7 @@ export default function HoroscopeDetailPage() {
                                                             key: "ashtamansha",
                                                             text: t("astrology.ashtamanshaLabel"),
                                                         });
-                                                    if (calculatedDetails.wargoththamaPlanets?.includes(p.name)) {
+if (navamsaAvailable && calculatedDetails.wargoththamaPlanets?.includes(p.name)) {
                                                         const crossed =
                                                             calculatedDetails.gandanthaPlanets?.includes(p.name) ||
                                                             calculatedDetails.gandamulaPlanets?.includes(p.name);
@@ -1781,7 +1810,7 @@ export default function HoroscopeDetailPage() {
                                                             key: "gandamula",
                                                             text: t("astrology.gandamulaLabel"),
                                                         });
-                                                    if (calculatedDetails.pushkaraPlanets?.includes(p.name))
+if (navamsaAvailable && calculatedDetails.pushkaraPlanets?.includes(p.name))
                                                         tags.push({
                                                             key: "pushkara",
                                                             text: t("astrology.pushkaraLabel"),
@@ -1821,11 +1850,16 @@ export default function HoroscopeDetailPage() {
                                                                 )}
                                                             </td>
                                                             <td className="py-1 pr-3">
-                                                                {getSignName(p.sign)} (
-                                                                {isManualChart
-                                                                    ? getPlanetDegreeRange(p)
-                                                                    : formatDegree(p.degree)}
-                                                                )
+                                                                {getSignName(p.sign)}
+                                                                {navamsaAvailable && (
+                                                                    <>
+                                                                        {" "}
+                                                                        ({isManualChart
+                                                                            ? getPlanetDegreeRange(p)
+                                                                            : formatDegree(p.degree)}
+                                                                        )
+                                                                    </>
+                                                                )}
                                                             </td>
                                                             <td className="py-1 pr-3">
                                                                 {t(
@@ -1838,12 +1872,18 @@ export default function HoroscopeDetailPage() {
                                                                     ", ",
                                                                 ) || "—"}
                                                             </td>
-                                                            <td className="py-1 pr-3">{getSignName(p.navamsaSign)}</td>
-                                                            <td className="py-1 pr-3">
-                                                                {t(
-                                                                    `astrology.${STRENGTH_TRANSLATION_KEYS[getStrength(p.navamsaStrength)] ?? "neutral"}`,
-                                                                )}
-                                                            </td>
+                                                            {navamsaAvailable && (
+                                                                <td className="py-1 pr-3">
+                                                                    {getSignName(p.navamsaSign)}
+                                                                </td>
+                                                            )}
+                                                            {navamsaAvailable && (
+                                                                <td className="py-1 pr-3">
+                                                                    {t(
+                                                                        `astrology.${STRENGTH_TRANSLATION_KEYS[getStrength(p.navamsaStrength)] ?? "neutral"}`,
+                                                                    )}
+                                                                </td>
+                                                            )}
                                                             <td className="py-1 pr-3 text-gray-600">
                                                                 {getNakshatraName(p.nakshatra) || p.nakshatra} (
                                                                 {getPlanetName(getNakshatraLord(p.nakshatra))}) (
@@ -1944,33 +1984,7 @@ export default function HoroscopeDetailPage() {
                                             // are lazily resolved at render.
                                             const subaAsubaEntry = resolvedSubaAsuba?.[String(p.name)];
 
-                                            const conjunctions: Aspect[] = calculatedDetails.planets
-                                                .filter((q) => q.name !== p.name)
-                                                .filter((q) => {
-                                                    const dist = Math.abs(p.absoluteDegree - q.absoluteDegree);
-                                                    const angularDist = Math.min(dist, 360 - dist);
-                                                    return (
-                                                        angularDist < Math.max(orbMap[p.name] ?? 0, orbMap[q.name] ?? 0)
-                                                    );
-                                                })
-                                                .map((q) => {
-                                                    let diff = q.absoluteDegree - p.absoluteDegree;
-                                                    if (diff > 180) diff -= 360;
-                                                    if (diff < -180) diff += 360;
-                                                    return {
-                                                        planetName: q.name,
-                                                        aspectType: 0,
-                                                        planetAbsoluteDegree: q.absoluteDegree,
-                                                        degreeGap: Math.min(
-                                                            Math.abs(p.absoluteDegree - q.absoluteDegree),
-                                                            360 - Math.abs(p.absoluteDegree - q.absoluteDegree),
-                                                        ),
-                                                        exactAspectDegree: 0,
-                                                        isBeneficial: false,
-                                                        delta: diff,
-                                                        reasons: [{ type: "planetary", angle: 0, delta: diff }],
-                                                    } satisfies Aspect;
-                                                });
+                                            const conjunctions: Aspect[] = resolvedConjunctionsByPlanet[p.name] ?? [];
 
                                             const aspectRecords: Aspect[] =
                                                 horoscope.source === "manual"
@@ -1998,7 +2012,7 @@ export default function HoroscopeDetailPage() {
                                                 tags.push({ key: "combustion", text: t("astrology.combustLabel") });
                                             if (calculatedDetails.lord22ndDrekkana === p.name)
                                                 tags.push({ key: "drekkana", text: t("astrology.drekkanaLordLabel") });
-                                            if (calculatedDetails.lord64thNavamsa === p.name)
+                                            if (navamsaAvailable && calculatedDetails.lord64thNavamsa === p.name)
                                                 tags.push({ key: "navamsa", text: t("astrology.navamsaLordLabel") });
                                             if (calculatedDetails.atmakaraka === p.name)
                                                 tags.push({ key: "atmakaraka", text: t("astrology.atmakarakaLabel") });
@@ -2026,7 +2040,7 @@ export default function HoroscopeDetailPage() {
                                                     key: "ashtamansha",
                                                     text: t("astrology.ashtamanshaLabel"),
                                                 });
-                                            if (calculatedDetails.wargoththamaPlanets?.includes(p.name)) {
+                                            if (navamsaAvailable && calculatedDetails.wargoththamaPlanets?.includes(p.name)) {
                                                 const crossed =
                                                     calculatedDetails.gandanthaPlanets?.includes(p.name) ||
                                                     calculatedDetails.gandamulaPlanets?.includes(p.name);
@@ -2040,7 +2054,7 @@ export default function HoroscopeDetailPage() {
                                                 tags.push({ key: "gandanta", text: t("astrology.gandantaLabel") });
                                             if (calculatedDetails.gandamulaPlanets?.includes(p.name))
                                                 tags.push({ key: "gandamula", text: t("astrology.gandamulaLabel") });
-                                            if (calculatedDetails.pushkaraPlanets?.includes(p.name))
+                                            if (navamsaAvailable && calculatedDetails.pushkaraPlanets?.includes(p.name))
                                                 tags.push({ key: "pushkara", text: t("astrology.pushkaraLabel") });
                                             const shadBalayaPlanet = resolvedShadbalaya?.[String(p.name)];
                                             if (shadBalayaPlanet?.cheshtaBala.value)
@@ -2142,9 +2156,10 @@ export default function HoroscopeDetailPage() {
                                                                 <span className="font-medium text-gray-700">
                                                                     {t("astrology.degree")}:
                                                                 </span>{" "}
-                                                                {isManualChart
-                                                                    ? getPlanetDegreeRange(p)
-                                                                    : formatDegree(p.degree)}
+                                                                {navamsaAvailable &&
+                                                                    (isManualChart
+                                                                        ? getPlanetDegreeRange(p)
+                                                                        : formatDegree(p.degree))}
                                                             </p>
                                                             {conjunctions.length > 0 && (
                                                                 <p>
@@ -2194,16 +2209,18 @@ export default function HoroscopeDetailPage() {
                                                                     ))}
                                                                 </div>
                                                             )}
-                                                            <p>
-                                                                <span className="font-medium text-gray-700">
-                                                                    {t("astrology.navamsaka")}:
-                                                                </span>{" "}
-                                                                {getSignName(p.navamsaSign)} (
-                                                                {t(
-                                                                    `astrology.${STRENGTH_TRANSLATION_KEYS[getStrength(p.navamsaStrength)] ?? "neutral"}`,
-                                                                )}
-                                                                )
-                                                            </p>
+                                                            {navamsaAvailable && (
+                                                                <p>
+                                                                    <span className="font-medium text-gray-700">
+                                                                        {t("astrology.navamsaka")}:
+                                                                    </span>{" "}
+                                                                    {getSignName(p.navamsaSign)} (
+                                                                    {t(
+                                                                        `astrology.${STRENGTH_TRANSLATION_KEYS[getStrength(p.navamsaStrength)] ?? "neutral"}`,
+                                                                    )}
+                                                                    )
+                                                                </p>
+                                                            )}
                                                         </div>
                                                     )}
                                                 </div>
