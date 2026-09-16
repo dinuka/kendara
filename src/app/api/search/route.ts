@@ -367,49 +367,74 @@ const getPlanetNakshatraLord = (query: string): { planet: number; lord: number }
     return null;
 };
 
-// Pairs a sign word with the trigger word (ascendant/navamsa) it refers to, so a query like
-// "Mesha lagna Mesha Navanshaka" yields navamsa_ascendant=Mesha (the sign nearest to the
-// navamsa word) alongside ascendant=Mesha. Returns null when no trigger word or sign appears.
-const getSignMatchNear = (query: string, triggerWords: string[]): number | null => {
+// Pairs each sign word with the ascendant/navamsa trigger word it refers to, so a query like
+// "ලග්නය ධනු නවාංශකය මේෂ" resolves ascendant=Sagittarius alongside navamsa_ascendant=Mesha,
+// and its mirror "Mesha lagna Mesha Navanshaka" still yields both Mesha. Signs pair with their
+// adjacent trigger in the reduced trigger/sign token sequence (accepting both "SIGN lagna" and
+// "lagna SIGN" order), so a sign that falls between the two triggers (the lagna's ධනු sitting
+// before නවාංශකය) is never also claimed as the navamsa sign. Leftover triggers fall back to
+// their nearest still-unclaimed sign. Returns nulls when no trigger word appears.
+const resolveAscendantNavamsaSigns = (query: string): { ascendant: number | null; navamsa: number | null } => {
     const q = stripJoiners(query.toLowerCase());
 
-    const triggerSet = new Set(triggerWords.map((w) => stripJoiners(w.toLowerCase())));
-
+    const tokenTypeByWord = new Map<string, "ascendant" | "navamsa" | "sign">();
     const signValueByWord = new Map<string, number>();
+    for (const w of ASCENDANT_WORDS) tokenTypeByWord.set(stripJoiners(w.toLowerCase()), "ascendant");
+    for (const w of NAVAMSA_WORDS) tokenTypeByWord.set(stripJoiners(w.toLowerCase()), "navamsa");
     for (const [word, value] of Object.entries(ZODIAC_SIGN_NAMES)) {
-        signValueByWord.set(stripJoiners(word.toLowerCase()), value);
+        const skeleton = stripJoiners(word.toLowerCase());
+        tokenTypeByWord.set(skeleton, "sign");
+        signValueByWord.set(skeleton, value);
     }
 
-    const triggerOccurrences: number[] = [];
-    const triggerRe = new RegExp(buildRegexSource([...triggerSet]), "g");
-    for (const m of q.matchAll(triggerRe)) {
-        if (typeof m.index === "number") triggerOccurrences.push(m.index);
-    }
-    if (triggerOccurrences.length === 0) return null;
-
-    const signOccurrences: Array<{ index: number; value: number }> = [];
-    const signRe = new RegExp(buildRegexSource([...signValueByWord.keys()]), "g");
-    for (const m of q.matchAll(signRe)) {
-        const value = signValueByWord.get(m[0]);
-        if (value !== undefined && typeof m.index === "number") {
-            signOccurrences.push({ index: m.index, value });
+    const tokens: Array<{ index: number; type: "ascendant" | "navamsa" | "sign"; value: number | null }> = [];
+    const tokenRe = new RegExp(buildRegexSource([...tokenTypeByWord.keys()]), "g");
+    for (const m of q.matchAll(tokenRe)) {
+        const type = tokenTypeByWord.get(m[0]);
+        if (type && typeof m.index === "number") {
+            tokens.push({ index: m.index, type, value: type === "sign" ? (signValueByWord.get(m[0]) ?? null) : null });
         }
     }
-    if (signOccurrences.length === 0) return null;
+    if (!tokens.some((t) => t.type !== "sign")) return { ascendant: null, navamsa: null };
 
-    let best: { dist: number; value: number } | null = null;
-    for (const triggerIndex of triggerOccurrences) {
-        for (const s of signOccurrences) {
-            const dist = Math.abs(s.index - triggerIndex);
+    const result: { ascendant: number | null; navamsa: number | null } = { ascendant: null, navamsa: null };
+    const claimedSigns = new Set<number>();
+
+    const assign = (trigger: "ascendant" | "navamsa", value: number): void => {
+        if (result[trigger] === null) result[trigger] = value;
+    };
+
+    for (let i = 0; i + 1 < tokens.length; i += 2) {
+        const a = tokens[i];
+        const b = tokens[i + 1];
+        const sign = a.type === "sign" ? a : b.type === "sign" ? b : null;
+        const trigger = a.type === "sign" ? b : b.type === "sign" ? a : null;
+        if (sign !== null && sign.value !== null && trigger !== null && trigger.type !== "sign") {
+            assign(trigger.type, sign.value);
+            claimedSigns.add(sign.index);
+        }
+    }
+
+    for (const trigger of tokens) {
+        if (trigger.type === "sign" || result[trigger.type] !== null) continue;
+        let best: { dist: number; index: number; value: number } | null = null;
+        for (const s of tokens) {
+            if (s.type !== "sign" || s.value === null || claimedSigns.has(s.index)) continue;
+            const dist = Math.abs(trigger.index - s.index);
             if (best === null || dist < best.dist) {
-                best = { dist, value: s.value };
+                best = { dist, index: s.index, value: s.value };
             }
         }
+        if (best !== null) {
+            assign(trigger.type, best.value);
+            claimedSigns.add(best.index);
+        }
     }
-    return best ? best.value : null;
+
+    return result;
 };
 
-const getNavamsaSignMatch = (query: string): number | null => getSignMatchNear(query, NAVAMSA_WORDS);
+const getNavamsaSignMatch = (query: string): number | null => resolveAscendantNavamsaSigns(query).navamsa;
 
 type BhavaSuchikaMatch = { type: "lagna"; value: number } | { type: "planet"; planet: number; value: number };
 
@@ -609,7 +634,7 @@ const getExactMatch = (query: string): ExactMatch => {
     }
 
     if (hasAscendantWord) {
-        const ascendantSignValue = getSignMatchNear(query, ASCENDANT_WORDS);
+        const ascendantSignValue = resolveAscendantNavamsaSigns(query).ascendant;
         if (ascendantSignValue !== null) {
             conditions.push({ type: "ascendant", sign: ascendantSignValue });
         }
