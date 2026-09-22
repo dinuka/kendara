@@ -370,6 +370,20 @@
                 "10": "Abhimanamshaka",
                 "11": "Labhamshaka",
                 "12": "Vyamshaka"
+            },
+            "namesLocative": {
+                "1": "Lagnamshaka",
+                "2": "Dhanamshaka",
+                "3": "Vikramamshaka",
+                "4": "Sukhamshaka",
+                "5": "Purvapunyamshaka",
+                "6": "Shashthamshaka",
+                "7": "Saptamamshaka",
+                "8": "Nidhanamshaka",
+                "9": "Bhagyamshaka",
+                "10": "Abhimanamshaka",
+                "11": "Labhamshaka",
+                "12": "Vyamshaka"
             }
         },
         "marakaBadhaka": "Maraka / Badhaka",
@@ -1585,7 +1599,7 @@
                 "dig": "Dig Bala",
                 "kala": "Kala Bala",
                 "cheshta": "Cheshta Bala",
-                "naisargika": "Naisargika Bala",
+                "naisargika": "Not a maranakaraka",
                 "retrograde": "Retrograde",
                 "combust": "Combust",
                 "atmakaraka": "Atmakaraka",
@@ -1602,7 +1616,12 @@
             },
             "conjunct": "with {planet}",
             "aspectedBy": "{planet}'s drishti",
-            "bhavaSuchika": "Bhava Suchika {house}",
+            "bhavaSuchika": "{name} ({house})",
+            "houseLordship": "Lord of house {house}",
+            "rashiLord": "Rashi lord {planet}",
+            "otherHouse": "{planet}'s other house {house}",
+            "relativeHouse": "{relative} house from {planet}",
+            "ownerInOwnHouse": "{planet} in own house",
             "ownsHouse": "{planet} owns house {house}",
             "houseOwner": "House owner {planet}",
             "nakshatraOwner": "Nakshatra owner {planet}"

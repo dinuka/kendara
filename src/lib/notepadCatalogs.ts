@@ -215,6 +215,16 @@ export const PLANET_STRENGTH_FACTORS = [
     "nidhanamsha",
 ] as const;
 
+/** Factual flag factors the student cannot recolour — they keep their derived dark shade
+ *  (user-confirmed): pushkara/wargoththama dark green, maranakaraka/ashtamansha/nidhanamsha dark
+ *  red, gandantha/gandamula red. The graha-bala chips render these as non-clickable InfoTags. */
+export const LOCKED_PLANET_STRENGTH_FACTORS: readonly PlanetStrengthFactorKey[] = [
+    "pushkara",
+    "gandantha",
+    "gandamula",
+    "maranakaraka",
+];
+
 export type PlanetStrengthFactorKey = (typeof PLANET_STRENGTH_FACTORS)[number];
 
 /** Validation helper shared by the API route and the client: a known factor key. */
@@ -222,14 +232,17 @@ export function isPlanetStrengthFactorKey(value: unknown): value is PlanetStreng
     return typeof value === "string" && (PLANET_STRENGTH_FACTORS as readonly string[]).includes(value);
 }
 
-/** The three classifications a student may set a factor to (toggle cycle green → red → white).
- *  Derived factors are always one of these three — never a palette colour. */
+/** The three classifications a student may SET a factor to (toggle cycle green → red → white). */
 export const PLANET_FACTOR_COLORS = ["green", "red", "white"] as const;
 
-export type PlanetFactorColor = (typeof PLANET_FACTOR_COLORS)[number];
+/** An effective factor-chip colour — one of the three student classifications or the fixed darker
+ *  shade of a strong-connotation presence flag (wargoththama/pushkara darkGreen; maranakaraka,
+ *  ashtamansha/nidhanamsha darkRed). Dark shades still count toward the ratio as green/red and still
+ *  advance the toggle cycle (darkGreen → red, darkRed → white). */
+export type PlanetFactorColor = (typeof PLANET_FACTOR_COLORS)[number] | "darkGreen" | "darkRed";
 
-/** Validation helper: a factor override value is exactly one of the three classifications. */
-export function isPlanetFactorColor(value: unknown): value is PlanetFactorColor {
+/** Validation helper: a stored factor override is exactly one of the three student classifications. */
+export function isPlanetFactorColor(value: unknown): value is (typeof PLANET_FACTOR_COLORS)[number] {
     return typeof value === "string" && (PLANET_FACTOR_COLORS as readonly string[]).includes(value);
 }
 

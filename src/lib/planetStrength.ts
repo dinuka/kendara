@@ -17,12 +17,14 @@
  *                         (true) → green; `dig` never for Rahu/Ketu.
  *  - `retrograde`       — informational white tag, emitted only when retrograde.
  *  - `combust`          — emitted only when combust (true) → red.
- *  - karaka flags (`atmakaraka`/`yogakaraka` benefic green; `maranakaraka`/`maraka`/`badhaka`
- *                   malefic red) and varga flags (`wargoththama`/`pushkara` benefic green;
- *                   `gandantha`/`gandamula`/`ashtamansha`/`nidhanamsha` malefic red) — emitted only
- *                   when the planet is a member of the flag's source data.
+ *  - karaka flags (`atmakaraka`/`yogakaraka` benefic green; `maraka`/`badhaka` malefic red) and
+ *                   varga flags (benefic `wargoththama`/`pushkara` darkGreen; malefic
+ *                   `maranakaraka`/`ashtamansha`/`nidhanamsha` darkRed; `gandantha`/`gandamula`
+ *                   red) — the darker shades mark the strongest-connotation flags; all are emitted
+ *                   only when the planet is a member of the flag's source data.
  *
- *  Context tags (never counted toward the ratio, shown for information only — TODO #25/#26/#27):
+ *  Context tags (part of the planet ratio — the user-confirmed formula counts EVERY tag the panel
+ *  renders and subtracts the red-family ones; TODO #25/#26/#27):
  *  - `conjunctions` — warga D1 conjunctions (whole-sign) or stored same-sign fallback.
  *  - `receivedAspects` — aspects received on this planet (the aspecting planet's drishti).
  *  - `bhavaSuchika` — Navamsa sign's D1 house (1-12).
@@ -35,6 +37,7 @@
  *  `calculatedDetails: null`/empty yields no entries. */
 import { type Aspect, getNakshatraLord } from "@/lib/astrology";
 import {
+    LOCKED_PLANET_STRENGTH_FACTORS,
     type ObservationColor,
     PLANET_FACTOR_COLORS,
     PLANET_STRENGTH_FACTORS,
@@ -46,7 +49,9 @@ import type { CalculatedDetailsLike, PlanetLike } from "@/lib/notepadObservation
 import { resolveWargaKendara } from "@/lib/wargaKendara";
 
 /** One derived strength factor (a sub-tag) for a planet. `color` is the EFFECTIVE classification
- *  after applying the student's stored override (derived colour when none is stored). */
+ *  after applying the student's stored override (derived colour when none is stored). Locked
+ *  factors (`LOCKED_PLANET_STRENGTH_FACTORS`) NEVER apply an override — they always keep the
+ *  derived colour, so a stale stored override cannot recolour them. */
 export interface PlanetStrengthFactor {
     key: PlanetStrengthFactorKey;
     planet: number;
@@ -79,10 +84,11 @@ export interface PlanetStrengthEntry {
     planet: number;
     /** The emitted (present-only) factors in catalog order — the panel's sub-tags. */
     factors: PlanetStrengthFactor[];
-    /** `{ green, total }` — green counts the effective-green SHOWN tags; total counts green + red
-     *  shown tags. White (informational/neutral) tags are shown but never affect the ratio;
-     *  absent factors are never emitted at all. */
-    ratio: { green: number; total: number };
+    /** `{ good, total }` — ratio = (all tags rendered in the Graha bala panel − red-family ones) / all
+     *  tags. `total` counts EVERY shown tag: factor chips, conjunctions, received aspects, Bhava
+     *  Suchika, owned-house lordship, the house-owner block (rashi lord + its other houses + the
+     *  relation tag) and the nakshatra-owner tag; `good` = total − red. Absent factors emit no tag. */
+    ratio: { good: number; total: number };
     /** Planets conjunct to this planet, enum order. Informational — never part of the ratio. */
     conjunctions: PlanetConjunction[];
     /** Aspects received (the aspecting planet's drishti on THIS planet), enum order.
@@ -93,10 +99,18 @@ export interface PlanetStrengthEntry {
     /** Houses this planet rules (whole-sign lordship from the lagna) — replaces the old `house`
      *  factor chip (TODO #25). */
     ownedHouses: number[];
-    /** Lord of this planet's D1 house — the planet house-owner tag (TODO #26). */
+    /** Lord of this planet's D1 house — the planet house-owner tag (TODO #26). Absent when the
+     *  owner is the planet itself (own-sign placement: the ownership tags already convey it). */
     houseOwner?: number;
-    /** The other houses the house owner rules — its ownership context (TODO #26). */
+    /** The OTHER houses the house owner rules — its ownership context (TODO #26), excluding the
+     *  planet's current house (that lordship is shown by the house-owner tag itself). */
     houseOwnerHouses: number[];
+    /** Sign distance (1-12) from the house owner's placement sign to this planet's sign — 1 means
+     *  the owner occupies the very sign it rules ("in its own house"); the informational context
+     *  tag renders e.g. "3rd house from Venus". */
+    houseOwnerRelation?: number;
+    /** The house owner's D1 house — colours the relation tag (green 1/2/5/9, red 6/8/12, else gray). */
+    houseOwnerHouse?: number;
     /** Lord of the nakshatra this planet occupies (TODO #27). */
     nakshatraOwner?: number;
 }
@@ -106,10 +120,11 @@ export interface PlanetStrengthEntry {
 export type PlanetFactorOverrides = Record<string, Partial<Record<PlanetStrengthFactorKey, PlanetFactorColor>>>;
 
 /** The 5-band ratio colour rule (TODO #26): 0-25% dark red, 25-40% light red, 40-60% white, 60-80%
- *  light green, 80-100% dark green. A zero-total (no green/red shown tags) is neutral white. */
-export function ratioColorOf(ratio: { green: number; total: number }): ObservationColor {
+ *  light green, 80-100% dark green. `good` = every PRESENT factor chip that is not red (green,
+ *  dark-green or neutral white); `total` = all present factor chips. A zero-total → neutral white. */
+export function ratioColorOf(ratio: { good: number; total: number }): ObservationColor {
     if (ratio.total <= 0) return "white";
-    const pct = (ratio.green / ratio.total) * 100;
+    const pct = (ratio.good / ratio.total) * 100;
     if (pct <= 25) return "darkRed";
     if (pct <= 40) return "lightRed";
     if (pct <= 60) return "white";
@@ -125,10 +140,34 @@ export function bhavaColorOf(house: number): ObservationColor {
     return "white";
 }
 
+/** Colour of the house-owner relation tag, from the house OWNER's placement house (user-confirmed):
+ *  1/2/5/9 green, 6/8/12 red, anything else gray; unknown placement → gray. Note this rule includes
+ *  house 2 in green (unlike `bhavaColorOf`). */
+export function houseOwnerRelationColorOf(house: number | undefined): ObservationColor {
+    if (house === 6 || house === 8 || house === 12) return "red";
+    if (house === 1 || house === 2 || house === 5 || house === 9) return "green";
+    return "white";
+}
+
+/** Effective colour of the relation tag: the owner occupying its OWN sign ("තමාගේම භාවයේ") is
+ *  always green — the own-sign placement is inherently favorable regardless of the house number
+ *  (e.g. Venus in Libra of a Sagittarius lagna = house 11, still green). Any other relation follows
+ *  `houseOwnerRelationColorOf` on the owner's placement house. */
+export function houseOwnerRelationTagColorOf(
+    relation: number | undefined,
+    ownerHouse: number | undefined,
+): ObservationColor {
+    if (relation === 1) return "green";
+    return houseOwnerRelationColorOf(ownerHouse);
+}
+
 /** The student toggle cycle for a factor's classification: green → red → white → green. The derived
- *  colour is the starting point; every click advances one step (an override persists). */
+ *  colour is the starting point; every click advances one step (dark shades advance from their base
+ *  colour — darkGreen → red, darkRed → white — an override then persists). */
 export function nextPlanetFactorColor(current: PlanetFactorColor): PlanetFactorColor {
-    const index = PLANET_FACTOR_COLORS.indexOf(current);
+    if (current === "darkGreen") return "red";
+    if (current === "darkRed") return "white";
+    const index = PLANET_FACTOR_COLORS.indexOf(current as (typeof PLANET_FACTOR_COLORS)[number]);
     return PLANET_FACTOR_COLORS[(index + 1) % PLANET_FACTOR_COLORS.length];
 }
 
@@ -269,7 +308,7 @@ const FACTOR_BUILDERS: Partial<Record<PlanetStrengthFactorKey, FactorBuilder>> =
     ),
     maranakaraka: factorFlag(
         "maranakaraka",
-        "red",
+        "darkRed",
         listMember((calculated) => calculated.maranakaraka),
     ),
     maraka: factorFlag(
@@ -284,12 +323,12 @@ const FACTOR_BUILDERS: Partial<Record<PlanetStrengthFactorKey, FactorBuilder>> =
     ),
     wargoththama: factorFlag(
         "wargoththama",
-        "green",
+        "darkGreen",
         listMember((calculated) => calculated.wargoththamaPlanets),
     ),
     pushkara: factorFlag(
         "pushkara",
-        "green",
+        "darkGreen",
         listMember((calculated) => calculated.pushkaraPlanets),
     ),
     gandantha: factorFlag(
@@ -304,12 +343,12 @@ const FACTOR_BUILDERS: Partial<Record<PlanetStrengthFactorKey, FactorBuilder>> =
     ),
     ashtamansha: factorFlag(
         "ashtamansha",
-        "red",
+        "darkRed",
         listMember((calculated) => calculated.ashtamanshaPlanets),
     ),
     nidhanamsha: factorFlag(
         "nidhanamsha",
-        "red",
+        "darkRed",
         listMember((calculated) => calculated.nidhanamshaPlanets),
     ),
 };
@@ -318,6 +357,12 @@ function validPlanetRowsOf(calculated: CalculatedDetailsLike): PlanetLike[] {
     return Array.isArray(calculated.planets)
         ? calculated.planets.filter((p): p is PlanetLike => typeof p?.name === "number")
         : [];
+}
+
+/** The whole-sign D1 house of a sign relative to the lagna — the house the warga `d1` mapping uses. */
+function wholeSignHouseOf(sign: number | undefined, lagnaSign: number | undefined): number | undefined {
+    if (typeof sign !== "number" || typeof lagnaSign !== "number") return undefined;
+    return ((((sign - lagnaSign) % 12) + 12) % 12) + 1;
 }
 
 /** The lord of the planet's D1 house, derived like the house-lord observation — whole-sign from the
@@ -396,16 +441,18 @@ function receivedAspectsOf(
         .sort((a, b) => a.planet - b.planet);
 }
 
-function buildPlanetEntry(
-    calculated: CalculatedDetailsLike,
-    warga: ReturnType<typeof resolveWargaKendara>,
-    row: PlanetLike,
+/** Is this chip colour in the "red" family (subtracts from the planet ratio)?  */
+function isRedFamily(color: ObservationColor): boolean {
+    return color === "red" || color === "darkRed" || color === "lightRed";
+}
+
+/** Build the effective factor chips for one planet (catalog order, present-only). Returns the red
+ *  (red-family) chip count plus the factor context for the entry builder. */
+function buildFactors(
+    ctx: FactorCtx,
     overrides: PlanetFactorOverrides | undefined,
-): PlanetStrengthEntry {
-    const planet = row.name as number;
-    const ctx: FactorCtx = { calculated, warga, planet, row, house: d1HouseOf(calculated, warga, planet, row) };
+): { factors: PlanetStrengthFactor[]; red: number } {
     const factors: PlanetStrengthFactor[] = [];
-    let green = 0;
     let red = 0;
     for (const key of PLANET_STRENGTH_FACTORS) {
         try {
@@ -413,30 +460,133 @@ function buildPlanetEntry(
             if (!builder) continue;
             const factor = builder(ctx);
             if (!factor) continue;
-            const color = overrides?.[String(planet)]?.[key] ?? factor.color;
-            if (color === "green") green += 1;
-            else if (color === "red") red += 1;
+            const color = LOCKED_PLANET_STRENGTH_FACTORS.includes(key)
+                ? factor.color
+                : (overrides?.[String(ctx.planet)]?.[key] ?? factor.color);
+            if (isRedFamily(color)) red += 1;
             factors.push({ ...factor, color });
         } catch (error) {
             // A broken factor never breaks the whole planet — skip just that factor (UT-PS-109).
-            console.warn(`[planetStrength] ${key} factor failed for planet ${planet}`, error);
+            console.warn(`[planetStrength] ${key} factor failed for planet ${ctx.planet}`, error);
         }
     }
+    return { factors, red };
+}
+
+/** The per-planet context tags (conjunction / aspect / Bhava Suchika / owned houses / house-owner
+ *  block / nakshatra owner) plus — for the ratio — the two disjoint tag lists: `refPlanets`
+ *  (chips coloured by ANOTHER planet's ratio band) and `localTagColors` (chips coloured from local
+ *  chart facts). This is the single source of truth shared by the ratio counting and the render,
+ *  so a chip the panel shows always counts into the ratio exactly once and with the same colour. */
+interface DerivedContext {
+    conjunctions: PlanetConjunction[];
+    receivedAspects: ReceivedAspect[];
+    bhavaSuchika?: number;
+    ownedHouses: number[];
+    houseOwner?: number;
+    houseOwnerHouses: number[];
+    houseOwnerRelation?: number;
+    houseOwnerHouse?: number;
+    nakshatraOwner?: number;
+    /** Cross-planet chips (conjunction/aspect/rashi-lord/nakshatra-owner) — counted via the band of
+     *  `planet` in `refPlanets` (duplicates preserved: each one is a separate rendered chip). */
+    refPlanets: number[];
+    /** Chips coloured deterministically from the chart (Bhava Suchika, owned houses, the house
+     *  owner's other houses and the relation tag). */
+    localTagColors: ObservationColor[];
+}
+
+function deriveContext(
+    calculated: CalculatedDetailsLike,
+    warga: ReturnType<typeof resolveWargaKendara>,
+    ctx: FactorCtx,
+): DerivedContext {
+    const planet = ctx.planet;
+    const row = ctx.row;
     const lagnaSign = calculated.ascendant?.sign;
     const houseOwner = houseOwnerOf(calculated, ctx.house);
+    const houseOwnerRow =
+        houseOwner !== undefined ? validPlanetRowsOf(calculated).find((p) => p.name === houseOwner) : undefined;
     const bhavaSuchika = calculated.bhavaSuchika?.[String(planet)];
     const nakshatraOwner = typeof row.nakshatra === "number" ? getNakshatraLord(row.nakshatra) : undefined;
+    const conjunctions = conjunctionsOf(calculated, warga, planet, row);
+    const receivedAspects = receivedAspectsOf(calculated, warga, planet);
+    const ownedHouses = ownedHousesOf(lagnaSign, planet);
+    const blockActive = houseOwner !== undefined && houseOwner !== planet;
+    const houseOwnerHouses =
+        houseOwner !== undefined ? ownedHousesOf(lagnaSign, houseOwner).filter((house) => house !== ctx.house) : [];
+    const houseOwnerRelation =
+        houseOwner !== undefined && typeof houseOwnerRow?.sign === "number" && typeof row.sign === "number"
+            ? ((((row.sign - houseOwnerRow.sign) % 12) + 12) % 12) + 1
+            : undefined;
+    const houseOwnerHouse = houseOwnerRow !== undefined ? wholeSignHouseOf(houseOwnerRow.sign, lagnaSign) : undefined;
+
+    const refPlanets: number[] = [
+        ...conjunctions.map((conjunction) => conjunction.planet),
+        ...receivedAspects.map((received) => received.planet),
+        ...(blockActive ? [houseOwner as number] : []),
+        ...(nakshatraOwner !== undefined ? [nakshatraOwner] : []),
+    ];
+    const localTagColors: ObservationColor[] = [];
+    if (typeof bhavaSuchika === "number") localTagColors.push(bhavaColorOf(bhavaSuchika));
+    for (const house of ownedHouses) localTagColors.push(bhavaColorOf(house));
+    if (blockActive) {
+        for (const house of houseOwnerHouses) localTagColors.push(bhavaColorOf(house));
+        if (houseOwnerRelation !== undefined)
+            localTagColors.push(houseOwnerRelationTagColorOf(houseOwnerRelation, houseOwnerHouse));
+    }
+
+    return {
+        conjunctions,
+        receivedAspects,
+        ...(typeof bhavaSuchika === "number" ? { bhavaSuchika } : {}),
+        ownedHouses,
+        ...(houseOwner !== undefined ? { houseOwner } : {}),
+        houseOwnerHouses,
+        ...(houseOwnerRelation !== undefined ? { houseOwnerRelation } : {}),
+        ...(houseOwnerHouse !== undefined ? { houseOwnerHouse } : {}),
+        ...(nakshatraOwner !== undefined ? { nakshatraOwner } : {}),
+        refPlanets,
+        localTagColors,
+    };
+}
+
+/** One planet's pre-derived chips (factor chips + context) plus the local red counts — computed once
+ *  and shared by the band-convergence pass and the entry builder. */
+interface PlanetBase {
+    planet: number;
+    ctx: FactorCtx;
+    factors: PlanetStrengthFactor[];
+    chipRed: number;
+    context: DerivedContext;
+}
+
+/** Ratio = (ALL tags rendered for this planet in the Graha bala panel − red-family ones) / all
+ *  tags, mirroring the render loop exactly: every chip the panel shows counts into the total. Chips
+ *  coloured by ANOTHER planet's ratio (conjunction/aspect/rashi-lord/nakshatra-owner) are classified
+ *  with the SAME full-ratio band the render displays (`refColorOf`) so a visually green chip never
+ *  subtracts from the ratio. */
+function buildPlanetEntry(base: PlanetBase, refColorOf: (planet: number) => ObservationColor): PlanetStrengthEntry {
+    const { planet, factors, chipRed, context } = base;
+    const total = factors.length + context.refPlanets.length + context.localTagColors.length;
+    const red =
+        chipRed +
+        context.localTagColors.filter(isRedFamily).length +
+        context.refPlanets.filter((ref) => isRedFamily(refColorOf(ref))).length;
+
     return {
         planet,
         factors,
-        ratio: { green, total: green + red },
-        conjunctions: conjunctionsOf(calculated, warga, planet, row),
-        receivedAspects: receivedAspectsOf(calculated, warga, planet),
-        ...(typeof bhavaSuchika === "number" ? { bhavaSuchika } : {}),
-        ownedHouses: ownedHousesOf(lagnaSign, planet),
-        ...(houseOwner !== undefined ? { houseOwner } : {}),
-        houseOwnerHouses: houseOwner !== undefined ? ownedHousesOf(lagnaSign, houseOwner) : [],
-        ...(nakshatraOwner !== undefined ? { nakshatraOwner } : {}),
+        ratio: { good: total - red, total },
+        conjunctions: context.conjunctions,
+        receivedAspects: context.receivedAspects,
+        ...(context.bhavaSuchika !== undefined ? { bhavaSuchika: context.bhavaSuchika } : {}),
+        ownedHouses: context.ownedHouses,
+        ...(context.houseOwner !== undefined ? { houseOwner: context.houseOwner } : {}),
+        houseOwnerHouses: context.houseOwnerHouses,
+        ...(context.houseOwnerRelation !== undefined ? { houseOwnerRelation: context.houseOwnerRelation } : {}),
+        ...(context.houseOwnerHouse !== undefined ? { houseOwnerHouse: context.houseOwnerHouse } : {}),
+        ...(context.nakshatraOwner !== undefined ? { nakshatraOwner: context.nakshatraOwner } : {}),
     };
 }
 
@@ -451,12 +601,46 @@ export function computePlanetStrengths(
     const rows = calculated.planets
         .filter((p): p is PlanetLike => typeof p?.name === "number")
         .sort((a, b) => (a.name as number) - (b.name as number));
+    const bases: PlanetBase[] = rows.map((row) => {
+        const planet = row.name as number;
+        const ctx: FactorCtx = { calculated, warga, planet, row, house: d1HouseOf(calculated, warga, planet, row) };
+        const { factors, red: chipRed } = buildFactors(ctx, overrides);
+        return { planet, ctx, factors, chipRed, context: deriveContext(calculated, warga, ctx) };
+    });
+    // Converge the ratio bands to a fixed point. A cross-planet chip is coloured and counted by the
+    // REFERENCED planet's FULL-ratio band (what the render shows), and that band itself counts its
+    // own cross-planet chips — so we iterate until every planet's band is stable (bounded: real
+    // charts settle fast; the cap only covers degenerate mutual-reference loops).
+    const finalBandOf = new Map<number, ObservationColor>(
+        bases.map((base) => [
+            base.planet,
+            ratioColorOf({ good: base.factors.length - base.chipRed, total: base.factors.length }),
+        ]),
+    );
+    for (let iter = 0; iter <= bases.length; iter += 1) {
+        const next = new Map<number, ObservationColor>();
+        let changed = false;
+        for (const base of bases) {
+            const total = base.factors.length + base.context.refPlanets.length + base.context.localTagColors.length;
+            const localRed = base.chipRed + base.context.localTagColors.filter((color) => isRedFamily(color)).length;
+            const crossRed = base.context.refPlanets.filter((ref) =>
+                isRedFamily(finalBandOf.get(ref) ?? "white"),
+            ).length;
+            const band = ratioColorOf({ good: total - localRed - crossRed, total });
+            next.set(base.planet, band);
+            changed = changed || band !== finalBandOf.get(base.planet);
+        }
+        finalBandOf.clear();
+        next.forEach((band, planet) => finalBandOf.set(planet, band));
+        if (!changed) break;
+    }
+    const refColorOf = (planet: number): ObservationColor => finalBandOf.get(planet) ?? "white";
     const entries: PlanetStrengthEntry[] = [];
-    for (const row of rows) {
+    for (const base of bases) {
         try {
-            entries.push(buildPlanetEntry(calculated, warga, row, overrides));
+            entries.push(buildPlanetEntry(base, refColorOf));
         } catch (error) {
-            console.warn(`[planetStrength] derivation failed for planet ${row.name}`, error);
+            console.warn(`[planetStrength] derivation failed for planet ${base.planet}`, error);
         }
     }
     return entries;

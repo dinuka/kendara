@@ -3,14 +3,17 @@
  * specs/development/20260816-1923-student-notes-implementation.md.
  *
  * Only PRESENT factors are emitted — absence NEVER produces a tag (user-confirmed 2026-08-19: no
- * "මරණකාරක නොවේ" / "No Dig Bala" type tags). The planet ratio counts ONLY the shown (emitted) tags:
- * `{ green, green + red }` — white/informational tags are shown but never affect it.
+ * "මරණකාරක නොවේ" / "No Dig Bala" type tags). The planet ratio = (all shown chips − red ones) / all
+ * shown chips: `{ good, total }` where `good` = non-red (green, dark-green or neutral white) count —
+ * white/informational tags count as good, red (incl. dark-red) subtract.
  */
 import type { Aspect } from "@/lib/astrology";
 import type { CalculatedDetailsLike } from "@/lib/notepadObservations";
 import {
     bhavaColorOf,
     computePlanetStrengths,
+    houseOwnerRelationColorOf,
+    houseOwnerRelationTagColorOf,
     nextPlanetFactorColor,
     planetStrengthOf,
     ratioColorOf,
@@ -23,16 +26,16 @@ const calc = (overrides: Partial<CalculatedDetailsLike> = {}): CalculatedDetails
 });
 
 describe("ratioColorOf — the 5-band ratio rule (D-10)", () => {
-    test("zero-total (no green/red shown tags) is neutral white", () => {
-        expect(ratioColorOf({ green: 0, total: 0 })).toBe("white");
+    test("zero-total (no shown factor chips) is neutral white", () => {
+        expect(ratioColorOf({ good: 0, total: 0 })).toBe("white");
     });
 
     test.each([
-        [{ green: 1, total: 4 }, "darkRed"], // 25%
-        [{ green: 2, total: 5 }, "lightRed"], // 40%
-        [{ green: 3, total: 5 }, "white"], // 60%
-        [{ green: 4, total: 5 }, "lightGreen"], // 80%
-        [{ green: 5, total: 5 }, "darkGreen"], // 100%
+        [{ good: 1, total: 4 }, "darkRed"], // 25%
+        [{ good: 2, total: 5 }, "lightRed"], // 40%
+        [{ good: 3, total: 5 }, "white"], // 60%
+        [{ good: 4, total: 5 }, "lightGreen"], // 80%
+        [{ good: 5, total: 5 }, "darkGreen"], // 100%
     ])("%o → %s", (ratio, expected) => {
         expect(ratioColorOf(ratio)).toBe(expected);
     });
@@ -43,6 +46,9 @@ describe("nextPlanetFactorColor — the student toggle cycle", () => {
         expect(nextPlanetFactorColor("green")).toBe("red");
         expect(nextPlanetFactorColor("red")).toBe("white");
         expect(nextPlanetFactorColor("white")).toBe("green");
+        // Derived dark shades advance from their base colour, then persist as a normal override.
+        expect(nextPlanetFactorColor("darkGreen")).toBe("red");
+        expect(nextPlanetFactorColor("darkRed")).toBe("white");
     });
 });
 
@@ -78,13 +84,17 @@ describe("computePlanetStrengths — always-present polarity factors (UT-PS-102.
         );
         const byPlanet = Object.fromEntries(result.map((entry) => [entry.planet, entry]));
         // The `house` factor is no longer emitted (replaced by the ownership context tags) — the
-        // sign factor alone classifies polarity.
+        // sign factor alone classifies polarity. The ratio now counts EVERY rendered tag: the sign
+        // chip, the same-sign conjunctions (all three planets share sign 5) and the owned-house /
+        // house-owner context tags (lagna Aries; the stored `house` drives the owner lookup).
         expect(byPlanet[1].factors.map((f) => [f.key, f.color])).toEqual([["sign", "green"]]);
-        expect(byPlanet[1].ratio).toEqual({ green: 1, total: 1 });
+        // Sun: the "with Moon"/"with Mars" conjunctions + the house-owner tags; Moon's own full band
+        // is green so the conjunction chips count as good → 5/6.
+        expect(byPlanet[1].ratio).toEqual({ good: 5, total: 6 });
         expect(byPlanet[2].factors.map((f) => [f.key, f.color])).toEqual([["sign", "red"]]);
-        expect(byPlanet[2].ratio).toEqual({ green: 0, total: 1 });
-        // White (neutral) tags are shown but never affect the ratio.
-        expect(byPlanet[3].ratio).toEqual({ green: 0, total: 0 });
+        expect(byPlanet[2].ratio).toEqual({ good: 5, total: 6 });
+        // White (neutral Sama) sign chip is shown and counts as good.
+        expect(byPlanet[3].ratio).toEqual({ good: 5, total: 7 });
     });
 
     test("navamsa factor appears only when navamsaStrength is stored; sign/navamsa carry the sign+strength params", () => {
@@ -130,12 +140,13 @@ describe("computePlanetStrengths — bala factors: gained only, no netha tags (U
             ["dig", "green"],
             ["cheshta", "green"],
         ]);
-        // green: sign, dig, cheshta = 3 of 3 shown tags.
-        expect(byPlanet[5].ratio).toEqual({ green: 3, total: 3 });
+        // factor chips: sign + dig + cheshta (green) — plus context tags (conjunction with planet 6,
+        // owned house + house-owner block) — all count toward the ratio now.
+        expect(byPlanet[5].ratio).toEqual({ good: 5, total: 6 });
 
         // Lost balas → no tag at all (no "netha" tags, never red).
         expect(byPlanet[6].factors.map((f) => [f.key, f.color])).toEqual([["sign", "green"]]);
-        expect(byPlanet[6].ratio).toEqual({ green: 1, total: 1 });
+        expect(byPlanet[6].ratio).toEqual({ good: 6, total: 7 });
     });
 
     test("dig never for Rahu/Ketu even when a digBala entry exists", () => {
@@ -176,10 +187,10 @@ describe("computePlanetStrengths — bala factors: gained only, no netha tags (U
             ["retrograde", "white"],
             ["combust", "red"],
         ]);
-        expect(byPlanet[1].ratio).toEqual({ green: 1, total: 2 }); // combust red counts; retrograde white does not
+        expect(byPlanet[1].ratio).toEqual({ good: 6, total: 7 }); // context tags included; combust red subtracts
         // Non-combust → no "not combust" tag.
         expect(byPlanet[2].factors.map((f) => f.key)).toEqual(["sign"]);
-        expect(byPlanet[2].ratio).toEqual({ green: 1, total: 1 });
+        expect(byPlanet[2].ratio).toEqual({ good: 5, total: 5 });
     });
 });
 
@@ -215,23 +226,23 @@ describe("computePlanetStrengths — karaka/varga flags: members only (UT-PS-107
         expect(p5.map((f) => [f.key, f.color])).toEqual([
             ["atmakaraka", "green"],
             ["yogakaraka", "green"],
-            ["maranakaraka", "red"],
+            ["maranakaraka", "darkRed"],
             ["maraka", "red"],
             ["badhaka", "red"],
-            ["wargoththama", "green"],
-            ["pushkara", "green"],
+            ["wargoththama", "darkGreen"],
+            ["pushkara", "darkGreen"],
             ["gandantha", "red"],
             ["gandamula", "red"],
-            ["ashtamansha", "red"],
-            ["nidhanamsha", "red"],
+            ["ashtamansha", "darkRed"],
+            ["nidhanamsha", "darkRed"],
         ]);
-        expect(byPlanet[5].ratio).toEqual({ green: 5, total: 12 }); // sign + 4 benefic present vs 7 malefic present
+        expect(byPlanet[5].ratio).toEqual({ good: 8, total: 16 }); // factor chips + context tags all counted
 
-        // Non-members → no flag tags at all, ratio stays clean (only shown tags count).
+        // Non-members → no flag tags; the ratio still counts their own context tags.
         expect(byPlanet[6].factors.map((f) => f.key)).toEqual(["sign"]);
-        expect(byPlanet[6].ratio).toEqual({ green: 1, total: 1 });
+        expect(byPlanet[6].ratio).toEqual({ good: 7, total: 8 });
         expect(byPlanet[7].factors.map((f) => f.key)).toEqual(["sign"]);
-        expect(byPlanet[7].ratio).toEqual({ green: 1, total: 1 });
+        expect(byPlanet[7].ratio).toEqual({ good: 7, total: 8 });
     });
 
     test("missing flag data is NOT a factor — no flag tags at all", () => {
@@ -249,7 +260,7 @@ describe("computePlanetStrengths — karaka/varga flags: members only (UT-PS-107
         );
         const factors = Object.fromEntries(result[0].factors.map((f) => [f.key, f]));
         expect(factors.atmakaraka.color).toBe("green");
-        expect(factors.maranakaraka.color).toBe("red");
+        expect(factors.maranakaraka.color).toBe("darkRed");
     });
 });
 
@@ -291,9 +302,9 @@ describe("computePlanetStrengths — order + denominator (UT-PS-105)", () => {
             "atmakaraka",
             "wargoththama",
         ]);
-        // green: sign, navamsa, dig, cheshta, atmakaraka, wargoththama = 6
-        // red: combust = 1   (kala/naisargika lost → not emitted; retrograde white shown, not counted)
-        expect(entry.ratio).toEqual({ green: 6, total: 7 });
+        // Factor chips: sign, navamsa, dig, cheshta, atmakaraka, wargoththama, retrograde (white) = 7 good
+        // candidates, combust red; plus the context tags (conjunctions, owned house, house owner…).
+        expect(entry.ratio).toEqual({ good: 10, total: 12 });
         expect(entry.factors.filter((f) => f.color === "white")).toHaveLength(1); // retrograde only
     });
 
@@ -312,7 +323,7 @@ describe("computePlanetStrengths — order + denominator (UT-PS-105)", () => {
 });
 
 describe("computePlanetStrengths — student overrides (UT-PS-110)", () => {
-    test("an override replaces the effective color; white/neutral tags never count", () => {
+    test("an override replaces the effective color; white tags count as good", () => {
         const result = computePlanetStrengths(
             calc({
                 planets: [{ name: 5, sign: 9, house: 10, strength: 1.25, navamsaStrength: 0.75 }],
@@ -328,10 +339,11 @@ describe("computePlanetStrengths — student overrides (UT-PS-110)", () => {
             { "5": { house: "white", cheshta: "red" } },
         );
         const entry = result[0];
-        // Shown: sign, navamsa, dig, cheshta. Derived green: sign, navamsa, dig = 3
-        // (cheshta forced red → red = 1). The stored `house` override is inert — the `house`
-        // factor no longer emits (kept in the validation catalog only so old overrides persist).
-        expect(entry.ratio).toEqual({ green: 3, total: 4 });
+        // Shown: sign, navamsa, dig, cheshta. Derived good: sign, navamsa, dig = 3 (cheshta forced red →
+        // red = 1); the context tags (conjunction + owned-house + house-owner block) add to the total.
+        // The stored `house` override is inert — the `house` factor no longer emits (kept in the
+        // validation catalog only so old overrides persist).
+        expect(entry.ratio).toEqual({ good: 6, total: 8 });
         expect(entry.factors.some((f) => f.key === "house")).toBe(false);
         expect(entry.factors.find((f) => f.key === "cheshta")?.color).toBe("red");
     });
@@ -340,8 +352,9 @@ describe("computePlanetStrengths — student overrides (UT-PS-110)", () => {
         const result = computePlanetStrengths(calc({ planets: [{ name: 2, sign: 5, house: 3, strength: 0 }] }), {
             "2": { sign: "green" },
         });
-        // sign stays white (Sama) by default, overridden to green → 1 of 1 decidable.
-        expect(result[0].ratio).toEqual({ green: 1, total: 1 });
+        // sign stays white (Sama) by default, overridden to green; the owned-house + house-owner context
+        // tags are good → ratio counts all of them.
+        expect(result[0].ratio).toEqual({ good: 3, total: 4 });
     });
 
     test("overrides never throw for unknown planets/keys", () => {
@@ -350,6 +363,26 @@ describe("computePlanetStrengths — student overrides (UT-PS-110)", () => {
                 "99": { nonexistent: "green" },
             }),
         ).not.toThrow();
+    });
+
+    test("locked factors ignore stored overrides — they always keep their derived dark shade", () => {
+        const result = computePlanetStrengths(
+            calc({
+                planets: [{ name: 1, sign: 4, house: 11, strength: 1.25 }],
+                pushkaraPlanets: [1],
+                maranakaraka: [1],
+            }),
+            { "1": { pushkara: "red", sign: "red" } },
+        );
+        const entry = result[0];
+        // Sun's pushkara override is stale (recolouring a locked factor) — the derived darkGreen
+        // is kept and counts as green; the non-locked `sign` override still applies.
+        expect(entry.factors.find((f) => f.key === "pushkara")?.color).toBe("darkGreen");
+        expect(entry.factors.find((f) => f.key === "maranakaraka")?.color).toBe("darkRed");
+        expect(entry.factors.find((f) => f.key === "sign")?.color).toBe("red");
+        // Factor chips: pushkara (darkGreen) good; sign + maranakaraka (darkRed) red → plus the context
+        // tags (owned house, house owner…) — all shown tags count toward the ratio.
+        expect(entry.ratio).toEqual({ good: 4, total: 6 });
     });
 });
 
@@ -364,6 +397,32 @@ describe("computePlanetStrengths — Graha bala context tags (TODO #25/#26/#27)"
         expect(bhavaColorOf(2)).toBe("white");
         expect(bhavaColorOf(4)).toBe("white");
         expect(bhavaColorOf(10)).toBe("white");
+    });
+
+    test("houseOwnerRelationColorOf: 1/2/5/9 green (owner's placement house), 6/8/12 red, else gray", () => {
+        expect(houseOwnerRelationColorOf(1)).toBe("green");
+        expect(houseOwnerRelationColorOf(2)).toBe("green");
+        expect(houseOwnerRelationColorOf(5)).toBe("green");
+        expect(houseOwnerRelationColorOf(9)).toBe("green");
+        expect(houseOwnerRelationColorOf(6)).toBe("red");
+        expect(houseOwnerRelationColorOf(8)).toBe("red");
+        expect(houseOwnerRelationColorOf(12)).toBe("red");
+        expect(houseOwnerRelationColorOf(7)).toBe("white");
+        expect(houseOwnerRelationColorOf(10)).toBe("white");
+        expect(houseOwnerRelationColorOf(undefined)).toBe("white");
+    });
+
+    test("houseOwnerRelationTagColorOf: own-sign placement (relation 1) is always green, even in a gray house", () => {
+        // The real chart bug: Venus in Libra of a Sagittarius lagna = house 11 (gray) yet the
+        // "තමාගේම භාවයේ" tag must be green.
+        expect(houseOwnerRelationTagColorOf(1, 11)).toBe("green");
+        expect(houseOwnerRelationTagColorOf(1, 6)).toBe("green");
+        expect(houseOwnerRelationTagColorOf(1, undefined)).toBe("green");
+        // Other relations follow the owner's placement house rule.
+        expect(houseOwnerRelationTagColorOf(2, 2)).toBe("green");
+        expect(houseOwnerRelationTagColorOf(3, 11)).toBe("white");
+        expect(houseOwnerRelationTagColorOf(3, 8)).toBe("red");
+        expect(houseOwnerRelationTagColorOf(undefined, undefined)).toBe("white");
     });
 
     test("conjunctions: stored same-sign fallback carries the true-degree orb, enum order", () => {
@@ -432,7 +491,39 @@ describe("computePlanetStrengths — Graha bala context tags (TODO #25/#26/#27)"
         const entry = result[0];
         expect(entry.ownedHouses).toEqual([5]); // Sun rules Leo → D1 house 5
         expect(entry.houseOwner).toBe(6); // house 7 = Libra → Venus
-        expect(entry.houseOwnerHouses).toEqual([2, 7]); // Venus rules Taurus + Libra
+        expect(entry.houseOwnerHouses).toEqual([2]); // Venus rules Taurus + Libra but the current house 7 is excluded
+        expect(entry.houseOwnerRelation).toBeUndefined(); // Venus has no sign data in this chart
+    });
+
+    test("houseOwnerHouses excludes the current house; houseOwnerRelation counts from the owner's sign", () => {
+        // Moon in Gemini (house 3, Mercury's sign) with Mercury placed in Aries — count 3 from Mercury.
+        const result = computePlanetStrengths(
+            calc({
+                ascendant: { sign: 1, degree: 0, lord: 3 },
+                planets: [
+                    { name: 2, sign: 3, house: 3, strength: 1.25 }, // Moon in Gemini
+                    { name: 4, sign: 1, house: 1, strength: 1.25 }, // Mercury in Aries
+                ],
+            }),
+        );
+        const moon = result[0];
+        expect(moon.houseOwner).toBe(4); // Mercury rules Gemini
+        expect(moon.houseOwnerHouses).toEqual([6]); // Mercury rules Gemini(3) + Virgo(6); current house 3 excluded
+        expect(moon.houseOwnerRelation).toBe(3); // Gemini is the 3rd sign from Mercury's Aries
+        expect(moon.houseOwnerHouse).toBe(1); // Mercury placed in Aries → house 1 → the relation tag is green
+        expect(houseOwnerRelationColorOf(moon.houseOwnerHouse)).toBe("green");
+
+        // Owner placed in the sign it rules → relation 1 ("in its own house").
+        const self = computePlanetStrengths(
+            calc({
+                ascendant: { sign: 1, degree: 0, lord: 3 },
+                planets: [
+                    { name: 2, sign: 3, house: 3, strength: 1.25 }, // Moon in Gemini
+                    { name: 4, sign: 3, house: 3, strength: 1.25 }, // Mercury in Gemini
+                ],
+            }),
+        );
+        expect(self[0].houseOwnerRelation).toBe(1);
     });
 
     test("nakshatra owner: the Vimshottari lord of the occupied nakshatra", () => {
@@ -456,7 +547,7 @@ describe("computePlanetStrengths — Graha bala context tags (TODO #25/#26/#27)"
         expect(without[0].bhavaSuchika).toBeUndefined();
     });
 
-    test("context tags never affect the factor ratio", () => {
+    test("every rendered tag counts toward the ratio — context tags included", () => {
         const result = computePlanetStrengths(
             calc({
                 planets: [
@@ -469,8 +560,78 @@ describe("computePlanetStrengths — Graha bala context tags (TODO #25/#26/#27)"
         for (const entry of result) {
             expect(entry.factors.map((f) => f.key)).toEqual(["sign"]);
         }
-        expect(result[0].ratio).toEqual({ green: 1, total: 1 });
-        expect(result[1].ratio).toEqual({ green: 1, total: 1 });
+        expect(result[0].ratio).toEqual({ good: 7, total: 7 });
+        expect(result[1].ratio).toEqual({ good: 5, total: 6 });
+    });
+
+    test("real-chart regression (6aa93fd170e117c0c03f0041): Sun in Leo, lagna Sagittarius — all panel tags count", () => {
+        const result = computePlanetStrengths(
+            calc({
+                ascendant: { sign: 9, degree: 0, lord: 5 },
+                planets: [
+                    // Sun in Leo (trikona, green), positive navamsa.
+                    { name: 1, sign: 5, house: 9, strength: 1.25, navamsaStrength: 0.1 },
+                    // Moon and Mars aspect Sun.
+                    {
+                        name: 2,
+                        sign: 7,
+                        house: 11,
+                        strength: 1.25,
+                        aspects: [{ planetName: 1, aspectType: 120, isBeneficial: true }],
+                    },
+                    {
+                        name: 3,
+                        sign: 3,
+                        house: 7,
+                        strength: 1.25,
+                        aspects: [{ planetName: 1, aspectType: 120, isBeneficial: true }],
+                    },
+                    // Ketu shares Sun's sign → the conjunction chip is a good tag.
+                    { name: 9, sign: 5, house: 9, strength: 0 },
+                ],
+                pushkaraPlanets: [1],
+                bhavaSuchika: { "1": 1 },
+                atmakaraka: 1,
+            }),
+        );
+        const sun = result.find((r) => r.planet === 1)!;
+        expect(new Set(sun.factors.map((f) => f.key))).toEqual(new Set(["sign", "navamsa", "atmakaraka", "pushkara"]));
+        // 4 factor chips + conjunction (Ketu) + 2 received aspects (Moon, Mars) + Bhava Suchika +
+        // owned house 9 (Leo is the 9th house from Sagittarius) = 9 good tags — no red family.
+        expect(sun.conjunctions.map((c) => c.planet)).toEqual([9]);
+        expect(sun.receivedAspects.map((a) => a.planet)).toEqual([2, 3]);
+        expect(sun.houseOwner).toBe(1); // Sun lords Leo, its own house → owner block hidden
+        expect(sun.ratio).toEqual({ good: 9, total: 9 });
+
+        const moon = result.find((r) => r.planet === 2)!;
+        // Moon: 1 sign chip + owned house 8 (Cancer is the 8th house, red) + Venus (absent, white) +
+        // Venus's other house 6 (red) = 4 tags, 2 red.
+        expect(moon.ratio).toEqual({ good: 2, total: 4 });
+    });
+
+    test("a referenced planet's FULL ratio band colours its chips — a visually green chip never subtracts (6aa93… regression)", () => {
+        // Moon conjunct Mars. Mars's FACTOR-only band is red-family (red sign + locked dark-red
+        // maranakaraka) but its FULL band is green (4 more good context tags) — so the "with Mars"
+        // chip renders green and must count as GOOD, never subtract. Same-shape bug as the real
+        // chart 6aa93fd170e117c0c03f0041 (Mars there counted as dark-red and dragged Moon to 11/14
+        // while the panel showed only 2 red chips → 12/14).
+        const result = computePlanetStrengths(
+            calc({
+                ascendant: { sign: 1, degree: 0, lord: 3 },
+                planets: [
+                    { name: 2, sign: 2, house: 2, strength: 1.25 },
+                    { name: 3, sign: 2, house: 2, strength: -1, navamsaStrength: 1 },
+                ],
+                maranakaraka: [3],
+            }),
+        );
+        const moon = result.find((r) => r.planet === 2)!;
+        // Mars: 3 factor chips (sign red + maranakaraka dark-red left, navamsa green) + conjunction
+        // (Moon, green) + rashi-lord Venus (absent) + owned house 1 green + owned house 8 red +
+        // Venus's other house → 5/8 = 63% light-green.
+        expect(result.find((r) => r.planet === 3)!.ratio).toEqual({ good: 5, total: 8 });
+        // Moon: sign + "with Mars" (green by Mars's FULL band) + owned house 4 + Venus tags = 5/5.
+        expect(moon.ratio).toEqual({ good: 5, total: 5 });
     });
 });
 

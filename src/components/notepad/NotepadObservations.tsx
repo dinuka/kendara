@@ -208,7 +208,7 @@ function PlanetChip({
     const name = planetName(t, tag.planet);
     const label =
         tag.kind === "planet" ? `${name} · ${signName(t, tag.sign)} · ${tag.house ?? "?"}` : composeTagLabel(t, tag);
-    const ratioBadge = entry && entry.ratio.total > 0 ? ` (${entry.ratio.green}/${entry.ratio.total})` : "";
+    const ratioBadge = entry && entry.ratio.total > 0 ? ` (${entry.ratio.good}/${entry.ratio.total})` : "";
     const isOpen = expandedPlanet === tag.planet;
     const strengthKey = strengthKeyOf(tag.strength);
     const strengthLine = strengthKey ? t(`astrology.${strengthKey}`) : undefined;

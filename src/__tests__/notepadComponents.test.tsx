@@ -86,7 +86,12 @@ jest.mock("@/hooks/useI18n", () => {
         "notepad.planetStrengths.conjunct": "with {planet}",
         "notepad.planetStrengths.aspectedBy": "{planet}'s drishti",
         "notepad.planetStrengths.conjunctionGap": "Conjunction gap {gap}",
-        "notepad.planetStrengths.bhavaSuchika": "Bhava Suchika {house}",
+        "notepad.planetStrengths.bhavaSuchika": "{name} ({house})",
+        "notepad.planetStrengths.houseLordship": "Lord of house {house}",
+        "notepad.planetStrengths.rashiLord": "Rashi lord {planet}",
+        "notepad.planetStrengths.otherHouse": "{planet}'s other house {house}",
+        "notepad.planetStrengths.relativeHouse": "{relative} house from {planet}",
+        "notepad.planetStrengths.ownerInOwnHouse": "{planet} in own house",
         "notepad.planetStrengths.ownsHouse": "{planet} owns house {house}",
         "notepad.planetStrengths.houseOwner": "House owner {planet}",
         "notepad.planetStrengths.nakshatraOwner": "Nakshatra owner {planet}",
@@ -95,10 +100,14 @@ jest.mock("@/hooks/useI18n", () => {
         "astrology.planetNames.1": "Sun",
         "astrology.planetNames.2": "Moon",
         "astrology.planetNames.3": "Mars",
+        "astrology.planetNames.4": "Mercury",
         "astrology.planetNames.6": "Venus",
+        "astrology.planetNames.8": "Rahu",
         "astrology.signNames.2": "Taurus",
         "astrology.signNamesLocative.2": "Taurus",
         "astrology.signNamesLocative.7": "Libra",
+        "astrology.bhavaSuchika.namesLocative.1": "Lagnamshaka",
+        "astrology.bhavaSuchika.namesLocative.8": "Nidhanamshaka",
         "astrology.strengthInSign.athiUchcha": "Deeply exalted",
         "astrology.strengthInSign.debilitated": "Debilitated",
         "astrology.strengthInSign.enemy": "Enemy",
@@ -488,19 +497,22 @@ describe("UI-SN-508: planet-strength section + strength panel (TODO #26)", () =>
         expect(planetSection.compareDocumentPosition(parentStrip)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
         // Moon: sign (green) only → 1/1. Mars: sign (red) only → 0/1 (the current-house factor chip
         // is replaced by the ownership context tags and never counts toward the ratio).
-        expect(screen.getByRole("button", { name: "Moon (1/1) — good" })).toBeInTheDocument();
-        expect(screen.getByRole("button", { name: "Mars (0/1) — bad" })).toBeInTheDocument();
+        expect(screen.getByRole("button", { name: "Moon (5/5) — good" })).toBeInTheDocument();
+        expect(screen.getByRole("button", { name: "Mars (4/6) — good" })).toBeInTheDocument();
     });
 
     test("clicking a planet chip opens its factor panel; the panel shows only PRESENT factors plus ownership/conjunction tags; toggling a factor persists via PUT", async () => {
         await openWithCalculations();
-        fireEvent.click(screen.getByRole("button", { name: "Moon (1/1) — good" }));
+        fireEvent.click(screen.getByRole("button", { name: "Moon (5/5) — good" }));
         expect(screen.getByRole("button", { name: "Deeply exalted in Taurus — good" })).toBeInTheDocument();
         // The current-house "House 7" factor chip is gone — replaced by the ownership tags.
         expect(screen.queryByRole("button", { name: "House 7 — good" })).not.toBeInTheDocument();
-        // Moon & Mars share Taurus → the whole-sign conjunction tag; Moon owns Cancer → house 4.
+        // Moon & Mars share Taurus → the whole-sign conjunction tag; Moon owns Cancer → house 4
+        // shown as the lordship tag "Lord of house 4" (not "House 4").
         expect(screen.getByRole("button", { name: "with Mars" })).toBeInTheDocument();
         expect(screen.getByLabelText("Moon owns house 4")).toBeInTheDocument();
+        expect(screen.getByText("Lord of house 4")).toBeInTheDocument();
+        expect(screen.queryByText("House 4")).not.toBeInTheDocument();
 
         fireEvent.click(screen.getByRole("button", { name: "Deeply exalted in Taurus — good" }));
         act(() => {
@@ -509,16 +521,17 @@ describe("UI-SN-508: planet-strength section + strength panel (TODO #26)", () =>
         await flushMicrotasks();
         const last = putBody(putCalls().length - 1);
         expect(last.planetFactorOverrides).toEqual({ "2": { sign: "red" } });
-        // sign → red → 0/1 dark-red band; the ratio on the planet chip drops.
-        expect(screen.getByRole("button", { name: "Moon (0/1) — bad" })).toBeInTheDocument();
+        // sign → red → only the sign chip is red (the "with Mars" chip stays green because Mars's own
+        // full ratio is 4/6) → 4/5 light-green band.
+        expect(screen.getByRole("button", { name: "Moon (4/5) — good" })).toBeInTheDocument();
     });
 
     test("planet chips in the observation sections show the ratio badge too", async () => {
         await openWithCalculations();
         const moonChip = screen.getByRole("button", { name: "Moon (good)" });
-        expect(moonChip).toHaveTextContent("(1/1)");
+        expect(moonChip).toHaveTextContent("(5/5)");
         const marsChip = screen.getByRole("button", { name: "Mars (bad)" });
-        expect(marsChip).toHaveTextContent("(0/1)");
+        expect(marsChip).toHaveTextContent("(4/6)");
     });
 
     test("an observation planet chip opens the same strength panel with the not-relevant footer", async () => {
@@ -542,9 +555,9 @@ describe("UI-SN-508: planet-strength section + strength panel (TODO #26)", () =>
             jest.advanceTimersByTime(500);
         });
         await flushMicrotasks();
-        // Lost balas → no "No Dig Bala" / "No Cheshta Bala" tags, ratio stays 1/1.
-        expect(screen.getByRole("button", { name: "Moon (1/1) — good" })).toBeInTheDocument();
-        fireEvent.click(screen.getByRole("button", { name: "Moon (1/1) — good" }));
+        // Lost balas → no "No Dig Bala" / "No Cheshta Bala" tags; the shown tags still count (4/4).
+        expect(screen.getByRole("button", { name: "Moon (4/4) — good" })).toBeInTheDocument();
+        fireEvent.click(screen.getByRole("button", { name: "Moon (4/4) — good" }));
         expect(screen.queryByRole("button", { name: /Bala/ })).not.toBeInTheDocument();
         expect(screen.getByRole("button", { name: "Deeply exalted in Taurus — good" })).toBeInTheDocument();
         // Ownership context replaces the old current-house chip.
@@ -582,7 +595,8 @@ describe("UI-SN-508: planet-strength section + strength panel (TODO #26)", () =>
     });
 
     test("sign/navamsa factor chips show the strength-in-sign meaning; an open panel is gapped from the other planets", async () => {
-        // Sun in Libra (debilitated, red), navamsa in Taurus (enemy, red) → 0/2.
+        // Sun in Libra (debilitated, red), navamsa in Taurus (enemy, red) → the two red factor chips
+        // plus the ownership/context tags → 2/5 light-red band.
         const withSun = {
             ascendant: { sign: 1, degree: 0, lord: 3 },
             planets: [{ name: 1, sign: 7, house: 1, strength: -1, navamsaSign: 2, navamsaStrength: -0.1 }],
@@ -596,7 +610,7 @@ describe("UI-SN-508: planet-strength section + strength panel (TODO #26)", () =>
         });
         await flushMicrotasks();
 
-        fireEvent.click(screen.getByRole("button", { name: "Sun (0/2) — bad" }));
+        fireEvent.click(screen.getByRole("button", { name: "Sun (2/5) — bad" }));
         expect(screen.getByRole("button", { name: "Debilitated in Libra — bad" })).toBeInTheDocument();
         expect(screen.getByRole("button", { name: "Enemy in Taurus — bad" })).toBeInTheDocument();
         // Ownership context replaces the old current-house chip: Sun rules Leo → house 5.
@@ -605,5 +619,187 @@ describe("UI-SN-508: planet-strength section + strength panel (TODO #26)", () =>
         // The panel sits below its chip with a bottom gap so it reads as separate from the other planets.
         const panel = screen.getByRole("group", { name: "Sun — Planet strengths" });
         expect(panel).toHaveClass("mb-2");
+    });
+
+    test("the Graha bala Bhava Suchika tag shows the house's named amshaka with its number", async () => {
+        const withBhavaSuchika = {
+            ascendant: { sign: 1, degree: 0, lord: 3 },
+            planets: [{ name: 2, sign: 2, house: 7, strength: 1.25 }],
+            bhavaSuchika: { "2": 1 },
+        };
+        mockFetch.mockResolvedValueOnce({ ok: true, json: async () => SAVED_DOC });
+        render(<Notepad horoscopeId="horo-1" calculatedDetails={withBhavaSuchika} />);
+        await flushMicrotasks();
+        fireEvent.click(screen.getByRole("button", { name: "Student notepad" }));
+        act(() => {
+            jest.advanceTimersByTime(500);
+        });
+        await flushMicrotasks();
+
+        fireEvent.click(screen.getByRole("button", { name: "Moon (5/5) — good" }));
+        expect(screen.getByLabelText("Lagnamshaka (1)")).toBeInTheDocument();
+    });
+
+    test("a planet in its own house shows no redundant house-owner tag", async () => {
+        // Moon in Cancer (lagna Aries) — the D1-house owner IS Moon, so no "Moon" owner tag;
+        // the ownership "Lord of house 4" tag already conveys the lordship.
+        const ownHouse = {
+            ascendant: { sign: 1, degree: 0, lord: 3 },
+            planets: [{ name: 2, sign: 4, house: 4, strength: 1.25 }],
+        };
+        mockFetch.mockResolvedValueOnce({ ok: true, json: async () => SAVED_DOC });
+        render(<Notepad horoscopeId="horo-1" calculatedDetails={ownHouse} />);
+        await flushMicrotasks();
+        fireEvent.click(screen.getByRole("button", { name: "Student notepad" }));
+        act(() => {
+            jest.advanceTimersByTime(500);
+        });
+        await flushMicrotasks();
+
+        fireEvent.click(screen.getByRole("button", { name: "Moon (2/2) — good" }));
+        expect(screen.getByLabelText("Moon owns house 4")).toBeInTheDocument();
+        expect(screen.getByText("Lord of house 4")).toBeInTheDocument();
+        // No "House owner Moon" tag for the planet's own-sign placement, and no duplicate lordship tag.
+        expect(screen.queryByLabelText("House owner Moon")).not.toBeInTheDocument();
+        expect(screen.getAllByText("Lord of house 4")).toHaveLength(1);
+    });
+
+    test("house-owner tags: rashi-lord tag, owner's other houses, and the sign-relation tag", async () => {
+        // Moon exalted in Taurus (house 2); owner Venus placed in Aries → relation "2nd house from Venus".
+        // Venus rules Taurus(2)+Libra(7) → only the OTHER house 7 is tagged; current house 2 is not.
+        const chart = {
+            ascendant: { sign: 1, degree: 0, lord: 3 },
+            planets: [
+                { name: 2, sign: 2, house: 2, strength: 1.25 }, // Moon in Taurus
+                { name: 6, sign: 1, house: 1, strength: 1.25 }, // Venus in Aries
+            ],
+        };
+        mockFetch.mockResolvedValueOnce({ ok: true, json: async () => SAVED_DOC });
+        render(<Notepad horoscopeId="horo-1" calculatedDetails={chart} />);
+        await flushMicrotasks();
+        fireEvent.click(screen.getByRole("button", { name: "Student notepad" }));
+        act(() => {
+            jest.advanceTimersByTime(500);
+        });
+        await flushMicrotasks();
+
+        fireEvent.click(screen.getByRole("button", { name: "Moon (5/5) — good" }));
+        expect(screen.getByText("Rashi lord Venus")).toBeInTheDocument();
+        expect(screen.getByText("Venus's other house 7")).toBeInTheDocument();
+        expect(screen.getByText("2nd house from Venus")).toBeInTheDocument();
+        // No separate lordship tag for the CURRENT house (already conveyed by the rashi-lord tag).
+        expect(screen.queryByText("Lord of house 2")).not.toBeInTheDocument();
+        // Venus placed in house 1 → the relation tag is green.
+        expect(screen.getByText("2nd house from Venus")).toHaveClass("text-green-800");
+    });
+
+    test('house-owner in its own sign shows the "in own house" relation tag', async () => {
+        // Moon in Taurus, Venus also in Taurus → relation 1 → "Venus in own house".
+        const chart = {
+            ascendant: { sign: 1, degree: 0, lord: 3 },
+            planets: [
+                { name: 2, sign: 2, house: 2, strength: 1.25 }, // Moon in Taurus
+                { name: 6, sign: 2, house: 2, strength: 1.25 }, // Venus in Taurus
+            ],
+        };
+        mockFetch.mockResolvedValueOnce({ ok: true, json: async () => SAVED_DOC });
+        render(<Notepad horoscopeId="horo-1" calculatedDetails={chart} />);
+        await flushMicrotasks();
+        fireEvent.click(screen.getByRole("button", { name: "Student notepad" }));
+        act(() => {
+            jest.advanceTimersByTime(500);
+        });
+        await flushMicrotasks();
+
+        fireEvent.click(screen.getByRole("button", { name: "Moon (6/6) — good" }));
+        expect(screen.getByText("Rashi lord Venus")).toBeInTheDocument();
+        expect(screen.getByText("Venus in own house")).toBeInTheDocument();
+        // Venus in Taurus = own sign, house 2 → "ශුක්ර තමාගේම භාවයේ" is green.
+        expect(screen.getByText("Venus in own house")).toHaveClass("text-green-800");
+        expect(screen.queryByText(/house from Venus/)).not.toBeInTheDocument();
+    });
+
+    test("real-chart bug: own-sign relation is green even when the sign falls in a gray house (11)", async () => {
+        // Sagittarius lagna; Moon & Venus both in Libra → house 11 (not a 1/2/5/9 green house) yet the
+        // "ශුක්ර තමාගේම භාවයේ" tag must still be green (fixes horoscope 6aa93fd170e117c0c03f0041).
+        const chart = {
+            ascendant: { sign: 9, degree: 0, lord: 5 },
+            planets: [
+                { name: 2, sign: 7, house: 11, strength: 1.25 }, // Moon in Libra
+                { name: 6, sign: 7, house: 11, strength: 1.25 }, // Venus in Libra
+            ],
+        };
+        mockFetch.mockResolvedValueOnce({ ok: true, json: async () => SAVED_DOC });
+        render(<Notepad horoscopeId="horo-1" calculatedDetails={chart} />);
+        await flushMicrotasks();
+        fireEvent.click(screen.getByRole("button", { name: "Student notepad" }));
+        act(() => {
+            jest.advanceTimersByTime(500);
+        });
+        await flushMicrotasks();
+
+        fireEvent.click(screen.getByRole("button", { name: "Moon (4/6) — good" }));
+        expect(screen.getByText("Rashi lord Venus")).toBeInTheDocument();
+        const ownHouse = screen.getByText("Venus in own house");
+        expect(ownHouse).toBeInTheDocument();
+        expect(ownHouse).toHaveClass("text-green-800");
+    });
+
+    test("nakshatra-owner tag shows a prefixed label, not a bare planet name", async () => {
+        // Moon in Taurus (exalted), nakshatra 6 (Ardra) → Rahu is the Vimshottari lord.
+        const chart = {
+            ascendant: { sign: 1, degree: 0, lord: 3 },
+            planets: [{ name: 2, sign: 2, house: 7, strength: 1.25, nakshatra: 6 }],
+        };
+        mockFetch.mockResolvedValueOnce({ ok: true, json: async () => SAVED_DOC });
+        render(<Notepad horoscopeId="horo-1" calculatedDetails={chart} />);
+        await flushMicrotasks();
+        fireEvent.click(screen.getByRole("button", { name: "Student notepad" }));
+        act(() => {
+            jest.advanceTimersByTime(500);
+        });
+        await flushMicrotasks();
+
+        fireEvent.click(screen.getByRole("button", { name: "Moon (5/5) — good" }));
+        expect(screen.getByText("Nakshatra owner Rahu")).toBeInTheDocument();
+        expect(screen.queryByRole("button", { name: "Rahu" })).not.toBeInTheDocument();
+    });
+
+    test("pushkara/gandantha/gandamula/maranakaraka chips are inert — they keep their dark shade and emit no PUT", async () => {
+        const chart = {
+            ascendant: { sign: 1, degree: 0, lord: 3 },
+            planets: [{ name: 2, sign: 2, house: 7, strength: 1.25 }],
+            pushkaraPlanets: [2],
+            gandanthaPlanets: [2],
+            gandamulaPlanets: [2],
+            maranakaraka: [2],
+        };
+        mockFetch.mockResolvedValueOnce({ ok: true, json: async () => SAVED_DOC });
+        render(<Notepad horoscopeId="horo-1" calculatedDetails={chart} />);
+        await flushMicrotasks();
+        fireEvent.click(screen.getByRole("button", { name: "Student notepad" }));
+        act(() => {
+            jest.advanceTimersByTime(500);
+        });
+        await flushMicrotasks();
+
+        fireEvent.click(screen.getAllByRole("button", { name: /^Moon/ })[0]);
+        // Rendered as inert spans (still labelled), NOT toggle buttons.
+        expect(screen.getByText("Maranakaraka")).toBeInTheDocument();
+        expect(screen.queryByRole("button", { name: "Maranakaraka — bad" })).not.toBeInTheDocument();
+        expect(screen.getByText("Pushkara")).toBeInTheDocument();
+        expect(screen.queryByRole("button", { name: "Pushkara — good" })).not.toBeInTheDocument();
+        expect(screen.getByText("Gandantha")).toBeInTheDocument();
+        expect(screen.getByText("Gandamula")).toBeInTheDocument();
+        // Clicking them never changes the colour nor persists an override.
+        const panel = screen.getByRole("group", { name: "Moon — Planet strengths" });
+        const putsBefore = putCalls().length;
+        fireEvent.click(within(panel).getByText("Maranakaraka"));
+        fireEvent.click(within(panel).getByText("Pushkara"));
+        act(() => {
+            jest.advanceTimersByTime(500);
+        });
+        await flushMicrotasks();
+        expect(putCalls().length).toBe(putsBefore);
     });
 });

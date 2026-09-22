@@ -370,6 +370,20 @@
                 "10": "අභිමානාංශකය",
                 "11": "ලාභාංශකය",
                 "12": "ව්‍යාංශකය"
+            },
+            "namesLocative": {
+                "1": "ලග්නාංශකයේ",
+                "2": "ධනාංශකයේ",
+                "3": "වික්‍රමාංශකයේ",
+                "4": "සුඛාංශකයේ",
+                "5": "පූර්වපුන්‍යාංශකයේ",
+                "6": "ශෂ්ඨාංශකයේ",
+                "7": "සප්තමාංශකයේ",
+                "8": "නිධානාංශකයේ",
+                "9": "භාග්‍යාංශකයේ",
+                "10": "අභිමානාංශකයේ",
+                "11": "ලාභාංශකයේ",
+                "12": "ව්‍යාංශකයේ"
             }
         },
         "marakaBadhaka": "මාරක / බාධක",
@@ -1580,12 +1594,12 @@
                 "sign": "රාශි බල",
                 "signLabel": "{sign} {strength}",
                 "navamsa": "නවාංශක බල",
-                "navamsaLabel": "{sign} {strength}",
+                "navamsaLabel": "{sign} නවාංශකයේ {strength}",
                 "house": "භාව {house}",
                 "dig": "දිග් බලය",
                 "kala": "කාල බලය",
                 "cheshta": "චේෂ්ටා බලය",
-                "naisargika": "නෛසර්ගික බලය",
+                "naisargika": "මරණකාරක නොවේ",
                 "retrograde": "ප්‍රතිගාමී",
                 "combust": "දවන (Combust)",
                 "atmakaraka": "ආත්මකාරක",
@@ -1602,10 +1616,15 @@
             },
             "conjunct": "{planet} සමග",
             "aspectedBy": "{planet}ගේ දෘශ්ඨිය",
-            "bhavaSuchika": "භාව සුචික {house}",
+            "bhavaSuchika": "{name}({house})",
+            "houseLordship": "{house} වන භාවාධිපති",
+            "rashiLord": "රාශි අධිපති {planet}",
+            "otherHouse": "{planet}ගේ අනෙක් භාවය {house}",
+            "relativeHouse": "{planet} භාවයේ සිට {count}වන භාවයේ",
+            "ownerInOwnHouse": "{planet} තමාගේම භාවයේ",
             "ownsHouse": "{planet} හිමි ගෘහය {house}",
             "houseOwner": "ගෘහ අධිපති {planet}",
-            "nakshatraOwner": "නැකත් අධිපති {planet}"
+            "nakshatraOwner": "නවාංශකාධිපති {planet}"
         },
         "housePurpose": {
             "0": {

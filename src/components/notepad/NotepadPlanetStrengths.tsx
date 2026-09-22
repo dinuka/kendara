@@ -9,13 +9,14 @@ import { createPortal } from "react-dom";
 import { type AspectTooltipTokens, composeAspectTooltip } from "@/lib/aspectTooltip";
 import { type Aspect, formatDegree } from "@/lib/astrology";
 import { PlanetaryStrength } from "@/lib/astrologyEnums";
-import { type ObservationColor } from "@/lib/notepadCatalogs";
+import { LOCKED_PLANET_STRENGTH_FACTORS, type ObservationColor } from "@/lib/notepadCatalogs";
 import type { CalculatedDetailsLike } from "@/lib/notepadObservations";
 import {
     type PlanetFactorOverrides,
     type PlanetStrengthEntry,
     bhavaColorOf,
     computePlanetStrengths,
+    houseOwnerRelationTagColorOf,
     nextPlanetFactorColor,
     ratioColorOf,
 } from "@/lib/planetStrength";
@@ -61,6 +62,16 @@ function planetName(t: Translate, name: number): string {
     return t(`astrology.planetNames.${name}`);
 }
 
+function ordinalOf(n: number): string {
+    const lastTwo = n % 100;
+    if (lastTwo >= 11 && lastTwo <= 13) return `${n}th`;
+    const last = n % 10;
+    if (last === 1) return `${n}st`;
+    if (last === 2) return `${n}nd`;
+    if (last === 3) return `${n}rd`;
+    return `${n}th`;
+}
+
 const STRENGTH_TRANSLATION_KEYS: Record<PlanetaryStrength, string> = {
     [PlanetaryStrength.ATHI_UCHCHA]: "athiUchcha",
     [PlanetaryStrength.UCHCHA]: "exalted",
@@ -86,8 +97,14 @@ function factorLabel(t: Translate, factor: PlanetStrengthEntry["factors"][number
     if (factor.key === "sign" || factor.key === "navamsa") {
         const strengthKey = strengthKeyOf(factor.params?.strength);
         if (factor.params?.sign !== undefined && strengthKey) {
+            // The rashi chip uses the sign's locative ("ධනුවේ"), while the navamsa chip uses the
+            // plain sign name ("ධනු") because the label itself carries the "නවාංශකයේ" suffix.
+            const signMessageKey =
+                factor.key === "navamsa"
+                    ? `astrology.signNames.${factor.params.sign}`
+                    : `astrology.signNamesLocative.${factor.params.sign}`;
             return t(`notepad.planetStrengths.factors.${factor.key}Label`, {
-                sign: t(`astrology.signNamesLocative.${factor.params.sign}`),
+                sign: t(signMessageKey),
                 strength: t(`astrology.strengthInSign.${strengthKey}`),
             });
         }
@@ -265,14 +282,20 @@ export function PlanetStrengthPanel({
         >
             {entry.factors.map((factor) => {
                 const label = factorLabel(t, factor);
+                const ariaLabel = t("notepad.aria.planetFactor", {
+                    factor: label,
+                    classification: t(`notepad.observation.classification.${factor.color}`),
+                });
+                if (LOCKED_PLANET_STRENGTH_FACTORS.includes(factor.key)) {
+                    // Factual flags (pushkara/gandantha/gandamula/maranakaraka) are not recolourable —
+                    // rendered as an inert chip that keeps its derived dark shade.
+                    return <InfoTag key={factor.key} color={factor.color} label={label} ariaLabel={ariaLabel} />;
+                }
                 return (
                     <button
                         key={factor.key}
                         type="button"
-                        aria-label={t("notepad.aria.planetFactor", {
-                            factor: label,
-                            classification: t(`notepad.observation.classification.${factor.color}`),
-                        })}
+                        aria-label={ariaLabel}
                         onClick={() =>
                             onOverrideFactor?.(entry.planet, factor.key, nextPlanetFactorColor(factor.color))
                         }
@@ -343,27 +366,37 @@ export function PlanetStrengthPanel({
                     {entry.bhavaSuchika !== undefined && (
                         <InfoTag
                             color={bhavaColorOf(entry.bhavaSuchika)}
-                            label={t("notepad.planetStrengths.bhavaSuchika", { house: entry.bhavaSuchika })}
-                            ariaLabel={t("notepad.planetStrengths.bhavaSuchika", { house: entry.bhavaSuchika })}
+                            label={t("notepad.planetStrengths.bhavaSuchika", {
+                                house: entry.bhavaSuchika,
+                                name: t(`astrology.bhavaSuchika.namesLocative.${entry.bhavaSuchika}`),
+                            })}
+                            ariaLabel={t("notepad.planetStrengths.bhavaSuchika", {
+                                house: entry.bhavaSuchika,
+                                name: t(`astrology.bhavaSuchika.namesLocative.${entry.bhavaSuchika}`),
+                            })}
                         />
                     )}
                     {entry.ownedHouses.map((house) => (
                         <InfoTag
                             key={`own-${house}`}
                             color={bhavaColorOf(house)}
-                            label={t("notepad.planetStrengths.factors.house", { house })}
+                            label={t("notepad.planetStrengths.houseLordship", { house })}
                             ariaLabel={t("notepad.planetStrengths.ownsHouse", {
                                 planet: planetName(t, entry.planet),
                                 house,
                             })}
                         />
                     ))}
-                    {houseOwner !== undefined && (
+                    {/* A planet in its own sign IS the house owner — its lordship is already shown by
+                        the ownership tags, so the owner's name (and its duplicate houses) are omitted. */}
+                    {houseOwner !== undefined && houseOwner !== entry.planet && (
                         <>
                             <InfoTag
                                 color={refColorOf(houseOwner)}
-                                label={planetName(t, houseOwner)}
-                                ariaLabel={t("notepad.planetStrengths.houseOwner", {
+                                label={t("notepad.planetStrengths.rashiLord", {
+                                    planet: planetName(t, houseOwner),
+                                })}
+                                ariaLabel={t("notepad.planetStrengths.rashiLord", {
                                     planet: planetName(t, houseOwner),
                                 })}
                             />
@@ -371,19 +404,54 @@ export function PlanetStrengthPanel({
                                 <InfoTag
                                     key={`owner-house-${house}`}
                                     color={bhavaColorOf(house)}
-                                    label={t("notepad.planetStrengths.factors.house", { house })}
+                                    label={t("notepad.planetStrengths.otherHouse", {
+                                        planet: planetName(t, houseOwner),
+                                        house,
+                                    })}
                                     ariaLabel={t("notepad.planetStrengths.ownsHouse", {
                                         planet: planetName(t, houseOwner),
                                         house,
                                     })}
                                 />
                             ))}
+                            {entry.houseOwnerRelation !== undefined && (
+                                <InfoTag
+                                    color={houseOwnerRelationTagColorOf(
+                                        entry.houseOwnerRelation,
+                                        entry.houseOwnerHouse,
+                                    )}
+                                    label={
+                                        entry.houseOwnerRelation === 1
+                                            ? t("notepad.planetStrengths.ownerInOwnHouse", {
+                                                  planet: planetName(t, houseOwner),
+                                              })
+                                            : t("notepad.planetStrengths.relativeHouse", {
+                                                  planet: planetName(t, houseOwner),
+                                                  count: entry.houseOwnerRelation,
+                                                  relative: ordinalOf(entry.houseOwnerRelation),
+                                              })
+                                    }
+                                    ariaLabel={
+                                        entry.houseOwnerRelation === 1
+                                            ? t("notepad.planetStrengths.ownerInOwnHouse", {
+                                                  planet: planetName(t, houseOwner),
+                                              })
+                                            : t("notepad.planetStrengths.relativeHouse", {
+                                                  planet: planetName(t, houseOwner),
+                                                  count: entry.houseOwnerRelation,
+                                                  relative: ordinalOf(entry.houseOwnerRelation),
+                                              })
+                                    }
+                                />
+                            )}
                         </>
                     )}
                     {entry.nakshatraOwner !== undefined && (
                         <InfoTag
                             color={refColorOf(entry.nakshatraOwner)}
-                            label={planetName(t, entry.nakshatraOwner)}
+                            label={t("notepad.planetStrengths.nakshatraOwner", {
+                                planet: planetName(t, entry.nakshatraOwner),
+                            })}
                             ariaLabel={t("notepad.planetStrengths.nakshatraOwner", {
                                 planet: planetName(t, entry.nakshatraOwner),
                             })}
@@ -447,7 +515,7 @@ export default function NotepadPlanetStrengths({
                     const color = ratioColorOf(entry.ratio);
                     const showBadge = entry.ratio.total > 0;
                     const name = planetName(t, entry.planet);
-                    const badge = showBadge ? ` (${entry.ratio.green}/${entry.ratio.total})` : "";
+                    const badge = showBadge ? ` (${entry.ratio.good}/${entry.ratio.total})` : "";
                     const isOpen = expandedPlanet === entry.planet;
                     return (
                         <span key={entry.planet} className="inline-flex flex-col">
