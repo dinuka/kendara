@@ -1,6 +1,7 @@
 import type { Ascendant, CalculationResult, Planet } from "@/lib/astrology";
 import { computePanchaPakshi, computeThithiFromPlanets, navamsaSign } from "@/lib/astrology";
 import { PlanetaryStrength } from "@/lib/astrologyEnums";
+import { computeChartAspects } from "@/lib/chartAspects";
 import { computeCurrentPlanets } from "@/lib/currentPlanets";
 import {
     type CurrentShani,
@@ -17,8 +18,6 @@ import {
     navamsaLagnaOptions,
     synthesizeOtherDetails,
 } from "@/lib/manualChart";
-import { computePlanetAspects } from "@/lib/planetAspects";
-import { DEFAULT_RASHI_ASPECTS, mergeRashiIntoPlanetAspects } from "@/lib/rashiAspects";
 import { computeShadBalaya } from "@/lib/shadBalaya";
 import { computeSubaAsuba } from "@/lib/subaAsuba";
 import { computeWargaKendara } from "@/lib/wargaKendara";
@@ -194,16 +193,16 @@ export function synthesizeCalculation(result: ManualChartResult, birthDate?: Dat
     const lagna = manualHousePlacements.lagna;
     const planets = synthesizePlanets(result);
     const options = result.aspectOptions;
-    // Planet-to-planet aspects for manual charts reuse the shared degree/yoga arm plus rashi drishti
-    // (UT-AS-252/253). Absolute degrees come from the synthesized navamsa-midpoint fallback.
-    const aspectsByPlanet = mergeRashiIntoPlanetAspects(
-        computePlanetAspects(planets, options?.planetAspects, options?.planetaryOrbs),
-        planets,
-        options?.planetaryOrbs,
-        options?.rashiAspects ?? DEFAULT_RASHI_ASPECTS,
-    );
+    // Aspects come from the same engine as auto charts (src/lib/chartAspects.ts). Absolute degrees
+    // come from the synthesized navamsa-midpoint fallback; house middles are the sign midpoints.
+    const houses = buildWholeSignHouses(lagna);
+    const chartAspects = computeChartAspects(planets, houses, options ?? {});
     for (const p of planets) {
-        p.aspects = aspectsByPlanet[p.name] ?? [];
+        p.aspects = chartAspects.byPlanet[p.name] ?? [];
+    }
+    for (const h of houses) {
+        h.aspects = chartAspects.byHouse[h.houseNumber] ?? [];
+        h.aspectingPlanets = h.aspects.map(({ planetName }) => planetName);
     }
     const moon = planets.find((p) => p.name === 2);
     const ascendantNakshatra = computeAscendantNakshatra(manualHousePlacements);
@@ -213,7 +212,6 @@ export function synthesizeCalculation(result: ManualChartResult, birthDate?: Dat
         ? computeMoonNakshatra(moon.sign, hasManualNavamsa(manualHousePlacements) ? moon.navamsaSign : undefined)
         : { id: 1, pada: 1, lord: 9 };
     const thithi = computeThithiFromPlanets(planets);
-    const houses = buildWholeSignHouses(lagna);
     // Suba Asuba (සුබ අසුබ): per-planet Naisargika benefic/malefic verdict, with the Kendra-lordship
     // exception resolved from the whole-sign houses (see src/lib/subaAsuba.ts).
     const subaAsuba = computeSubaAsuba(planets, houses, thithi);
@@ -249,7 +247,11 @@ export function synthesizeCalculation(result: ManualChartResult, birthDate?: Dat
 
     return {
         ...calc,
-        wargaKendara: computeWargaKendara(calc, { source: "manual", manualHousePlacements }),
+        wargaKendara: computeWargaKendara(calc, {
+            source: "manual",
+            manualHousePlacements,
+            planetAspects: options?.planetAspects,
+        }),
     };
 }
 

@@ -10,12 +10,9 @@ import type {
 } from "@/lib/astrology";
 import { Planet, PlanetaryStrength } from "@/lib/astrologyEnums";
 import { computeLagnaBhavaSuchika, computePlanetBhavaSuchika } from "@/lib/bhavaSuchika";
-import { type PlanetAspectsMap, computeManualHouseAspects, derivePlanetAbsoluteDegree } from "@/lib/planetAspects";
-import {
-    DEFAULT_RASHI_ASPECTS,
-    type RashiAspectsSetting,
-    computeHouseAspectsByPlanetWithRashi,
-} from "@/lib/rashiAspects";
+import { type ChartAspects, computeChartAspects } from "@/lib/chartAspects";
+import { type PlanetAspectsMap, derivePlanetAbsoluteDegree } from "@/lib/planetAspects";
+import type { RashiAspectsSetting } from "@/lib/rashiAspects";
 
 export type ValidationStatus = "valid" | "invalid" | "incomplete" | "skipped";
 
@@ -169,23 +166,14 @@ export function deriveHouseSigns(lagna: number): number[] {
     return Array.from({ length: 12 }, (_, i) => ((lagna - 1 + i) % 12) + 1);
 }
 
-/** Manual-chart planet → aspected houses: the union of the Planet-Aspects arms (explicit/offset
- *  houses ∪ degree arm against whole-sign sign midpoints) and the rashi (zodiacal-sign) arm. Pure
- *  delegation to the shared modules — no duplicated matching logic. `houseSigns` is the lagna-derived
- *  whole-sign house → sign list. */
-export function computeAspects(
+/** Manual-chart aspects from the shared engine (src/lib/chartAspects.ts). Each planet's degree is
+ *  its entered degree, else the navamsa-segment / sign midpoint; house middles are the sign
+ *  midpoints. `houseSigns` is the lagna-derived whole-sign house → sign list. */
+export const computeManualChartAspects = (
     houseOfPlanet: Record<number, number>,
     houseSigns: number[],
     options: ManualAspectOptions = {},
-): Record<number, number[]> {
-    const base = computeManualHouseAspects(
-        houseOfPlanet,
-        houseSigns,
-        options.planetDegrees,
-        options.planetAspects,
-        options.planetaryOrbs,
-        options.navamsaSigns,
-    );
+): ChartAspects => {
     const planets = Object.entries(houseOfPlanet).map(([planetKey, house]) => {
         const planet = Number(planetKey);
         const sign = houseSigns[house - 1];
@@ -201,19 +189,25 @@ export function computeAspects(
             ),
         };
     });
-    const houses = houseSigns.map((sign, i) => ({
-        houseNumber: i + 1,
-        sign,
-        middleSign: sign,
-        middleDegree: 15,
-    }));
-    return computeHouseAspectsByPlanetWithRashi(
-        planets,
-        houses,
-        options.planetAspects,
-        options.planetaryOrbs,
-        options.rashiAspects ?? DEFAULT_RASHI_ASPECTS,
-    );
+    return computeChartAspects(planets, buildWholeSignHouses(houseSigns[0]), options);
+};
+
+/** Manual-chart planet → aspected houses (the house side of `computeManualChartAspects`). */
+export function computeAspects(
+    houseOfPlanet: Record<number, number>,
+    houseSigns: number[],
+    options: ManualAspectOptions = {},
+): Record<number, number[]> {
+    const { byHouse } = computeManualChartAspects(houseOfPlanet, houseSigns, options);
+    const result: Record<number, number[]> = {};
+    Object.keys(houseOfPlanet).forEach((planetKey) => {
+        result[Number(planetKey)] = [];
+    });
+    Object.entries(byHouse).forEach(([houseKey, aspects]) => {
+        aspects.forEach(({ planetName }) => result[planetName].push(Number(houseKey)));
+    });
+    Object.values(result).forEach((houses) => houses.sort((a, b) => a - b));
+    return result;
 }
 
 /** Planets co-located in the same house are conjunct. Returns planet -> partner planets. */
@@ -773,11 +767,7 @@ export function derivePlanetsTable(input: PlanetsTableInput): ManualPlanetRow[] 
     const { lagna, houseOfPlanet, navamsaEnrichment = [], aspectOptions } = input;
     const houseSigns = deriveHouseSigns(lagna);
     const conjunctions = computeConjunctions(houseOfPlanet);
-    const aspectsByPlanet = computeAspects(houseOfPlanet, houseSigns, aspectOptions);
-    const planetsByHouse: Record<number, number[]> = {};
-    for (const [planetKey, house] of Object.entries(houseOfPlanet)) {
-        (planetsByHouse[house] ??= []).push(Number(planetKey));
-    }
+    const { byPlanet } = computeManualChartAspects(houseOfPlanet, houseSigns, aspectOptions);
     const enrichmentByPlanet: Record<number, NavamsaEnrichment> = {};
     for (const e of navamsaEnrichment) enrichmentByPlanet[e.planet] = e;
 
@@ -816,7 +806,7 @@ export function derivePlanetsTable(input: PlanetsTableInput): ManualPlanetRow[] 
                 strength: computePlanetStrength(planet, sign, 0),
                 house,
                 conjunctions: conjunctions[planet] ?? [],
-                aspectsPlanets: (aspectsByPlanet[planet] ?? []).flatMap((h) => planetsByHouse[h] ?? []),
+                aspectsPlanets: (byPlanet[planet] ?? []).map(({ planetName }) => planetName),
                 other,
                 navamsa: enrichmentByPlanet[planet],
             };

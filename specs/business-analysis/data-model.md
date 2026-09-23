@@ -521,6 +521,8 @@ Selectable color for a student-entered observation tag on the Student Notepad (`
 ]
 ```
 
+**Note (house aspects, 2026-09-23):** each house additionally carries `aspects` — the planets aspecting it as `Aspect` records (`planetName` = aspecting planet, `delta` = signed difference from the house middle, `reasons` planetary/rashi) — and `aspectingPlanets` (their planet numbers). Both come from the single aspect engine (`src/lib/chartAspects.ts`, see [Aspect calculation rule](#aspect-calculation-rule)). Documents calculated before this field existed are re-derived with the same engine at render time.
+
 ### Planets
 
 ```json
@@ -571,9 +573,13 @@ Selectable color for a student-entered observation tag on the Student Notepad (`
 ]
 ```
 
-**Note:** `degreeGap` = longitudinal distance between two planets minus the nearest major aspect angle (Conjunction 0°, Sextile 60°, Square 90°, Trine 120°, Opposition 180°). Maximum valid `degreeGap` is < 30° — beyond this, the aspect is not considered effective. In the example above, Sun (12.5°) to Mercury (75.0°) has a raw distance of 62.5°, and the nearest major aspect is Sextile (60°), so `degreeGap` = 2.5°.
+**Note:** a planet's `aspects` are the aspects it CASTS (`planetName` = aspected planet), led by its conjunction (`aspectType` 0) records. `delta` is the signed difference of the aspected planet from the aspect point; `degreeGap` = |`delta`|. Every aspects column displays the transposed view — the planets aspecting the row planet.
 
-**Note (aspects setting):** The candidate aspect angles considered for each planet are NOT fixed — they come from the system-wide [PlanetAspects (System Setting)](#planetaspects-system-setting) `degrees` list for that planet (any multiple of 30 in 30–330, e.g. 60/180/240). The orb tolerance that decides whether an aspect is effective uses the system-wide `planetaryOrbs` value for the aspecting planet (see [AstrologySettings](#astrologysettings)). `aspectType` / `exactAspectDegree` reflect the configured degree value.
+<a name="aspect-calculation-rule"></a>
+**Aspect calculation rule (2026-09-23, docs/aspect-ref.md):** one engine (`src/lib/chartAspects.ts`) produces every stored aspect record; every view renders those records.
+- **Planet aspect (ග්‍රහ දෘෂ්ඨි):** a planet P in whole-sign house H with aspect houses N (the [PlanetAspects](#planetaspects-system-setting) `houses`, counted from H — Mars 4, 5, 7, 8, 9 in house 3 → houses 6, 7, 9, 10, 11) has the aspect point `P.absoluteDegree + (N − 1) × 30`. A planet sitting in the Nth house is aspected when |difference from the aspect point| < P's own `planetaryOrbs` value (the target's orb is not used, so Rahu/Ketu with orb 0 cast no planet aspects). The Nth house is always aspected; its record carries the difference from the house middle (no orb check).
+- **Rashi aspect (රාශි දෘෂ්ඨි):** for each sign T the planet's sign S aspects (see [RashiAspects](#rashiaspects-system-setting)), the aspect point is `P.absoluteDegree + ((T − S) mod 12) × 30`. Planets in T use the same orb check; the house holding T is always aspected.
+- A target reached by both arms keeps one record with both reasons (planetary first).
 
 **Note (navamsa enrichment):** the stored `planets` entries additionally carry `navamsaSign` and `navamsaStrength` (numeric ZodiacSign / PlanetaryStrength enums) — present on auto horoscopes and on manual horoscopes once the student enters Navamsa data. These feed the භාව සුචික (Bhava Suchika) computation (see [Bhava Suchika (House Index)](#bhava-suchika-house-index)).
 
@@ -601,7 +607,7 @@ System-wide (shared) aspects setting "Planets Aspects houses and degrees" (ප�
 - Keyed by numeric Planet enum string (`"1"`…`"9"`), same convention as `planetaryOrbs`; a planet absent from the map uses the system defaults (see defaults below)
 - `planetName` is implied by the record key — it is not stored redundantly; the form selects the planet by English/Sinhala name mapped to the numeric Planet enum
 
-**Defaults:** when a planet has no entry, the system uses the default aspect houses per planet (see table below) and default aspect degrees `[60, 90, 120, 180]` (unchanged). For an unconfigured planet the default houses are applied as **offsets from the planet's whole-sign house**, and the default degrees additionally drive degree-based house-aspect matching (a planet aspects a house when an aspect point derived from its degrees falls within the planet's orb of the house's absolute middle degree) — the aspected-houses set is the **union** of both arms (see US-PA-005 / architect D4). This union applies to **both** `source: "auto"` and `source: "manual"` horoscopes; on manual charts the degree arm uses each planet's stored or fallback-derived degree (see [ManualHousePlacements](#manualhouseplacements)) against the house's whole-sign sign midpoint `(sign−1)*30+15` as the house-middle reference. Default aspect houses:
+**Defaults:** when a planet has no entry, the system uses the default aspect houses per planet (see table below). Configured and default `houses` are both counted **from the planet's whole-sign house** (the planet's own house is the 1st), and each house N carries the aspect angle `(N − 1) × 30`; the `degrees` list is kept paired with `houses` by the settings form and is not read by the calculation (see [Aspect calculation rule](#aspect-calculation-rule), 2026-09-23 — replaces the earlier absolute-houses + degree-arm union). This applies to **both** `source: "auto"` and `source: "manual"` horoscopes; manual charts use each planet's stored or fallback-derived degree (see [ManualHousePlacements](#manualhouseplacements)) and the house's whole-sign sign midpoint `(sign−1)*30+15` as the house middle. Default aspect houses:
 
 | Planet enum | Planet | Name (SI) | Default aspect houses |
 |-------------|--------|-----------|------------------------|
@@ -618,7 +624,7 @@ System-wide (shared) aspects setting "Planets Aspects houses and degrees" (ප�
 These defaults replace the previously documented table (Mars 4/8/12, Jupiter 5/9/11, Saturn 3/7/10, Rahu/Kethu 5/9, all others 7th-house full aspect; Sun/Moon/Mercury/Venus under "others").
 
 - **Calculation effect:** adding/updating a planet's `houses` or `degrees` changes that planet's house aspects and planet aspects. Because the setting is system-wide, any change triggers the full recalculation of ALL horoscopes' `CalculatedDetails` (both sources) — not just the next calculation (see [AstrologySettings](#astrologysettings) business rules, US-SAS-003)
-- **Planetary Orbs:** the orb tolerance used when matching planets against the configured degree values is the system-wide `planetaryOrbs` per-planet value from the same `AstrologySettings` document (unchanged values, now shared; see [AstrologySettings](#astrologysettings))
+- **Planetary Orbs:** the orb tolerance for planet-to-planet aspects is the aspecting planet's system-wide `planetaryOrbs` value from the same `AstrologySettings` document (see [AstrologySettings](#astrologysettings)); house aspects use no orb
 
 **Validation rules:**
 
@@ -748,7 +754,7 @@ Stored on a manually-entered horoscope (`source: "manual"`). This is the **singl
 - `houses` always has exactly 12 entries (house 1–12), one per house
 - `sign` uses the numeric ZodiacSign enum; `planets` uses the numeric Planet enum
 - `planets` may be empty (no planet placed); a planet appears exactly once across all houses
-- `aspects` (per-house) lists which planets aspect this house. For manual charts the aspected-houses set is the **union of both arms**, exactly as on auto charts (see [PlanetAspects (System Setting)](#planetaspects-system-setting)): the explicit `houses` arm (configured list as **absolute** house numbers, or the default aspect-house rules per planet — SUN/MOON/SATURN 3,5,7,9,10; MARS/MERCURY 4,5,7,8,9; JUPITER/VENUS/RAHU/KETU 5,7,9 — applied as offsets from the planet's own house) **plus** the degree arm (each planet's degree vs. the aspected house's whole-sign sign midpoint `(sign−1)*30+15` within the planet's orb). When the system-wide Rashi Aspects setting is enabled, houses whose whole-sign `sign` is in the planet's rashi-aspect set are aspected too (see [RashiAspects (System Setting)](#rashiaspects-system-setting))
+- `aspects` (per-house) lists which planets aspect this house. For manual charts the aspected houses follow the same rule as auto charts (see [Aspect calculation rule](#aspect-calculation-rule)): the configured or default aspect houses — SUN/MOON/SATURN 3,5,7,9,10; MARS/MERCURY 4,5,7,8,9; JUPITER/VENUS/RAHU/KETU 5,7,9 — counted from the planet's own house, with no orb check. When the system-wide Rashi Aspects setting is enabled, houses whose whole-sign `sign` is in the planet's rashi-aspect set are aspected too (see [RashiAspects (System Setting)](#rashiaspects-system-setting))
 - `lagnaDegree` (optional) — ascendant degree within the birth sign (0 ≤ d < 30); drives the bhava-cusp/degree estimates on the manual chart
 - `planetDegrees` (optional) — per-planet degree **within the planet's birth sign** (0 ≤ d < 30), keyed by numeric Planet enum string (`"1"`…`"9"`), following the embedded-Record convention of the (now system-wide) `planetaryOrbs`/`planetAspects` settings. Drives the degree-based arms of the aspect settings on manual charts (planet-to-planet aspects, the house-aspect degree arm, and the rashi-aspect degree+orb check)
 - **Fallback degree for a planet with no `planetDegrees` entry:** derived deterministically, mirroring the existing degree-estimation pattern on manual charts (navamsa segment midpoint when the planet's navamsa sign is recorded, else the sign midpoint `15°`). Entered degrees always take precedence; the derived fallback keeps the aspect functions pure and deterministic

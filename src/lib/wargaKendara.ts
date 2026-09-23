@@ -11,9 +11,9 @@
  *    - suryaLagna / chandraLagna: the chart rotated via getChartData so the Sun/Moon sign becomes
  *      the first house.
  *
- *  Aspects and conjunctions are whole-sign diffs within each chart, mirroring the D1 houses-table
- *  rule (see getAspectsToHouse on the horoscope page): opposition (diff 6 → 180°) plus each
- *  planet's special-aspect diffs (120/240/90/210/60/270 per the shared table).
+ *  Aspects and conjunctions are whole-sign within each chart: a planet aspects the houses given by
+ *  its Planet Aspects setting (offsets from its own house, angle (N − 1) × 30 — see
+ *  src/lib/chartAspects.ts). The page renders the D1 tables from the degree-based engine records.
  *
  *  Per-chart derived values are recomputed fresh (deterministic — nothing is read back from stored
  *  result fields):
@@ -27,6 +27,7 @@ import { PlanetaryStrength } from "@/lib/astrologyEnums";
 import { getChartData } from "@/lib/chartDataTransform";
 import { ChartType } from "@/lib/chartTypes";
 import { SIGN_LORD, buildWholeSignHouses, computePlanetStrength, hasManualNavamsa } from "@/lib/manualChart";
+import { type PlanetAspectsMap, resolveAspectHouses } from "@/lib/planetAspects";
 import { computeDigBalaPlanets } from "@/lib/shadBalaya";
 
 /** One row of the per-chart Houses table (the chart's whole-sign houses, the planets occupying each
@@ -87,6 +88,8 @@ export type WargaChartKey = "d1" | "d9" | "suryaLagna" | "chandraLagna";
 export interface WargaKendaraContext {
     source: "auto" | "manual";
     manualHousePlacements?: WargaManualHousePlacements;
+    /** System-wide Planet Aspects setting. Omitted → the default aspect houses. */
+    planetAspects?: PlanetAspectsMap;
 }
 
 /** Structural subset of ManualHousePlacements (manualChart.ts) — the fields the warga derivation
@@ -130,39 +133,12 @@ export const VARGA_CATALOG: VargaCatalogEntry[] = [
 /** Every varga key of the catalog (d1..d60) — the values a Warga Kendara figure/tag can resolve. */
 export type WargaVargaKey = (typeof VARGA_CATALOG)[number]["key"];
 
-/** Each planet's special-aspect diffs (whole-sign), mirroring the D1 houses-table rule. */
-const SPECIAL_ASPECTS: Record<number, number[]> = {
-    1: [2, 9],
-    2: [2, 9],
-    7: [2, 9],
-    3: [3, 7],
-    4: [3, 7],
-    5: [4, 8],
-    6: [4, 8],
+/** Aspect angle when `planet` in house `fromHouse` aspects `toHouse` under the Planet Aspects
+ *  setting (offset N → (N − 1) × 30), else 0 (no aspect). */
+const aspectAngle = (planet: number, fromHouse: number, toHouse: number, planetAspects?: PlanetAspectsMap): number => {
+    const n = ((toHouse - fromHouse + 12) % 12) + 1;
+    return n > 1 && resolveAspectHouses(planet, planetAspects).includes(n) ? (n - 1) * 30 : 0;
 };
-
-/** Aspect type (degrees) for a whole-sign house diff: opposition (diff 6 → 180°) or one of the
- *  special-aspect diffs (120/240/90/210/60/270). Anything else → 0 (no aspect). */
-function aspectTypeForDiff(diff: number): number {
-    switch (diff) {
-        case 6:
-            return 180;
-        case 4:
-            return 120;
-        case 8:
-            return 240;
-        case 3:
-            return 90;
-        case 7:
-            return 210;
-        case 2:
-            return 60;
-        case 9:
-            return 270;
-        default:
-            return 0;
-    }
-}
 
 /** Navamsa wedge index (1-9) containing the degree within a sign. */
 function wedgeOf(degree: number | undefined): number {
@@ -218,25 +194,25 @@ interface WargaPlanetSource {
     pada?: number;
 }
 
-/** Planets (by enum, ascending) that aspect the given house from their row houses, with the
- *  whole-sign aspect type (diff 6 → 180°, special-aspect diffs → their angles). */
-function aspectingPlanets(planets: WargaPlanetSource[], targetHouse: number): WargaHouseRow["aspects"] {
-    return planets
-        .filter((p) => {
-            const diff = (targetHouse - p.house + 12) % 12;
-            return diff === 6 || (SPECIAL_ASPECTS[p.name]?.includes(diff) ?? false);
-        })
-        .map((p) => {
-            const diff = (targetHouse - p.house + 12) % 12;
-            return { planetName: p.name, aspectType: aspectTypeForDiff(diff) };
-        })
-        .sort((a, b) => a.planetName - b.planetName);
-}
+/** Planets (by enum, ascending) that aspect the given house from their row houses. */
+const aspectingPlanets = (
+    planets: WargaPlanetSource[],
+    targetHouse: number,
+    planetAspects?: PlanetAspectsMap,
+): WargaHouseRow["aspects"] => {
+    const aspects: WargaHouseRow["aspects"] = [];
+    planets.forEach(({ name, house }) => {
+        const aspectType = aspectAngle(name, house, targetHouse, planetAspects);
+        if (aspectType > 0) aspects.push({ planetName: name, aspectType });
+    });
+    return aspects.sort((a, b) => a.planetName - b.planetName);
+};
 
 /** Whole-sign house rows for a chart (always 12 when the chart's house wheel is present). */
 function buildHouseRows(
     houses: Array<Pick<House, "houseNumber" | "sign">>,
     planets: WargaPlanetSource[],
+    planetAspects?: PlanetAspectsMap,
 ): WargaHouseRow[] {
     return houses.map((h) => ({
         houseNumber: h.houseNumber,
@@ -245,13 +221,13 @@ function buildHouseRows(
             .filter((p) => p.house === h.houseNumber)
             .map((p) => p.name)
             .sort((a, b) => a - b),
-        aspects: aspectingPlanets(planets, h.houseNumber),
+        aspects: aspectingPlanets(planets, h.houseNumber, planetAspects),
     }));
 }
 
 /** Planet rows for a chart, sorted by planet enum (1-9). Conjunctions are the planets sharing the
- *  row's house; aspects are the other planets aspecting it (whole-sign rule). */
-function buildPlanetRows(planets: WargaPlanetSource[]): WargaPlanetRow[] {
+ *  row's house; aspects are the other planets the row planet aspects (whole-sign rule). */
+function buildPlanetRows(planets: WargaPlanetSource[], planetAspects?: PlanetAspectsMap): WargaPlanetRow[] {
     return planets
         .map((p) => {
             const conjunctions = planets
@@ -261,11 +237,8 @@ function buildPlanetRows(planets: WargaPlanetSource[]): WargaPlanetRow[] {
             const aspects: WargaPlanetRow["aspects"] = [];
             for (const q of planets) {
                 if (q.name === p.name) continue;
-                const diff = (q.house - p.house + 12) % 12;
-                if (diff !== 6 && !(SPECIAL_ASPECTS[p.name]?.includes(diff) ?? false)) continue;
-                const aspectType = aspectTypeForDiff(diff);
-                if (aspectType === 0) continue;
-                aspects.push({ planetName: q.name, aspectType });
+                const aspectType = aspectAngle(p.name, p.house, q.house, planetAspects);
+                if (aspectType > 0) aspects.push({ planetName: q.name, aspectType });
             }
             return {
                 name: p.name,
@@ -288,11 +261,16 @@ interface WargaChartShape {
     planets: WargaPlanetRow[];
 }
 
-function buildChartShape(lagnaSign: number, houses: House[], planets: WargaPlanetSource[]): WargaChartShape {
+function buildChartShape(
+    lagnaSign: number,
+    houses: House[],
+    planets: WargaPlanetSource[],
+    planetAspects?: PlanetAspectsMap,
+): WargaChartShape {
     return {
         lagnaSign,
-        houses: buildHouseRows(houses, planets),
-        planets: buildPlanetRows(planets),
+        houses: buildHouseRows(houses, planets, planetAspects),
+        planets: buildPlanetRows(planets, planetAspects),
     };
 }
 
@@ -353,10 +331,10 @@ function d1PlanetSources(res: ResultLike): WargaPlanetSource[] {
 
 /** D1 entry from the result itself. The D1-only flags come straight from the stored calculation
  *  result fields (absent on legacy docs → treated as empty). */
-function buildD1Entry(res: ResultLike): WargaChartEntry {
+function buildD1Entry(res: ResultLike, planetAspects?: PlanetAspectsMap): WargaChartEntry {
     const sources = d1PlanetSources(res);
     const houses = res.houses ?? [];
-    const shape = buildChartShape(res.ascendant?.sign ?? 1, houses, sources);
+    const shape = buildChartShape(res.ascendant?.sign ?? 1, houses, sources, planetAspects);
     const maranakaraka = computeMaranakaraka(
         (res.planets ?? [])
             .filter((p) => typeof p.name === "number" && typeof p.house === "number")
@@ -384,7 +362,7 @@ function buildD1Entry(res: ResultLike): WargaChartEntry {
 
 /** Navamsa (D9) entry for an auto calculation: navamsa signs from the stored planets, whole-sign
  *  houses from the navamsa lagna (the 9th navamsa wedge of the ascendant degree). */
-function buildAutoD9Entry(res: ResultLike): WargaChartEntry | null {
+function buildAutoD9Entry(res: ResultLike, planetAspects?: PlanetAspectsMap): WargaChartEntry | null {
     const ascSign = typeof res.ascendant?.sign === "number" ? res.ascendant.sign : 1;
     const ascNavSign = navamsaSign(ascSign, wedgeOf(res.ascendant?.degree));
     const houses = buildWholeSignHouses(ascNavSign);
@@ -405,7 +383,7 @@ function buildAutoD9Entry(res: ResultLike): WargaChartEntry | null {
             };
         });
     if (sources.length === 0) return null;
-    const shape = buildChartShape(ascNavSign, houses, sources);
+    const shape = buildChartShape(ascNavSign, houses, sources, planetAspects);
     return {
         ...shape,
         marakaPlanets: computeWargaMaraka(ascNavSign),
@@ -432,7 +410,7 @@ function buildManualD9Entry(ctx: WargaKendaraContext): WargaChartEntry | null {
                 strength: PlanetaryStrength.SAMA,
             })),
         );
-    const shape = buildChartShape(navamsaLagna, houses, sources);
+    const shape = buildChartShape(navamsaLagna, houses, sources, ctx.planetAspects);
     return {
         ...shape,
         marakaPlanets: computeWargaMaraka(navamsaLagna),
@@ -446,6 +424,7 @@ function buildManualD9Entry(ctx: WargaKendaraContext): WargaChartEntry | null {
 function buildRotatedEntry(
     res: ResultLike,
     type: ChartType.SURYA_LAGNA | ChartType.CHANDRA_LAGNA,
+    planetAspects?: PlanetAspectsMap,
 ): WargaChartEntry | null {
     if (!Array.isArray(res.planets) || res.planets.length === 0) return null;
     const chart = getChartData(res as CalculationResult, type);
@@ -460,7 +439,7 @@ function buildRotatedEntry(
             house: p.house as number,
             strength: p.strength,
         }));
-    const shape = buildChartShape(chart.ascendant.sign, chart.houses, sources);
+    const shape = buildChartShape(chart.ascendant.sign, chart.houses, sources, planetAspects);
     return {
         ...shape,
         marakaPlanets: computeWargaMaraka(chart.ascendant.sign),
@@ -478,10 +457,10 @@ export function computeWargaKendara(result: CalculationResult, ctx: WargaKendara
     // neither, so the system must not generate them (TODO.md manual-chart issues).
     const manualWithoutNavamsa = ctx.source === "manual" && !hasManualNavamsa(ctx.manualHousePlacements);
     return {
-        d1: buildD1Entry(res),
-        d9: ctx.source === "manual" ? buildManualD9Entry(ctx) : buildAutoD9Entry(res),
-        suryaLagna: manualWithoutNavamsa ? null : buildRotatedEntry(res, ChartType.SURYA_LAGNA),
-        chandraLagna: manualWithoutNavamsa ? null : buildRotatedEntry(res, ChartType.CHANDRA_LAGNA),
+        d1: buildD1Entry(res, ctx.planetAspects),
+        d9: ctx.source === "manual" ? buildManualD9Entry(ctx) : buildAutoD9Entry(res, ctx.planetAspects),
+        suryaLagna: manualWithoutNavamsa ? null : buildRotatedEntry(res, ChartType.SURYA_LAGNA, ctx.planetAspects),
+        chandraLagna: manualWithoutNavamsa ? null : buildRotatedEntry(res, ChartType.CHANDRA_LAGNA, ctx.planetAspects),
     };
 }
 

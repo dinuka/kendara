@@ -287,6 +287,9 @@ export interface House {
     lord: number;
     /** Planets that aspect this house (degree-based union). Auto charts only; absent on legacy docs. */
     aspectingPlanets?: number[];
+    /** Planets that aspect this house with their degree difference from the house middle
+     *  (`computeChartAspects`). Absent on documents calculated before the unified engine. */
+    aspects?: Aspect[];
 }
 
 /** Determines the house a longitude falls into using the actual cusp-boundary ranges

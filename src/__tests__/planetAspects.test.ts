@@ -1,28 +1,15 @@
 import {
-    Aspect,
     BENEFICIAL_ASPECT_ANGLES,
     DEFAULT_ASPECT_HOUSES,
     DEFAULT_ORBS,
     VALID_ASPECT_DEGREES,
-    aspectPointSignedDelta,
-    computeHouseAspectsByHouse,
-    computeHouseAspectsByPlanet,
-    computeManualHouseAspects,
-    computeManualPlanetAspects,
-    computePlanetAspects,
+    computePlanetConjunctions,
     defaultAspectDegrees,
     derivePlanetAbsoluteDegree,
-    resolveAspectDegrees,
     resolveAspectHouses,
     resolveOrb,
     validatePlanetAspectsPayload,
 } from "@/lib/planetAspects";
-
-const H = (sign: number, degree = 15): { houseNumber: number; middleSign: number; middleDegree: number } => ({
-    houseNumber: sign % 12 === 0 ? 12 : ((sign - 1) % 12) + 1,
-    middleSign: ((sign - 1) % 12) + 1,
-    middleDegree: degree,
-});
 
 describe("planetAspects constants & resolution", () => {
     test("DEFAULT_ASPECT_HOUSES covers all planets 1-9 (no 7th fallback)", () => {
@@ -45,25 +32,15 @@ describe("planetAspects constants & resolution", () => {
         expect(DEFAULT_ORBS).toEqual({ "1": 15, "2": 12, "3": 8, "4": 7, "5": 9, "6": 7, "7": 9, "8": 0, "9": 0 });
     });
 
-    test("resolveAspectHouses: configured absolute vs default offsets", () => {
+    test("resolveAspectHouses: configured vs default aspect houses", () => {
         expect(resolveAspectHouses(5)).toEqual([5, 7, 9]);
         expect(resolveAspectHouses(5, { "5": { houses: [2, 11], degrees: [60] } })).toEqual([2, 11]);
-    });
-
-    test("resolveAspectDegrees: configured vs default derived from houses", () => {
-        expect(resolveAspectDegrees(1)).toEqual([60, 120, 180, 240, 270]);
-        expect(resolveAspectDegrees(1, { "1": { houses: [5], degrees: [90, 180] } })).toEqual([90, 180]);
     });
 
     test("resolveOrb: user > default > 0", () => {
         expect(resolveOrb(8)).toBe(0);
         expect(resolveOrb(1)).toBe(15);
         expect(resolveOrb(2, { "2": 5 })).toBe(5);
-    });
-
-    test("aspectPointSignedDelta picks the closer aspect point", () => {
-        // absI=15, angle=60 → points 75 and 315. target 80 → delta +5 (closest to 75).
-        expect(aspectPointSignedDelta(15, 60, 80)).toBe(5);
     });
 });
 
@@ -97,130 +74,27 @@ describe("validatePlanetAspectsPayload", () => {
     });
 });
 
-describe("computePlanetAspects", () => {
-    test("Sun in Aries, Moon in Taurus → 60 trine within orb, beneficial, reason attached", () => {
-        const aspects = computePlanetAspects([
-            { name: 1, absoluteDegree: 5 },
-            { name: 2, absoluteDegree: 65 },
-        ]);
-        const a = aspects[1][0];
-        expect(a.planetName).toBe(2);
-        expect(a.aspectType).toBe(60);
-        expect(a.degreeGap).toBe(0);
-        expect(a.isBeneficial).toBe(true);
-        expect(a.delta).toBe(0);
-        expect(a.reasons).toEqual([{ type: "planetary", angle: 60, delta: 0 }]);
-    });
-
-    test("Rahu/Ketu (orb 0) aspects follow the partner's orb when larger", () => {
-        // Rahu orb 0, Venus orb 7 → the pair orb is max(0, 7) = 7, so a 1° trine gap is within orb
-        // in both directions (not just at the exact angle).
-        const aspects = computePlanetAspects([
-            { name: 8, absoluteDegree: 100 },
-            { name: 6, absoluteDegree: 220 },
-        ]);
-        expect(aspects[8][0].aspectType).toBe(120);
-        const off = computePlanetAspects([
-            { name: 8, absoluteDegree: 100 },
-            { name: 6, absoluteDegree: 221 },
-        ]);
-        expect(off[8][0]).toMatchObject({ planetName: 6, aspectType: 120, degreeGap: 1 });
-        expect(off[6][0]).toMatchObject({ planetName: 8, aspectType: 120, degreeGap: 1 });
-    });
-
-    test("conjunction is not beneficial", () => {
-        const aspects = computePlanetAspects([
-            { name: 1, absoluteDegree: 0 },
-            { name: 2, absoluteDegree: 3 },
-        ]);
-        expect(aspects[1][0]).toMatchObject({ aspectType: 0, isBeneficial: false });
-    });
-
-    test("no self-aspect; every key present", () => {
-        const aspects = computePlanetAspects([
-            { name: 1, absoluteDegree: 0 },
-            { name: 2, absoluteDegree: 65 },
-        ]);
-        expect(Object.keys(aspects)).toEqual(["1", "2"]);
-        expect(aspects[1].every((a: Aspect) => a.planetName !== 1)).toBe(true);
-    });
-
-    test("Saturn's 10th aspect (270°) reaches a planet 90° behind within orb", () => {
-        // Methma regression: Saturn abs 253.77 (Sagittarius), Mars abs 160.68 (Virgo). Saturn's
-        // 270° point ≡ abs − 90 (163.77) sits 3.09° from Mars — point-based matching must record
-        // the planetary aspect even though the minor arc (93.09°) is not near any candidate.
-        const aspects = computePlanetAspects([
-            { name: 7, absoluteDegree: 253.77 },
-            { name: 3, absoluteDegree: 160.68 },
-        ]);
-        const a = aspects[7][0];
-        expect(a.planetName).toBe(3);
-        expect(a.aspectType).toBe(270);
-        expect(a.degreeGap).toBeCloseTo(3.09, 2);
-        expect(a.delta).toBeCloseTo(-3.09, 2);
-        expect(a.isBeneficial).toBe(false);
-        expect(a.reasons).toEqual([{ type: "planetary", angle: 270, delta: -3.09 }]);
-    });
-
-    test("Mars's 4th aspect (90°) to the same pair stays at 90 (not 270)", () => {
-        // Mirrors the Saturn case in the other direction: Mars abs 160.68 → Saturn abs 253.77 is a
-        // true 4th-house aspect at 90° and must not be reclassified as the wrapped 270° point.
-        const aspects = computePlanetAspects([
-            { name: 3, absoluteDegree: 160.68 },
-            { name: 7, absoluteDegree: 253.77 },
-        ]);
-        const a = aspects[3][0];
-        expect(a.planetName).toBe(7);
-        expect(a.aspectType).toBe(90);
-        expect(a.degreeGap).toBeCloseTo(3.09, 2);
-        expect(a.delta).toBeCloseTo(3.09, 2);
-    });
-
-    test("out-of-orb special point is not an aspect", () => {
-        // Same geometry but Mars at 150.68 (10° from Saturn's 270° point) exceeds the pair's max
-        // orb (Saturn 9 > Mars 8).
-        const aspects = computePlanetAspects([
-            { name: 7, absoluteDegree: 253.77 },
-            { name: 3, absoluteDegree: 150.68 },
-        ]);
-        expect(aspects[7]).toHaveLength(0);
-        expect(aspects[3]).toHaveLength(0);
-    });
-
-    test("pair uses the highest orb of the two planets (bidirectional symmetry)", () => {
-        // Sun orb 15, Mars orb 8. A co-located gap of 10° is within Sun's orb but outside Mars's,
-        // so the conjunction must be recorded on BOTH rows using max(15, 8) = 15.
-        const aspects = computePlanetAspects([
+describe("computePlanetConjunctions", () => {
+    test("pair uses the highest orb of the two planets (both rows)", () => {
+        // Sun orb 15, Mars orb 8: a 10° gap is inside max(15, 8) on both rows, with the signed delta.
+        const conjunctions = computePlanetConjunctions([
             { name: 1, absoluteDegree: 0 },
             { name: 3, absoluteDegree: 10 },
         ]);
-        expect(aspects[1][0]).toMatchObject({ planetName: 3, aspectType: 0, degreeGap: 10 });
-        expect(aspects[3][0]).toMatchObject({ planetName: 1, aspectType: 0, degreeGap: 10 });
+        expect(conjunctions[1][0]).toMatchObject({ planetName: 3, aspectType: 0, degreeGap: 10, delta: 10 });
+        expect(conjunctions[3][0]).toMatchObject({ planetName: 1, aspectType: 0, degreeGap: 10, delta: -10 });
     });
 
-    test("pair orb respects custom planetaryOrbs override", () => {
-        // Sun 15 vs Mercury default 7; a 12° conjunction is inside max(15, 7) = 15 but the Solar
-        // custom orb of 9 keeps it out on both sides — the overridden value is used symmetrically.
-        const aspects = computePlanetAspects(
+    test("custom orb override keeps a wide pair out", () => {
+        const conjunctions = computePlanetConjunctions(
             [
                 { name: 1, absoluteDegree: 0 },
                 { name: 4, absoluteDegree: 12 },
             ],
-            undefined,
-            { "1": 9 },
+            { 1: 9 },
         );
-        expect(aspects[1]).toHaveLength(0);
-        expect(aspects[4]).toHaveLength(0);
-
-        const inOrb = computePlanetAspects(
-            [
-                { name: 1, absoluteDegree: 0 },
-                { name: 4, absoluteDegree: 8 },
-            ],
-            undefined,
-            { "1": 9 },
-        );
-        expect(inOrb[4][0]).toMatchObject({ planetName: 1, aspectType: 0 });
+        expect(conjunctions[1]).toHaveLength(0);
+        expect(conjunctions[4]).toHaveLength(0);
     });
 });
 
@@ -233,55 +107,5 @@ describe("derivePlanetAbsoluteDegree", () => {
     });
     test("sign midpoint fallback", () => {
         expect(derivePlanetAbsoluteDegree(3, 1)).toBe(15);
-    });
-});
-
-describe("computeHouseAspectsByPlanet / ByHouse", () => {
-    test("default offsets from whole-sign house; degree arm unioned", () => {
-        // Jupiter in house 2 (sign 2, abs 45). Offsets [5,7,9] → houses 6,8,10. Degree arm: points
-        // 45±60/90/120/180 wrapped; house mids within orb(9). Numeric union.
-        const res = computeHouseAspectsByPlanet(
-            [{ name: 5, absoluteDegree: 45, house: 2 }],
-            Array.from({ length: 12 }, (_, i) => H(i + 1)),
-        );
-        expect(res[5]).toContain(6);
-        expect(res[5]).toContain(8);
-        expect(res[5]).toContain(10);
-    });
-
-    test("configured houses are absolute (no offset)", () => {
-        const res = computeHouseAspectsByPlanet(
-            [{ name: 5, absoluteDegree: 45, house: 2 }],
-            Array.from({ length: 12 }, (_, i) => H(i + 1)),
-            { "5": { houses: [3], degrees: [60] } },
-        );
-        expect(res[5]).toContain(3);
-    });
-
-    test("byHouse transposes with all 12 houses", () => {
-        const res = computeHouseAspectsByHouse(
-            [{ name: 5, absoluteDegree: 45, house: 2 }],
-            Array.from({ length: 12 }, (_, i) => H(i + 1)),
-        );
-        expect(Object.keys(res).length).toBe(12);
-        expect(Array.isArray(res[6])).toBe(true);
-    });
-});
-
-describe("manual adapters", () => {
-    test("computeManualHouseAspects delegates", () => {
-        const res = computeManualHouseAspects({ 5: 2 }, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
-        expect(res[5]).toContain(6);
-        expect(res[5]).toContain(8);
-        expect(res[5]).toContain(10);
-    });
-
-    test("computeManualPlanetAspects delegates with fallback degrees", () => {
-        // Sun sign 1 abs 15, Moon sign 2 abs 45 → 30° apart; nearest 60, diff 30 > orb → none.
-        const res = computeManualPlanetAspects([
-            { name: 1, sign: 1, house: 1, navamsaSign: 5 },
-            { name: 2, sign: 2, house: 2, navamsaSign: 6 },
-        ]);
-        expect(res[1]).toHaveLength(0);
     });
 });

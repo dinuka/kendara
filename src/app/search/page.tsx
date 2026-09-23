@@ -23,8 +23,8 @@ import {
 } from "@/lib/astrology";
 import { PlanetaryStrength } from "@/lib/astrologyEnums";
 import { resolveLagnaBhavaSuchika, resolvePlanetBhavaSuchika } from "@/lib/bhavaSuchika";
+import { resolveDisplayAspects } from "@/lib/chartAspects";
 import { toBirthChartData } from "@/lib/chartDataTransform";
-import { aspectPointSignedDelta } from "@/lib/planetAspects";
 import { getSuggestions, insertSuggestion, splitLastToken } from "@/lib/search/suggestions";
 import { detectLanguage } from "@/lib/search/utils";
 import { catalogNameFor } from "@/lib/yogaDosha";
@@ -1026,22 +1026,14 @@ const SearchResultCard = ({
                                         const bhavaSuchikaValue = resolvePlanetBhavaSuchika(cd, pName);
                                         const isPlanetExpanded = expandedPlanets.has(i);
 
-                                        const aspects = ((p.aspects as Array<Record<string, unknown>>) || [])
-                                            .filter((a) => (a.aspectType as number) !== 0)
-                                            .map((a) => {
-                                                const q = (cd!.planets as Array<Record<string, unknown>>).find(
-                                                    (x) => (x.name as number) === (a.planetName as number),
-                                                );
-                                                if (!q) return "";
-                                                const diff = aspectPointSignedDelta(
-                                                    p.absoluteDegree as number,
-                                                    a.aspectType as number,
-                                                    q.absoluteDegree as number,
-                                                );
-                                                if (Math.abs(diff) > (ORB_MAP[pName] ?? 0)) return "";
-                                                return `${t(`astrology.planetNames.${a.planetName as number}`)} (${formatDegDiff(diff)})`;
-                                            })
-                                            .filter(Boolean) as string[];
+                                        // Planets aspecting this row — the same records as the horoscope page.
+                                        const aspects = (
+                                            resolveDisplayAspects(cd as { planets?: Planet[]; houses?: House[] })
+                                                .receivedByPlanet[pName] ?? []
+                                        ).map(
+                                            ({ planetName, delta }) =>
+                                                `${t(`astrology.planetNames.${planetName}`)} (${formatDegDiff(delta ?? 0)})`,
+                                        );
 
                                         const conjunctions = (cd!.planets as Array<Record<string, unknown>>)
                                             .filter((q) => (q.name as number) !== pName)

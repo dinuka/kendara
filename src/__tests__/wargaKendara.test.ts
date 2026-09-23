@@ -10,6 +10,7 @@ import { Planet, PlanetaryStrength } from "@/lib/astrologyEnums";
 import { calculateHoroscope } from "@/lib/calculation";
 import { SIGN_LORD, compute, hasManualNavamsa, ownedHousesOf } from "@/lib/manualChart";
 import { synthesizeCalculation } from "@/lib/manualChartDetails";
+import { DEFAULT_ASPECT_HOUSES } from "@/lib/planetAspects";
 import { computeDigBalaPlanets } from "@/lib/shadBalaya";
 import { VARGA_CATALOG, computeWargaKendara, computeWargaMaraka, resolveWargaKendara } from "@/lib/wargaKendara";
 import type { WargaKendara } from "@/lib/wargaKendara";
@@ -81,7 +82,7 @@ describe("D1 entry (UT-WK-001..007)", () => {
         }
     });
 
-    test("UT-WK-005: d1 aspects are whole-sign (opposition or special aspect) without degree fields", () => {
+    test("UT-WK-005: d1 aspects are whole-sign (Planet Aspects setting houses) without degree fields", () => {
         for (const row of d1.planets) {
             for (const aspect of row.aspects) {
                 expect(aspect.aspectType).toBeGreaterThan(0);
@@ -93,42 +94,17 @@ describe("D1 entry (UT-WK-001..007)", () => {
         expect(JSON.stringify(d1.planets)).not.toContain("degreeGap");
     });
 
-    test("UT-WK-006: d1 house aspects carry the aspecting planet and whole-sign angle", () => {
-        const SPECIAL_ASPECTS: Record<number, number[]> = {
-            1: [2, 9],
-            2: [2, 9],
-            7: [2, 9],
-            3: [3, 7],
-            4: [3, 7],
-            5: [4, 8],
-            6: [4, 8],
-        };
-        const angleForDiff = (diff: number): number =>
-            diff === 6
-                ? 180
-                : diff === 4
-                  ? 120
-                  : diff === 8
-                    ? 240
-                    : diff === 3
-                      ? 90
-                      : diff === 7
-                        ? 210
-                        : diff === 2
-                          ? 60
-                          : diff === 9
-                            ? 270
-                            : 0;
+    test("UT-WK-006: d1 house aspects follow the Planet Aspects setting houses (whole-sign angle)", () => {
         const byName = new Map(auto.planets.map((p) => [p.name, p]));
         for (const house of d1.houses) {
             for (const aspect of house.aspects) {
                 expect(aspect.planetName).toBeGreaterThanOrEqual(1);
                 expect(aspect.planetName).toBeLessThanOrEqual(9);
                 const planet = byName.get(aspect.planetName);
-                const diff = (house.houseNumber - (planet?.house ?? 0) + 12) % 12;
-                const aspectsHouse = diff === 6 || (SPECIAL_ASPECTS[aspect.planetName]?.includes(diff) ?? false);
-                expect(aspectsHouse).toBe(true);
-                expect(aspect.aspectType).toBe(angleForDiff(diff));
+                // House counted from the planet's own house (its own house is the 1st).
+                const n = ((house.houseNumber - (planet?.house ?? 0) + 12) % 12) + 1;
+                expect(DEFAULT_ASPECT_HOUSES[aspect.planetName]).toContain(n);
+                expect(aspect.aspectType).toBe((n - 1) * 30);
             }
         }
         expect(JSON.stringify(d1.houses)).not.toContain("degreeGap");

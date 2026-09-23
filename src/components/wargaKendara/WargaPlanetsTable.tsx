@@ -24,6 +24,9 @@ interface WargaPlanetsTableProps {
      *  records as the calculation tab. When present these replace the stored whole-sign conjunctions
      *  so the chips show true deltas and Rahu/Ketu only qualify through a partner's orb. */
     conjunctionMap?: Record<number, Aspect[]>;
+    /** D1 only: planet → the calculation tab's received-aspect records (true deltas). When present
+     *  these replace the whole-sign row aspects. */
+    aspectMap?: Record<number, Aspect[]>;
 }
 
 const STRENGTH_TRANSLATION_KEYS: Record<PlanetaryStrength, string> = {
@@ -145,7 +148,14 @@ function aspectChipRecord(planetName: number, aspectType: number): Aspect {
  *  Aspects, Other + (D1 only) Nakshatra (Pada) and Bhava Suchika. Desktop renders a real <table>
  *  (>= 640px); mobile renders complete-info cards per the warga mobile wireframe (no expansion).
  *  Conjunction/aspect cells are planet-only — never degree text (UI-WK-320). */
-const WargaPlanetsTable = ({ entry, caption, isD1, bhavaSuchika, conjunctionMap }: WargaPlanetsTableProps) => {
+const WargaPlanetsTable = ({
+    entry,
+    caption,
+    isD1,
+    bhavaSuchika,
+    conjunctionMap,
+    aspectMap,
+}: WargaPlanetsTableProps) => {
     const { t } = useI18n();
     const getSignName = (sign: number): string => t(`astrology.signNames.${sign}`);
     const getPlanetName = (planetName: number): string => t(`astrology.planetNames.${planetName}`);
@@ -172,15 +182,27 @@ const WargaPlanetsTable = ({ entry, caption, isD1, bhavaSuchika, conjunctionMap 
     const planetCell = (planetName: number): string =>
         `${PLANET_SYMBOLS[planetName] ?? ""} ${getPlanetName(planetName)}`.trim();
 
+    /** Aspects RECEIVED by the row planet (`planetName` = aspecting planet): the D1 map when
+     *  provided, else the other rows' whole-sign aspects on this planet. */
+    const effectiveAspects = (planet: WargaPlanetRow): Aspect[] => {
+        if (aspectMap) return aspectMap[planet.name] ?? [];
+        const received: Aspect[] = [];
+        entry.planets.forEach(({ name, aspects }) => {
+            const aspect = aspects.find(({ planetName }) => planetName === planet.name);
+            if (aspect) received.push(aspectChipRecord(name, aspect.aspectType));
+        });
+        return received;
+    };
+
     const aspectCell = (planet: WargaPlanetRow) =>
-        planet.aspects.length > 0 ? (
+        effectiveAspects(planet).length > 0 ? (
             <span className="inline-flex flex-wrap gap-1">
-                {planet.aspects.map((aspect) => (
+                {effectiveAspects(planet).map((aspect) => (
                     <AspectChip
                         key={aspect.planetName}
-                        aspect={aspectChipRecord(aspect.planetName, aspect.aspectType)}
+                        aspect={aspect}
                         planetLabel={getPlanetName(aspect.planetName)}
-                        aspectingSign={planet.sign}
+                        aspectingSign={entry.planets.find(({ name }) => name === aspect.planetName)?.sign}
                     />
                 ))}
             </span>
@@ -255,7 +277,9 @@ const WargaPlanetsTable = ({ entry, caption, isD1, bhavaSuchika, conjunctionMap 
         );
         parts.push(
             `${t("astrology.aspects")} ${
-                planet.aspects.map((aspect) => planetCell(aspect.planetName)).join(", ") || noDetails
+                effectiveAspects(planet)
+                    .map((aspect) => planetCell(aspect.planetName))
+                    .join(", ") || noDetails
             }`,
         );
         parts.push(
@@ -372,7 +396,9 @@ const WargaPlanetsTable = ({ entry, caption, isD1, bhavaSuchika, conjunctionMap 
                         )}
                         <p className="text-gray-500 mt-1">
                             {t("astrology.aspects")}:{" "}
-                            {planet.aspects.map((aspect) => planetCell(aspect.planetName)).join(", ") || noDetails}
+                            {effectiveAspects(planet)
+                                .map((aspect) => planetCell(aspect.planetName))
+                                .join(", ") || noDetails}
                         </p>
                         <div className="mt-1">
                             {t("astrology.other")}: {renderFlags(flagCell(planet))}

@@ -2,9 +2,10 @@
 
 import { BirthChart } from "@/components/BirthChart";
 
+import type { Aspect } from "@/lib/astrology";
+import type { DisplayAspects } from "@/lib/chartAspects";
 import { toBirthChartData } from "@/lib/chartDataTransform";
 import type { ChartInput } from "@/lib/chartDataTransform";
-import type { Aspect } from "@/lib/astrology";
 import type { WargaChartEntry, WargaChartKey } from "@/lib/wargaKendara";
 
 import WargaHousesTable from "./WargaHousesTable";
@@ -32,6 +33,8 @@ interface WargaChartSectionProps {
      *  records as the calculation tab (true deltas; Rahu/Ketu only via a partner's orb). When
      *  present the D1 table renders these instead of the stored whole-sign conjunctions. */
     conjunctionMap?: Record<number, Aspect[]>;
+    /** D1 aspect records — the same records as the calculation tab (resolveDisplayAspects). */
+    displayAspects?: DisplayAspects;
 }
 
 /** One Warga Kendara figure: caption, main-indication tag chips, the SVG chart, and the per-chart
@@ -47,6 +50,7 @@ const WargaChartSection = ({
     showAscendantDegree = true,
     bhavaSuchika,
     conjunctionMap,
+    displayAspects,
 }: WargaChartSectionProps) => {
     const isD1 = chartKey === "d1";
 
@@ -69,13 +73,19 @@ const WargaChartSection = ({
             )}
             {entry ? (
                 <>
-                    <WargaHousesTable houses={entry.houses} caption={caption} />
+                    <WargaHousesTable
+                        houses={entry.houses}
+                        planets={entry.planets}
+                        caption={caption}
+                        aspectMap={isD1 ? displayAspects?.byHouse : undefined}
+                    />
                     <WargaPlanetsTable
                         entry={entry}
                         caption={caption}
                         isD1={isD1}
                         bhavaSuchika={bhavaSuchika}
                         conjunctionMap={isD1 ? conjunctionMap : undefined}
+                        aspectMap={isD1 ? displayAspects?.receivedByPlanet : undefined}
                     />
                 </>
             ) : (

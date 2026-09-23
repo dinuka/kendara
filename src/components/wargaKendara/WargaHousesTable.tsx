@@ -4,12 +4,17 @@ import AspectChip from "@/components/aspects/AspectChip";
 import { useI18n } from "@/hooks/useI18n";
 
 import type { Aspect } from "@/lib/astrology";
-import type { WargaHouseRow } from "@/lib/wargaKendara";
+import type { WargaHouseRow, WargaPlanetRow } from "@/lib/wargaKendara";
 
 interface WargaHousesTableProps {
     houses: WargaHouseRow[];
+    /** The chart's planet rows — the aspecting planet's sign for the rashi tooltip line. */
+    planets: WargaPlanetRow[];
     /** Localized figure caption — combined with the table title for the sr-only caption. */
     caption: string;
+    /** D1 only: house → the calculation tab's aspect records (true deltas from the house middle).
+     *  When present these replace the whole-sign row aspects. */
+    aspectMap?: Record<number, Aspect[]>;
 }
 
 const PLANET_SYMBOLS: Record<number, string> = {
@@ -45,7 +50,7 @@ function aspectChipRecord(planetName: number, aspectType: number): Aspect {
  *  columns visible, no expansion). Aspect cells render the aspecting planets as AspectChip tags —
  *  same chips as the Planets table, each anchoring the compact aspect tooltip with the row house
  *  (UI-WK-320). */
-const WargaHousesTable = ({ houses, caption }: WargaHousesTableProps) => {
+const WargaHousesTable = ({ houses, planets, caption, aspectMap }: WargaHousesTableProps) => {
     const { t } = useI18n();
     const getSignName = (sign: number): string => t(`astrology.signNames.${sign}`);
     const getPlanetName = (planetName: number): string => t(`astrology.planetNames.${planetName}`);
@@ -57,14 +62,19 @@ const WargaHousesTable = ({ houses, caption }: WargaHousesTableProps) => {
     const planetsCell = (planets: number[]): string =>
         planets.length > 0 ? planets.map(getPlanetName).join(", ") : noDetails;
 
+    const effectiveAspects = ({ houseNumber, aspects }: WargaHouseRow): Aspect[] =>
+        aspectMap?.[houseNumber] ??
+        aspects.map(({ planetName, aspectType }) => aspectChipRecord(planetName, aspectType));
+
     const aspectsCell = (house: WargaHouseRow) =>
-        house.aspects.length > 0 ? (
+        effectiveAspects(house).length > 0 ? (
             <span className="inline-flex flex-wrap gap-1">
-                {house.aspects.map((aspect) => (
+                {effectiveAspects(house).map((aspect) => (
                     <AspectChip
                         key={aspect.planetName}
-                        aspect={aspectChipRecord(aspect.planetName, aspect.aspectType)}
+                        aspect={aspect}
                         planetLabel={getPlanetName(aspect.planetName)}
+                        aspectingSign={planets.find(({ name }) => name === aspect.planetName)?.sign}
                         house={house.houseNumber}
                     />
                 ))}
@@ -77,9 +87,9 @@ const WargaHousesTable = ({ houses, caption }: WargaHousesTableProps) => {
         `${house.houseNumber} · ${getSignName(house.sign)} · ${planetsCell(house.planets)} · ${t(
             "astrology.aspects",
         )} ${
-            house.aspects.length > 0
-                ? house.aspects.map((aspect) => planetCell(aspect.planetName)).join(", ")
-                : noDetails
+            effectiveAspects(house)
+                .map((aspect) => planetCell(aspect.planetName))
+                .join(", ") || noDetails
         }`;
 
     return (

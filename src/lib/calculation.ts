@@ -25,14 +25,10 @@ import {
 } from "@/lib/astrology";
 import { PlanetaryStrength } from "@/lib/astrologyEnums";
 import { computeBhavaSuchika, computeLagnaBhavaSuchika, computeNavamsaLagnaSign } from "@/lib/bhavaSuchika";
+import { computeChartAspects } from "@/lib/chartAspects";
 import logger from "@/lib/logger";
-import { type PlanetAspectsMap, computePlanetAspects } from "@/lib/planetAspects";
-import {
-    DEFAULT_RASHI_ASPECTS,
-    type RashiAspectsSetting,
-    computeHouseAspectsByHouseWithRashi,
-    mergeRashiIntoPlanetAspects,
-} from "@/lib/rashiAspects";
+import type { PlanetAspectsMap } from "@/lib/planetAspects";
+import type { RashiAspectsSetting } from "@/lib/rashiAspects";
 import { computeShadBalaya, deriveDay } from "@/lib/shadBalaya";
 import { computeSubaAsuba } from "@/lib/subaAsuba";
 import { computeWargaKendara } from "@/lib/wargaKendara";
@@ -387,29 +383,15 @@ export function calculateHoroscope(
                   Math.abs(planetDetails[i].absoluteDegree - sunLong - 360) < sunOrb;
     }
 
-    // ASPECTS — planet drishti (degree/yoga arms + rashi drishti), per-planet orbs respected.
-    // Waxing-in-place approach: planetary reasons first, rashi reasons appended (UT-RA-141/142/143).
-    const aspectSettings = rashiAspects ?? DEFAULT_RASHI_ASPECTS;
-    const planetAspectsByPlanet = mergeRashiIntoPlanetAspects(
-        computePlanetAspects(planetDetails, planetAspects, planetaryOrbs),
-        planetDetails,
-        planetaryOrbs,
-        aspectSettings,
-    );
+    // ASPECTS — planet drishti + rashi drishti from the single engine (src/lib/chartAspects.ts).
+    // Planets store the aspects they cast; houses store the planets aspecting them.
+    const chartAspects = computeChartAspects(planetDetails, houses, { planetAspects, planetaryOrbs, rashiAspects });
     for (const p of planetDetails) {
-        p.aspects = planetAspectsByPlanet[p.name] ?? [];
+        p.aspects = chartAspects.byPlanet[p.name] ?? [];
     }
-
-    // HOUSE ASPECTS — planets aspecting each house (Planet-Aspects arms ∪ rashi arm) → houses[].aspectingPlanets.
-    const aspectingByHouse = computeHouseAspectsByHouseWithRashi(
-        planetDetails,
-        houses,
-        planetAspects,
-        planetaryOrbs,
-        aspectSettings,
-    );
     for (const h of houses) {
-        h.aspectingPlanets = aspectingByHouse[h.houseNumber] ?? [];
+        h.aspects = chartAspects.byHouse[h.houseNumber] ?? [];
+        h.aspectingPlanets = h.aspects.map(({ planetName }) => planetName);
     }
 
     for (const p of planetDetails) {
@@ -502,7 +484,7 @@ export function calculateHoroscope(
 
     return {
         ...result,
-        wargaKendara: computeWargaKendara(result, { source: "auto" }),
+        wargaKendara: computeWargaKendara(result, { source: "auto", planetAspects }),
     };
 }
 

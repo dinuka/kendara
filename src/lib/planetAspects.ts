@@ -1,22 +1,23 @@
 import { navamsaSign } from "@/lib/astrology";
-import type { Aspect, House, Planet } from "@/lib/astrology";
+import type { Aspect, Planet } from "@/lib/astrology";
 
 export interface PlanetAspectSetting {
-    /** Integers 1-12, unique, ascending. Absolute house numbers the planet aspects (direct). */
+    /** Integers 1-12, unique, ascending. Aspect houses counted from the planet's own house
+     *  (Kuja 4, 5, 7, 8, 9 in house 3 → houses 6, 7, 9, 10, 11); house N is the angle (N − 1) × 30. */
     houses: number[];
-    /** Multiples of 30 in [30, 330], unique, ascending. Candidate aspect angles. */
+    /** Multiples of 30 in [30, 330], unique, ascending. Kept paired with `houses` by the settings
+     *  form; the engine derives each angle from its house (src/lib/chartAspects.ts). */
     degrees: number[];
 }
 
 export type PlanetAspectsMap = Record<string, PlanetAspectSetting>;
 
 /** Authoritative default aspect houses per planet (replaces the old special-aspect table). Every
- *  planet 1-9 has an explicit entry, so there is no "others → 7th" fallback:
+ *  planet 1-9 has an explicit entry, so there is no "others → 7th" fallback (houses counted from
+ *  the planet's own house):
  *    SUN (1) / MOON (2) / SATURN (7) = 3, 5, 7, 9, 10
  *    MARS (3) / MERCURY (4)         = 4, 5, 7, 8, 9
- *    JUPITER (5) / VENUS (6) / RAHU (8) / KETU (9) = 5, 7, 9
- *  Defaults act as OFFSETS from the planet's whole-sign house; a configured `houses` list applies
- *  as absolute house numbers. */
+ *    JUPITER (5) / VENUS (6) / RAHU (8) / KETU (9) = 5, 7, 9 */
 export const DEFAULT_ASPECT_HOUSES: Record<number, number[]> = {
     1: [3, 5, 7, 9, 10],
     2: [3, 5, 7, 9, 10],
@@ -58,36 +59,16 @@ export const DEFAULT_ORBS: Record<string, number> = {
     "9": 0,
 };
 
-const wrap360 = (x: number): number => ((x % 360) + 360) % 360;
-
-const signedShortest = (target: number, point: number): number => ((target - point + 540) % 360) - 180;
-
-/** Signed delta (degrees) of a target absolute longitude relative to the closest of the two aspect
- *  points (`absI + angle` / `absI − angle`, wrapped). Positive when the target is ahead (east) of
- *  the aspect point. Shared by the planetary and rashi arms for tooltip reason lines. */
-export function aspectPointSignedDelta(absI: number, angle: number, targetAbs: number): number {
-    const plus = signedShortest(targetAbs, wrap360(absI + angle));
-    const minus = signedShortest(targetAbs, wrap360(absI - angle));
-    if (Math.abs(plus) <= Math.abs(minus)) return plus;
-    return minus;
-}
-
 /** The aspecting planet's orb tolerance: the user's `planetaryOrbs` value, else the default orb,
  *  else 0. Same fallback ordering as the combustion code path (`planetaryOrbs["1"] ?? 15`). */
 export function resolveOrb(planet: number, planetaryOrbs?: Record<string, number>): number {
     return planetaryOrbs?.[String(planet)] ?? DEFAULT_ORBS[String(planet)] ?? 0;
 }
 
-/** Resolve the aspect houses for a planet: the configured `houses` (absolute) when an entry exists,
- *  else the planet's default aspect houses. Covers all planets 1-9 — no `[7]` fallback. */
+/** Resolve the aspect houses for a planet (counted from its own house): the configured `houses`
+ *  when an entry exists, else the planet's default aspect houses. */
 export function resolveAspectHouses(planet: number, planetAspects?: PlanetAspectsMap): number[] {
     return planetAspects?.[String(planet)]?.houses ?? DEFAULT_ASPECT_HOUSES[planet] ?? [];
-}
-
-/** Resolve the candidate aspect degrees for a planet: the configured `degrees` when an entry
- *  exists, else the default `[60, 90, 120, 180]`. */
-export function resolveAspectDegrees(planet: number, planetAspects?: PlanetAspectsMap): number[] {
-    return planetAspects?.[String(planet)]?.degrees ?? defaultAspectDegrees(planet);
 }
 
 /** Strict server-side validation of the `planetAspects` payload. All-or-nothing: a single invalid
@@ -176,60 +157,6 @@ export function derivePlanetAbsoluteDegree(
     return (birthSign - 1) * 30 + 15;
 }
 
-/** Planet-to-planet aspects. For each aspecting planet `i`, candidates = [0, ...configured degrees];
- *  orb = the *highest* of the two planets' `planetaryOrbs` values (max of aspecter and target) so
- *  that a conjunction or aspect recorded in one direction is always mirrored in the other. Each
- *  candidate angle `d` maps to the two aspect points `abs_i ± d` (wrapped); `aspectPointSignedDelta`
- *  picks the nearer of those points to the target and an aspect to planet `j` is recorded when the
- *  nearest candidate's delta is within orb (`degreeGap <= orb`, inclusive). This point-based matching
- *  (shared with the house-aspect arm) lets special aspects past 180° register against targets
- *  sitting near the wrapped point — e.g. Saturn's 10th (270° ≡ abs_i − 90) reaching a planet 90°
- *  behind. Ties between equidistant candidate angles resolve to the smaller angle. `isBeneficial`
- *  only for 60/120. */
-export function computePlanetAspects(
-    planets: Array<Pick<Planet, "name" | "absoluteDegree">>,
-    planetAspects?: PlanetAspectsMap,
-    planetaryOrbs?: Record<string, number>,
-): Record<number, Aspect[]> {
-    const result: Record<number, Aspect[]> = {};
-    for (const aspecter of planets) {
-        const i = aspecter.name;
-        const absI = aspecter.absoluteDegree;
-        const candidates = [0, ...resolveAspectDegrees(i, planetAspects)];
-        const aspects: Aspect[] = [];
-        for (const target of planets) {
-            if (target.name === i) continue;
-            const orb = Math.max(resolveOrb(i, planetaryOrbs), resolveOrb(target.name, planetaryOrbs));
-            let nearest = candidates[0];
-            let bestDelta = aspectPointSignedDelta(absI, nearest, target.absoluteDegree);
-            let bestDiff = Math.abs(bestDelta);
-            for (let k = 1; k < candidates.length; k++) {
-                const delta = aspectPointSignedDelta(absI, candidates[k], target.absoluteDegree);
-                const diff = Math.abs(delta);
-                if (diff < bestDiff) {
-                    bestDiff = diff;
-                    nearest = candidates[k];
-                    bestDelta = delta;
-                }
-            }
-            if (bestDiff <= orb) {
-                aspects.push({
-                    planetName: target.name,
-                    aspectType: nearest,
-                    planetAbsoluteDegree: target.absoluteDegree,
-                    degreeGap: +bestDiff.toFixed(2),
-                    exactAspectDegree: nearest,
-                    isBeneficial: BENEFICIAL_ASPECT_ANGLES.has(nearest),
-                    delta: +bestDelta.toFixed(2),
-                    reasons: [{ type: "planetary", angle: nearest, delta: +bestDelta.toFixed(2) }],
-                });
-            }
-        }
-        result[i] = aspects;
-    }
-    return result;
-}
-
 /** Degree-based planet conjunctions — the authoritative conjunction list shared by the
  *  calculation-tab planet tables and the D1 (Lagna) warga planets table. Two planets are conjunct
  *  when their shortest angular separation is strictly below the pair's highest orb (`<`, mirroring
@@ -266,136 +193,4 @@ export function computePlanetConjunctions(
         result[p.name] = conjunctions;
     }
     return result;
-}
-
-/** Degree-based house aspects. A planet `i` aspects a house when:
- *   - the house is in the explicit arm — the configured `houses` (absolute numbers), or — for an
- *     unconfigured planet — the default aspect houses resolved as OFFSETS from the planet's whole-sign
- *     house; OR
- *   - the degree arm — one of the planet's aspect points (`abs_i ± d`, wrapped to 360°) is within the
- *     planet's orb of the house's absolute middle degree `(middleSign−1)*30 + middleDegree`.
- *  The two arms union (dedup, sorted ascending). Houses without a usable stored middle degree are
- *  skipped by the degree arm (the explicit arm still applies). Conjunction (0°) is never a degree-arm
- *  point. There is no `degree ÷ 30` → house-number mapping. */
-export function computeHouseAspectsByPlanet(
-    planets: Array<Pick<Planet, "name" | "absoluteDegree" | "house">>,
-    houses: Array<Pick<House, "houseNumber" | "middleSign" | "middleDegree">>,
-    planetAspects?: PlanetAspectsMap,
-    planetaryOrbs?: Record<string, number>,
-): Record<number, number[]> {
-    const result: Record<number, number[]> = {};
-    for (const planet of planets) {
-        const i = planet.name;
-        const entry = planetAspects?.[String(i)];
-        const degrees = entry?.degrees ?? defaultAspectDegrees(i);
-        const orb = resolveOrb(i, planetaryOrbs);
-
-        let explicit: number[];
-        if (entry) {
-            explicit = entry.houses;
-        } else {
-            explicit = (DEFAULT_ASPECT_HOUSES[i] ?? []).map((o) => ((planet.house - 1 + o - 1) % 12) + 1);
-        }
-
-        const points: number[] = [];
-        for (const d of degrees) {
-            points.push(wrap360(planet.absoluteDegree + d), wrap360(planet.absoluteDegree - d));
-        }
-
-        const aspected = new Set<number>(explicit);
-        for (const h of houses) {
-            if (
-                !Number.isFinite(h.middleDegree) ||
-                !Number.isInteger(h.middleSign) ||
-                h.middleSign < 1 ||
-                h.middleSign > 12
-            ) {
-                continue;
-            }
-            const midAbs = (h.middleSign - 1) * 30 + h.middleDegree;
-            for (const p of points) {
-                const diff = Math.min(Math.abs(midAbs - p), 360 - Math.abs(midAbs - p));
-                if (diff <= orb) {
-                    aspected.add(h.houseNumber);
-                    break;
-                }
-            }
-        }
-        result[i] = [...aspected].sort((a, b) => a - b);
-    }
-    return result;
-}
-
-/** Transpose of `computeHouseAspectsByPlanet`: house number -> aspecting planet numbers, sorted
- *  ascending, with every house 1-12 present (empty array when no planet aspects it). */
-export function computeHouseAspectsByHouse(
-    planets: Array<Pick<Planet, "name" | "absoluteDegree" | "house">>,
-    houses: Array<Pick<House, "houseNumber" | "middleSign" | "middleDegree">>,
-    planetAspects?: PlanetAspectsMap,
-    planetaryOrbs?: Record<string, number>,
-): Record<number, number[]> {
-    const byPlanet = computeHouseAspectsByPlanet(planets, houses, planetAspects, planetaryOrbs);
-    const result: Record<number, number[]> = {};
-    for (let h = 1; h <= 12; h++) result[h] = [];
-    for (const [planetKey, aspectedHouses] of Object.entries(byPlanet)) {
-        const planet = Number(planetKey);
-        for (const h of aspectedHouses) {
-            (result[h] ??= []).push(planet);
-        }
-    }
-    for (let h = 1; h <= 12; h++) result[h].sort((a, b) => a - b);
-    return result;
-}
-
-/** Manual-chart planet-to-planet aspects: thin adapter that resolves each planet's absolute degree
- *  (stored `planetDegrees` else deterministic fallback) then delegates to `computePlanetAspects`
- *  with the identical algorithm — no duplicated matching logic. */
-export function computeManualPlanetAspects(
-    planets: Array<Pick<Planet, "name" | "sign" | "house" | "navamsaSign">>,
-    planetDegrees?: Record<string, number>,
-    planetAspects?: PlanetAspectsMap,
-    planetaryOrbs?: Record<string, number>,
-): Record<number, Aspect[]> {
-    const absPlanets = planets.map((pl) => ({
-        name: pl.name,
-        absoluteDegree: derivePlanetAbsoluteDegree(pl.name, pl.sign, pl.navamsaSign, planetDegrees?.[String(pl.name)]),
-    }));
-    return computePlanetAspects(absPlanets, planetAspects, planetaryOrbs);
-}
-
-/** Manual-chart house aspects: same two arms as auto charts. The explicit arm is the configured
- *  `houses` (absolute) or — for an unconfigured planet — the default aspect houses as offsets from
- *  the planet's whole-sign house. The degree arm matches each planet's aspect points `abs_i ± d`
- *  against the house's whole-sign sign midpoint `(sign−1)*30 + 15` within the planet's orb. The
- *  planet's whole-sign sign is derived from `houseSigns` (house → sign). Delegates to
- *  `computeHouseAspectsByPlanet` — no duplicated matching logic. */
-export function computeManualHouseAspects(
-    houseOfPlanet: Record<number, number>,
-    houseSigns: number[],
-    planetDegrees?: Record<string, number>,
-    planetAspects?: PlanetAspectsMap,
-    planetaryOrbs?: Record<string, number>,
-    navamsaSigns?: Record<number, number>,
-): Record<number, number[]> {
-    const planets: Array<Pick<Planet, "name" | "absoluteDegree" | "house">> = [];
-    for (const [planetKey, house] of Object.entries(houseOfPlanet)) {
-        const planet = Number(planetKey);
-        const sign = houseSigns[house - 1];
-        planets.push({
-            name: planet,
-            house,
-            absoluteDegree: derivePlanetAbsoluteDegree(
-                planet,
-                sign,
-                navamsaSigns?.[planet],
-                planetDegrees?.[String(planet)],
-            ),
-        });
-    }
-    const houses = houseSigns.map((sign, i) => ({
-        houseNumber: i + 1,
-        middleSign: sign,
-        middleDegree: 15,
-    }));
-    return computeHouseAspectsByPlanet(planets, houses, planetAspects, planetaryOrbs);
 }
