@@ -108,7 +108,7 @@ describe("composeAspectTooltip — single reason", () => {
         expect(result.lines).toEqual(["Planet drishti 7 (180) (+02:05:00)"]);
     });
 
-    it("uses the aspected row house when supplied (houses table, §8.2)", () => {
+    it("houses-table records use the house counted from the aspecting planet (180° → 7)", () => {
         const result = composeAspectTooltip(tokens, {
             aspect: aspect({
                 aspectType: 180,
@@ -116,9 +116,8 @@ describe("composeAspectTooltip — single reason", () => {
                 delta: 2.0833,
                 reasons: [{ type: "planetary", angle: 180, delta: 2.0833 }],
             }),
-            house: 3,
         });
-        expect(result.lines).toEqual(["Planet drishti 3 (180) (+02:05:00)"]);
+        expect(result.lines).toEqual(["Planet drishti 7 (180) (+02:05:00)"]);
     });
 });
 

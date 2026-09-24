@@ -1554,7 +1554,6 @@ export default function HoroscopeDetailPage() {
                                                                             aspect={a}
                                                                             planetLabel={`${PLANET_SYMBOLS[a.planetName] ?? ""} ${getPlanetName(a.planetName)}`.trim()}
                                                                             aspectingSign={planetSignOf(a.planetName)}
-                                                                            house={h.houseNumber}
                                                                         />
                                                                     ))}
                                                                 </div>

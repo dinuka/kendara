@@ -18,8 +18,6 @@ export interface AspectChipProps {
     planetLabel: string;
     /** Whole-sign the aspecting planet occupies — the `{aspectingSign}` of rashi reason lines. */
     aspectingSign?: number;
-    /** Aspected row house (houses table) — overrides the relative-house derivation. */
-    house?: number;
 }
 
 /** Planets/houses table aspect chip — planet name only (UX §8.1), anchoring the compact
@@ -28,7 +26,7 @@ export interface AspectChipProps {
  *  blur, mouseleave or tap-outside close. The `title` fallback carries the same full text (delta
  *  exactly once) for no-JS/print. The tooltip is portaled to `document.body` and measured after
  *  mount so it sits right next to the tag. */
-export default function AspectChip({ aspect, planetLabel, aspectingSign, house }: AspectChipProps) {
+export default function AspectChip({ aspect, planetLabel, aspectingSign }: AspectChipProps) {
     const { t, locale } = useI18n();
     const tokens: AspectTooltipTokens = {
         label: t("astrology.drishti.label"),
@@ -36,7 +34,7 @@ export default function AspectChip({ aspect, planetLabel, aspectingSign, house }
         arrow: t("astrology.drishti.arrow"),
         getSignName: (sign) => t(`astrology.signNames.${sign}`),
     };
-    const { lines, single, delta, title } = composeAspectTooltip(tokens, { aspect, aspectingSign, house });
+    const { lines, single, delta, title } = composeAspectTooltip(tokens, { aspect, aspectingSign });
 
     const [open, setOpen] = useState(false);
     const hoverTimer = useRef<ReturnType<typeof setTimeout> | null>(null);

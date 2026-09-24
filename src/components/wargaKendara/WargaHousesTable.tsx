@@ -31,7 +31,7 @@ const PLANET_SYMBOLS: Record<number, string> = {
 
 /** Build the AspectChip record for a warga house aspect: the whole-sign angle IS the aspect, there is
  *  no degree gap or delta (UX §4.3 — no inline degree/delta text; the tooltip falls back to a single
- *  planetary reason with the angle and the row house). */
+ *  planetary reason with the angle and the house counted from the aspecting planet). */
 function aspectChipRecord(planetName: number, aspectType: number): Aspect {
     return {
         planetName,
@@ -48,8 +48,7 @@ function aspectChipRecord(planetName: number, aspectType: number): Aspect {
 /** Per-chart Warga Kendara Houses table (UX §4.3): #, Sign, Planets, Aspects. Desktop renders a
  *  real <table> (>= 640px); mobile renders complete-info cards per the warga mobile wireframe (all
  *  columns visible, no expansion). Aspect cells render the aspecting planets as AspectChip tags —
- *  same chips as the Planets table, each anchoring the compact aspect tooltip with the row house
- *  (UI-WK-320). */
+ *  same chips as the Planets table, each anchoring the compact aspect tooltip (UI-WK-320). */
 const WargaHousesTable = ({ houses, planets, caption, aspectMap }: WargaHousesTableProps) => {
     const { t } = useI18n();
     const getSignName = (sign: number): string => t(`astrology.signNames.${sign}`);
@@ -75,7 +74,6 @@ const WargaHousesTable = ({ houses, planets, caption, aspectMap }: WargaHousesTa
                         aspect={aspect}
                         planetLabel={getPlanetName(aspect.planetName)}
                         aspectingSign={planets.find(({ name }) => name === aspect.planetName)?.sign}
-                        house={house.houseNumber}
                     />
                 ))}
             </span>

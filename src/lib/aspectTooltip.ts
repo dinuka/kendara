@@ -28,8 +28,6 @@ export interface AspectTooltipTokens {
 
 export interface AspectTooltipData {
     aspect: Pick<Aspect, "aspectType" | "exactAspectDegree" | "degreeGap" | "delta" | "reasons">;
-    /** Aspected house (houses table) — overrides the relative-house derivation. */
-    house?: number | null;
     /** Whole-sign the aspecting planet occupies — the `{aspectingSign}` of rashi reason lines. */
     aspectingSign?: number;
 }
@@ -53,7 +51,6 @@ const REASON_ORDER: Record<AspectReason["type"], number> = { planetary: 0, rashi
  *  treated as a single planetary reason. */
 export function composeAspectTooltip(tokens: AspectTooltipTokens, data: AspectTooltipData): AspectTooltipResult {
     const { aspect, aspectingSign } = data;
-    const houseOverride = data.house ?? null;
     // A conjunction (0°) tooltip carries ONLY the positional difference — no drishti label, no
     //  house, no angle. The planets' angular separation IS the whole reason (UX §8.1.1 note).
     if ((aspect.aspectType ?? aspect.exactAspectDegree ?? 0) <= 0) {
@@ -82,7 +79,8 @@ export function composeAspectTooltip(tokens: AspectTooltipTokens, data: AspectTo
             return inlineDelta ? `${tokens.rashiLabel} ${signs} (${deltaStr})` : `${tokens.rashiLabel} ${signs}`;
         }
         const angle = reason.angle ?? aspect.aspectType ?? aspect.exactAspectDegree ?? 0;
-        const house = houseOverride ?? relativeAspectHouse(angle);
+        // Always the house counted from the aspecting planet (180° → 7), in every table.
+        const house = relativeAspectHouse(angle);
         if (inlineDelta) {
             return house !== null
                 ? `${tokens.label} ${house} (${angle}) (${deltaStr})`
