@@ -206,7 +206,7 @@ function formFromRules(entry: CatalogEntry, facts: ChartFacts): FormationResult 
 }
 
 /** Planet params a rule names in its reason lines (`planet`, `lord1`, `lord2`). */
-const PLANET_PARAMS = ["planet", "lord1", "lord2"];
+export const PLANET_PARAMS = ["planet", "lord1", "lord2"];
 
 /** Planets that form the entry: the planets each triggered rule names in its reasons. A rule whose
  *  reasons name no planet (Shani Mangala, Kuja Dosha, Kala Sarpa, Pancha Maha Purusha) is formed by

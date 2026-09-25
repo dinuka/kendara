@@ -605,6 +605,27 @@ describe("Detail panel blocks (UI-YD-520..538)", () => {
         expect(items.map((item) => item.textContent)).toEqual(["Mars", "Saturn"]);
     });
 
+    test("Planets section shades planets by their share of the reasons", () => {
+        const reasons = [
+            { rule: "manglik.mk01", reasonKey: "rule.mk01", params: { planet: 3 } },
+            { rule: "manglik.mk01", reasonKey: "rule.mk01", params: { planet: 3, lord1: 7 } },
+            { rule: "manglik.mk01", reasonKey: "rule.mk01", params: { planet: 3, lord1: 7 } },
+            { rule: "manglik.mk01", reasonKey: "rule.mk01", params: { planet: 3, lord1: 1 } },
+        ];
+        const dosha = presentDosha();
+        const result: YogaDoshaResult = {
+            yogas: [],
+            doshas: [{ ...dosha, formation: { ...dosha.formation, reasons, planets: [1, 3, 7] } }],
+        };
+        render(<YogaDoshaSection result={result} />);
+        fireEvent.click(screen.getByRole("button", { name: /Manglik/ }));
+        const heading = screen.getByText("Planets");
+        const items = within(heading.parentElement as HTMLElement).getAllByRole("listitem");
+        expect(items.map((item) => item.getAttribute("data-share"))).toEqual(["minor", "dominant", "major"]);
+        expect(items[1].className).toContain("bg-red-600");
+        expect(items[0].className).toContain("bg-white");
+    });
+
     test("panel header marks a cancelled entry with a Cancelled sub tag", () => {
         const result: YogaDoshaResult = {
             yogas: [],
