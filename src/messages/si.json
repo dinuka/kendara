@@ -977,12 +977,14 @@
         "unknownName": "ලබා ගත නොහැක",
         "houseHeading": "{house} වන ගෘහය",
         "itemGroup": "සාමාන්‍ය",
+        "planets": "ග්‍රහයින්",
         "whyItForms": "සෑදුණු ආකාරය",
         "references": {
             "Lagna": "ලග්නය",
             "Moon": "චන්ද්‍ර ලග්නය",
             "Sun": "සූර්‍ය ලග්නය",
-            "Venus": "ශුක්‍ර ලග්නය"
+            "Venus": "ශුක්‍ර ලග්නය",
+            "Indu": "ඉන්දු ලග්නය"
         },
         "result": "ප්‍රතිඵල",
         "expression": "ප්‍රකාශනය",
@@ -1394,10 +1396,15 @@
         },
         "dhanaYoga": {
             "name": "ධන යෝගය",
+            "classification": {
+                "Prabala": "ප්‍රබල ධන යෝග"
+            },
             "rule": {
                 "dh01": "{reference} සිට, {house1} අධිපති ({lord1Name}) සහ {house2} අධිපති ({lord2Name}) එකම රාශියේ සහ ගෘහයේ සංයෝග වේ.",
                 "dh02": "{reference} සිට, {house1} අධිපති ({lord1Name}) සහ {house2} අධිපති ({lord2Name}) එකිනෙකා දකියී.",
-                "dh03": "{reference} සිට, {house1} අධිපති ({lord1Name}) සහ {house2} අධිපති ({lord2Name}) රාශි හුවමාරු (පරිවර්තන) කරයි."
+                "dh03": "{reference} සිට, {house1} අධිපති ({lord1Name}) සහ {house2} අධිපති ({lord2Name}) රාශි හුවමාරු (පරිවර්තන) කරයි.",
+                "dh04": "{reference} සිට, {house1} අධිපති ({lord1Name}) ධන ස්ථානයක් වන {house2} භාවයේ පිහිටයි.",
+                "dh05": "ඉන්දු ලග්නය {reference} සිට ධන ස්ථානයක් වන {house1} භාවයේ පිහිටයි."
             },
             "theme": {
                 "house2": "පවුල සහ ධනය සම්බන්ධ වේ.",

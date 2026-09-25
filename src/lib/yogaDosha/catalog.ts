@@ -50,6 +50,18 @@ export interface CatalogEntryBase {
     mitigations?: MitigationKey[];
     /** Dasha-period activation note (present when a defining dasha rule exists for the entry). */
     dashaActivation?: DashaActivation;
+    /** Classification (and its searchable names) applied when the formation carries MORE than
+     *  `aboveReasons` reason lines — e.g. Prabala Dhana Yoga (ප්‍රබල ධන යෝග) above five reasons. */
+    strongClassification?: StrongClassification;
+}
+
+export interface StrongClassification {
+    aboveReasons: number;
+    classification: string;
+    keywordEn: string;
+    keywordSi: string;
+    searchAliasesEn: string[];
+    searchAliasesSi: string[];
 }
 
 export interface YogaCatalogEntry extends CatalogEntryBase {
@@ -72,6 +84,9 @@ export interface DoshaCatalogEntry extends CatalogEntryBase {
 }
 
 export type CatalogEntry = YogaCatalogEntry | DoshaCatalogEntry;
+
+/** Classification of a yoga whose reasons pass its `strongClassification` threshold. */
+export const PRABALA_CLASSIFICATION = "Prabala";
 
 export const YOGA_CATALOG: YogaCatalogEntry[] = [
     {
@@ -442,8 +457,18 @@ export const YOGA_CATALOG: YogaCatalogEntry[] = [
             { rule: "dhanaYoga.dh01", strength: 1, reasonKey: "rule.dh01" },
             { rule: "dhanaYoga.dh02", strength: 2, reasonKey: "rule.dh02" },
             { rule: "dhanaYoga.dh03", strength: 1, reasonKey: "rule.dh03" },
+            { rule: "dhanaYoga.dh04", strength: 2, reasonKey: "rule.dh04" },
+            { rule: "dhanaYoga.dh05", strength: 2, reasonKey: "rule.dh05" },
         ],
         mitigations: [],
+        strongClassification: {
+            aboveReasons: 5,
+            classification: PRABALA_CLASSIFICATION,
+            keywordEn: "Prabala Dhana Yoga",
+            keywordSi: "ප්‍රබල ධන යෝග",
+            searchAliasesEn: ["Prabala Dhana", "Prabala Dhana Yogaya", "Strong Dhana Yoga"],
+            searchAliasesSi: ["ප්‍රබල ධන යෝගය", "ප්‍රබල ධන"],
+        },
     },
     {
         kind: "yoga",
@@ -591,15 +616,25 @@ export function activeDoshaEntries(): DoshaCatalogEntry[] {
     return DOSHA_CATALOG.filter((entry) => entry.status === "ACTIVE");
 }
 
-/** i18n key for an entry's classification-qualified display name, when one exists. Only
- *  deeptaYoga renders planet-qualified names today (e.g. `yoga.deeptaYoga.classification.Guru`
- *  → "Guru Deeptha Yoga"); other entries fall back to their base `name` key. */
+/** i18n key for an entry's classification-qualified display name, when one exists: deeptaYoga
+ *  renders planet-qualified names (e.g. `yoga.deeptaYoga.classification.Guru` → "Guru Deeptha
+ *  Yoga") and an entry past its strong-classification threshold renders its strong name (e.g.
+ *  `yoga.dhanaYoga.classification.Prabala` → "ප්‍රබල ධන යෝග"); others fall back to `name`. */
 export function classificationNameKey(entry: { kind: string; id: string; classification?: string }): string | null {
     if (entry.kind === "yoga" && entry.id === "deeptaYoga" && entry.classification) {
         return `yoga.deeptaYoga.classification.${entry.classification}`;
     }
+    if (entry.kind === "yoga" && isStrongClassification(entry)) {
+        return `yoga.${entry.id}.classification.${entry.classification}`;
+    }
     return null;
 }
+
+/** True when a yoga evaluation carries its catalog entry's strong classification (Prabala). */
+export const isStrongClassification = (entry: { id: string; classification?: string }): boolean => {
+    const strong = yogaCatalogEntry(entry.id as YogaId)?.strongClassification;
+    return !!strong && entry.classification === strong.classification;
+};
 
 /** i18n key for an entry's classification-qualified expression, when one exists. Only
  *  deeptaYoga has per-planet expression text today (e.g. `yoga.deeptaYoga.expression.Guru`);
@@ -615,9 +650,13 @@ export function classificationExpressionKey(entry: {
     return null;
 }
 
-/** Display name for an evaluation (used by search results and CSV export). */
-export function catalogNameFor(id: string, locale: "en" | "si"): string {
+/** Display name for an evaluation (used by search results and CSV export). A yoga carrying its
+ *  strong classification (Prabala Dhana Yoga) resolves to the strong name. */
+export function catalogNameFor(id: string, locale: "en" | "si", classification?: string): string {
     const yoga = yogaCatalogEntry(id as YogaId);
+    const strong = yoga?.strongClassification;
+    if (strong && strong.classification === classification)
+        return locale === "si" ? strong.keywordSi : strong.keywordEn;
     if (yoga) return locale === "si" ? yoga.keywordSi : yoga.keywordEn;
     const dosha = doshaCatalogEntry(id as DoshaId);
     if (dosha) return locale === "si" ? dosha.keywordSi : dosha.keywordEn;

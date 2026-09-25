@@ -31,7 +31,11 @@ const ReasonBlock = ({ entry }: ReasonBlockProps) => {
                         params.lord2Name = t(`astrology.planetNames.${String(params.lord2)}`);
                     }
                     if (typeof params.reference === "string") {
-                        params.reference = t(`yogaDosha.references.${params.reference}`);
+                        // Dhana Yoga merges references that share a sign ("Lagna / Moon").
+                        params.reference = params.reference
+                            .split(" / ")
+                            .map((reference) => t(`yogaDosha.references.${reference}`))
+                            .join(" / ");
                     }
                     if (typeof params.kendraFrom === "string") {
                         params.kendra = params.kendraFrom

@@ -30,6 +30,7 @@ jest.mock("@/hooks/useI18n", () => {
         "yogaDosha.houseHeading": "House {house}",
         "yogaDosha.itemGroup": "General",
         "yogaDosha.whyItForms": "Why it forms",
+        "yogaDosha.planets": "Planets",
         "yogaDosha.result": "Result",
         "yogaDosha.expression": "Expression",
         "yogaDosha.cancellation": "Cancellation",
@@ -57,8 +58,10 @@ jest.mock("@/hooks/useI18n", () => {
         "yoga.dharmaKarmadhipati.name": "Dharma Karmadhipati Yoga",
         "yoga.dharmaKarmadhipati.rule.dk01":
             "From the {reference}, the 9th lord {lord1Name} and 10th lord {lord2Name} conjoin in one sign and house.",
+        "astrology.planetNames.3": "Mars",
         "astrology.planetNames.5": "Jupiter",
         "astrology.planetNames.6": "Venus",
+        "astrology.planetNames.7": "Saturn",
         "yogaDosha.references.Lagna": "Lagna",
         "yogaDosha.references.Moon": "Moon lagna (Chandra lagna)",
         "yogaDosha.references.Sun": "Sun lagna (Surya lagna)",
@@ -168,6 +171,7 @@ const presentDosha = (over: Partial<DoshaEvaluation> = {}): DoshaEvaluation => (
         primaryRule: "manglik.mk01",
         strength: YogaStrength.STRONG,
         reasons: [{ rule: "manglik.mk01", reasonKey: "rule.mk01", params: { house: 7 } }],
+        planets: [3],
     },
     context: { houseImpact: [7] },
     interpretation: { themes: [{ key: "theme.house7", params: { house: 7 } }] },
@@ -313,10 +317,8 @@ describe("AX-YD-601/602/607: groups, empty states, and state channels", () => {
         const tag = screen.getByRole("button", { name: /Shani Mangala Dosha, Strong, Mitigated/ });
         expect(tag).toHaveAttribute("aria-expanded", "false");
         fireEvent.click(tag);
-        // Badge word + dot in the header (also echoed by the cancellation block).
-        expect(screen.getAllByText("Mitigated").length).toBeGreaterThanOrEqual(2);
-        const badge = screen.getAllByText("Mitigated")[0].closest("span");
-        expect(badge?.querySelector("[aria-hidden=true]")).toHaveClass("bg-amber-500");
+        // The aria-label above plus the cancellation block word — the header only badges cancellation.
+        expect(screen.getAllByText("Mitigated")).toHaveLength(1);
     });
 });
 
@@ -586,13 +588,32 @@ describe("Detail panel blocks (UI-YD-520..538)", () => {
         expect(within(manglikPanel).queryByText("These periods may surface the themes above.")).not.toBeInTheDocument();
     });
 
-    test("panel header shows tradition, strength pill and status badge", () => {
+    test("panel header has no tradition / strength / status sub tags unless cancelled", () => {
         renderSection();
         fireEvent.click(screen.getByRole("button", { name: /Shani Mangala Dosha/ }));
-        expect(screen.getByText("Mainstream")).toBeInTheDocument();
-        expect(screen.getByText("Very strong")).toBeInTheDocument();
-        // "Not cancelled" echoes in the header badge and the cancellation block.
-        expect(screen.getAllByText("Not cancelled").length).toBeGreaterThanOrEqual(2);
+        expect(screen.queryByText("Mainstream")).not.toBeInTheDocument();
+        expect(screen.queryByText("Very strong")).not.toBeInTheDocument();
+        // "Not cancelled" appears only in the cancellation block, never as a header sub tag.
+        expect(screen.getAllByText("Not cancelled")).toHaveLength(1);
+    });
+
+    test("Planets section lists every planet forming the entry", () => {
+        renderSection();
+        fireEvent.click(screen.getByRole("button", { name: /Shani Mangala Dosha/ }));
+        const heading = screen.getByText("Planets");
+        const items = within(heading.parentElement as HTMLElement).getAllByRole("listitem");
+        expect(items.map((item) => item.textContent)).toEqual(["Mars", "Saturn"]);
+    });
+
+    test("panel header marks a cancelled entry with a Cancelled sub tag", () => {
+        const result: YogaDoshaResult = {
+            yogas: [],
+            doshas: [presentDosha({ cancellation: { status: CancellationStatus.CANCELLED, factors: [] } })],
+        };
+        render(<YogaDoshaSection result={result} />);
+        fireEvent.click(screen.getByRole("button", { name: "Manglik, Strong, Cancelled" }));
+        const badge = screen.getAllByText("Cancelled").find((node) => node.className.includes("line-through"));
+        expect(badge).toBeDefined();
     });
 });
 

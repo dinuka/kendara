@@ -66,6 +66,22 @@ export const YOGA_DOSHA_NAME_WORDS: Record<string, string> = Object.fromEntries(
     ),
 );
 
+// Strong-classification names ("ප්‍රබල ධන යෝග", "Prabala Dhana Yoga") → `<yogaId>.<classification>`
+// key, derived from each catalog entry's `strongClassification`. They share the catalog span scan,
+// so the longer strong name overshadows the base "ධන යෝග" and matches only Prabala charts.
+export const YOGA_CLASSIFICATIONS: Record<string, { yogaId: YogaId; classification: string }> = {};
+export const CLASSIFICATION_NAME_WORDS: Record<string, string> = {};
+
+YOGA_CATALOG.forEach(({ id, strongClassification }) => {
+    if (!strongClassification) return;
+    const { classification, keywordEn, keywordSi, searchAliasesEn, searchAliasesSi } = strongClassification;
+    const key = `${id}.${classification}`;
+    YOGA_CLASSIFICATIONS[key] = { yogaId: id, classification };
+    [keywordEn, keywordSi, ...searchAliasesEn, ...searchAliasesSi].forEach((word) => {
+        CLASSIFICATION_NAME_WORDS[stripJoiners(word).toLowerCase()] = key;
+    });
+});
+
 // Words that refer to the Navamsa (D9) chart itself — a sign paired with one of
 // these words (e.g. "Mesha lagna Mesha Navanshaka") means the navamsa lagna sign,
 // distinct from PLANET_ROLE_WORDS.navamsa (the 64th Navamsa lord).

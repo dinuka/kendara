@@ -566,7 +566,8 @@ const SearchResultCard = ({
     // only have a display `name`. Resolve per-locale so both shapes render correctly (SR-YD-330).
     const displayName = (entry: Record<string, unknown>): string => {
         if (typeof entry.id === "string") {
-            const name = catalogNameFor(entry.id, locale as "en" | "si");
+            const classification = typeof entry.classification === "string" ? entry.classification : undefined;
+            const name = catalogNameFor(entry.id, locale as "en" | "si", classification);
             if (name) return name;
         }
         return typeof entry.name === "string" ? entry.name : "";

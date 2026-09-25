@@ -5,6 +5,7 @@
  */
 export {
     DOSHA_CATALOG,
+    PRABALA_CLASSIFICATION,
     YOGA_CATALOG,
     activeDoshaEntries,
     activeYogaEntries,
@@ -13,6 +14,7 @@ export {
     classificationExpressionKey,
     classificationNameKey,
     doshaCatalogEntry,
+    isStrongClassification,
     yogaCatalogEntry,
 } from "@/lib/yogaDosha/catalog";
 
@@ -26,7 +28,13 @@ export {
     validateYogaDoshaShape,
 } from "@/lib/yogaDosha/resolve";
 
-export type { CatalogEntry, CatalogEntryBase, DoshaCatalogEntry, YogaCatalogEntry } from "@/lib/yogaDosha/catalog";
+export type {
+    CatalogEntry,
+    CatalogEntryBase,
+    DoshaCatalogEntry,
+    StrongClassification,
+    YogaCatalogEntry,
+} from "@/lib/yogaDosha/catalog";
 export type { ChartFactsInput } from "@/lib/yogaDosha/ruleEngine";
 export type {
     AspectFact,

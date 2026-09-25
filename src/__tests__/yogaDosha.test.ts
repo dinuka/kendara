@@ -282,6 +282,8 @@ describe("Catalog & enums (UT-YD-001..008)", () => {
             "dhanaYoga.dh01",
             "dhanaYoga.dh02",
             "dhanaYoga.dh03",
+            "dhanaYoga.dh04",
+            "dhanaYoga.dh05",
             "neechaRajaYoga.nr01",
         ]);
         expect(YOGA_CATALOG[0].rules.map((r) => r.strength)).toEqual([1, 2, 1]);
@@ -2372,5 +2374,101 @@ describe("BI-YD-705: search text content resolves catalog names per language", (
     test("tradition labels exist in both locales", () => {
         expect(en.tradition.MAIN_STREAM).toBe("Mainstream");
         expect(si.tradition.MAIN_STREAM.length).toBeGreaterThan(0);
+    });
+});
+
+describe("Dhana Yoga (docs/dhana-yoga.md)", () => {
+    const linesOf = (rule: Parameters<typeof evaluateRule>[0], planets: PlanetFact[]) =>
+        evaluateRule(rule, facts(planets)).lines?.map(({ params }) => params) ?? [];
+
+    /** Aries Lagna: dhana lords Venus (2), Sun (5), Jupiter (9), Saturn (11) — each in its own
+     *  sign except Saturn, which `saturnSign` places. Sun in Leo also makes Leo the Surya lagna. */
+    const ownSignChart = (saturnSign: number, extra: PlanetFact[] = []) => [
+        pf(6, { sign: 2, house: 2 }),
+        pf(1, { sign: 5, house: 5 }),
+        pf(5, { sign: 9, house: 9 }),
+        pf(7, { sign: saturnSign, house: saturnSign }),
+        ...extra,
+    ];
+
+    const dhanaYogaOf = (planets: PlanetFact[]) =>
+        computeYogaDoshas(facts(planets)).yogas.find((y) => y.id === "dhanaYoga");
+
+    it("dh04: a dhana lord in another dhana house lists the lord, both houses and the reference", () => {
+        expect(linesOf("dhanaYoga.dh04", [pf(6, { sign: 5, house: 5 })])).toEqual([
+            { house1: 2, house2: 5, lord1: 6, reference: "Lagna" },
+        ]);
+    });
+
+    it("dh04: references sharing a sign merge into one line instead of repeating it", () => {
+        const planets = [pf(6, { sign: 5, house: 5 }), pf(2, { sign: 1, house: 1 })];
+        expect(linesOf("dhanaYoga.dh04", planets)).toEqual([
+            { house1: 2, house2: 5, lord1: 6, reference: "Lagna / Moon" },
+        ]);
+    });
+
+    it("dh05: Moon in the 3rd house makes houses 4, 7, 11, 1 dhana — the Indu Lagna in the 1st qualifies from the Moon", () => {
+        // Aries Lagna 9th lord Jupiter (10) + Gemini Moon 9th lord Saturn (1) = 11 → 11th from Gemini = Aries.
+        const planets = [pf(2, { sign: 3, house: 3 }), pf(1, { sign: 4, house: 4 })];
+        expect(linesOf("dhanaYoga.dh05", planets)).toEqual([{ house1: 11, reference: "Moon" }]);
+    });
+
+    it("dh05: without the Moon the Indu Lagna is unknown and the rule stays absent", () => {
+        expect(evaluateRule("dhanaYoga.dh05", facts([pf(1, { sign: 4, house: 4 })])).triggered).toBe(false);
+    });
+
+    it("dh01: dhana lord relationships are also counted from the Indu Lagna", () => {
+        // Aries Lagna + Aries Moon → Indu Lagna Scorpio; from Scorpio the 2nd (Sagittarius) and 5th
+        // (Pisces) are both Jupiter, the 9th (Cancer) Moon and the 11th (Virgo) Mercury.
+        const planets = [
+            pf(2, { sign: 1, house: 1, aspects: [aspect(4, 0, 0)] }),
+            pf(4, { sign: 1, house: 1, aspects: [aspect(2, 0, 0)] }),
+        ];
+        expect(linesOf("dhanaYoga.dh01", planets)).toEqual([
+            { house1: 9, house2: 11, lord1: 2, lord2: 4, reference: "Indu" },
+        ]);
+    });
+
+    it("every reason is listed and houseImpact stays inside the dhana houses", () => {
+        const yoga = dhanaYogaOf(ownSignChart(11));
+        expect(yoga?.formation.reasons).toHaveLength(5);
+        expect(yoga?.context.houseImpact).toEqual([2, 5, 9, 11]);
+    });
+
+    it("five reasons stay a plain Dhana Yoga; six or more become Prabala (ප්‍රබල ධන යෝග)", () => {
+        const plain = dhanaYogaOf(ownSignChart(11));
+        expect(plain?.formation.reasons).toHaveLength(5);
+        expect(plain?.classification).toBeUndefined();
+
+        // Saturn out of the dhana houses (−1) and Mercury in Virgo, the 2nd from the Leo Surya
+        // lagna, as both its 2nd and 11th lord (+2) → six reasons.
+        const prabala = dhanaYogaOf(ownSignChart(10, [pf(4, { sign: 6, house: 6 })]));
+        expect(prabala?.formation.reasons).toHaveLength(6);
+        expect(prabala?.classification).toBe("Prabala");
+        expect(catalogNameFor("dhanaYoga", "si", "Prabala")).toBe("ප්‍රබල ධන යෝග");
+        expect(catalogNameFor("dhanaYoga", "si")).toBe("ධන යෝගය");
+    });
+});
+
+describe("formation.planets (the Planets section)", () => {
+    const evaluation = (planets: PlanetFact[], id: string) =>
+        computeYogaDoshas(facts(planets)).yogas.find((y) => y.id === id) ??
+        computeYogaDoshas(facts(planets)).doshas.find((d) => d.id === id);
+
+    it("lists the lords a Dhana Yoga names, not every eligible planet", () => {
+        // Aries Lagna: Venus (2nd lord) in Leo, the 5th house.
+        expect(evaluation([pf(6, { sign: 5, house: 5 })], "dhanaYoga")?.formation.planets).toEqual([6]);
+    });
+
+    it("falls back to the catalog planets when the reasons name none (Shani Mangala → Mars, Saturn)", () => {
+        const planets = saturnMarsBoth(
+            { sign: 7, house: 7, aspects: [aspect(3, 0, 0)] },
+            { sign: 7, house: 7, aspects: [aspect(7, 0, 0)] },
+        );
+        expect(evaluation(planets, "shaniMangala")?.formation.planets).toEqual([3, 7]);
+    });
+
+    it("an absent entry carries no planets", () => {
+        expect(evaluation([], "dhanaYoga")?.formation.planets).toEqual([]);
     });
 });

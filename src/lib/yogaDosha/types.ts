@@ -43,8 +43,11 @@ export type YogaId =
     | "dhanaYoga"
     | "neechaRajaYoga";
 
-/** Dhana Yoga rule ids (docs/dhana-yoga.md) — lords of houses 2, 5, 9, 11 relationship. */
-export type DhanaYogaRuleId = "dhanaYoga.dh01" | "dhanaYoga.dh02" | "dhanaYoga.dh03";
+/** Dhana Yoga rule ids (docs/dhana-yoga.md) — dhana (2, 5, 9, 11) lords conjunct (dh01), in mutual
+ *  aspect (dh02), in parivartana (dh03), placed in a dhana house (dh04), and the Indu Lagna in a
+ *  dhana house (dh05). */
+export type DhanaYogaRuleId =
+    "dhanaYoga.dh01" | "dhanaYoga.dh02" | "dhanaYoga.dh03" | "dhanaYoga.dh04" | "dhanaYoga.dh05";
 
 /** Dosha catalog ids (registered in catalog.ts). */
 export type DoshaId = "shaniMangala" | "agniMarutha" | "manglik" | "kalaSarpa" | "kalaAmurtha";
@@ -152,6 +155,8 @@ export interface FormationInfo {
     /** Lower enum = stronger/more severe (data-model §Yoga Strength). */
     strength: YogaStrength;
     reasons: RuleReason[];
+    /** Planets (enum values, ascending) that form this yoga/dosha in this chart. */
+    planets: number[];
 }
 
 export interface ThemeInfo {
@@ -244,4 +249,7 @@ export interface RuleEvaluation {
     houseImpact?: number[];
     /** Sub-type classification for doshas/yogas with multiple variants (e.g. "Ananta"). */
     classification?: string;
+    /** Every "why it forms" line the rule found (Dhana Yoga lists each qualifying connection).
+     *  When present, formation emits one reason per line instead of the single reasonKey/params. */
+    lines?: Array<{ reasonKey: string; params?: Record<string, string | number> }>;
 }

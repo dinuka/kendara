@@ -977,12 +977,14 @@
         "unknownName": "not available",
         "houseHeading": "House {house}",
         "itemGroup": "General",
+        "planets": "Planets",
         "whyItForms": "Why it forms",
         "references": {
             "Lagna": "Lagna",
             "Moon": "Moon lagna (Chandra lagna)",
             "Sun": "Sun lagna (Surya lagna)",
-            "Venus": "Venus lagna (Shukra lagna)"
+            "Venus": "Venus lagna (Shukra lagna)",
+            "Indu": "Indu Lagna"
         },
         "result": "Result",
         "expression": "Expression",
@@ -1394,10 +1396,15 @@
         },
         "dhanaYoga": {
             "name": "Dhana Yoga",
+            "classification": {
+                "Prabala": "Prabala Dhana Yoga"
+            },
             "rule": {
                 "dh01": "From the {reference}, the lords of houses {house1} ({lord1Name}) and {house2} ({lord2Name}) conjoin in one sign and house.",
                 "dh02": "From the {reference}, the lords of houses {house1} ({lord1Name}) and {house2} ({lord2Name}) aspect each other.",
-                "dh03": "From the {reference}, the lords of houses {house1} ({lord1Name}) and {house2} ({lord2Name}) exchange signs (parivartana)."
+                "dh03": "From the {reference}, the lords of houses {house1} ({lord1Name}) and {house2} ({lord2Name}) exchange signs (parivartana).",
+                "dh04": "From the {reference}, the lord of house {house1} ({lord1Name}) is placed in house {house2}, a dhana house.",
+                "dh05": "The Indu Lagna falls in house {house1} from the {reference}, a dhana house."
             },
             "theme": {
                 "house2": "Relates to family and wealth.",

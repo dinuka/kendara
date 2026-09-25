@@ -19,6 +19,7 @@
  * the confirmed dosha-house set [1, 2, 4, 7, 8, 12].
  */
 import { Planet, PlanetaryStrength } from "@/lib/astrologyEnums";
+import { calculateInduLagna } from "@/lib/induLagna";
 import {
     SIGN_LORDS,
     areConjunct,
@@ -548,65 +549,152 @@ function evaluateKalaAmurthaRule(rule: KalaAmurthaRuleId, facts: ChartFacts): Ru
 }
 
 /**
- * Dhana Yoga (docs/dhana-yoga.md): the owners of houses 2, 5, 9 and 11 must have a relationship
- * (conjunction, mutual aspect, or parivartana/exchange) with at least one other dhana house lord.
- * Evaluated from three reference points — Lagna, Moon (Chandra Lagna) and Sun (Surya Lagna).
- * Same-lord exclusion applies: if the same planet owns both houses of a pair, that pair is skipped.
+ * Dhana Yoga (docs/dhana-yoga.md). Every qualifying connection is listed as its own reason line:
+ *  - dh01/dh02/dh03: two different lords of the dhana houses 2, 5, 9, 11 are conjunct, in mutual
+ *    aspect, or in parivartana — counted from the Lagna, Moon (Chandra lagna), Sun (Surya lagna)
+ *    and the Indu Lagna.
+ *  - dh04: a dhana house lord sits in its own house or another dhana house — counted from the
+ *    Lagna, Moon and Sun.
+ *  - dh05: the Indu Lagna falls in a dhana house counted from the Lagna, Moon or Sun (e.g. Moon in
+ *    the 3rd house → dhana houses 4, 7, 11, 1 from the Lagna).
+ * References that fall in the same sign are merged into one ("Lagna / Moon") so the same
+ * connection is never listed twice. houseImpact holds the reference-relative dhana houses only.
  */
 const DHANA_HOUSES = [2, 5, 9, 11];
 
-function evaluateDhanaYogaRule(rule: DhanaYogaRuleId, facts: ChartFacts): RuleEvaluation {
-    const sambandha = rule.split(".")[1].slice(-2); // "01" | "02" | "03"
-    if (!facts.ascendantSign) return absent(rule);
+const DHANA_RULE_STRENGTH: Record<DhanaYogaRuleId, number> = {
+    "dhanaYoga.dh01": 1,
+    "dhanaYoga.dh02": 2,
+    "dhanaYoga.dh03": 1,
+    "dhanaYoga.dh04": 2,
+    "dhanaYoga.dh05": 2,
+};
 
-    const references: Array<{ name: string; sign: number | undefined }> = [
+interface DhanaReference {
+    name: string;
+    sign: number;
+}
+
+type DhanaLine = NonNullable<RuleEvaluation["lines"]>[number];
+
+/** Indu Lagna sign from the Lagna and Moon signs, or undefined when the Moon's sign is unknown. */
+const induLagnaSign = (facts: ChartFacts): number | undefined => {
+    const moonSign = planetFact(facts, Planet.MOON)?.sign;
+    if (!facts.ascendantSign || !moonSign || moonSign < 1 || moonSign > 12) return undefined;
+    return calculateInduLagna(facts.ascendantSign, moonSign).sign;
+};
+
+/** Lagna / Moon / Sun (and optionally Indu Lagna) references, merging those that share a sign. */
+const dhanaReferences = (facts: ChartFacts, includeInduLagna: boolean): DhanaReference[] => {
+    const candidates = [
         { name: "Lagna", sign: facts.ascendantSign },
-        { name: "Moon", sign: planetFact(facts, 2)?.sign },
-        { name: "Sun", sign: planetFact(facts, 1)?.sign },
+        { name: "Moon", sign: planetFact(facts, Planet.MOON)?.sign },
+        { name: "Sun", sign: planetFact(facts, Planet.SUN)?.sign },
+        ...(includeInduLagna ? [{ name: "Indu", sign: induLagnaSign(facts) }] : []),
     ];
+    const references: DhanaReference[] = [];
+    candidates.forEach(({ name, sign }) => {
+        if (!sign) return;
+        const shared = references.find((reference) => reference.sign === sign);
+        if (shared) shared.name = `${shared.name} / ${name}`;
+        else references.push({ name, sign });
+    });
+    return references;
+};
 
-    const strength = sambandha === "02" ? 2 : 1;
-
-    for (const reference of references) {
-        if (!reference.sign) continue;
-
-        for (let i = 0; i < DHANA_HOUSES.length; i++) {
-            for (let j = i + 1; j < DHANA_HOUSES.length; j++) {
-                const lord1 = lordOfSign(reference.sign, DHANA_HOUSES[i]);
-                const lord2 = lordOfSign(reference.sign, DHANA_HOUSES[j]);
-                if (lord1 === lord2) continue;
-
+/** dh01-dh03: every pair of different dhana lords connected by `connected`, from every reference. */
+const dhanaLordConnectionLines = (
+    rule: DhanaYogaRuleId,
+    facts: ChartFacts,
+    connected: (a: PlanetFact, b: PlanetFact) => boolean,
+): DhanaLine[] => {
+    const lines: DhanaLine[] = [];
+    dhanaReferences(facts, true).forEach(({ name, sign }) => {
+        DHANA_HOUSES.forEach((house1, index) => {
+            DHANA_HOUSES.slice(index + 1).forEach((house2) => {
+                const lord1 = lordOfSign(sign, house1);
+                const lord2 = lordOfSign(sign, house2);
+                if (lord1 === lord2) return;
                 const planet1 = planetFact(facts, lord1);
                 const planet2 = planetFact(facts, lord2);
-                if (!planet1 || !planet2) continue;
+                if (!planet1 || !planet2 || !connected(planet1, planet2)) return;
+                lines.push({
+                    reasonKey: `rule.${rule.split(".")[1]}`,
+                    params: { house1, house2, lord1, lord2, reference: name },
+                });
+            });
+        });
+    });
+    return lines;
+};
 
-                const connected =
-                    sambandha === "01"
-                        ? areConjunct(planet1, planet2)
-                        : sambandha === "02"
-                          ? hasMutualAspectByDrishti(planet1, planet2)
-                          : isParivartana(planet1, planet2);
-                if (!connected) continue;
+/** dh04: a dhana house lord placed in its own or another dhana house, from Lagna / Moon / Sun. */
+const dhanaLordPlacementLines = (facts: ChartFacts): DhanaLine[] => {
+    const lines: DhanaLine[] = [];
+    dhanaReferences(facts, false).forEach(({ name, sign }) => {
+        DHANA_HOUSES.forEach((house) => {
+            const lord = planetFact(facts, lordOfSign(sign, house));
+            if (!lord) return;
+            const placedHouse = houseFromReference(lord.house, sign, facts.ascendantSign);
+            if (!DHANA_HOUSES.includes(placedHouse)) return;
+            lines.push({
+                reasonKey: "rule.dh04",
+                params: { house1: house, house2: placedHouse, lord1: lord.planetName, reference: name },
+            });
+        });
+    });
+    return lines;
+};
 
-                return fired(
-                    rule,
-                    strength,
-                    `rule.${sambandha === "01" ? "dh01" : sambandha === "02" ? "dh02" : "dh03"}`,
-                    {
-                        house1: DHANA_HOUSES[i],
-                        house2: DHANA_HOUSES[j],
-                        lord1,
-                        lord2,
-                        reference: reference.name,
-                    },
-                    [DHANA_HOUSES[i], DHANA_HOUSES[j]],
-                );
-            }
+/** Whole-sign house of `sign` counted from `referenceSign` (the reference sign is house 1). */
+const signOffsetHouse = (sign: number, referenceSign: number): number => ((sign - referenceSign + 12) % 12) + 1;
+
+/** dh05: the Indu Lagna in a dhana house counted from the Lagna / Moon / Sun. */
+const induLagnaPlacementLines = (facts: ChartFacts): DhanaLine[] => {
+    const induSign = induLagnaSign(facts);
+    if (!induSign) return [];
+    const lines: DhanaLine[] = [];
+    dhanaReferences(facts, false).forEach(({ name, sign }) => {
+        const house = signOffsetHouse(induSign, sign);
+        if (DHANA_HOUSES.includes(house)) {
+            lines.push({ reasonKey: "rule.dh05", params: { house1: house, reference: name } });
         }
-    }
+    });
+    return lines;
+};
 
-    return absent(rule);
-}
+const dhanaYogaLines = (rule: DhanaYogaRuleId, facts: ChartFacts): DhanaLine[] => {
+    switch (rule) {
+        case "dhanaYoga.dh01":
+            return dhanaLordConnectionLines(rule, facts, areConjunct);
+        case "dhanaYoga.dh02":
+            return dhanaLordConnectionLines(rule, facts, hasMutualAspectByDrishti);
+        case "dhanaYoga.dh03":
+            return dhanaLordConnectionLines(rule, facts, isParivartana);
+        case "dhanaYoga.dh04":
+            return dhanaLordPlacementLines(facts);
+        case "dhanaYoga.dh05":
+            return induLagnaPlacementLines(facts);
+        default:
+            return [];
+    }
+};
+
+const evaluateDhanaYogaRule = (rule: DhanaYogaRuleId, facts: ChartFacts): RuleEvaluation => {
+    if (!facts.ascendantSign) return absent(rule);
+    const lines = dhanaYogaLines(rule, facts);
+    if (lines.length === 0) return absent(rule);
+
+    const houseImpact = [
+        ...new Set(
+            lines.flatMap(({ params }) =>
+                [params?.house1, params?.house2].filter((house): house is number => typeof house === "number"),
+            ),
+        ),
+    ].sort((a, b) => a - b);
+    const [{ reasonKey, params }] = lines;
+    return { ...fired(rule, DHANA_RULE_STRENGTH[rule], reasonKey, params, houseImpact), lines };
+};
 
 /**
  * Neecha Raja Yoga (docs/raja-yoga.md): a debilitated (Neecha) planet placed in an upachaya

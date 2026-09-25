@@ -225,6 +225,51 @@ describe("search: Yoga/Dosha catalog names (SR-YD-800..805)", () => {
         },
     ];
 
+    /** Aries Lagna Dhana Yoga fixture: dhana lords in dhana houses from the Lagna and the Leo Surya
+     *  lagna. `withMercury` adds Mercury in Virgo (2nd from Leo as its 2nd and 11th lord), lifting
+     *  the reasons from four to six → Prabala. */
+    const dhanaYogaFixture = (withMercury: boolean) => {
+        const planet = (name: number, sign: number) => ({
+            name,
+            sign,
+            house: sign,
+            degree: 15,
+            absoluteDegree: (sign - 1) * 30 + 15,
+            strength: PlanetaryStrength.SAMA,
+            navamsaSign: sign,
+            navamsaStrength: PlanetaryStrength.SAMA,
+            nakshatra: 1,
+            aspects: [],
+        });
+        const planets = [planet(6, 2), planet(1, 5), planet(5, 9), planet(7, 10)];
+        if (withMercury) planets.push(planet(4, 6));
+        const result = computeYogaDoshas(buildChartFacts({ ascendantSign: 1, source: "auto", planets }));
+        return {
+            ascendant: { sign: 1, degree: 10 },
+            yogaDoshaVersion: YOGA_DOSHA_VERSION,
+            yogas: result.yogas,
+            doshas: { doshas: result.doshas },
+        };
+    };
+
+    test("SR-YD-806: 'ප්‍රබල ධන යෝග' matches only a Prabala Dhana Yoga, while 'ධන යෝග' matches both", async () => {
+        withCalculated(dhanaYogaFixture(true));
+        const prabalaBody = await (await search("ප්‍රබල ධන යෝග")).json();
+        const conditions = prabalaBody.queryUnderstanding.exactMatch.flat(Infinity) as Array<Record<string, unknown>>;
+        expect(prabalaBody.results).toHaveLength(1);
+        expect(conditions).toContainEqual({
+            type: "yoga_classification",
+            yogaId: "dhanaYoga",
+            classification: "Prabala",
+        });
+        // The longer strong name overshadows the base "ධන යෝග" alias.
+        expect(conditions).not.toContainEqual({ type: "yoga_id", yogaId: "dhanaYoga" });
+
+        withCalculated(dhanaYogaFixture(false));
+        expect((await (await search("ප්‍රබල ධන යෝග")).json()).results).toHaveLength(0);
+        expect((await (await search("ධන යෝග")).json()).results).toHaveLength(1);
+    });
+
     test("SR-YD-805: group term 'පංච මහා පුරුෂ යෝග' resolves a yoga_family OR across all five PMP ids", async () => {
         // The Shani-Mangala fixture carries a present Sasha (Saturn exalted, 7th kendra) but NOT
         // Ruchaka/Bhadra/Hamsa/Malavya. A family match must fire on Sasha alone, yet the query must

@@ -4,12 +4,13 @@ import CancellationBlock from "@/components/yogaDosha/CancellationBlock";
 import DashaNoteBlock from "@/components/yogaDosha/DashaNoteBlock";
 import ExpressionBlock from "@/components/yogaDosha/ExpressionBlock";
 import MitigationBlock from "@/components/yogaDosha/MitigationBlock";
+import PlanetsBlock from "@/components/yogaDosha/PlanetsBlock";
 import ReasonBlock from "@/components/yogaDosha/ReasonBlock";
 import ResultBlock from "@/components/yogaDosha/ResultBlock";
 import StateBadge from "@/components/yogaDosha/StateBadge";
-import YogaStrengthPill from "@/components/yogaDosha/YogaStrengthPill";
 import { useI18n } from "@/hooks/useI18n";
 
+import { CancellationStatus } from "@/lib/astrologyEnums";
 import { YogaDoshaEvaluation, classificationNameKey } from "@/lib/yogaDosha";
 
 interface YogaDoshaDetailPanelProps {
@@ -18,7 +19,7 @@ interface YogaDoshaDetailPanelProps {
     titleId: string;
 }
 
-/** Disclosure panel body — header (name/tradition/severity/status) + the six blocks. */
+/** Disclosure panel body — header (name, plus a "cancelled" sub tag when cancelled) + the planets and the six blocks. */
 const YogaDoshaDetailPanel = ({ entry, panelId, titleId }: YogaDoshaDetailPanelProps) => {
     const { t } = useI18n();
     const root = `${entry.kind}.${entry.id}`;
@@ -35,13 +36,13 @@ const YogaDoshaDetailPanel = ({ entry, panelId, titleId }: YogaDoshaDetailPanelP
                 <h4 id={titleId} className="text-sm font-semibold text-gray-900">
                     {t(titleKey)}
                 </h4>
-                <span className="rounded px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-indigo-700 bg-indigo-50 border border-indigo-200">
-                    {t(`tradition.${entry.tradition}`)}
-                </span>
-                <YogaStrengthPill severity={entry.finalAssessment.severity} />
-                <StateBadge status={entry.cancellation.status} />
+                {/* Only a cancellation is worth a sub tag — tradition and strength are not shown. */}
+                {entry.cancellation.status === CancellationStatus.CANCELLED && (
+                    <StateBadge status={entry.cancellation.status} />
+                )}
             </div>
 
+            <PlanetsBlock entry={entry} />
             <ReasonBlock entry={entry} />
             <ResultBlock entry={entry} />
             <ExpressionBlock entry={entry} />

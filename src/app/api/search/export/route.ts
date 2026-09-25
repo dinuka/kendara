@@ -152,7 +152,8 @@ export async function GET(req: NextRequest) {
             ? (cd.yogas as Array<Record<string, unknown>>)
                   .map((y) => {
                       if (typeof y.id === "string") {
-                          const name = catalogNameFor(y.id, "en");
+                          const classification = typeof y.classification === "string" ? y.classification : undefined;
+                          const name = catalogNameFor(y.id, "en", classification);
                           if (name) return name;
                       }
                       return y.name;

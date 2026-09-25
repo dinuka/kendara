@@ -59,8 +59,14 @@ import {
  *  v14: PMP reason params name the reference-relative Kendra house (`house` is 1/4/7/10 from the
  *  reference, `moonHouse` carries the Moon-relative Kendra for the dual-reference case) instead of
  *  the natal house (horoscope 6a68e36d150a9f9377fad101) — stored v13 PMP reasons carry the
- *  natal-house value, so they recompute. */
-export const YOGA_DOSHA_VERSION = 14;
+ *  natal-house value, so they recompute.
+ *  v15: Dhana Yoga (docs/dhana-yoga.md) lists every qualifying connection as a reason, adds the
+ *  dhana-lord placement (dh04) and Indu Lagna (dh05) rules, evaluates lord relationships from the
+ *  Indu Lagna too, and classifies more than five reasons as "Prabala" (ප්‍රබල ධන යෝග) — stored v14
+ *  Dhana Yoga entries carry a single reason and no classification, so they recompute.
+ *  v16: formation.planets lists the planets that form each yoga/dosha (the "Planets" section) —
+ *  stored v15 formations lack the field, so they recompute. */
+export const YOGA_DOSHA_VERSION = 16;
 
 export type PlanetLike = Pick<
     Planet,
@@ -119,6 +125,7 @@ interface FormationResult {
     primaryRule: string;
     strength: number;
     reasons: Array<{ rule: string; reasonKey: string; params?: Record<string, string | number> }>;
+    planets: number[];
     houseImpact: number[];
     ruleResults: RuleEvaluation[];
     classification?: string;
@@ -138,7 +145,15 @@ function formFromRules(entry: CatalogEntry, facts: ChartFacts): FormationResult 
     });
 
     if (ruleResults.length === 0) {
-        return { rulesTriggered: [], primaryRule: "", strength: 4, reasons: [], houseImpact: [], ruleResults };
+        return {
+            rulesTriggered: [],
+            primaryRule: "",
+            strength: 4,
+            reasons: [],
+            planets: [],
+            houseImpact: [],
+            ruleResults,
+        };
     }
 
     const rulesTriggered = ruleResults.map((r) => r.rule);
@@ -147,7 +162,9 @@ function formFromRules(entry: CatalogEntry, facts: ChartFacts): FormationResult 
     // One reason line per triggered rule, except a PMP rule that meets the Kendra from BOTH the
     // Lagna and the Chandra lagna, which expands into two lines (one per reference) so each
     // reference reads as its own "why it forms".
+    // A rule that lists every qualifying connection (Dhana Yoga) emits one reason per line.
     const reasons = ruleResults.flatMap((r) => {
+        if (r.lines) return r.lines.map(({ reasonKey, params }) => ({ rule: r.rule, reasonKey, params }));
         const kendraFrom = typeof r.params?.kendraFrom === "string" ? r.params.kendraFrom : "";
         const references = kendraFrom
             .split(" / ")
@@ -169,17 +186,41 @@ function formFromRules(entry: CatalogEntry, facts: ChartFacts): FormationResult 
             },
         }));
     });
-    const classification = ruleResults.find((r) => r.classification)?.classification;
+    // An entry with a strong classification (Prabala Dhana Yoga) takes it once its reasons pass the
+    // catalog threshold; otherwise the first rule-level classification (Deepta/Kala Sarpa) applies.
+    const strongClassification =
+        entry.strongClassification && reasons.length > entry.strongClassification.aboveReasons
+            ? entry.strongClassification.classification
+            : undefined;
+    const classification = strongClassification ?? ruleResults.find((r) => r.classification)?.classification;
     return {
         rulesTriggered,
         primaryRule: rulesTriggered[0],
         strength,
         reasons,
+        planets: formationPlanets(entry, ruleResults),
         houseImpact,
         ruleResults,
         classification,
     };
 }
+
+/** Planet params a rule names in its reason lines (`planet`, `lord1`, `lord2`). */
+const PLANET_PARAMS = ["planet", "lord1", "lord2"];
+
+/** Planets that form the entry: the planets each triggered rule names in its reasons. A rule whose
+ *  reasons name no planet (Shani Mangala, Kuja Dosha, Kala Sarpa, Pancha Maha Purusha) is formed by
+ *  the catalog entry's own planets; a Dhana Yoga Indu Lagna line (dh05) adds none. */
+const formationPlanets = (entry: CatalogEntry, ruleResults: RuleEvaluation[]): number[] => {
+    const planets = new Set<number>();
+    ruleResults.forEach(({ lines, reasonKey, params }) => {
+        const named = (lines ?? [{ reasonKey, params }]).flatMap(({ params: lineParams }) =>
+            PLANET_PARAMS.map((key) => lineParams?.[key]).filter((value): value is number => typeof value === "number"),
+        );
+        (named.length > 0 || lines ? named : entry.planets).forEach((planet) => planets.add(planet));
+    });
+    return [...planets].sort((a, b) => a - b);
+};
 
 interface EvaluationBase {
     id: string;
@@ -201,7 +242,7 @@ function absentBase(id: string, kind: "yoga" | "dosha"): YogaEvaluation | DoshaE
         kind,
         isPresent: false,
         tradition: "MAIN_STREAM",
-        formation: { rulesTriggered: [], primaryRule: "", strength: YogaStrength.WEAK, reasons: [] },
+        formation: { rulesTriggered: [], primaryRule: "", strength: YogaStrength.WEAK, reasons: [], planets: [] },
         context: { houseImpact: [] },
         interpretation: { themes: [] },
         mitigation: [],
@@ -260,6 +301,7 @@ function evaluateEntry(entry: CatalogEntry, facts: ChartFacts): YogaEvaluation |
                 primaryRule: formation.primaryRule,
                 strength: formation.strength,
                 reasons: formation.reasons,
+                planets: formation.planets,
             },
             context: { houseImpact: formation.houseImpact },
             interpretation,

@@ -21,14 +21,15 @@ import { catalogNameFor } from "@/lib/yogaDosha/catalog";
  *  evaluations mark absence explicitly (`isPresent: false`), while legacy snapshots predate the
  *  flag and were stored as the yogas that actually formed, so absence of the field means listed. */
 const yogaDoshaDisplayNames = (
-    entries: ReadonlyArray<{ id?: unknown; name?: unknown; isPresent?: boolean }>,
+    entries: ReadonlyArray<{ id?: unknown; name?: unknown; isPresent?: boolean; classification?: unknown }>,
     locale: "en" | "si",
 ): string[] =>
     entries
         .filter((entry) => entry.isPresent !== false)
         .map((entry) => {
             if (typeof entry.id === "string") {
-                const name = catalogNameFor(entry.id, locale);
+                const classification = typeof entry.classification === "string" ? entry.classification : undefined;
+                const name = catalogNameFor(entry.id, locale, classification);
                 if (name) return name;
             }
             return typeof entry.name === "string" ? entry.name : "";

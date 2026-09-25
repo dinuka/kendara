@@ -27,6 +27,7 @@ import {
     BHAVA_SUCHIKA_NAMES_EN,
     BHAVA_SUCHIKA_NAMES_SI,
     BHAVA_SUCHIKA_WORDS,
+    CLASSIFICATION_NAME_WORDS,
     DOSHA_WORDS,
     ENGLISH_YOGA,
     FAMILY_NAME_WORDS,
@@ -34,6 +35,7 @@ import {
     PLANET_ROLE_WORDS,
     PlanetRoleKey,
     SINHALA_YOGA,
+    YOGA_CLASSIFICATIONS,
     YOGA_DOSHA_NAME_WORDS,
     YOGA_FAMILIES,
 } from "@/lib/search/vocabulary";
@@ -55,6 +57,7 @@ type ExactCondition =
     | { type: "planet_bhava_suchika"; planet: number; value: number }
     | { type: "yoga_id"; yogaId: string }
     | { type: "yoga_family"; familyId: string }
+    | { type: "yoga_classification"; yogaId: string; classification: string }
     | { type: "dosha_id"; doshaId: string };
 
 type ExactMatch = ExactCondition[];
@@ -683,7 +686,11 @@ const getExactMatch = (query: string): ExactMatch => {
     // a present manglik that no chart carries. The full catalog name wins.
     const UNICODE_LETTER = /\p{L}/u;
     const catalogWordSpans: Array<{ word: string; id: string; index: number }> = [];
-    for (const [word, id] of Object.entries({ ...YOGA_DOSHA_NAME_WORDS, ...FAMILY_NAME_WORDS })) {
+    for (const [word, id] of Object.entries({
+        ...YOGA_DOSHA_NAME_WORDS,
+        ...FAMILY_NAME_WORDS,
+        ...CLASSIFICATION_NAME_WORDS,
+    })) {
         const index = q.indexOf(word);
         if (index === -1) continue;
         const before = q[index - 1];
@@ -705,6 +712,8 @@ const getExactMatch = (query: string): ExactMatch => {
         if (overshadowed) continue;
         if (match.id in YOGA_FAMILIES) {
             conditions.push({ type: "yoga_family", familyId: match.id });
+        } else if (match.id in YOGA_CLASSIFICATIONS) {
+            conditions.push({ type: "yoga_classification", ...YOGA_CLASSIFICATIONS[match.id] });
         } else if (yogaCatalogEntry(match.id as YogaId)) {
             conditions.push({ type: "yoga_id", yogaId: match.id });
         } else if (doshaCatalogEntry(match.id as DoshaId)) {
@@ -1279,6 +1288,18 @@ export async function POST(req: NextRequest) {
                                 return (
                                     !!yogas &&
                                     memberIds.some((id) => yogas.some((y) => y.id === id && y.isPresent === true))
+                                );
+                            }
+                            case "yoga_classification": {
+                                const yogas = calculatedDetails?.yogas as Array<Record<string, unknown>> | undefined;
+                                return (
+                                    !!yogas &&
+                                    yogas.some(
+                                        (y) =>
+                                            y.id === condition.yogaId &&
+                                            y.isPresent === true &&
+                                            y.classification === condition.classification,
+                                    )
                                 );
                             }
                             case "dosha_id": {
