@@ -5,6 +5,7 @@ import { useMemo, useState } from "react";
 import { formatDegree } from "@/lib/astrology";
 import type { ChartAscendant, ChartHouse, ChartPlanet } from "@/lib/chartDataTransform";
 import { PLANET_SHORT_SI, SIGN_SHORT_SI } from "@/lib/chartVisuals";
+import { calculateInduLagna } from "@/lib/induLagna";
 
 /** Cropped icon images (public/zodiac/*.png), silhouette on transparent background, aspect 404x275. */
 const SIGN_IMAGE_NAMES: Record<number, string> = {
@@ -45,7 +46,14 @@ interface BirthChartProps {
     ascendant: ChartAscendant;
     showAscendantDegree?: boolean;
     ascendantDegreeLabel?: string;
+    /** Marks the Indu Lagna sign's house with "IL" — D1 birth chart only. */
+    showInduLagna?: boolean;
 }
+
+/** Indu Lagna marker, rendered after a house's planets in the same rows. */
+const INDU_LAGNA = "IL";
+
+type ChartEntry = ChartPlanet | typeof INDU_LAGNA;
 
 const UNIT = 140;
 const W = UNIT * 3;
@@ -138,19 +146,28 @@ export function BirthChart({
     ascendant,
     showAscendantDegree = true,
     ascendantDegreeLabel,
+    showInduLagna = false,
 }: BirthChartProps) {
     const [selectedHouse, setSelectedHouse] = useState<number | null>(null);
 
     const signByHouse: Record<number, number> = {};
     for (const h of houses) signByHouse[h.houseNumber] = h.sign;
 
-    const planetsByHouse: Record<number, ChartPlanet[]> = {};
-    for (const p of planets) {
+    const planetsByHouse: Record<number, ChartEntry[]> = {};
+    for (const p of [...planets].sort((a, b) => a.degree - b.degree)) {
         if (!planetsByHouse[p.house]) planetsByHouse[p.house] = [];
         planetsByHouse[p.house].push(p);
     }
-    for (const hn of Object.keys(planetsByHouse)) {
-        planetsByHouse[Number(hn)].sort((a, b) => a.degree - b.degree);
+
+    // The Moon's sign is read from its house so lean persisted chart data (no planet signs) works.
+    const moon = planets.find((p) => p.name === 2);
+    if (showInduLagna && moon && signByHouse[moon.house]) {
+        const induLagnaSign = calculateInduLagna(ascendant.sign, signByHouse[moon.house]).sign;
+        const induLagnaHouse = houses.find((h) => h.sign === induLagnaSign);
+        if (induLagnaHouse) {
+            if (!planetsByHouse[induLagnaHouse.houseNumber]) planetsByHouse[induLagnaHouse.houseNumber] = [];
+            planetsByHouse[induLagnaHouse.houseNumber].push(INDU_LAGNA);
+        }
     }
 
     const { houseTiers, lordPlanet } = useMemo(() => computeHighlights(selectedHouse, houses), [selectedHouse, houses]);
@@ -202,11 +219,18 @@ export function BirthChart({
     };
 
     /** Renders one row of planet labels (no truncation) at the given position. */
-    const renderPlanetRow = (planetsToShow: ChartPlanet[], cx: number, cy: number, fontSize: number) => {
+    const renderPlanetRow = (planetsToShow: ChartEntry[], cx: number, cy: number, fontSize: number) => {
         if (planetsToShow.length === 0) return null;
         return (
             <text x={cx} y={cy} textAnchor="middle" fontSize={fontSize} fill="#1f2937">
                 {planetsToShow.map((p, i) => {
+                    if (p === INDU_LAGNA) {
+                        return (
+                            <tspan key={INDU_LAGNA} dx={i === 0 ? 0 : 4} fontWeight="bold" fill="#7c3aed">
+                                {INDU_LAGNA}
+                            </tspan>
+                        );
+                    }
                     const isLord = p.name === lordPlanet;
                     const isRetrograde = p.retrograde && p.name !== 8 && p.name !== 9;
                     const label = PLANET_SHORT_SI[p.name] || "";

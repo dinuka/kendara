@@ -64,6 +64,7 @@ const WargaChartSection = ({
                         {...toBirthChartData(chartData)}
                         ascendantDegreeLabel={ascendantDegreeLabel}
                         showAscendantDegree={showAscendantDegree}
+                        showInduLagna={isD1}
                     />
                 </div>
             ) : (

@@ -19,7 +19,7 @@ describe("BirthChart planet capacity", () => {
         owner: { id: "user-1" },
     } as unknown as any;
 
-    const renderChart = () => {
+    const renderChart = (showInduLagna = false) => {
         const result = calculateHoroscope(baseData);
         const svg = renderToStaticMarkup(
             React.createElement(BirthChart, {
@@ -35,6 +35,7 @@ describe("BirthChart planet capacity", () => {
                     lord: h.lord,
                 })),
                 ascendant: { sign: result.ascendant.sign, degree: result.ascendant.degree },
+                showInduLagna,
             }),
         );
         return { result, svg };
@@ -53,5 +54,10 @@ describe("BirthChart planet capacity", () => {
         for (const p of house3Planets) {
             expect(svg).toContain(shortLabel(p.name));
         }
+    });
+
+    test("marks the Indu Lagna once, only when enabled", () => {
+        expect(renderChart().svg).not.toContain(">IL<");
+        expect(renderChart(true).svg.match(/>IL</g)).toHaveLength(1);
     });
 });

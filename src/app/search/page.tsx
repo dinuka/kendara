@@ -789,6 +789,7 @@ const SearchResultCard = ({
                                         houses={houses}
                                         ascendant={ascendant}
                                         showAscendantDegree={false}
+                                        showInduLagna={resolvedChart === "birth"}
                                     />
                                 );
                             })()}

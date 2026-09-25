@@ -345,7 +345,7 @@ export function normalizeMaranakaraka(value: number | number[] | null | undefine
  *  Virgo→Mercury, Libra→Venus, Scorpio→Mars, Sagittarius→Jupiter, Capricorn→Saturn, Aquarius→Saturn,
  *  Pisces→Jupiter. Local copy — astrology.ts is imported by manualChart.ts, so it cannot import the
  *  copy defined there (circular dependency). */
-const SIGN_LORD: Record<number, number> = {
+export const SIGN_LORD: Record<number, number> = {
     1: 3,
     2: 6,
     3: 4,
