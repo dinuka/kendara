@@ -407,6 +407,56 @@ describe("search: Yoga/Dosha catalog names (SR-YD-800..805)", () => {
         expect((await absentResponse.json()).results).toHaveLength(0);
     });
 
+    describe("negated yoga/dosha names ('නැති' / 'නොමැති' / 'without')", () => {
+        const withManglik = (overrides: Record<string, unknown>) =>
+            withCalculated({
+                ascendant: { sign: 4, degree: 4.76 },
+                yogaDoshaVersion: YOGA_DOSHA_VERSION,
+                yogas: [],
+                doshas: { doshas: presentManglikFixture().map((d) => ({ ...d, ...overrides })) },
+            });
+
+        test.each(["කුජ දෝෂය නැති", "කුජ දෝෂය නොමැති", "කුජ ොද්ෂය නොමැති", "without Kuja dosha", "Kuja dosha absent"])(
+            "'%s' resolves a negated dosha_id condition",
+            async (query) => {
+                withManglik({ isPresent: false });
+                const body = await (await search(query)).json();
+
+                expect(body.queryUnderstanding.exactMatch.flat(Infinity)).toContainEqual({
+                    type: "dosha_id",
+                    doshaId: "manglik",
+                    negated: true,
+                });
+                expect(body.results).toHaveLength(1);
+                expect(body.results[0].matchedConditions).toContain("not_dosha_id=manglik");
+            },
+        );
+
+        test("a present Kuja dosha is excluded by the negated query and matched by the plain one", async () => {
+            withManglik({});
+            expect((await (await search("කුජ දෝෂය නැති")).json()).results).toHaveLength(0);
+            expect((await (await search("කුජ දෝෂය")).json()).results).toHaveLength(1);
+        });
+
+        test("a cancelled Kuja dosha counts as not formed", async () => {
+            withManglik({ cancellation: { status: 2, factors: [] } });
+            expect((await (await search("කුජ දෝෂය නැති")).json()).results).toHaveLength(1);
+            expect((await (await search("කුජ දෝෂය")).json()).results).toHaveLength(0);
+        });
+
+        test("negation applies to yogas too and only to the name it sits next to", async () => {
+            withCalculated(dhanaYogaFixture(false));
+            expect((await (await search("ධන යෝග නැති")).json()).results).toHaveLength(0);
+            expect((await (await search("no Dhana yoga")).json()).results).toHaveLength(0);
+
+            const body = await (await search("කුජ දෝෂය නැති ධන යෝග")).json();
+            const conditions = body.queryUnderstanding.exactMatch.flat(Infinity);
+            expect(conditions).toContainEqual({ type: "dosha_id", doshaId: "manglik", negated: true });
+            expect(conditions).toContainEqual({ type: "yoga_id", yogaId: "dhanaYoga" });
+            expect(body.results).toHaveLength(1);
+        });
+    });
+
     test("SR-YD-804/RE-YD-870: privacy untouched — another user's private chart with a present dosha never returned", async () => {
         const fixture = presentShaniMangalaFixture();
         const docs = [makeHoroscope({ _id: "a", id: "a", owner: { id: "other-1" }, isPublic: false })];

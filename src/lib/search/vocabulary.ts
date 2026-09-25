@@ -8,6 +8,23 @@ export const ENGLISH_YOGA = ["yoga", "yogas", "yogic"];
 export const ASCENDANT_WORDS = ["ලග්නයේ", "ලග්නය", "ලග්න", "ascendant", "lagna"];
 export const DOSHA_WORDS = ["දෝෂය", "දෝෂ", "dosha", "doshas"];
 
+// Words that negate the yoga/dosha name next to them, so the search matches charts where it is
+// absent or cancelled. Sinhala (and the English "absent"/"cancelled") follow the name ("කුජ දෝෂය
+// නැති", "Kuja dosha cancelled"); the English prefix words lead it ("without Kuja dosha").
+export const NEGATION_SUFFIX_WORDS = [
+    "නොමැති",
+    "නොමැත",
+    "නැති",
+    "නැත",
+    "රහිත",
+    "අවලංගු",
+    "not present",
+    "absent",
+    "cancelled",
+    "canceled",
+];
+export const NEGATION_PREFIX_WORDS = ["without", "not", "non", "no"];
+
 // Search-only "families" of yoga ids that share a common group term (e.g. the five Pancha
 // Maha Purusha yogas). A family condition matches a horoscope when ANY member id is present,
 // so the group term "පංච මහා පුරුෂ යෝග" stays an OR across the family — NOT an AND of five
@@ -196,6 +213,8 @@ const TRIGGER_WORDS = [
     ...ENGLISH_YOGA,
     ...ASCENDANT_WORDS,
     ...DOSHA_WORDS,
+    ...NEGATION_SUFFIX_WORDS,
+    ...NEGATION_PREFIX_WORDS,
     ...Object.keys(YOGA_DOSHA_NAME_WORDS),
     ...Object.keys(FAMILY_NAME_WORDS),
     ...ROLE_TRIGGER_WORDS,

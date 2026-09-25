@@ -11,6 +11,14 @@ export const stripJoiners = (text: string): string => {
     return text.replace(ZERO_WIDTH_JOINERS, "");
 };
 
+// Common misspellings of "\u0DAF\u0DDD\u0DC2" \u2014 the kombuva typed before the consonant ("\u0DDC\u0DAF\u0DCA\u0DC2", legacy keyboard
+// order) or the short "\u0DAF\u0DDC\u0DC2" \u2014 rewritten to the catalog spelling so dosha names still resolve.
+const DOSHA_MISSPELLINGS = /\u0DDC\u0DAF\u0DCA\u0DC2|\u0DAF\u0DDC\u0DC2/g;
+
+export const normalizeSinhalaSpelling = (text: string): string => {
+    return text.replace(DOSHA_MISSPELLINGS, "\u0DAF\u0DDD\u0DC2");
+};
+
 // Sinhala virama (\u0DCA) and all dependent vowel signs (constructed forms like
 // \u0DD9 + \u0DCA + \u0DBA collapse to the same skeleton as the bare consonant).
 const SINHALA_VIRAMA_AND_VOWEL_SIGNS = /[\u0DCA-\u0DDF\u0DF2\u0DF3]/g;

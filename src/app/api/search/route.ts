@@ -7,7 +7,14 @@ import { Chart } from "@/models/Chart";
 import { Horoscope } from "@/models/Horoscope";
 
 import { getNakshatraLord } from "@/lib/astrology";
-import { PLANET_NAMES, Planet, PlanetaryStrength, STRENGTH_LABELS, ZODIAC_SIGN_NAMES } from "@/lib/astrologyEnums";
+import {
+    CancellationStatus,
+    PLANET_NAMES,
+    Planet,
+    PlanetaryStrength,
+    STRENGTH_LABELS,
+    ZODIAC_SIGN_NAMES,
+} from "@/lib/astrologyEnums";
 import { isValidBhavaSuchikaValue, resolveLagnaBhavaSuchika, resolvePlanetBhavaSuchika } from "@/lib/bhavaSuchika";
 import { connectDB } from "@/lib/db";
 import logger from "@/lib/logger";
@@ -19,6 +26,7 @@ import {
     detectLanguage,
     findNakshatraMatch,
     hasNakshatraTriggerWord,
+    normalizeSinhalaSpelling,
     paginateResults,
     stripJoiners,
 } from "@/lib/search/utils";
@@ -32,6 +40,8 @@ import {
     ENGLISH_YOGA,
     FAMILY_NAME_WORDS,
     NAVAMSA_WORDS,
+    NEGATION_PREFIX_WORDS,
+    NEGATION_SUFFIX_WORDS,
     PLANET_ROLE_WORDS,
     PlanetRoleKey,
     SINHALA_YOGA,
@@ -55,10 +65,14 @@ type ExactCondition =
     | { type: "planet_role"; role: PlanetRoleKey; planet: number }
     | { type: "bhava_suchika"; value: number }
     | { type: "planet_bhava_suchika"; planet: number; value: number }
-    | { type: "yoga_id"; yogaId: string }
-    | { type: "yoga_family"; familyId: string }
-    | { type: "yoga_classification"; yogaId: string; classification: string }
-    | { type: "dosha_id"; doshaId: string };
+    | YogaDoshaCondition;
+
+// `negated` flips a yoga/dosha condition to "absent or cancelled" ("කුජ දෝෂය නැති").
+type YogaDoshaCondition =
+    | { type: "yoga_id"; yogaId: string; negated?: boolean }
+    | { type: "yoga_family"; familyId: string; negated?: boolean }
+    | { type: "yoga_classification"; yogaId: string; classification: string; negated?: boolean }
+    | { type: "dosha_id"; doshaId: string; negated?: boolean };
 
 type ExactMatch = ExactCondition[];
 
@@ -586,6 +600,21 @@ const hasAnyPlanetRole = (role: PlanetRoleKey, calculatedDetails: Record<string,
     return Array.isArray(value) && value.length > 0;
 };
 
+// A catalog name is negated when a negation word follows it, optionally after a generic yoga/dosha
+// word ("කුජ නැති", "කුජ දෝෂය නොමැති", "Kuja dosha cancelled"), or an English negation word leads
+// it ("without Kuja dosha", "no Dhana yoga").
+const NEGATION_SUFFIX_RE = new RegExp(
+    `^(?:\\s+(?:${buildRegexSource([...DOSHA_WORDS, ...SINHALA_YOGA, ...ENGLISH_YOGA])}))*\\s+(?:${buildRegexSource(NEGATION_SUFFIX_WORDS)})`,
+    "u",
+);
+const NEGATION_PREFIX_RE = new RegExp(
+    `(?:^|[^\\p{L}\\p{M}])(?:${buildRegexSource(NEGATION_PREFIX_WORDS)})[\\s-]+$`,
+    "u",
+);
+
+const isNegatedSpan = (q: string, index: number, word: string): boolean =>
+    NEGATION_SUFFIX_RE.test(q.slice(index + word.length)) || NEGATION_PREFIX_RE.test(q.slice(0, index));
+
 const getExactMatch = (query: string): ExactMatch => {
     const q = stripJoiners(query.toLowerCase());
     const hasAscendantWord = ASCENDANT_WORDS.some((w) => q.includes(stripJoiners(w.toLowerCase())));
@@ -710,14 +739,16 @@ const getExactMatch = (query: string): ExactMatch => {
                 other.index + other.word.length >= match.index + match.word.length,
         );
         if (overshadowed) continue;
+        // Only a negated condition carries the flag, so plain ones keep their existing shape.
+        const negation = isNegatedSpan(q, match.index, match.word) ? { negated: true } : {};
         if (match.id in YOGA_FAMILIES) {
-            conditions.push({ type: "yoga_family", familyId: match.id });
+            conditions.push({ type: "yoga_family", familyId: match.id, ...negation });
         } else if (match.id in YOGA_CLASSIFICATIONS) {
-            conditions.push({ type: "yoga_classification", ...YOGA_CLASSIFICATIONS[match.id] });
+            conditions.push({ type: "yoga_classification", ...YOGA_CLASSIFICATIONS[match.id], ...negation });
         } else if (yogaCatalogEntry(match.id as YogaId)) {
-            conditions.push({ type: "yoga_id", yogaId: match.id });
+            conditions.push({ type: "yoga_id", yogaId: match.id, ...negation });
         } else if (doshaCatalogEntry(match.id as DoshaId)) {
-            conditions.push({ type: "dosha_id", doshaId: match.id });
+            conditions.push({ type: "dosha_id", doshaId: match.id, ...negation });
         }
     }
 
@@ -833,6 +864,40 @@ const getAstroKeywords = (query: string): string[] => {
     }
 
     return [...new Set(keywords)];
+};
+
+// A yoga/dosha counts as formed only when present and not cancelled, so a negated condition
+// ("කුජ දෝෂය නැති") matches charts where it is absent OR cancelled.
+const isFormedEvaluation = ({ isPresent, cancellation }: Record<string, unknown>): boolean =>
+    isPresent === true && (cancellation as { status?: number } | undefined)?.status !== CancellationStatus.CANCELLED;
+
+const matchesYogaDoshaCondition = (
+    condition: YogaDoshaCondition,
+    calculatedDetails: Record<string, unknown> | null,
+): boolean => {
+    const evaluations = (
+        condition.type === "dosha_id"
+            ? (calculatedDetails?.doshas as Record<string, unknown> | undefined)?.doshas
+            : calculatedDetails?.yogas
+    ) as Array<Record<string, unknown>> | undefined;
+    // No evaluations means the chart was never assessed — it neither has nor lacks the yoga/dosha.
+    if (!evaluations) return false;
+
+    const isFormed = evaluations.some((evaluation) => {
+        if (!isFormedEvaluation(evaluation)) return false;
+        switch (condition.type) {
+            case "yoga_id":
+                return evaluation.id === condition.yogaId;
+            case "yoga_family":
+                return (YOGA_FAMILIES[condition.familyId] ?? []).includes(evaluation.id as YogaId);
+            case "yoga_classification":
+                return evaluation.id === condition.yogaId && evaluation.classification === condition.classification;
+            case "dosha_id":
+                return evaluation.id === condition.doshaId;
+        }
+    });
+
+    return condition.negated ? !isFormed : isFormed;
 };
 
 const scoreHoroscope = (
@@ -1029,7 +1094,7 @@ const scoreHoroscope = (
     if (hasYoga) {
         if (calculatedDetails?.yogas) {
             const yogas = calculatedDetails.yogas as Array<Record<string, unknown>>;
-            const presentYogas = yogas.filter((y) => y.isPresent);
+            const presentYogas = yogas.filter(isFormedEvaluation);
             if (presentYogas.length > 0) {
                 score += 0.4;
                 for (const y of presentYogas) {
@@ -1057,7 +1122,7 @@ const scoreHoroscope = (
             if (doshaList && doshaList.length > 0) {
                 score += 0.4;
                 for (const d of doshaList) {
-                    if (d.isPresent) {
+                    if (isFormedEvaluation(d)) {
                         const catalogEntry = typeof d.id === "string" ? doshaCatalogEntry(d.id as DoshaId) : undefined;
                         matchedConditions.push(`dosha=${catalogEntry ? catalogEntry.keywordEn : d.name}`);
                     }
@@ -1112,13 +1177,14 @@ export async function POST(req: NextRequest) {
     logger.info("search query: %s (page=%d, pageSize=%d)", query, page, pageSize);
 
     const detectedLanguage = detectLanguage(query);
-    const keywords = getAstroKeywords(query);
+    const parsedQuery = normalizeSinhalaSpelling(query);
+    const keywords = getAstroKeywords(parsedQuery);
 
     // Queries can carry several intents, e.g. "මේෂ ලග්නය, කුජ 1 හෝ කුජ 10". A comma
     // splits the query into groups that are ANDed together (all must match); within a
     // group a හෝ (OR) separator splits it into clauses, a group matching if ANY clause
     // matches. A comma-less query is a single group with the existing AND semantics.
-    const groups: QueryGroup[] = splitQueryGroups(query).map((group) => ({
+    const groups: QueryGroup[] = splitQueryGroups(parsedQuery).map((group) => ({
         clauses: splitQueryClauses(group).map((clause) => ({
             raw: clause,
             exactMatch: getExactMatch(clause),
@@ -1126,6 +1192,15 @@ export async function POST(req: NextRequest) {
             detectedLanguage: detectLanguage(clause),
         })),
     }));
+
+    // Negations in single-clause groups must hold for every result (a හෝ clause may be skipped).
+    const negatedConditions: YogaDoshaCondition[] = [];
+    groups.forEach(({ clauses }) => {
+        if (clauses.length !== 1) return;
+        clauses[0].exactMatch.forEach((condition) => {
+            if ("negated" in condition && condition.negated) negatedConditions.push(condition);
+        });
+    });
 
     const userId = session.user.id;
     const userRole = session.user.role;
@@ -1278,38 +1353,14 @@ export async function POST(req: NextRequest) {
                                     resolvePlanetBhavaSuchika(calculatedDetails, condition.planet) === condition.value
                                 );
                             }
-                            case "yoga_id": {
-                                const yogas = calculatedDetails?.yogas as Array<Record<string, unknown>> | undefined;
-                                return !!yogas && yogas.some((y) => y.id === condition.yogaId && y.isPresent === true);
-                            }
-                            case "yoga_family": {
-                                const yogas = calculatedDetails?.yogas as Array<Record<string, unknown>> | undefined;
-                                const memberIds = YOGA_FAMILIES[condition.familyId] ?? [];
-                                return (
-                                    !!yogas &&
-                                    memberIds.some((id) => yogas.some((y) => y.id === id && y.isPresent === true))
+                            case "yoga_id":
+                            case "yoga_family":
+                            case "yoga_classification":
+                            case "dosha_id":
+                                return matchesYogaDoshaCondition(
+                                    condition,
+                                    calculatedDetails as Record<string, unknown> | null,
                                 );
-                            }
-                            case "yoga_classification": {
-                                const yogas = calculatedDetails?.yogas as Array<Record<string, unknown>> | undefined;
-                                return (
-                                    !!yogas &&
-                                    yogas.some(
-                                        (y) =>
-                                            y.id === condition.yogaId &&
-                                            y.isPresent === true &&
-                                            y.classification === condition.classification,
-                                    )
-                                );
-                            }
-                            case "dosha_id": {
-                                const doshas = calculatedDetails?.doshas as Record<string, unknown> | undefined;
-                                const doshaList = doshas?.doshas as Array<Record<string, unknown>> | undefined;
-                                return (
-                                    !!doshaList &&
-                                    doshaList.some((d) => d.id === condition.doshaId && d.isPresent === true)
-                                );
-                            }
                             default:
                                 return false;
                         }
@@ -1317,11 +1368,23 @@ export async function POST(req: NextRequest) {
                     if (!passesExact) continue;
                 }
 
-                const { score: clauseScore, matchedConditions } = scoreHoroscope(
+                const { score: keywordClauseScore, matchedConditions } = scoreHoroscope(
                     h as unknown as Record<string, unknown>,
                     clause.raw,
                     calculatedDetails as unknown as Record<string, unknown> | null,
                 );
+
+                // Keyword scoring only rewards what a chart HAS, so each passed negated yoga/dosha
+                // condition ("කුජ දෝෂය නැති") adds its own score — otherwise a chart lacking it
+                // could score 0 and drop out.
+                let clauseScore = keywordClauseScore;
+                clauseExact.forEach((condition) => {
+                    if (!("negated" in condition)) return;
+                    const { type, negated, ...ids } = condition;
+                    if (!negated) return;
+                    clauseScore += 0.4;
+                    matchedConditions.push(`not_${type}=${Object.values(ids).join(".")}`);
+                });
 
                 if (clauseScore > groupBestScore) {
                     groupBestScore = clauseScore;
@@ -1338,7 +1401,12 @@ export async function POST(req: NextRequest) {
             matchedGroupConditions.push(groupBestConditions);
         }
 
-        if (!allGroupsMatch && !vectorScores.has(hId)) continue;
+        // A vector hit may stand in for a failed keyword match, but never for a chart that has a
+        // yoga/dosha the query explicitly excludes ("කුජ දෝෂය නැති").
+        const violatesNegation = negatedConditions.some(
+            (condition) => !matchesYogaDoshaCondition(condition, calculatedDetails as Record<string, unknown> | null),
+        );
+        if (violatesNegation || (!allGroupsMatch && !vectorScores.has(hId))) continue;
 
         const vectorScore = vectorScores.get(hId) ?? 0;
 
