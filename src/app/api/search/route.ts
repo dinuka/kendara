@@ -58,6 +58,7 @@ type ExactCondition =
     | { type: "navamsa_ascendant"; sign: number }
     | { type: "planet_in_house"; planet: number; house: number }
     | { type: "planet_in_sign"; planet: number; sign: number }
+    | ({ type: "planet_from_planet" } & PlanetRelation)
     | { type: "nakshatra"; nakshatra: number }
     | { type: "ascendant_nakshatra"; nakshatra: number }
     | { type: "planet_nakshatra_lord"; planet: number; lord: number }
@@ -384,6 +385,130 @@ const getPlanetNakshatraLord = (query: string): { planet: number; lord: number }
     return null;
 };
 
+type PlanetRelation = { planet: number; from: number; distance: number };
+
+const PLANET_WORD_SOURCE = buildRegexSource(Object.keys(PLANET_NAMES));
+const ORDINAL_SOURCE = `(?:st|nd|rd|th)?(?:\\s*(?:${buildRegexSource(["වැන්නේ", "වැන්නෙ", "වැනේනේ", "වැනි", "වෙනි", "වැනිව", "වන", "house"])}))?`;
+const FROM_MARKER_SOURCE = buildRegexSource(["ගෙන්", "ගේ සිට", "ගෙ සිට", "සිට"]);
+const CONJUNCTION_SI_SOURCE = buildRegexSource(["සමගින්", "සමඟින්", "සමග", "සමඟ", "එක්ක", "එක්ව"]);
+
+// Each pattern captures one planet and, when present, the house count. `planetIsReference` says
+// whether the captured planet is the one counted from; otherwise the nearest other planet word is.
+const RELATION_PATTERNS: Array<{
+    re: RegExp;
+    planetGroup: number;
+    distanceGroup: number | null;
+    planetIsReference: boolean;
+}> = [
+    // "රවි සඳුගෙන් 6 වැන්නේ" — counting from රවි, සඳු is 6th: the ගෙන් planet is the counted one.
+    {
+        re: new RegExp(`(${PLANET_WORD_SOURCE})\\s*(?:${FROM_MARKER_SOURCE})\\s*(\\d{1,2})${ORDINAL_SOURCE}`, "g"),
+        planetGroup: 1,
+        distanceGroup: 2,
+        planetIsReference: false,
+    },
+    // "රවි 6 වැන්නේ සඳුගෙන්" — the same relation with the count first.
+    {
+        re: new RegExp(`(\\d{1,2})${ORDINAL_SOURCE}\\s*(${PLANET_WORD_SOURCE})\\s*(?:${FROM_MARKER_SOURCE})`, "g"),
+        planetGroup: 2,
+        distanceGroup: 1,
+        planetIsReference: false,
+    },
+    // "moon 6th from sun" / "moon 6th house from the sun" — the planet after "from" is the reference.
+    {
+        re: new RegExp(`(\\d{1,2})${ORDINAL_SOURCE}\\s+from\\s+(?:the\\s+)?(${PLANET_WORD_SOURCE})`, "g"),
+        planetGroup: 2,
+        distanceGroup: 1,
+        planetIsReference: true,
+    },
+    // "රාහු රවි සමග" — conjunction, i.e. the 1st house from the reference planet.
+    {
+        re: new RegExp(`(${PLANET_WORD_SOURCE})\\s*(?:${CONJUNCTION_SI_SOURCE})`, "g"),
+        planetGroup: 1,
+        distanceGroup: null,
+        planetIsReference: true,
+    },
+    // "rahu with sun" / "rahu conjunct sun".
+    {
+        re: new RegExp(`(?:^|\\s)(?:conjunct(?:ion)?(?:\\s+with)?|with)\\s+(${PLANET_WORD_SOURCE})`, "g"),
+        planetGroup: 1,
+        distanceGroup: null,
+        planetIsReference: true,
+    },
+];
+
+// Finds "planet N-th from planet" relations, e.g. "රවි සඳුගෙන් 6 වැන්නේ" → the Moon is 6th from the
+// Sun, "කුජ ගුරුගෙන් 8 වැන්නේ" → Jupiter is 8th from Mars, "රාහු රවි සමග" → Rahu with the Sun (1st).
+// Returns the matched spans too, so their numbers are not misread as a plain "planet house" query.
+const getPlanetRelations = (query: string): { relations: PlanetRelation[]; spans: Array<[number, number]> } => {
+    const q = stripJoiners(query.toLowerCase());
+    const planetByWord = new Map(Object.entries(PLANET_NAMES).map(([word, value]) => [stripJoiners(word), value]));
+
+    const occurrences: Array<{ index: number; value: number }> = [];
+    for (const m of q.matchAll(new RegExp(PLANET_WORD_SOURCE, "g"))) {
+        const value = planetByWord.get(m[0]);
+        if (value !== undefined && typeof m.index === "number") occurrences.push({ index: m.index, value });
+    }
+
+    const relations: PlanetRelation[] = [];
+    const spans: Array<[number, number]> = [];
+
+    RELATION_PATTERNS.forEach(({ re, planetGroup, distanceGroup, planetIsReference }) => {
+        for (const m of q.matchAll(re)) {
+            if (typeof m.index !== "number") continue;
+            const start = m.index;
+            const end = start + m[0].length;
+            if (spans.some(([s, e]) => start < e && end > s)) continue;
+
+            const captured = planetByWord.get(m[planetGroup]);
+            const distance = distanceGroup === null ? 1 : parseInt(m[distanceGroup], 10);
+            if (captured === undefined || distance < 1 || distance > 12) continue;
+
+            let other: { dist: number; value: number } | null = null;
+            for (const { index, value } of occurrences) {
+                if (value === captured || (index >= start && index < end)) continue;
+                const dist = index < start ? start - index : index - end;
+                if (other === null || dist < other.dist) other = { dist, value };
+            }
+            if (other === null) continue;
+
+            relations.push(
+                planetIsReference
+                    ? { planet: other.value, from: captured, distance }
+                    : { planet: captured, from: other.value, distance },
+            );
+            spans.push([start, end]);
+        }
+    });
+
+    return { relations, spans };
+};
+
+// The query with its relation phrases cut out, so their counts and words ("8th", the "සම" inside
+// "සමග") are not misread as a planet's house or strength.
+const withoutPlanetRelations = (query: string): string =>
+    getPlanetRelations(query).spans.reduceRight(
+        (text, [start, end]) => text.slice(0, start) + text.slice(end),
+        stripJoiners(query.toLowerCase()),
+    );
+
+const planetWordOf = (planet: number): string =>
+    Object.entries(PLANET_NAMES).find(([, value]) => value === planet)?.[0] ?? String(planet);
+
+// The house a planet falls in counted from another planet, inclusively (same sign = 1st).
+// Whole-sign counting, so it equals the difference of their Rashi houses.
+const matchesPlanetRelation = (
+    { planet, from, distance }: PlanetRelation,
+    calculatedDetails: Record<string, unknown> | null,
+): boolean => {
+    const planets = calculatedDetails?.planets as Array<Record<string, unknown>> | undefined;
+    if (!planets) return false;
+    const subject = planets.find(({ name }) => name === planet);
+    const reference = planets.find(({ name }) => name === from);
+    if (!subject || !reference) return false;
+    return ((((subject.sign as number) - (reference.sign as number)) % 12) + 12) % 12 === distance - 1;
+};
+
 // Pairs each sign word with the ascendant/navamsa trigger word it refers to, so a query like
 // "ලග්නය ධනු නවාංශකය මේෂ" resolves ascendant=Sagittarius alongside navamsa_ascendant=Mesha,
 // and its mirror "Mesha lagna Mesha Navanshaka" still yields both Mesha. Signs pair with their
@@ -635,7 +760,7 @@ const getExactMatch = (query: string): ExactMatch => {
         }
     }
 
-    const planetStrengthPairs = getPlanetStrengthPairs(query);
+    const planetStrengthPairs = getPlanetStrengthPairs(withoutPlanetRelations(query));
     for (const { planet, strength } of planetStrengthPairs) {
         conditions.push({ type: "planet_strength", planet, strength });
     }
@@ -651,11 +776,16 @@ const getExactMatch = (query: string): ExactMatch => {
         }
     }
 
+    getPlanetRelations(query).relations.forEach((relation) => {
+        conditions.push({ type: "planet_from_planet", ...relation });
+    });
+
+    const houseQuery = withoutPlanetRelations(query);
     const explicitHouseByPlanet = new Map<number, number>();
     for (const [word, planetValue] of Object.entries(PLANET_NAMES)) {
         const normalizedWord = stripJoiners(word.toLowerCase());
-        if (q.includes(normalizedWord)) {
-            const numMatch = q.match(new RegExp(`${normalizedWord}\\s+(\\d+)`));
+        if (houseQuery.includes(normalizedWord)) {
+            const numMatch = houseQuery.match(new RegExp(`${normalizedWord}\\s+(\\d+)`));
             if (numMatch) {
                 const house = parseInt(numMatch[1], 10);
                 if (house >= 1 && house <= 12) {
@@ -741,6 +871,9 @@ const getExactMatch = (query: string): ExactMatch => {
         if (overshadowed) continue;
         // Only a negated condition carries the flag, so plain ones keep their existing shape.
         const negation = isNegatedSpan(q, match.index, match.word) ? { negated: true } : {};
+        // A bare planet alias ("කුජ" for Kuja dosha) names the planet unless negated ("කුජ නැති"),
+        // so "කුජ ගුරුගෙන් 8 වැන්නේ" or "කුජ 10" does not also demand the dosha.
+        if (match.word in PLANET_NAMES && !("negated" in negation)) continue;
         if (match.id in YOGA_FAMILIES) {
             conditions.push({ type: "yoga_family", familyId: match.id, ...negation });
         } else if (match.id in YOGA_CLASSIFICATIONS) {
@@ -798,7 +931,7 @@ const getAstroKeywords = (query: string): string[] => {
         keywords.push(`planet_nakshatra_lord:${planetWord}:${lordWord}`);
     }
 
-    const strengthMatch = getStrengthMatch(query);
+    const strengthMatch = getStrengthMatch(withoutPlanetRelations(query));
     if (strengthMatch !== null) {
         const strengthLabel = STRENGTH_KEYWORD_MAP[strengthMatch] || "unknown";
         const planetMatches = getPlanetMatches(query);
@@ -850,6 +983,10 @@ const getAstroKeywords = (query: string): string[] => {
     if (getNavamsaSignMatch(query) !== null) {
         keywords.push("navamsa_ascendant");
     }
+
+    getPlanetRelations(query).relations.forEach(({ planet, from, distance }) => {
+        keywords.push(`planet_from_planet:${planetWordOf(planet)}:${planetWordOf(from)}:${distance}`);
+    });
 
     const bhavaSuchikaMatch = getBhavaSuchikaMatch(query);
     if (bhavaSuchikaMatch !== null) {
@@ -1051,7 +1188,14 @@ const scoreHoroscope = (
         }
     }
 
-    const strengthMatch = getStrengthMatch(query);
+    getPlanetRelations(query).relations.forEach((relation) => {
+        if (!matchesPlanetRelation(relation, calculatedDetails)) return;
+        score += 1.0;
+        const { planet, from, distance } = relation;
+        matchedConditions.push(`${planetWordOf(planet)}_from_${planetWordOf(from)}=${distance}`);
+    });
+
+    const strengthMatch = getStrengthMatch(withoutPlanetRelations(query));
 
     if (strengthMatch !== null && calculatedDetails?.planets) {
         const planets = calculatedDetails.planets as Array<Record<string, unknown>>;
@@ -1298,6 +1442,12 @@ export async function POST(req: NextRequest) {
                                     Array<Record<string, unknown>> | undefined;
                                 if (!planets) return false;
                                 return planets.some((p) => p.name === condition.planet && p.sign === condition.sign);
+                            }
+                            case "planet_from_planet": {
+                                return matchesPlanetRelation(
+                                    condition,
+                                    calculatedDetails as Record<string, unknown> | null,
+                                );
                             }
                             case "nakshatra": {
                                 const nakshatra = calculatedDetails?.nakshatra as Record<string, unknown> | undefined;
