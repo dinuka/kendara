@@ -9,6 +9,7 @@ import type {
     Mahadasha,
 } from "@/lib/astrology";
 import { Planet, PlanetaryStrength } from "@/lib/astrologyEnums";
+import { getBadhakaSign } from "@/lib/badhaka";
 import { computeLagnaBhavaSuchika, computePlanetBhavaSuchika } from "@/lib/bhavaSuchika";
 import { type ChartAspects, computeChartAspects } from "@/lib/chartAspects";
 import { type PlanetAspectsMap, derivePlanetAbsoluteDegree } from "@/lib/planetAspects";
@@ -1125,11 +1126,7 @@ const GANDAMULA_NAKSHATRAS = new Set([1, 10, 19]);
 const GANDANTHA_NAKSHATRAS = new Set([9, 18, 27]);
 
 export function computeBadhaka(ascSign: number): number[] {
-    const isMovable = [1, 4, 7, 10].includes(ascSign);
-    const isFixed = [2, 5, 8, 11].includes(ascSign);
-    const badhakaHouse = isMovable ? 11 : isFixed ? 9 : 7;
-    const badhakaSign = ((ascSign + badhakaHouse - 2) % 12) + 1;
-    return [SIGN_LORD[badhakaSign] || 1];
+    return [SIGN_LORD[getBadhakaSign(ascSign)] || 1];
 }
 
 export function computeMaraka(ascSign: number): number[] {

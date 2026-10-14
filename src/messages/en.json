@@ -344,6 +344,7 @@
         "yogakarakaLabel": "Yogakaraka",
         "marakaLabel": "Maraka",
         "badhakaLabel": "Badhaka",
+        "badhakaLevelLabel": "Badhaka({levels})",
         "nidhanamshaLabel": "Nidhanamsha",
         "ashtamanshaLabel": "Ashtamansha",
         "wargoththamaLabel": "Wargoththama",

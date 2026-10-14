@@ -344,6 +344,7 @@
         "yogakarakaLabel": "යෝගකාරක",
         "marakaLabel": "මාරක",
         "badhakaLabel": "බාධක",
+        "badhakaLevelLabel": "බාධක({levels})",
         "nidhanamshaLabel": "නිධනාම්ශ",
         "ashtamanshaLabel": "අෂ්ඨමාංශ",
         "wargoththamaLabel": "වර්ගෝත්තම",

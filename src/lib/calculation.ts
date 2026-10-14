@@ -24,6 +24,7 @@ import {
     navamsaSign,
 } from "@/lib/astrology";
 import { PlanetaryStrength } from "@/lib/astrologyEnums";
+import { getBadhakaSign } from "@/lib/badhaka";
 import { computeBhavaSuchika, computeLagnaBhavaSuchika, computeNavamsaLagnaSign } from "@/lib/bhavaSuchika";
 import { computeChartAspects } from "@/lib/chartAspects";
 import logger from "@/lib/logger";
@@ -576,16 +577,7 @@ function computeNavamsaLord(ascSign: number, ascDegree: number): number {
 }
 
 function computeBadhaka(ascSign: number): number[] {
-    const isMovable = [1, 4, 7, 10].includes(ascSign);
-    const isFixed = [2, 5, 8, 11].includes(ascSign);
-
-    let badhakaHouse: number;
-    if (isMovable) badhakaHouse = 11;
-    else if (isFixed) badhakaHouse = 9;
-    else badhakaHouse = 7;
-
-    const badhakaSign = ((ascSign + badhakaHouse - 2) % 12) + 1;
-    return [SIGN_LORD[badhakaSign] || 1];
+    return [SIGN_LORD[getBadhakaSign(ascSign)] || 1];
 }
 
 function computeMaraka(ascSign: number, planets: Planet[]): number[] {

@@ -61,6 +61,7 @@ import type { DerivedRanges, ManualHouse, ManualHousePlacements } from "@/lib/ma
 import { computePlanetConjunctions } from "@/lib/planetAspects";
 import { type ShadBalaya, computeShadBalaya, deriveDay, mergeShadBalaya } from "@/lib/shadBalaya";
 import { resolveSubaAsuba } from "@/lib/subaAsuba";
+import { calculateBadhakaLevels } from "@/lib/badhaka";
 import type { WargaVargaKey } from "@/lib/wargaKendara";
 import { VARGA_CATALOG } from "@/lib/wargaKendara";
 import { resolveWargaKendara } from "@/lib/wargaKendara";
@@ -466,6 +467,14 @@ export default function HoroscopeDetailPage() {
     const resolvedYogakaraka = calculatedDetails?.ascendant?.sign
         ? computeYogakaraka(calculatedDetails.ascendant.sign)
         : (calculatedDetails?.yogakaraka ?? []);
+
+    // Badhaka (බාධක) levels 1-4 per planet, derived at render from the lagna and the stored planets
+    // (src/lib/badhaka.ts) so every existing document shows them. The nakshatra-based levels 1 and 3
+    // are skipped without Navamsa data, where a manual chart's nakshatra is only a placeholder.
+    const resolvedBadhakaLevels =
+        calculatedDetails?.ascendant?.sign && calculatedDetails.planets
+            ? calculateBadhakaLevels(calculatedDetails.ascendant.sign, calculatedDetails.planets, navamsaAvailable)
+            : {};
 
     // Bhava Suchika (භාව සුචික) of the Lagna point — stored value wins; legacy auto docs without
     // the field are recomputed from the birth ascendant; manual charts only use entered Navamsa
@@ -1670,10 +1679,12 @@ if (navamsaAvailable && calculatedDetails.lord64thNavamsa === p.name)
                                                         });
                                                     if (calculatedDetails.marakaPlanets?.includes(p.name))
                                                         tags.push({ key: "maraka", text: t("astrology.marakaLabel") });
-                                                    if (calculatedDetails.badhakaPlanet?.includes(p.name))
+                                                    if (resolvedBadhakaLevels[p.name])
                                                         tags.push({
                                                             key: "badhaka",
-                                                            text: t("astrology.badhakaLabel"),
+                                                            text: t("astrology.badhakaLevelLabel", {
+                                                                levels: resolvedBadhakaLevels[p.name].join(","),
+                                                            }),
                                                         });
                                                     if (calculatedDetails.nidhanamshaPlanets?.includes(p.name))
                                                         tags.push({
@@ -1907,8 +1918,13 @@ if (navamsaAvailable && calculatedDetails.pushkaraPlanets?.includes(p.name))
                                                 });
                                             if (calculatedDetails.marakaPlanets?.includes(p.name))
                                                 tags.push({ key: "maraka", text: t("astrology.marakaLabel") });
-                                            if (calculatedDetails.badhakaPlanet?.includes(p.name))
-                                                tags.push({ key: "badhaka", text: t("astrology.badhakaLabel") });
+                                            if (resolvedBadhakaLevels[p.name])
+                                                tags.push({
+                                                    key: "badhaka",
+                                                    text: t("astrology.badhakaLevelLabel", {
+                                                        levels: resolvedBadhakaLevels[p.name].join(","),
+                                                    }),
+                                                });
                                             if (calculatedDetails.nidhanamshaPlanets?.includes(p.name))
                                                 tags.push({
                                                     key: "nidhanamsha",
