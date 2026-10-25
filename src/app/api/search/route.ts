@@ -6,7 +6,7 @@ import { CalculatedDetails } from "@/models/CalculatedDetails";
 import { Chart } from "@/models/Chart";
 import { Horoscope } from "@/models/Horoscope";
 
-import { getNakshatraLord } from "@/lib/astrology";
+import { SIGN_LORD, getNakshatraLord } from "@/lib/astrology";
 import {
     CancellationStatus,
     PLANET_NAMES,
@@ -39,6 +39,7 @@ import {
     DOSHA_WORDS,
     ENGLISH_YOGA,
     FAMILY_NAME_WORDS,
+    HOUSE_NAMES_SI,
     NAVAMSA_WORDS,
     NEGATION_PREFIX_WORDS,
     NEGATION_SUFFIX_WORDS,
@@ -59,6 +60,7 @@ type ExactCondition =
     | { type: "planet_in_house"; planet: number; house: number }
     | { type: "planet_in_sign"; planet: number; sign: number }
     | ({ type: "planet_from_planet" } & PlanetRelation)
+    | ({ type: "house_lord_in_house" } & HouseLordship)
     | { type: "nakshatra"; nakshatra: number }
     | { type: "ascendant_nakshatra"; nakshatra: number }
     | { type: "planet_nakshatra_lord"; planet: number; lord: number }
@@ -509,6 +511,91 @@ const matchesPlanetRelation = (
     return ((((subject.sign as number) - (reference.sign as number)) % 12) + 12) % 12 === distance - 1;
 };
 
+type HouseLordship = { house: number; inHouse: number };
+
+const LORD_SI_SOURCE = `(?:ා?ධිපති|(?:යේ|ය|ගේ)?\\s*අධිපති)(?:යා)?`;
+const LORD_TARGET_SOURCE = `\\s*(?:(?:is\\s+)?in\\s+(?:the\\s+)?)?(\\d{1,2})${ORDINAL_SOURCE}(?:\\s*(?:${buildRegexSource(["භාවයේ", "භාවයෙහි", "භාවය", "ගෘහයේ", "ස්ථානයේ", "හි"])}))?`;
+const WORD_START_SOURCE = "(?<![\\p{L}\\p{M}\\d])";
+
+// Each pattern captures the owned house (a number, or a house name looked up in HOUSE_NAMES_SI)
+// followed by the house its lord sits in.
+const HOUSE_LORD_PATTERNS: Array<{ re: RegExp; houseOf: (captured: string) => number | undefined }> = [
+    // "1 අධිපති 12", "4 වන භාවාධිපති 1", "1st lord in 12th", "4th house lord 1".
+    {
+        re: new RegExp(
+            `${WORD_START_SOURCE}(\\d{1,2})${ORDINAL_SOURCE}(?:\\s*(?:භාව|ගෘහ))?(?:${LORD_SI_SOURCE}|\\s*lord)${LORD_TARGET_SOURCE}`,
+            "gu",
+        ),
+        houseOf: (captured) => parseInt(captured, 10),
+    },
+    // "ලග්නාධිපති 12", "සුඛස්ථානාධිපති 1", "ලග්නයේ අධිපති 12".
+    {
+        re: new RegExp(
+            `${WORD_START_SOURCE}(${buildRegexSource(Object.keys(HOUSE_NAMES_SI))})(?:ස්ථාන)?${LORD_SI_SOURCE}${LORD_TARGET_SOURCE}`,
+            "gu",
+        ),
+        houseOf: (captured) => Object.entries(HOUSE_NAMES_SI).find(([name]) => stripJoiners(name) === captured)?.[1],
+    },
+    // "lord of the 4th house in 1st", "lord of 1 in 12".
+    {
+        re: new RegExp(
+            `${WORD_START_SOURCE}lord\\s+of\\s+(?:the\\s+)?(\\d{1,2})(?:st|nd|rd|th)?(?:\\s+house)?${LORD_TARGET_SOURCE}`,
+            "gu",
+        ),
+        houseOf: (captured) => parseInt(captured, 10),
+    },
+    // "lagna lord in 12th", "ascendant lord 12".
+    {
+        re: new RegExp(`${WORD_START_SOURCE}(lagna|ascendant)\\s+lord${LORD_TARGET_SOURCE}`, "gu"),
+        houseOf: () => 1,
+    },
+];
+
+// Finds "house N's lord in house M" phrases, e.g. "1 අධිපති 12" or "ලග්නාධිපති 12" → the 1st lord
+// in the 12th, "සුඛස්ථානාධිපති 1" → the 4th lord in the 1st. Returns the matched spans so the rest
+// of the parser never sees their numbers or the "ලග්න" inside "ලග්නාධිපති".
+const getHouseLordships = (query: string): { lordships: HouseLordship[]; spans: Array<[number, number]> } => {
+    const q = stripJoiners(query.toLowerCase());
+    const lordships: HouseLordship[] = [];
+    const spans: Array<[number, number]> = [];
+
+    HOUSE_LORD_PATTERNS.forEach(({ re, houseOf }) => {
+        for (const m of q.matchAll(re)) {
+            if (typeof m.index !== "number") continue;
+            const start = m.index;
+            const end = start + m[0].length;
+            if (spans.some(([s, e]) => start < e && end > s)) continue;
+
+            const house = houseOf(m[1]);
+            const inHouse = parseInt(m[2], 10);
+            if (house === undefined || house < 1 || house > 12 || inHouse < 1 || inHouse > 12) continue;
+
+            lordships.push({ house, inHouse });
+            spans.push([start, end]);
+        }
+    });
+
+    return { lordships, spans };
+};
+
+const withoutHouseLordships = (query: string): string =>
+    getHouseLordships(query).spans.reduceRight(
+        (text, [start, end]) => text.slice(0, start) + text.slice(end),
+        stripJoiners(query.toLowerCase()),
+    );
+
+// Whole-sign houses: house N is the Nth sign from the ascendant, and its lord is that sign's lord.
+const matchesHouseLordship = (
+    { house, inHouse }: HouseLordship,
+    calculatedDetails: Record<string, unknown> | null,
+): boolean => {
+    const ascendant = calculatedDetails?.ascendant as Record<string, unknown> | undefined;
+    const planets = calculatedDetails?.planets as Array<Record<string, unknown>> | undefined;
+    if (!ascendant || !planets) return false;
+    const lord = SIGN_LORD[(((ascendant.sign as number) + house - 2) % 12) + 1];
+    return planets.some((p) => p.name === lord && getEffectivePlanetHouse(p) === inHouse);
+};
+
 // Pairs each sign word with the ascendant/navamsa trigger word it refers to, so a query like
 // "ලග්නය ධනු නවාංශකය මේෂ" resolves ascendant=Sagittarius alongside navamsa_ascendant=Mesha,
 // and its mirror "Mesha lagna Mesha Navanshaka" still yields both Mesha. Signs pair with their
@@ -740,7 +827,8 @@ const NEGATION_PREFIX_RE = new RegExp(
 const isNegatedSpan = (q: string, index: number, word: string): boolean =>
     NEGATION_SUFFIX_RE.test(q.slice(index + word.length)) || NEGATION_PREFIX_RE.test(q.slice(0, index));
 
-const getExactMatch = (query: string): ExactMatch => {
+const getExactMatch = (fullQuery: string): ExactMatch => {
+    const query = withoutHouseLordships(fullQuery);
     const q = stripJoiners(query.toLowerCase());
     const hasAscendantWord = ASCENDANT_WORDS.some((w) => q.includes(stripJoiners(w.toLowerCase())));
     const planetNakshatraLord = getPlanetNakshatraLord(query);
@@ -778,6 +866,10 @@ const getExactMatch = (query: string): ExactMatch => {
 
     getPlanetRelations(query).relations.forEach((relation) => {
         conditions.push({ type: "planet_from_planet", ...relation });
+    });
+
+    getHouseLordships(fullQuery).lordships.forEach((lordship) => {
+        conditions.push({ type: "house_lord_in_house", ...lordship });
     });
 
     const houseQuery = withoutPlanetRelations(query);
@@ -896,7 +988,8 @@ const getExactMatch = (query: string): ExactMatch => {
     return deduped;
 };
 
-const getAstroKeywords = (query: string): string[] => {
+const getAstroKeywords = (fullQuery: string): string[] => {
+    const query = withoutHouseLordships(fullQuery);
     const q = stripJoiners(query.toLowerCase());
     const keywords: string[] = [];
 
@@ -988,6 +1081,10 @@ const getAstroKeywords = (query: string): string[] => {
         keywords.push(`planet_from_planet:${planetWordOf(planet)}:${planetWordOf(from)}:${distance}`);
     });
 
+    getHouseLordships(fullQuery).lordships.forEach(({ house, inHouse }) => {
+        keywords.push(`house_lord_in_house:${house}:${inHouse}`);
+    });
+
     const bhavaSuchikaMatch = getBhavaSuchikaMatch(query);
     if (bhavaSuchikaMatch !== null) {
         keywords.push(bhavaSuchikaMatch.type === "lagna" ? "bhava_suchika" : "planet_bhava_suchika");
@@ -1039,9 +1136,10 @@ const matchesYogaDoshaCondition = (
 
 const scoreHoroscope = (
     h: Record<string, unknown>,
-    query: string,
+    fullQuery: string,
     calculatedDetails: Record<string, unknown> | null,
 ): { score: number; matchedConditions: string[] } => {
+    const query = withoutHouseLordships(fullQuery);
     let score = 0;
     const q = stripJoiners(query.toLowerCase());
     const matchedConditions: string[] = [];
@@ -1193,6 +1291,12 @@ const scoreHoroscope = (
         score += 1.0;
         const { planet, from, distance } = relation;
         matchedConditions.push(`${planetWordOf(planet)}_from_${planetWordOf(from)}=${distance}`);
+    });
+
+    getHouseLordships(fullQuery).lordships.forEach((lordship) => {
+        if (!matchesHouseLordship(lordship, calculatedDetails)) return;
+        score += 1.0;
+        matchedConditions.push(`house_${lordship.house}_lord_in=${lordship.inHouse}`);
     });
 
     const strengthMatch = getStrengthMatch(withoutPlanetRelations(query));
@@ -1445,6 +1549,12 @@ export async function POST(req: NextRequest) {
                             }
                             case "planet_from_planet": {
                                 return matchesPlanetRelation(
+                                    condition,
+                                    calculatedDetails as Record<string, unknown> | null,
+                                );
+                            }
+                            case "house_lord_in_house": {
+                                return matchesHouseLordship(
                                     condition,
                                     calculatedDetails as Record<string, unknown> | null,
                                 );

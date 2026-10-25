@@ -154,6 +154,62 @@ export const BHAVA_SUCHIKA_NAMES_EN: Record<string, number> = {
     Vyamshaka: 12,
 };
 
+// Sinhala house (භාව) names, keyed to the house number. A name followed by "අධිපති" or the
+// joined "ාධිපති" ("ලග්නාධිපති", "සුඛස්ථානාධිපති") names that house's lord; the optional
+// "ස්ථාන" after a name is handled by the parser, so only the bare names are listed.
+export const HOUSE_NAMES_SI: Record<string, number> = {
+    ලග්න: 1,
+    තනු: 1,
+    ධන: 2,
+    කුටුම්බ: 2,
+    සහජ: 3,
+    සහෝදර: 3,
+    වික්‍රම: 3,
+    පරාක්‍රම: 3,
+    භ්‍රාතෘ: 3,
+    සුඛ: 4,
+    සුක: 4,
+    බන්ධු: 4,
+    මාතෘ: 4,
+    පුත්‍ර: 5,
+    පූර්වපුණ්‍ය: 5,
+    පූර්වපුන්‍ය: 5,
+    පංචම: 5,
+    ශත්‍රු: 6,
+    සතුරු: 6,
+    රෝග: 6,
+    රිපු: 6,
+    අරි: 6,
+    ෂෂ්ඨ: 6,
+    ශෂ්ඨ: 6,
+    කලත්‍ර: 7,
+    කළත්‍ර: 7,
+    භාර්යා: 7,
+    සප්තම: 7,
+    යුවති: 7,
+    ආයු: 8,
+    ආයුෂ: 8,
+    මරණ: 8,
+    අෂ්ටම: 8,
+    අෂ්ඨම: 8,
+    රන්ධ්‍ර: 8,
+    නිධාන: 8,
+    නිධන: 8,
+    භාග්‍ය: 9,
+    ධර්ම: 9,
+    පිතෘ: 9,
+    නවම: 9,
+    කර්ම: 10,
+    රාජ්‍ය: 10,
+    දශම: 10,
+    ලාභ: 11,
+    ආය: 11,
+    ව්‍යය: 12,
+    වැය: 12,
+    මෝක්ෂ: 12,
+    ද්වාදශ: 12,
+};
+
 export type PlanetRoleKey =
     | "ashtamansha"
     | "nidhanamsha"
@@ -233,6 +289,7 @@ const VOCABULARY_WORDS: string[] = [
     ...BHAVA_SUCHIKA_WORDS,
     ...Object.keys(BHAVA_SUCHIKA_NAMES_SI),
     ...Object.keys(BHAVA_SUCHIKA_NAMES_EN),
+    ...Object.keys(HOUSE_NAMES_SI).map((name) => `${name}ස්ථානාධිපති`),
 ];
 
 export const SEARCH_VOCABULARY: string[] = [...new Set(VOCABULARY_WORDS)];
