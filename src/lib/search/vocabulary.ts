@@ -46,6 +46,7 @@ export const YOGA_FAMILIES: Record<string, YogaId[]> = {
         "rinaVyaya",
         "chittaHani",
     ],
+    parivartanaYoga: ["mahaParivartana", "khalaParivartana", "dainyaParivartana"],
 };
 
 // Family group-term aliases (bilingual) → familyId. Keyed on the same stripJoiners().lowercase()
@@ -67,6 +68,14 @@ export const FAMILY_NAME_WORDS: Record<string, string> = Object.fromEntries(
             "පරාශර යෝග",
             "පරාශර යෝගය",
             "පරාශර සම්බන්ධ යෝග",
+        ],
+        parivartanaYoga: [
+            "Parivartana Yoga",
+            "Parivartana Yogaya",
+            "Pariwarthana Yoga",
+            "පරිවර්තන යෝග",
+            "පරිවර්තන යෝගය",
+            "පරිවර්තන යෝගයක්",
         ],
     }).flatMap(([familyId, words]) => words.map((word) => [stripJoiners(word).toLowerCase(), familyId] as const)),
 );

@@ -135,6 +135,9 @@ describe("Catalog & enums (UT-YD-001..008)", () => {
             "deeptaYoga",
             "dhanaYoga",
             "neechaRajaYoga",
+            "mahaParivartana",
+            "khalaParivartana",
+            "dainyaParivartana",
         ]);
         expect(YOGA_CATALOG[0].kind).toBe("yoga");
         expect(YOGA_CATALOG[0].status).toBe("ACTIVE");
@@ -285,6 +288,9 @@ describe("Catalog & enums (UT-YD-001..008)", () => {
             "dhanaYoga.dh04",
             "dhanaYoga.dh05",
             "neechaRajaYoga.nr01",
+            "mahaParivartana.pv01",
+            "khalaParivartana.pv01",
+            "dainyaParivartana.pv01",
         ]);
         expect(YOGA_CATALOG[0].rules.map((r) => r.strength)).toEqual([1, 2, 1]);
         expect(YOGA_CATALOG[0].planets).toEqual([1, 2, 3, 4, 5, 6, 7]);
@@ -410,6 +416,11 @@ describe("Catalog & enums (UT-YD-001..008)", () => {
         };
         // Pancha Maha Purusha entries provide theme keys only for Kendra houses (houseImpact ∈ {1,4,7,10}).
         const PMP_IDS = ["ruchaka", "bhadra", "hamsa", "malavya", "sasha"];
+        const PARIVARTANA_HOUSES: Record<string, number[]> = {
+            mahaParivartana: [1, 2, 4, 5, 7, 9, 10, 11],
+            khalaParivartana: [1, 2, 3, 4, 5, 7, 9, 10, 11],
+            dainyaParivartana: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+        };
         // Parashara entries connect ADJACENT houses 1-2 … 12-1, so any of the twelve can be a
         // houseImpact (priyamrityu covers 6-7/7-8, chittaHani 12-1) — all twelve theme keys needed.
         const PARASHARA_IDS = [
@@ -447,6 +458,9 @@ describe("Catalog & enums (UT-YD-001..008)", () => {
             } else if (entry.id === "neechaRajaYoga") {
                 // Neecha Raja Yoga (docs/raja-yoga.md) — upachaya houses 2, 3, 4, 9, 10, 11.
                 for (const house of [2, 3, 4, 9, 10, 11]) keys.push(`${entry.i18nKey}.theme.house${house}`);
+            } else if (PARIVARTANA_HOUSES[entry.id]) {
+                // Parivartana (docs/pariwarthana yoga.md) — the houses each exchange type can join.
+                for (const house of PARIVARTANA_HOUSES[entry.id]) keys.push(`${entry.i18nKey}.theme.house${house}`);
             } else {
                 for (const house of [1, 2, 4, 7, 8, 12]) keys.push(`${entry.i18nKey}.theme.house${house}`);
             }
@@ -1289,7 +1303,7 @@ describe("Parashara Sambandha Yoga (UT-PS-001..010)", () => {
             expect(validateYogaDoshaShape(entry)).toEqual([]);
         }
         // The family covers every adjacent pair EXCEPT none — all ten catalog yogas evaluated.
-        expect(engine.yogas.map((y) => y.id)).toHaveLength(19);
+        expect(engine.yogas.map((y) => y.id)).toHaveLength(22);
     });
 });
 
@@ -1760,6 +1774,9 @@ describe("Rule engine (UT-YD-080..090)", () => {
             "deeptaYoga",
             "dhanaYoga",
             "neechaRajaYoga",
+            "mahaParivartana",
+            "khalaParivartana",
+            "dainyaParivartana",
         ]);
         expect(engine.yogas[0].isPresent).toBe(false);
         expect(engine.doshas.map((d) => d.id)).toEqual([
@@ -2057,6 +2074,9 @@ describe("Legacy & manual resolution (UT-YD-150..155)", () => {
             "deeptaYoga",
             "dhanaYoga",
             "neechaRajaYoga",
+            "mahaParivartana",
+            "khalaParivartana",
+            "dainyaParivartana",
         ]);
         expect(engine.yogas[0].isPresent).toBe(false);
         expect(engine.doshas[0].isPresent).toBe(true);
@@ -2124,6 +2144,9 @@ describe("Legacy & manual resolution (UT-YD-150..155)", () => {
             "deeptaYoga",
             "dhanaYoga",
             "neechaRajaYoga",
+            "mahaParivartana",
+            "khalaParivartana",
+            "dainyaParivartana",
         ]);
         expect(resolved?.[0].isPresent).toBe(false);
         // Corrupt stored entry → warn + derive (never crash).
@@ -2153,6 +2176,9 @@ describe("Legacy & manual resolution (UT-YD-150..155)", () => {
             "deeptaYoga",
             "dhanaYoga",
             "neechaRajaYoga",
+            "mahaParivartana",
+            "khalaParivartana",
+            "dainyaParivartana",
         ]);
         expect(resolveYogas(corrupt)?.[0].isPresent).toBe(false);
         // Nothing derivable → undefined.
@@ -2298,6 +2324,9 @@ describe("Legacy & manual resolution (UT-YD-150..155)", () => {
             "deeptaYoga",
             "dhanaYoga",
             "neechaRajaYoga",
+            "mahaParivartana",
+            "khalaParivartana",
+            "dainyaParivartana",
         ]);
         expect(engine.yogas[0].isPresent).toBe(false);
         expect(engine.doshas[0].isPresent).toBe(false);
@@ -2333,6 +2362,9 @@ describe("Legacy & manual resolution (UT-YD-150..155)", () => {
             "deeptaYoga",
             "dhanaYoga",
             "neechaRajaYoga",
+            "mahaParivartana",
+            "khalaParivartana",
+            "dainyaParivartana",
         ]);
         expect(combined?.yogas?.[0]?.isPresent).toBe(false);
         expect(combined?.doshas?.[0]?.isPresent).toBe(true);

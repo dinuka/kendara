@@ -5,6 +5,7 @@ import { useI18n } from "@/hooks/useI18n";
 import { CancellationStatus } from "@/lib/astrologyEnums";
 import {
     YogaDoshaEvaluation,
+    YogaTagShade,
     classificationNameKey,
     doshaCatalogEntry,
     isStrongClassification,
@@ -40,23 +41,29 @@ const YogaDoshaTag = ({ entry, open, onToggle }: YogaDoshaTagProps) => {
     // entry (yoga or dosha) goes gray regardless of kind. The more "why it forms" reasons a tag
     // carries, the darker its shade (1 line = lightest, 2 lines = mid, 3+ = darkest). A yoga past
     // its strong-classification threshold (Prabala Dhana Yoga, more than five reasons) is dark green.
+    // A yoga with a fixed catalog shade (Maha / Khala / Dainya Parivartana) ignores its reason count.
+    const tagShade = isDosha ? undefined : yogaCatalogEntry(entry.id)?.tagShade;
     const reasonCount = entry.formation.reasons.length;
-    const isStrong = !isDosha && isStrongClassification(entry);
+    const isStrong = !isDosha && (isStrongClassification(entry) || tagShade === YogaTagShade.DARK);
     const chipClass = isCancelled
         ? "line-through text-gray-500 bg-gray-100 border-gray-300"
         : isStrong
           ? "bg-green-600 text-white border-green-800 hover:bg-green-700"
-          : isDosha
-            ? reasonCount >= 3
-                ? "bg-red-200 text-red-900 border-red-500"
-                : reasonCount === 2
-                  ? "bg-red-100 text-red-800 border-red-400 hover:border-red-600 hover:text-red-900"
-                  : "bg-red-50 text-red-700 border-red-300 hover:border-red-500 hover:text-red-800"
-            : reasonCount >= 3
-              ? "bg-green-200 text-green-900 border-green-500"
-              : reasonCount === 2
-                ? "bg-green-100 text-green-800 border-green-400 hover:border-green-600 hover:text-green-900"
-                : "bg-green-50 text-green-700 border-green-300 hover:border-green-500 hover:text-green-800";
+          : tagShade === YogaTagShade.MEDIUM
+            ? "bg-green-200 text-green-900 border-green-500"
+            : tagShade === YogaTagShade.LIGHT
+              ? "bg-green-50 text-green-700 border-green-300 hover:border-green-500 hover:text-green-800"
+              : isDosha
+                ? reasonCount >= 3
+                    ? "bg-red-200 text-red-900 border-red-500"
+                    : reasonCount === 2
+                      ? "bg-red-100 text-red-800 border-red-400 hover:border-red-600 hover:text-red-900"
+                      : "bg-red-50 text-red-700 border-red-300 hover:border-red-500 hover:text-red-800"
+                : reasonCount >= 3
+                  ? "bg-green-200 text-green-900 border-green-500"
+                  : reasonCount === 2
+                    ? "bg-green-100 text-green-800 border-green-400 hover:border-green-600 hover:text-green-900"
+                    : "bg-green-50 text-green-700 border-green-300 hover:border-green-500 hover:text-green-800";
     const dotClass = isCancelled
         ? "bg-gray-500"
         : isDosha

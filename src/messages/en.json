@@ -1433,6 +1433,68 @@
             "expression": {
                 "main": "This yoga indicates that a debilitated planet's challenges are transformed into growth and eventual success through upachaya houses."
             }
+        },
+        "mahaParivartana": {
+            "name": "Maha Parivartana Yoga",
+            "rule": {
+                "pv01": "The lords of houses {house1} ({lord1Name}) and {house2} ({lord2Name}) exchange signs (parivartana)."
+            },
+            "theme": {
+                "house1": "Relates to the self, body and personality.",
+                "house2": "Relates to family and wealth.",
+                "house4": "Relates to home, mother, property and happiness.",
+                "house5": "Relates to children, intelligence and creativity.",
+                "house7": "Relates to marriage and partnerships.",
+                "house9": "Relates to fortune, dharma and the father.",
+                "house10": "Relates to career, karma and public standing.",
+                "house11": "Relates to gains and networks."
+            },
+            "expression": {
+                "main": "An exchange between auspicious houses: each lord strengthens the other's house, bringing prosperity and success in their affairs."
+            }
+        },
+        "khalaParivartana": {
+            "name": "Khala Parivartana Yoga",
+            "rule": {
+                "pv01": "The lords of houses {house1} ({lord1Name}) and {house2} ({lord2Name}) exchange signs (parivartana)."
+            },
+            "theme": {
+                "house1": "Relates to the self, body and personality.",
+                "house2": "Relates to family and wealth.",
+                "house3": "Relates to courage, effort and siblings.",
+                "house4": "Relates to home, mother, property and happiness.",
+                "house5": "Relates to children, intelligence and creativity.",
+                "house7": "Relates to marriage and partnerships.",
+                "house9": "Relates to fortune, dharma and the father.",
+                "house10": "Relates to career, karma and public standing.",
+                "house11": "Relates to gains and networks."
+            },
+            "expression": {
+                "main": "An exchange involving the 3rd house: results come through effort and courage, with fortune that can rise and fall."
+            }
+        },
+        "dainyaParivartana": {
+            "name": "Dainya Parivartana Yoga",
+            "rule": {
+                "pv01": "The lords of houses {house1} ({lord1Name}) and {house2} ({lord2Name}) exchange signs (parivartana)."
+            },
+            "theme": {
+                "house1": "Relates to the self, body and personality.",
+                "house2": "Relates to family and wealth.",
+                "house3": "Relates to courage, effort and siblings.",
+                "house4": "Relates to home, mother, property and happiness.",
+                "house5": "Relates to children, intelligence and creativity.",
+                "house6": "Relates to enemies, illness and debts.",
+                "house7": "Relates to marriage and partnerships.",
+                "house8": "Relates to longevity, sudden change and hidden matters.",
+                "house9": "Relates to fortune, dharma and the father.",
+                "house10": "Relates to career, karma and public standing.",
+                "house11": "Relates to gains and networks.",
+                "house12": "Relates to expenses, losses and liberation."
+            },
+            "expression": {
+                "main": "An exchange involving a dusthana (6, 8 or 12): the affairs of these houses can meet obstacles, illness or loss."
+            }
         }
     },
     "dosha": {

@@ -20,6 +20,8 @@ export {
 
 export { buildChartFacts, computeYogaDoshas, YOGA_DOSHA_VERSION } from "@/lib/yogaDosha/ruleEngine";
 
+export { YogaTagShade } from "@/lib/yogaDosha/types";
+
 export { default as planetReasonShares, PlanetReasonShare } from "@/lib/yogaDosha/planetReasonShares";
 
 export {

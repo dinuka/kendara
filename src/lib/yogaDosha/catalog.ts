@@ -25,6 +25,7 @@ import {
     Tradition,
     YogaId,
     YogaRuleId,
+    YogaTagShade,
 } from "@/lib/yogaDosha/types";
 
 export interface CatalogEntryBase {
@@ -53,6 +54,8 @@ export interface CatalogEntryBase {
     /** Classification (and its searchable names) applied when the formation carries MORE than
      *  `aboveReasons` reason lines — e.g. Prabala Dhana Yoga (ප්‍රබල ධන යෝග) above five reasons. */
     strongClassification?: StrongClassification;
+    /** Fixed tag shade, used instead of shading the tag by its reason count. */
+    tagShade?: YogaTagShade;
 }
 
 export interface StrongClassification {
@@ -484,6 +487,54 @@ export const YOGA_CATALOG: YogaCatalogEntry[] = [
         expressionKeys: ["expression.main"],
         rules: [{ rule: "neechaRajaYoga.nr01", strength: 2, reasonKey: "rule.nr01" }],
         mitigations: [],
+    },
+    {
+        kind: "yoga",
+        id: "mahaParivartana",
+        tradition: "MAIN_STREAM",
+        status: "ACTIVE",
+        keywordEn: "Maha Parivartana Yoga",
+        keywordSi: "මහා පරිවර්තන යෝගය",
+        searchAliasesEn: ["Maha Parivartana", "Maha Parivartana Yogaya", "Maha Pariwarthana Yoga"],
+        searchAliasesSi: ["මහා පරිවර්තන යෝග", "මහා පරිවර්තන"],
+        i18nKey: "yoga.mahaParivartana",
+        planets: [1, 2, 3, 4, 5, 6, 7],
+        expressionKeys: ["expression.main"],
+        rules: [{ rule: "mahaParivartana.pv01", strength: 1, reasonKey: "rule.pv01" }],
+        mitigations: [],
+        tagShade: YogaTagShade.DARK,
+    },
+    {
+        kind: "yoga",
+        id: "khalaParivartana",
+        tradition: "MAIN_STREAM",
+        status: "ACTIVE",
+        keywordEn: "Khala Parivartana Yoga",
+        keywordSi: "ඛල පරිවර්තන යෝගය",
+        searchAliasesEn: ["Khala Parivartana", "Khala Parivartana Yogaya", "Khala Pariwarthana Yoga"],
+        searchAliasesSi: ["ඛල පරිවර්තන යෝග", "ඛල පරිවර්තන", "කල පරිවර්තන යෝගය", "කල පරිවර්තන"],
+        i18nKey: "yoga.khalaParivartana",
+        planets: [1, 2, 3, 4, 5, 6, 7],
+        expressionKeys: ["expression.main"],
+        rules: [{ rule: "khalaParivartana.pv01", strength: 2, reasonKey: "rule.pv01" }],
+        mitigations: [],
+        tagShade: YogaTagShade.MEDIUM,
+    },
+    {
+        kind: "yoga",
+        id: "dainyaParivartana",
+        tradition: "MAIN_STREAM",
+        status: "ACTIVE",
+        keywordEn: "Dainya Parivartana Yoga",
+        keywordSi: "දෛන්‍ය පරිවර්තන යෝගය",
+        searchAliasesEn: ["Dainya Parivartana", "Dainya Parivartana Yogaya", "Dainya Pariwarthana Yoga"],
+        searchAliasesSi: ["දෛන්‍ය පරිවර්තන යෝග", "දෛන්‍ය පරිවර්තන"],
+        i18nKey: "yoga.dainyaParivartana",
+        planets: [1, 2, 3, 4, 5, 6, 7],
+        expressionKeys: ["expression.main"],
+        rules: [{ rule: "dainyaParivartana.pv01", strength: 3, reasonKey: "rule.pv01" }],
+        mitigations: [],
+        tagShade: YogaTagShade.LIGHT,
     },
 ];
 

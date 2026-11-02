@@ -65,8 +65,10 @@ import {
  *  Indu Lagna too, and classifies more than five reasons as "Prabala" (ප්‍රබල ධන යෝග) — stored v14
  *  Dhana Yoga entries carry a single reason and no classification, so they recompute.
  *  v16: formation.planets lists the planets that form each yoga/dosha (the "Planets" section) —
- *  stored v15 formations lack the field, so they recompute. */
-export const YOGA_DOSHA_VERSION = 16;
+ *  stored v15 formations lack the field, so they recompute.
+ *  v17: Parivartana Yoga (docs/pariwarthana yoga.md) — Maha / Khala / Dainya Parivartana yogas,
+ *  one reason line per sign exchange — stored v16 yoga lists lack these entries, so they recompute. */
+export const YOGA_DOSHA_VERSION = 17;
 
 export type PlanetLike = Pick<
     Planet,

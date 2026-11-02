@@ -151,6 +151,9 @@ const engineDosha = (jupiterAspects?: boolean): DoshaEvaluation => {
         "deeptaYoga",
         "dhanaYoga",
         "neechaRajaYoga",
+        "mahaParivartana",
+        "khalaParivartana",
+        "dainyaParivartana",
     ]);
     // The Dharma Karmadhipati Yoga stays absent in both variants: without Jupiter the 9th lord is
     // missing, and with Jupiter a one-directional 120° drishti fails the DK-02 mutual requirement.

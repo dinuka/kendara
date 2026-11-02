@@ -46,6 +46,8 @@ import {
     ManglikRuleId,
     NeechaRajaYogaRuleId,
     ParasharaYogaRuleId,
+    ParivartanaYogaId,
+    ParivartanaYogaRuleId,
     PlanetFact,
     RuchakaRuleId,
     RuleEvaluation,
@@ -697,6 +699,61 @@ const evaluateDhanaYogaRule = (rule: DhanaYogaRuleId, facts: ChartFacts): RuleEv
 };
 
 /**
+ * Parivartana Yoga (docs/pariwarthana yoga.md): two of the seven classical planets each sit in a
+ * sign the other owns. The exchanged houses are the houses of those two signs counted from the
+ * Lagna (by sign, not the stored planet house), and they decide the type (Phaladeepika 6.32-34):
+ * any of 6, 8, 12 → Dainya; otherwise the 3rd → Khala; otherwise Maha. Each exchange is one reason
+ * line under the yoga of its type, e.g. Mithuna Lagna with Mercury in Kumbha and Saturn in Kanya
+ * is a 4-9 Maha Parivartana (4th lord Mercury, 9th lord Saturn).
+ */
+const DAINYA_PARIVARTANA_HOUSES = [6, 8, 12];
+
+const parivartanaYogaOf = (house1: number, house2: number): ParivartanaYogaId => {
+    if (DAINYA_PARIVARTANA_HOUSES.includes(house1) || DAINYA_PARIVARTANA_HOUSES.includes(house2)) {
+        return "dainyaParivartana";
+    }
+    return house1 === 3 || house2 === 3 ? "khalaParivartana" : "mahaParivartana";
+};
+
+const PARIVARTANA_RULE_STRENGTH: Record<ParivartanaYogaRuleId, number> = {
+    "mahaParivartana.pv01": 1,
+    "khalaParivartana.pv01": 2,
+    "dainyaParivartana.pv01": 3,
+};
+
+const evaluateParivartanaRule = (rule: ParivartanaYogaRuleId, facts: ChartFacts): RuleEvaluation => {
+    if (!facts.ascendantSign) return absent(rule);
+    const yogaId = rule.split(".")[0];
+    const lines: NonNullable<RuleEvaluation["lines"]> = [];
+
+    CLASSICAL_PLANETS.forEach((name1, index) => {
+        CLASSICAL_PLANETS.slice(index + 1).forEach((name2) => {
+            const planet1 = planetFact(facts, name1);
+            const planet2 = planetFact(facts, name2);
+            if (!planet1 || !planet2 || !isParivartana(planet1, planet2)) return;
+            // planet2 sits in planet1's sign, so planet1 lords the house planet2 occupies.
+            const ownedBy1 = signOffsetHouse(planet2.sign, facts.ascendantSign);
+            const ownedBy2 = signOffsetHouse(planet1.sign, facts.ascendantSign);
+            if (parivartanaYogaOf(ownedBy1, ownedBy2) !== yogaId) return;
+            lines.push({
+                reasonKey: "rule.pv01",
+                params:
+                    ownedBy1 < ownedBy2
+                        ? { house1: ownedBy1, house2: ownedBy2, lord1: name1, lord2: name2 }
+                        : { house1: ownedBy2, house2: ownedBy1, lord1: name2, lord2: name1 },
+            });
+        });
+    });
+    if (lines.length === 0) return absent(rule);
+
+    const houseImpact = [...new Set(lines.flatMap(({ params }) => [params?.house1, params?.house2] as number[]))].sort(
+        (a, b) => a - b,
+    );
+    const [{ reasonKey, params }] = lines;
+    return { ...fired(rule, PARIVARTANA_RULE_STRENGTH[rule], reasonKey, params, houseImpact), lines };
+};
+
+/**
  * Neecha Raja Yoga (docs/raja-yoga.md): a debilitated (Neecha) planet placed in an upachaya
  * house (2, 3, 4, 9, 10, or 11) from the Lagna forms a Raja Yoga. Any planet can trigger
  * this yoga — the condition is purely positional (debilitation + house placement).
@@ -735,6 +792,7 @@ export function evaluateRule(rule: RuleId, facts: ChartFacts): RuleEvaluation {
     if (rule.startsWith("deeptaYoga.")) return evaluateDeeptaYogaRule(rule as DeeptaYogaRuleId, facts);
     if (rule.startsWith("dhanaYoga.")) return evaluateDhanaYogaRule(rule as DhanaYogaRuleId, facts);
     if (rule.startsWith("neechaRajaYoga.")) return evaluateNeechaRajaYogaRule(rule as NeechaRajaYogaRuleId, facts);
+    if (rule.endsWith(".pv01")) return evaluateParivartanaRule(rule as ParivartanaYogaRuleId, facts);
     if (rule.startsWith("dharmaKarmadhipati."))
         return evaluateDharmaKarmadhipatiRule(rule as DharmaKarmadhipatiRuleId, facts);
     if (PARASHARA_YOGA_IDS.some((id) => rule.startsWith(`${id}.`)))

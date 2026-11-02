@@ -153,6 +153,9 @@ describe("search: Yoga/Dosha catalog names (SR-YD-800..805)", () => {
             "deeptaYoga",
             "dhanaYoga",
             "neechaRajaYoga",
+            "mahaParivartana",
+            "khalaParivartana",
+            "dainyaParivartana",
         ]);
         expect(result.yogas[0].isPresent).toBe(false);
         expect(result.doshas[0].isPresent).toBe(true);
@@ -335,7 +338,7 @@ describe("search: Yoga/Dosha catalog names (SR-YD-800..805)", () => {
         expect(Object.keys(FAMILY_NAME_WORDS).length).toBeGreaterThan(0);
         for (const [word, familyId] of Object.entries(FAMILY_NAME_WORDS)) {
             expect(word.length).toBeGreaterThan(0);
-            expect(["panchaMahaPurusha", "parasharaYoga"]).toContain(familyId);
+            expect(["panchaMahaPurusha", "parasharaYoga", "parivartanaYoga"]).toContain(familyId);
             expect(FAMILY_NAME_WORDS[vocabularySkeleton(word)]).toBe(familyId);
         }
     });

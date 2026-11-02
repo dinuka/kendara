@@ -14,6 +14,14 @@ export type Tradition = "MAIN_STREAM";
 
 export type CatalogKind = "yoga" | "dosha";
 
+/** A fixed tag shade that replaces the reason-count shading (Parivartana: Maha dark, Khala mid,
+ *  Dainya light green). */
+export enum YogaTagShade {
+    DARK = "dark",
+    MEDIUM = "medium",
+    LIGHT = "light",
+}
+
 /** The ten Parashara sub-yogas besides Dharma Karmadhipati (docs/parashara-yoga.md). */
 export type ParasharaYogaId =
     | "pushkala"
@@ -30,6 +38,9 @@ export type ParasharaYogaId =
 /** Neecha Raja Yoga rule id (docs/raja-yoga.md) — debilitated planet in upachaya houses. */
 export type NeechaRajaYogaRuleId = "neechaRajaYoga.nr01";
 
+/** Parivartana Yoga ids (docs/pariwarthana yoga.md) — one per exchange type (Phaladeepika 6.32-34). */
+export type ParivartanaYogaId = "mahaParivartana" | "khalaParivartana" | "dainyaParivartana";
+
 /** Yoga catalog ids (registered in catalog.ts). */
 export type YogaId =
     | "dharmaKarmadhipati"
@@ -41,7 +52,8 @@ export type YogaId =
     | "sasha"
     | "deeptaYoga"
     | "dhanaYoga"
-    | "neechaRajaYoga";
+    | "neechaRajaYoga"
+    | ParivartanaYogaId;
 
 /** Dhana Yoga rule ids (docs/dhana-yoga.md) — dhana (2, 5, 9, 11) lords conjunct (dh01), in mutual
  *  aspect (dh02), in parivartana (dh03), placed in a dhana house (dh04), and the Indu Lagna in a
@@ -78,6 +90,7 @@ export type MalavyaRuleId = "malavya.pmp04";
 export type SashaRuleId = "sasha.pmp05";
 export type DeeptaYogaRuleId = "deeptaYoga.dy01";
 export type ParasharaYogaRuleId = `${ParasharaYogaId}.${"ps01" | "ps02" | "ps03"}`;
+export type ParivartanaYogaRuleId = `${ParivartanaYogaId}.pv01`;
 export type YogaRuleId =
     | DharmaKarmadhipatiRuleId
     | RuchakaRuleId
@@ -88,7 +101,8 @@ export type YogaRuleId =
     | DeeptaYogaRuleId
     | ParasharaYogaRuleId
     | DhanaYogaRuleId
-    | NeechaRajaYogaRuleId;
+    | NeechaRajaYogaRuleId
+    | ParivartanaYogaRuleId;
 export type DoshaRuleId = ShaniMangalaRuleId | AgniMaruthaRuleId | ManglikRuleId | KalaSarpaRuleId | KalaAmurthaRuleId;
 
 /** Registered mitigation rule ids (cancellation.ts). */

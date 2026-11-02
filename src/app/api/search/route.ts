@@ -61,6 +61,7 @@ type ExactCondition =
     | { type: "planet_in_sign"; planet: number; sign: number }
     | ({ type: "planet_from_planet" } & PlanetRelation)
     | ({ type: "house_lord_in_house" } & HouseLordship)
+    | ({ type: "house_exchange" } & HouseExchange)
     | { type: "nakshatra"; nakshatra: number }
     | { type: "ascendant_nakshatra"; nakshatra: number }
     | { type: "planet_nakshatra_lord"; planet: number; lord: number }
@@ -578,11 +579,84 @@ const getHouseLordships = (query: string): { lordships: HouseLordship[]; spans: 
     return { lordships, spans };
 };
 
-const withoutHouseLordships = (query: string): string =>
-    getHouseLordships(query).spans.reduceRight(
-        (text, [start, end]) => text.slice(0, start) + text.slice(end),
-        stripJoiners(query.toLowerCase()),
+type HouseExchange = { house1: number; house2: number };
+
+// One house, as a number ("4", "4 වන භාවය", "4th") or a name with an optional ස්ථාන/ස්තාන
+// ("ලග්නස්ථානය", "සුඛස්තාන"). Captures the number or the name.
+const HOUSE_TOKEN_SOURCE = `(?:(\\d{1,2})${ORDINAL_SOURCE}(?:\\s*(?:භාවය|භාව))?|(${buildRegexSource(Object.keys(HOUSE_NAMES_SI))})(?:ස්ථාන|ස්තාන)?(?:යේ|ය)?)`;
+const HOUSE_PAIR_SOURCE = `${HOUSE_TOKEN_SOURCE}\\s*(?:හා|සහ|and|&)\\s*(?:the\\s+)?${HOUSE_TOKEN_SOURCE}`;
+const EXCHANGE_WORD_SOURCE = buildRegexSource(["පරිවර්තනය", "පරිවර්තන", "parivartana", "pariwarthana", "exchange"]);
+
+const HOUSE_EXCHANGE_PATTERNS = [
+    // "1 හා 4 පරිවර්තනය", "ලග්නස්ථානය හා සුඛස්තාන පරිවර්තනය", "1st and 4th house exchange".
+    new RegExp(`${WORD_START_SOURCE}${HOUSE_PAIR_SOURCE}\\s*(?:අතර\\s*)?(?:${EXCHANGE_WORD_SOURCE})`, "gu"),
+    // "parivartana between 1 and 4", "exchange of the 4th and 9th".
+    new RegExp(
+        `${WORD_START_SOURCE}(?:parivartana|pariwarthana|exchange)\\s+(?:between|of)\\s+(?:the\\s+)?${HOUSE_PAIR_SOURCE}`,
+        "gu",
+    ),
+];
+
+const houseOfToken = (number: string | undefined, name: string | undefined): number | undefined =>
+    number !== undefined
+        ? parseInt(number, 10)
+        : Object.entries(HOUSE_NAMES_SI).find(([houseName]) => stripJoiners(houseName) === name)?.[1];
+
+// Finds "house A and house B exchange" phrases (Parivartana between two houses' lords), e.g.
+// "1 හා 4 පරිවර්තනය" or "ලග්නස්ථානය හා සුඛස්තාන පරිවර්තනය" → the 1st and 4th lords swap signs.
+const getHouseExchanges = (query: string): { exchanges: HouseExchange[]; spans: Array<[number, number]> } => {
+    const q = stripJoiners(query.toLowerCase());
+    const exchanges: HouseExchange[] = [];
+    const spans: Array<[number, number]> = [];
+
+    HOUSE_EXCHANGE_PATTERNS.forEach((re) => {
+        for (const m of q.matchAll(re)) {
+            if (typeof m.index !== "number") continue;
+            const start = m.index;
+            const end = start + m[0].length;
+            if (spans.some(([s, e]) => start < e && end > s)) continue;
+
+            const first = houseOfToken(m[1], m[2]);
+            const second = houseOfToken(m[3], m[4]);
+            if (first === undefined || second === undefined || first === second) continue;
+            if (first < 1 || first > 12 || second < 1 || second > 12) continue;
+
+            exchanges.push({ house1: Math.min(first, second), house2: Math.max(first, second) });
+            spans.push([start, end]);
+        }
+    });
+
+    return { exchanges, spans };
+};
+
+// The query with its house-lord and house-exchange phrases cut out, so the rest of the parser
+// never sees their numbers, the "ලග්න" inside "ලග්නාධිපති" or the "ධන" inside "ධනස්ථානය".
+const withoutHousePhrases = (query: string): string =>
+    [...getHouseLordships(query).spans, ...getHouseExchanges(query).spans]
+        .sort(([a], [b]) => a - b)
+        .reduceRight((text, [start, end]) => text.slice(0, start) + text.slice(end), stripJoiners(query.toLowerCase()));
+
+const signOfHouse = (ascendantSign: number, house: number): number => ((ascendantSign + house - 2) % 12) + 1;
+
+// Parivartana between two houses: each house's lord sits in the other house's sign. Counted by
+// sign, like the yoga engine, so it agrees with the Parivartana yoga tags.
+const matchesHouseExchange = (
+    { house1, house2 }: HouseExchange,
+    calculatedDetails: Record<string, unknown> | null,
+): boolean => {
+    const ascendant = calculatedDetails?.ascendant as Record<string, unknown> | undefined;
+    const planets = calculatedDetails?.planets as Array<Record<string, unknown>> | undefined;
+    if (!ascendant || !planets) return false;
+    const sign1 = signOfHouse(ascendant.sign as number, house1);
+    const sign2 = signOfHouse(ascendant.sign as number, house2);
+    const lord1 = SIGN_LORD[sign1];
+    const lord2 = SIGN_LORD[sign2];
+    if (lord1 === lord2) return false;
+    return (
+        planets.some(({ name, sign }) => name === lord1 && sign === sign2) &&
+        planets.some(({ name, sign }) => name === lord2 && sign === sign1)
     );
+};
 
 // Whole-sign houses: house N is the Nth sign from the ascendant, and its lord is that sign's lord.
 const matchesHouseLordship = (
@@ -828,7 +902,7 @@ const isNegatedSpan = (q: string, index: number, word: string): boolean =>
     NEGATION_SUFFIX_RE.test(q.slice(index + word.length)) || NEGATION_PREFIX_RE.test(q.slice(0, index));
 
 const getExactMatch = (fullQuery: string): ExactMatch => {
-    const query = withoutHouseLordships(fullQuery);
+    const query = withoutHousePhrases(fullQuery);
     const q = stripJoiners(query.toLowerCase());
     const hasAscendantWord = ASCENDANT_WORDS.some((w) => q.includes(stripJoiners(w.toLowerCase())));
     const planetNakshatraLord = getPlanetNakshatraLord(query);
@@ -870,6 +944,10 @@ const getExactMatch = (fullQuery: string): ExactMatch => {
 
     getHouseLordships(fullQuery).lordships.forEach((lordship) => {
         conditions.push({ type: "house_lord_in_house", ...lordship });
+    });
+
+    getHouseExchanges(fullQuery).exchanges.forEach((exchange) => {
+        conditions.push({ type: "house_exchange", ...exchange });
     });
 
     const houseQuery = withoutPlanetRelations(query);
@@ -989,7 +1067,7 @@ const getExactMatch = (fullQuery: string): ExactMatch => {
 };
 
 const getAstroKeywords = (fullQuery: string): string[] => {
-    const query = withoutHouseLordships(fullQuery);
+    const query = withoutHousePhrases(fullQuery);
     const q = stripJoiners(query.toLowerCase());
     const keywords: string[] = [];
 
@@ -1085,6 +1163,10 @@ const getAstroKeywords = (fullQuery: string): string[] => {
         keywords.push(`house_lord_in_house:${house}:${inHouse}`);
     });
 
+    getHouseExchanges(fullQuery).exchanges.forEach(({ house1, house2 }) => {
+        keywords.push(`house_exchange:${house1}:${house2}`);
+    });
+
     const bhavaSuchikaMatch = getBhavaSuchikaMatch(query);
     if (bhavaSuchikaMatch !== null) {
         keywords.push(bhavaSuchikaMatch.type === "lagna" ? "bhava_suchika" : "planet_bhava_suchika");
@@ -1139,7 +1221,7 @@ const scoreHoroscope = (
     fullQuery: string,
     calculatedDetails: Record<string, unknown> | null,
 ): { score: number; matchedConditions: string[] } => {
-    const query = withoutHouseLordships(fullQuery);
+    const query = withoutHousePhrases(fullQuery);
     let score = 0;
     const q = stripJoiners(query.toLowerCase());
     const matchedConditions: string[] = [];
@@ -1297,6 +1379,12 @@ const scoreHoroscope = (
         if (!matchesHouseLordship(lordship, calculatedDetails)) return;
         score += 1.0;
         matchedConditions.push(`house_${lordship.house}_lord_in=${lordship.inHouse}`);
+    });
+
+    getHouseExchanges(fullQuery).exchanges.forEach((exchange) => {
+        if (!matchesHouseExchange(exchange, calculatedDetails)) return;
+        score += 1.0;
+        matchedConditions.push(`house_exchange=${exchange.house1}-${exchange.house2}`);
     });
 
     const strengthMatch = getStrengthMatch(withoutPlanetRelations(query));
@@ -1549,6 +1637,12 @@ export async function POST(req: NextRequest) {
                             }
                             case "planet_from_planet": {
                                 return matchesPlanetRelation(
+                                    condition,
+                                    calculatedDetails as Record<string, unknown> | null,
+                                );
+                            }
+                            case "house_exchange": {
+                                return matchesHouseExchange(
                                     condition,
                                     calculatedDetails as Record<string, unknown> | null,
                                 );
