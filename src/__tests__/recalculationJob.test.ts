@@ -1,12 +1,15 @@
 import { AstrologySettings } from "@/models/AstrologySettings";
 import { CalculatedDetails } from "@/models/CalculatedDetails";
+import { Chart } from "@/models/Chart";
 import { Horoscope } from "@/models/Horoscope";
 
 import { DEFAULT_PLANETARY_ORBS } from "@/lib/astrologySettings";
 import { calculateHoroscope } from "@/lib/calculation";
+import { ALL_CHART_TYPES } from "@/lib/chartTypes";
 import { compute, manualPlacementsToInput } from "@/lib/manualChart";
 import { getCurrentShani, sanitizeManualHousePlacements, synthesizeCalculation } from "@/lib/manualChartDetails";
 import { startRecalculation } from "@/lib/recalculationJob";
+import { reindexHoroscope } from "@/lib/search/indexer";
 import { SHADBALAYA_KEYS, type ShadBalaya, type ShadBalayaPerPlanet } from "@/lib/shadBalaya";
 
 jest.mock("@/models/AstrologySettings", () => ({
@@ -24,6 +27,23 @@ jest.mock("@/models/CalculatedDetails", () => ({
 }));
 jest.mock("@/models/Horoscope", () => ({
     Horoscope: { findById: jest.fn() },
+}));
+jest.mock("@/models/Chart", () => ({
+    Chart: {
+        insertMany: jest.fn().mockResolvedValue([]),
+        deleteMany: jest.fn().mockResolvedValue({}),
+    },
+}));
+jest.mock("@/lib/chartDataTransform", () => ({
+    getChartData: jest.fn(() => ({})),
+    isLeanChartType: jest.fn(() => false),
+    toBirthChartData: jest.fn((data) => data),
+}));
+jest.mock("@/lib/chartRenderer", () => ({
+    generateChartSvg: jest.fn(() => ""),
+}));
+jest.mock("@/lib/search/indexer", () => ({
+    reindexHoroscope: jest.fn().mockResolvedValue(true),
 }));
 jest.mock("@/lib/db", () => ({
     connectDB: jest.fn().mockResolvedValue(undefined),
@@ -162,6 +182,11 @@ describe("startRecalculation", () => {
         expect(saveCall[0]).toEqual({ "horoscope.id": "h1" });
         expect(saveCall[2]).toEqual({ upsert: true });
         expect(saveCall[1]).toMatchObject({ ascendant: expect.anything(), houses: expect.any(Array) });
+        // The full save pipeline: every chart type regenerated and the search index refreshed.
+        expect(Chart.deleteMany).toHaveBeenCalledWith({ "horoscope.id": "h1" });
+        const chartDocs = (Chart.insertMany as jest.Mock).mock.calls[0][0] as { type: string }[];
+        expect(chartDocs.map(({ type }) => type)).toEqual(ALL_CHART_TYPES);
+        expect(reindexHoroscope).toHaveBeenCalledWith("h1");
 
         const final = mockedSettingsFindByIdAndUpdate.mock.calls.at(-1)[1].$set;
         expect(final["recalcStatus.status"]).toBe("completed");

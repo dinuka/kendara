@@ -1,81 +1,24 @@
-import { CalculatedDetails } from "../src/models/CalculatedDetails";
-import { Chart } from "../src/models/Chart";
-import { Horoscope, IHoroscope } from "../src/models/Horoscope";
+import { Horoscope } from "../src/models/Horoscope";
 
-import { getChartData, isLeanChartType, toBirthChartData } from "../src/lib/chartDataTransform";
-import { generateChartSvg } from "../src/lib/chartRenderer";
-import { ChartType } from "../src/lib/chartTypes";
+import { getCalculationSettings } from "../src/lib/astrologySettings";
 import { connectDB } from "../src/lib/db";
 import logger from "../src/lib/logger";
-import { compute, manualPlacementsToInput } from "../src/lib/manualChart";
-import {
-    getCurrentShani,
-    sanitizeManualHousePlacements,
-    synthesizeCalculation,
-    synthesizeNavamsaCalculation,
-} from "../src/lib/manualChartDetails";
-import { mergeShadBalaya } from "../src/lib/shadBalaya";
+import { recalculateHoroscope } from "../src/lib/recalculateHoroscope";
 
-/** Recomputed the stored `CalculatedDetails` and `Chart` docs for one calculated (manual) horoscope,
- *  replaying the POST /api/horoscope/manual pipeline from the persisted `manualHousePlacements`
- *  (the source of truth): `compute()` → `synthesizeCalculation()` / `synthesizeNavamsaCalculation()`
- *  → chart docs. Mirrors the auto path in `recalculate-horoscopes.ts` for `source === "manual"`.
- *  Returns `false` when the horoscope has no stored `manualHousePlacements` to recompute from —
- *  the caller counts that as a skip, not a failure. */
-export async function recalculateCalculatedHoroscope(horoscope: IHoroscope): Promise<boolean> {
-    const id = horoscope._id.toString();
-    const existing = await CalculatedDetails.findOne({ "horoscope.id": id }).lean();
-    if (!existing?.manualHousePlacements) {
-        logger.warn("skipping calculated horoscope id=%s: no manualHousePlacements to recompute from", id);
-        return false;
-    }
-    const input = manualPlacementsToInput(existing.manualHousePlacements);
-    const currentShani = getCurrentShani(input.lagna);
-    const result = compute(input, currentShani);
-    const synth = synthesizeCalculation(result, horoscope.birthDate);
-    const navSynth = synthesizeNavamsaCalculation(result, horoscope.birthDate);
-
-    await CalculatedDetails.findOneAndUpdate(
-        { "horoscope.id": id },
-        {
-            ...synth,
-            shadbalaya: mergeShadBalaya(synth.shadbalaya ?? {}, existing?.shadbalaya),
-            manualHousePlacements: sanitizeManualHousePlacements(result.manualHousePlacements),
-            derivedRanges: result.derivedRanges,
-        },
-        { upsert: true },
-    );
-
-    await Chart.deleteMany({ "horoscope.id": id });
-
-    const chartTypes = navSynth ? [ChartType.BIRTH, ChartType.NAVAMSA_D9] : [ChartType.BIRTH];
-    const chartDocs = chartTypes.map((type) => {
-        const chartSource = type === ChartType.NAVAMSA_D9 && navSynth ? navSynth : synth;
-        const chartData = getChartData(chartSource, type);
-        return {
-            horoscope: { id },
-            type,
-            data: isLeanChartType(type) ? toBirthChartData(chartData) : chartData,
-            imageKey: "",
-            svgData: generateChartSvg(chartData, type),
-        };
-    });
-    await Chart.insertMany(chartDocs);
-    return true; // recomputed
-}
-
-/** Recomputes every calculated (manual) horoscope in the database.
+/** Recomputes every calculated (manual) horoscope in the database through `recalculateHoroscope`
+ *  (replayed from the persisted `manualHousePlacements` with the system-wide aspect settings).
  *  `skipped` counts manual horoscopes with no stored `manualHousePlacements` to recompute from. */
 export async function recalculateCalculatedHoroscopes(): Promise<{ updated: number; failed: number; skipped: number }> {
     let updated = 0;
     let failed = 0;
     let skipped = 0;
 
+    const settings = await getCalculationSettings();
     const cursor = Horoscope.find({ source: "manual" }).cursor();
     for (let horoscope = await cursor.next(); horoscope != null; horoscope = await cursor.next()) {
         const id = horoscope._id.toString();
         try {
-            if (await recalculateCalculatedHoroscope(horoscope)) {
+            if (await recalculateHoroscope(horoscope, settings)) {
                 updated++;
             } else {
                 skipped++;

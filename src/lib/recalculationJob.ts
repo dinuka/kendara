@@ -2,20 +2,10 @@ import { AstrologySettings } from "@/models/AstrologySettings";
 import { CalculatedDetails } from "@/models/CalculatedDetails";
 import { Horoscope } from "@/models/Horoscope";
 
-import { getAstrologySettings, getCalculationSettings } from "@/lib/astrologySettings";
-import { calculateHoroscope } from "@/lib/calculation";
+import { type CalculationSettings, getAstrologySettings, getCalculationSettings } from "@/lib/astrologySettings";
 import { connectDB } from "@/lib/db";
 import logger from "@/lib/logger";
-import { compute, manualPlacementsToInput } from "@/lib/manualChart";
-import {
-    getCurrentShani,
-    sanitizeManualHousePlacements,
-    synthesizeCalculation,
-    synthesizeNavamsaCalculation,
-} from "@/lib/manualChartDetails";
-import type { PlanetAspectsMap } from "@/lib/planetAspects";
-import type { RashiAspectsSetting } from "@/lib/rashiAspects";
-import { mergeShadBalaya } from "@/lib/shadBalaya";
+import { recalculateHoroscope } from "@/lib/recalculateHoroscope";
 
 export const RECALC_BATCH_SIZE = Number(process.env.RECALC_BATCH_SIZE ?? 100);
 
@@ -28,8 +18,10 @@ export function isRecalculationRunning(): boolean {
 
 /** Bulk recalculation of every stored `CalculatedDetails` snapshot against the current system-wide
  *  settings (US-SAS-003/004/009/010). In-process, batched, idempotent per `version`, resumable from
- *  `lastProcessedHoroscopeId`, and partial-failure-safe: a failing horoscope leaves its snapshot
- *  untouched, is counted, and never aborts the run. Charts are NOT regenerated (D8). */
+ *  `lastProcessedHoroscopeId`, and partial-failure-safe: a failing horoscope is counted and never
+ *  aborts the run. Each horoscope gets the full save pipeline (`recalculateHoroscope`): the
+ *  `CalculatedDetails` snapshot, regenerated `Chart` docs and the search index — so calculation
+ *  logic changes (new fields, new chart types) reach existing horoscopes, not just settings changes. */
 export async function startRecalculation(opts?: { settingsVersion?: number; horoscopeIds?: string[] }): Promise<void> {
     await connectDB();
     const doc = await getAstrologySettings(true);
@@ -72,7 +64,7 @@ export async function startRecalculation(opts?: { settingsVersion?: number; horo
         ids = await snapshotHoroscopeIds();
     }
 
-    const { planetaryOrbs, planetAspects, rashiAspects } = await getCalculationSettings();
+    const settings = await getCalculationSettings();
     const total = ids.length;
     const startedAt = new Date();
     const startedStatus =
@@ -118,7 +110,7 @@ export async function startRecalculation(opts?: { settingsVersion?: number; horo
             const batch = ids.slice(i, i + RECALC_BATCH_SIZE);
             for (const id of batch) {
                 try {
-                    await recalculateOne(id, planetaryOrbs, planetAspects, rashiAspects);
+                    await recalculateOne(id, settings);
                     succeeded++;
                 } catch (err) {
                     failed++;
@@ -166,52 +158,14 @@ async function snapshotHoroscopeIds(): Promise<string[]> {
     return ids;
 }
 
-async function recalculateOne(
-    id: string,
-    planetaryOrbs: Record<string, number>,
-    planetAspects: PlanetAspectsMap,
-    rashiAspects: RashiAspectsSetting,
-): Promise<void> {
+async function recalculateOne(id: string, settings: CalculationSettings): Promise<void> {
     const horoscope = await Horoscope.findById(id);
     if (!horoscope) {
         throw new Error("horoscope not found");
     }
-
-    if (horoscope.source === "manual") {
-        const existing = await CalculatedDetails.findOne({ "horoscope.id": id }).lean();
-        if (!existing?.manualHousePlacements) {
-            throw new Error("manual horoscope has no stored manualHousePlacements to recompute from");
-        }
-        const input = manualPlacementsToInput(existing.manualHousePlacements);
-        input.aspectOptions = { planetaryOrbs, planetAspects, rashiAspects };
-        const currentShani = getCurrentShani(input.lagna);
-        const result = compute(input, currentShani);
-        const synth = synthesizeCalculation(result, horoscope.birthDate);
-        await CalculatedDetails.findOneAndUpdate(
-            { "horoscope.id": id },
-            {
-                ...synth,
-                // Student toggles (overridden: true) survive recalculation; everything else takes
-                // the freshly-computed value (US-SB-013).
-                shadbalaya: mergeShadBalaya(synth.shadbalaya ?? {}, existing?.shadbalaya),
-                manualHousePlacements: sanitizeManualHousePlacements(result.manualHousePlacements),
-                derivedRanges: result.derivedRanges,
-            },
-            { upsert: true },
-        );
-        return;
+    if (!(await recalculateHoroscope(horoscope, settings))) {
+        throw new Error("manual horoscope has no stored manualHousePlacements to recompute from");
     }
-
-    const calculated = calculateHoroscope(horoscope, planetaryOrbs, planetAspects, rashiAspects);
-    const existing = await CalculatedDetails.findOne({ "horoscope.id": id }).lean();
-    await CalculatedDetails.findOneAndUpdate(
-        { "horoscope.id": id },
-        {
-            ...calculated,
-            shadbalaya: mergeShadBalaya(calculated.shadbalaya ?? {}, existing?.shadbalaya),
-        },
-        { upsert: true },
-    );
 }
 
 async function finalizeRun(

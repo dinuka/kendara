@@ -1,86 +1,43 @@
-import mongoose from "mongoose";
-
-import { CalculatedDetails } from "../src/models/CalculatedDetails";
-import { Chart } from "../src/models/Chart";
 import { Horoscope } from "../src/models/Horoscope";
 
 import { getCalculationSettings } from "../src/lib/astrologySettings";
-import { calculateHoroscope } from "../src/lib/calculation";
-import { getChartData, isLeanChartType, toBirthChartData } from "../src/lib/chartDataTransform";
-import { generateChartSvg } from "../src/lib/chartRenderer";
-import { ALL_CHART_TYPES } from "../src/lib/chartTypes";
 import { connectDB } from "../src/lib/db";
 import logger from "../src/lib/logger";
-import { mergeShadBalaya } from "../src/lib/shadBalaya";
+import { recalculateHoroscope } from "../src/lib/recalculateHoroscope";
 
-import { recalculateCalculatedHoroscope } from "./recalculate-calculated-horoscopes";
-
-/** Recomputes CalculatedDetails and Chart docs for every existing horoscope, using the same
- *  calculateHoroscope/getChartData/generateChartSvg pipeline as the PUT /api/horoscope/[id]
- *  recalculation path for auto horoscopes and the compute/synthesize manual pipeline (delegated to
- *  recalculateCalculatedHoroscope) for calculated (manual) horoscopes. Uses the system-wide
- *  calculation settings (US-SAS-006) for every horoscope. Needed because fixes to the calculation
- *  logic (e.g. the whole-sign house fix) only apply to horoscopes calculated after the fix —
- *  existing records keep stale data until explicitly recalculated. */
+/** Recomputes everything a save produces for every existing horoscope — CalculatedDetails, Chart
+ *  docs and the search index — through the same `recalculateHoroscope` pipeline as the admin bulk
+ *  job, using the system-wide calculation settings (US-SAS-006). Needed because fixes to the
+ *  calculation logic (e.g. the whole-sign house fix, new stored fields) only apply to horoscopes
+ *  calculated after the fix — existing records keep stale data until explicitly recalculated. */
 async function migrate() {
     await connectDB();
 
     logger.info("starting horoscope recalculation...");
 
-    const { planetaryOrbs, planetAspects, rashiAspects } = await getCalculationSettings();
-
+    const settings = await getCalculationSettings();
     const cursor = Horoscope.find().cursor();
 
     let updated = 0;
+    let skipped = 0;
     let failed = 0;
 
     for (let horoscope = await cursor.next(); horoscope != null; horoscope = await cursor.next()) {
         const id = horoscope._id.toString();
         try {
-            if (horoscope.source === "manual") {
-                if (await recalculateCalculatedHoroscope(horoscope)) {
-                    updated++;
-                    logger.info("recalculated calculated horoscope id=%s", id);
-                }
-                continue;
+            if (await recalculateHoroscope(horoscope, settings)) {
+                updated++;
+                logger.info("recalculated horoscope id=%s source=%s", id, horoscope.source ?? "auto");
+            } else {
+                skipped++;
             }
-
-            const calculated = calculateHoroscope(horoscope, planetaryOrbs, planetAspects, rashiAspects);
-
-            const existing = await CalculatedDetails.findOne({ "horoscope.id": id }).lean();
-
-            await CalculatedDetails.findOneAndUpdate(
-                { "horoscope.id": id },
-                {
-                    ...calculated,
-                    shadbalaya: mergeShadBalaya(calculated.shadbalaya ?? {}, existing?.shadbalaya),
-                },
-                { upsert: true },
-            );
-
-            await Chart.deleteMany({ "horoscope.id": id });
-
-            const chartDocs = ALL_CHART_TYPES.map((type) => {
-                const chartData = getChartData(calculated, type);
-                return {
-                    horoscope: { id },
-                    type,
-                    data: isLeanChartType(type) ? toBirthChartData(chartData) : chartData,
-                    imageKey: "",
-                    svgData: generateChartSvg(chartData, type),
-                };
-            });
-
-            await Chart.insertMany(chartDocs);
-
-            updated++;
         } catch (err) {
             failed++;
             logger.error("failed to recalculate horoscope id=%s: %s", id, (err as Error).message);
         }
     }
 
-    logger.info("recalculation complete: %d updated, %d failed", updated, failed);
+    logger.info("recalculation complete: %d updated, %d skipped, %d failed", updated, skipped, failed);
     process.exit(failed > 0 ? 1 : 0);
 }
 

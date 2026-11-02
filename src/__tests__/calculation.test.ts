@@ -483,7 +483,7 @@ describe("calculateHoroscope Yoga/Dosha tags (IT-YD-200..202)", () => {
     });
 
     test("IT-YD-202: recalculation job is a zero-change owner of yoga fields (generic spread guard)", () => {
-        const src = fs.readFileSync(path.join(process.cwd(), "src/lib/recalculationJob.ts"), "utf8");
+        const src = fs.readFileSync(path.join(process.cwd(), "src/lib/recalculateHoroscope.ts"), "utf8");
         // The auto path stores whatever calculateHoroscope returns — yoga fields ride along in the
         // generic `...calculated` spread, so the job needed NO yoga-specific branching.
         expect(src).toContain("...calculated,");
