@@ -258,12 +258,60 @@ describe("search: planet role (varga) matching", () => {
         expect(body.results).toHaveLength(0);
     });
 
-    test("pushkara presence-only matches when any pushkara planet exists", async () => {
-        mockSingle({ pushkaraPlanets: [8] });
+    test("bare pushkara matches a Pushkara lagna", async () => {
+        mockSingle({ isAscendantPushkara: true, pushkaraPlanets: [] });
         const response = await search("pushkara");
         const body = await response.json();
         expect(body.results).toHaveLength(1);
-        expect(body.results[0].matchedConditions).toContain("pushkara_present");
+        expect(body.results[0].matchedConditions).toContain("pushkara_lagna");
+    });
+
+    test("bare pushkara does not match Pushkara planets without a Pushkara lagna", async () => {
+        mockSingle({ isAscendantPushkara: false, pushkaraPlanets: [8, 4], ascendant: { sign: 1, degree: 1 } });
+        const response = await search("pushkara");
+        const body = await response.json();
+        expect(body.results).toHaveLength(0);
+    });
+
+    test("පුෂ්කර ලග්නය recomputes the flag from the ascendant degree on older documents", async () => {
+        // Cancer 1° falls in the Cancer navamsa, one of Cancer's Pushkara signs.
+        mockSingle({ ascendant: { sign: 4, degree: 1 } });
+        const response = await search("පුෂ්කර ලග්නය");
+        const body = await response.json();
+        expect(body.results).toHaveLength(1);
+        expect(body.results[0].matchedConditions).toContain("pushkara_lagna");
+    });
+
+    test("pushkara planets 2 matches a chart with at least 2 Pushkara planets", async () => {
+        mockSingle({ pushkaraPlanets: [1, 4, 8] });
+        const response = await search("pushkara planets 2");
+        const body = await response.json();
+        expect(body.results).toHaveLength(1);
+        expect(body.results[0].matchedConditions).toContain("pushkara_count=2");
+    });
+
+    test("පුෂ්කර ග්‍රහ 2 does not match a chart with one Pushkara planet", async () => {
+        mockSingle({ isAscendantPushkara: true, pushkaraPlanets: [4] });
+        const response = await search("පුෂ්කර ග්‍රහ 2");
+        const body = await response.json();
+        expect(body.results).toHaveLength(0);
+    });
+
+    test("pushkara planets without a count matches any Pushkara planet", async () => {
+        mockSingle({ pushkaraPlanets: [8] });
+        const response = await search("pushkara planets");
+        const body = await response.json();
+        expect(body.results).toHaveLength(1);
+        expect(body.results[0].matchedConditions).toContain("pushkara_count=1");
+    });
+
+    test("pushkara planets 2 ANDs with a lagna sign", async () => {
+        mockSingle({ ascendant: { sign: 1, degree: 1 }, pushkaraPlanets: [1, 4] });
+        const matches = await (await search("මේෂ ලග්නය, pushkara planets 2")).json();
+        expect(matches.results).toHaveLength(1);
+        mockSingle({ ascendant: { sign: 2, degree: 1 }, pushkaraPlanets: [1, 4] });
+        const misses = await (await search("මේෂ ලග්නය, pushkara planets 2")).json();
+        expect(misses.results).toHaveLength(0);
     });
 
     test("pushkaram buhda matches Mercury when it is a pushkara planet (English variant)", async () => {

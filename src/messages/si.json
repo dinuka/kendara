@@ -178,6 +178,8 @@
             "gandamulaPresent": "ගණ්ඩමූල ග්‍රහ තිබේ",
             "pushkara": "{planet} පුෂ්කර",
             "pushkaraPresent": "පුෂ්කර ග්‍රහ තිබේ",
+            "pushkaraLagna": "පුෂ්කර ලග්නය",
+            "pushkaraCount": "පුෂ්කර ග්‍රහ අවම වශයෙන් {count}ක්",
             "bhavaSuchika": "භාව සුචික: {value}",
             "planetBhavaSuchika": "{planet} භාව සුචික: {value}"
         },

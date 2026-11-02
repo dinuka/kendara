@@ -510,6 +510,12 @@ const formatCondition = (
         const [planet, lord] = mc.slice("planet_nakshatra_lord=".length).split(":");
         return t("search.conditions.planetNakshatraLord", { planet, lord });
     }
+    if (mc === "pushkara_lagna") {
+        return t("search.conditions.pushkaraLagna");
+    }
+    if (mc.startsWith("pushkara_count=")) {
+        return t("search.conditions.pushkaraCount", { count: mc.slice("pushkara_count=".length) });
+    }
     const ROLE_KEYS = [
         "ashtamansha",
         "nidhanamsha",

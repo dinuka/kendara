@@ -178,6 +178,8 @@
             "gandamulaPresent": "Has Gandamula planets",
             "pushkara": "{planet} Pushkara",
             "pushkaraPresent": "Has Pushkara planets",
+            "pushkaraLagna": "Pushkara lagna",
+            "pushkaraCount": "At least {count} Pushkara planets",
             "bhavaSuchika": "Bhava Suchika: {value}",
             "planetBhavaSuchika": "{planet} Bhava Suchika: {value}"
         },

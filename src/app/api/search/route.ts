@@ -6,7 +6,7 @@ import { CalculatedDetails } from "@/models/CalculatedDetails";
 import { Chart } from "@/models/Chart";
 import { Horoscope } from "@/models/Horoscope";
 
-import { SIGN_LORD, getNakshatraLord } from "@/lib/astrology";
+import { SIGN_LORD, computeAscendantSpecialFlags, getNakshatraLord } from "@/lib/astrology";
 import {
     CancellationStatus,
     PLANET_NAMES,
@@ -67,6 +67,8 @@ type ExactCondition =
     | { type: "planet_nakshatra_lord"; planet: number; lord: number }
     | { type: "planet_strength"; planet: number; strength: PlanetaryStrength }
     | { type: "planet_role"; role: PlanetRoleKey; planet: number }
+    | { type: "ascendant_pushkara" }
+    | { type: "pushkara_planet_count"; min: number }
     | { type: "bhava_suchika"; value: number }
     | { type: "planet_bhava_suchika"; planet: number; value: number }
     | YogaDoshaCondition;
@@ -886,6 +888,45 @@ const hasAnyPlanetRole = (role: PlanetRoleKey, calculatedDetails: Record<string,
     return Array.isArray(value) && value.length > 0;
 };
 
+const PUSHKARA_PLANET_WORDS = ["ග්‍රහයන්", "ග්‍රහයින්", "ග්‍රහ", "planets", "planet", "grahas", "graha"];
+
+type PushkaraQuery = { type: "ascendant_pushkara" } | { type: "pushkara_planet_count"; min: number };
+
+// A Pushkara query without a named planet: a count ("pushkara planets 2", "පුෂ්කර ග්‍රහ 2") asks for
+// at least that many Pushkara planets, a bare planet word for at least one, and "pushkara" alone
+// for a Pushkara lagna.
+const getPushkaraQuery = (query: string): PushkaraQuery => {
+    const q = stripJoiners(query.toLowerCase());
+    const count = q.match(/(?<!\d)(\d{1,2})(?!\d)/);
+    if (count) return { type: "pushkara_planet_count", min: Math.max(1, parseInt(count[1], 10)) };
+    if (PUSHKARA_PLANET_WORDS.some((word) => q.includes(stripJoiners(word)))) {
+        return { type: "pushkara_planet_count", min: 1 };
+    }
+    return { type: "ascendant_pushkara" };
+};
+
+// Older documents predate the stored flag, so it is recomputed from the ascendant like the
+// result card does — only when the ascendant degree is known, since the navamsa depends on it.
+const isAscendantPushkara = (calculatedDetails: Record<string, unknown> | null): boolean => {
+    if (!calculatedDetails) return false;
+    if (calculatedDetails.isAscendantPushkara === true) return true;
+    const ascendant = calculatedDetails.ascendant as Record<string, unknown> | undefined;
+    if (!ascendant || typeof ascendant.sign !== "number" || typeof ascendant.degree !== "number") return false;
+    return computeAscendantSpecialFlags(ascendant.sign, ascendant.degree, 0, 0).isAscendantPushkara;
+};
+
+const matchesPushkaraQuery = (
+    pushkaraQuery: PushkaraQuery,
+    calculatedDetails: Record<string, unknown> | null,
+): boolean => {
+    if (pushkaraQuery.type === "ascendant_pushkara") return isAscendantPushkara(calculatedDetails);
+    const planets = calculatedDetails?.pushkaraPlanets;
+    return Array.isArray(planets) && planets.length >= pushkaraQuery.min;
+};
+
+const pushkaraConditionLabel = (pushkaraQuery: PushkaraQuery): string =>
+    pushkaraQuery.type === "ascendant_pushkara" ? "pushkara_lagna" : `pushkara_count=${pushkaraQuery.min}`;
+
 // A catalog name is negated when a negation word follows it, optionally after a generic yoga/dosha
 // word ("කුජ නැති", "කුජ දෝෂය නොමැති", "Kuja dosha cancelled"), or an English negation word leads
 // it ("without Kuja dosha", "no Dhana yoga").
@@ -933,8 +974,12 @@ const getExactMatch = (fullQuery: string): ExactMatch => {
 
     const planetRole = getPlanetRole(query);
     if (planetRole !== null) {
-        for (const planet of getPlanetMatches(query)) {
+        const rolePlanets = getPlanetMatches(query);
+        for (const planet of rolePlanets) {
             conditions.push({ type: "planet_role", role: planetRole, planet });
+        }
+        if (planetRole === "pushkara" && rolePlanets.length === 0) {
+            conditions.push(getPushkaraQuery(query));
         }
     }
 
@@ -1421,6 +1466,12 @@ const scoreHoroscope = (
                     matchedConditions.push(`${planetRole}=${planetWord}`);
                 }
             }
+        } else if (planetRole === "pushkara") {
+            const pushkaraQuery = getPushkaraQuery(query);
+            if (matchesPushkaraQuery(pushkaraQuery, calculatedDetails)) {
+                score += 0.4;
+                matchedConditions.push(pushkaraConditionLabel(pushkaraQuery));
+            }
         } else if (hasAnyPlanetRole(planetRole, calculatedDetails)) {
             score += 0.4;
             matchedConditions.push(`${planetRole}_present`);
@@ -1699,6 +1750,12 @@ export async function POST(req: NextRequest) {
                                     calculatedDetails as Record<string, unknown> | null,
                                 );
                             }
+                            case "ascendant_pushkara":
+                            case "pushkara_planet_count":
+                                return matchesPushkaraQuery(
+                                    condition,
+                                    calculatedDetails as Record<string, unknown> | null,
+                                );
                             case "bhava_suchika": {
                                 return resolveLagnaBhavaSuchika(calculatedDetails) === condition.value;
                             }
