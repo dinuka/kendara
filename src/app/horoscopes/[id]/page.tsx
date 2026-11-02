@@ -440,7 +440,12 @@ export default function HoroscopeDetailPage() {
     // Navamsa (D9) availability: auto (ephemeris) charts always carry it; manual charts only when a
     // Navamsa Lagna AND navamsa house placements were entered. Manual charts without Navamsa data are
     // birth-chart-only — no degree values, no Navamsa-derived columns/tags, no second warga chart
-    // (TODO.md manual-chart issues). Rendered sections gate on this flag below.
+    // (TODO.md manual-chart issues). It also gates the two Navamsa-only derived columns — Nakshatra
+    // (Pada) and Bhava Suchika: without Navamsa there is no real degree inside the sign, so a manual
+    // chart's planet Nakshatra/Pada is a placeholder derived from the sign midpoint
+    // (src/lib/manualChartDetails.ts — synthesizePlanets), and Bhava Suchika resolves to undefined
+    // (src/lib/bhavaSuchika.ts — no entered Navamsa houses to read a planet's D9 sign from). Neither
+    // is a real calculation, so neither column is rendered. Rendered sections gate on this flag below.
     const navamsaAvailable = !isManualChart || hasManualNavamsa(calculatedDetails?.manualHousePlacements);
 
     // Degree-based planet conjunctions (shared with the calc-tab planet tables): the authoritative
@@ -1619,28 +1624,34 @@ export default function HoroscopeDetailPage() {
                                                 <th className="py-1 pr-3">{t("astrology.strength")}</th>
                                                 <th className="py-1 pr-3">{t("astrology.house")}</th>
                                                 <th className="py-1 pr-3">{t("astrology.ownership")}</th>
-                                                {navamsaAvailable && <th className="py-1 pr-3">{t("astrology.navamsa")}</th>}
+                                                {navamsaAvailable && (
+                                                    <th className="py-1 pr-3">{t("astrology.navamsa")}</th>
+                                                )}
                                                 {navamsaAvailable && (
                                                     <th className="py-1 pr-3">
                                                         {t("astrology.navamsa")} {t("astrology.strength")}
                                                     </th>
                                                 )}
-                                                <th className="py-1 pr-3">
-                                                    {t("astrology.nakshatra")} ({t("astrology.pada")})
-                                                </th>
-                                                <th className="py-1 pr-3">
-                                                    <span className="inline-flex items-center gap-1 whitespace-nowrap">
-                                                        {t("astrology.bhavaSuchika.label")}
-                                                        <button
-                                                            type="button"
-                                                            title={t("astrology.bhavaSuchika.tooltip")}
-                                                            aria-label={t("astrology.bhavaSuchika.infoGlyph")}
-                                                            className="cursor-help text-gray-400 hover:text-indigo-600"
-                                                        >
-                                                            ⓘ
-                                                        </button>
-                                                    </span>
-                                                </th>
+                                                {navamsaAvailable && (
+                                                    <th className="py-1 pr-3">
+                                                        {t("astrology.nakshatra")} ({t("astrology.pada")})
+                                                    </th>
+                                                )}
+                                                {navamsaAvailable && (
+                                                    <th className="py-1 pr-3">
+                                                        <span className="inline-flex items-center gap-1 whitespace-nowrap">
+                                                            {t("astrology.bhavaSuchika.label")}
+                                                            <button
+                                                                type="button"
+                                                                title={t("astrology.bhavaSuchika.tooltip")}
+                                                                aria-label={t("astrology.bhavaSuchika.infoGlyph")}
+                                                                className="cursor-help text-gray-400 hover:text-indigo-600"
+                                                            >
+                                                                ⓘ
+                                                            </button>
+                                                        </span>
+                                                    </th>
+                                                )}
                                                 <th className="py-1 pr-3">{t("astrology.conjunctions")}</th>
                                                 <th className="py-1 pr-3">{t("astrology.aspects")}</th>
                                                 <th className="py-1 pr-3">{t("astrology.other")}</th>
@@ -1813,16 +1824,20 @@ if (navamsaAvailable && calculatedDetails.pushkaraPlanets?.includes(p.name))
                                                                     )}
                                                                 </td>
                                                             )}
-                                                            <td className="py-1 pr-3 text-gray-600">
-                                                                {getNakshatraName(p.nakshatra) || p.nakshatra} (
-                                                                {getPlanetName(getNakshatraLord(p.nakshatra))}) (
-                                                                {p.pada})
-                                                            </td>
-                                                            <td className="py-1 pr-3 whitespace-nowrap">
-                                                                {bhavaSuchikaValue !== undefined
-                                                                    ? `${bhavaSuchikaValue} — ${t(`astrology.bhavaSuchika.names.${bhavaSuchikaValue}`)}`
-                                                                    : "—"}
-                                                            </td>
+                                                            {navamsaAvailable && (
+                                                                <td className="py-1 pr-3 text-gray-600">
+                                                                    {getNakshatraName(p.nakshatra) || p.nakshatra} (
+                                                                    {getPlanetName(getNakshatraLord(p.nakshatra))}) (
+                                                                    {p.pada})
+                                                                </td>
+                                                            )}
+                                                            {navamsaAvailable && (
+                                                                <td className="py-1 pr-3 whitespace-nowrap">
+                                                                    {bhavaSuchikaValue !== undefined
+                                                                        ? `${bhavaSuchikaValue} — ${t(`astrology.bhavaSuchika.names.${bhavaSuchikaValue}`)}`
+                                                                        : "—"}
+                                                                </td>
+                                                            )}
                                                             <td className="py-1 pr-3">
                                                                 {conjunctions.length > 0 ? (
                                                                     <div className="flex flex-wrap gap-1">
@@ -2039,11 +2054,14 @@ if (navamsaAvailable && calculatedDetails.pushkaraPlanets?.includes(p.name))
                                                         <span className="text-gray-600 whitespace-nowrap">
                                                             {t("astrology.house")} {displayHouse}
                                                         </span>
-                                                        <span className="text-gray-500 whitespace-nowrap">
-                                                            {getNakshatraName(p.nakshatra) || p.nakshatra} (
-                                                            {getPlanetName(getNakshatraLord(p.nakshatra))}) ({p.pada})
-                                                        </span>
-                                                        {bhavaSuchikaValue !== undefined && (
+                                                        {navamsaAvailable && (
+                                                            <span className="text-gray-500 whitespace-nowrap">
+                                                                {getNakshatraName(p.nakshatra) || p.nakshatra} (
+                                                                {getPlanetName(getNakshatraLord(p.nakshatra))}) (
+                                                                {p.pada})
+                                                            </span>
+                                                        )}
+                                                        {navamsaAvailable && bhavaSuchikaValue !== undefined && (
                                                             <span className="text-gray-600 whitespace-nowrap">
                                                                 {t("astrology.bhavaSuchika.label")}: {bhavaSuchikaValue}{" "}
                                                                 —{" "}
