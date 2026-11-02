@@ -81,6 +81,8 @@ const CalculatedDetailsSchema = new Schema<ICalculatedDetails>({
         currentPeriod: { type: CurrentPeriodSchema, required: true },
     },
     lord22ndDrekkana: Number,
+    lord22ndDrekkanaMoon: Number,
+    lord22ndDrekkanaSun: Number,
     lord64thNavamsa: Number,
     badhakaPlanet: [Number],
     marakaPlanets: [Number],

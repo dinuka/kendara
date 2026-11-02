@@ -471,6 +471,12 @@ export interface CalculationResult {
     panchaPakshi: PanchaPakshi;
     dashas: DashaInfo;
     lord22ndDrekkana: number;
+    /** 22nd Drekkana lord from the Chandra lagna — counted from the bhava madhya of the Moon's house
+     *  (src/lib/drekkanaLord.ts). 0 for manual charts without Navamsa data. Absent on legacy docs. */
+    lord22ndDrekkanaMoon?: number;
+    /** 22nd Drekkana lord from the Ravi lagna — counted from the bhava madhya of the Sun's house.
+     *  0 for manual charts without Navamsa data. Absent on legacy docs. */
+    lord22ndDrekkanaSun?: number;
     lord64thNavamsa: number;
     badhakaPlanet: number[];
     marakaPlanets: number[];

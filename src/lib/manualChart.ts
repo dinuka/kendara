@@ -12,6 +12,7 @@ import { Planet, PlanetaryStrength } from "@/lib/astrologyEnums";
 import { getBadhakaSign } from "@/lib/badhaka";
 import { computeLagnaBhavaSuchika, computePlanetBhavaSuchika } from "@/lib/bhavaSuchika";
 import { type ChartAspects, computeChartAspects } from "@/lib/chartAspects";
+import { get22ndDrekkanaLord, get22ndDrekkanaLordFromPlanet } from "@/lib/drekkanaLord";
 import { type PlanetAspectsMap, derivePlanetAbsoluteDegree } from "@/lib/planetAspects";
 import type { RashiAspectsSetting } from "@/lib/rashiAspects";
 
@@ -744,10 +745,7 @@ export function deriveNavamsaData(
 }
 
 function computeDrekkanaLord(ascSign: number, ascDegree: number): number {
-    const ascDrekkanaNum = Math.floor(ascDegree / 10) + 1;
-    const houseOffset = ascDrekkanaNum === 1 ? 8 : ascDrekkanaNum === 2 ? 12 : 4;
-    const houseSign = ((ascSign - 1 + houseOffset - 1) % 12) + 1;
-    return SIGN_LORD[houseSign] || 1;
+    return get22ndDrekkanaLord(ascSign, ascDegree);
 }
 
 function computeNavamsaLord(ascSign: number, ascDegree: number): number {
@@ -1078,6 +1076,25 @@ export function buildWholeSignHouses(lagna: number): import("@/lib/astrology").H
     });
 }
 
+/** Effective ascendant absolute degree (0-360) for a manual horoscope: the CENTER of the ascendant's
+ *  navamsa wedge (the "mid of the degree range" the calculations tab shows), derived from the entered
+ *  `lagnaDegree` when given, else the stored navamsa lagna. When neither is recorded (a manual chart
+ *  without Navamsa data) the chart has no degree values, so it falls back to the sign midpoint (15°),
+ *  matching the house-middle position every planet gets in that case. The chart's lagna line and
+ *  house-1 bhava middle are anchored to this so they stay centered on the highlighted navamsa wedge. */
+export function manualAscAbsDeg(mhp: {
+    lagna: number;
+    lagnaDegree?: number | null;
+    navamsaLagna?: number | null;
+}): number {
+    const arc = 30 / 9;
+    let index = 5;
+    if (mhp.lagnaDegree !== undefined && mhp.lagnaDegree !== null) index = Math.floor(mhp.lagnaDegree / arc) + 1;
+    else if (mhp.navamsaLagna !== undefined && mhp.navamsaLagna !== null)
+        index = navamsaIndexForSign(mhp.lagna, mhp.navamsaLagna);
+    return (mhp.lagna - 1) * 30 + (index - 0.5) * arc;
+}
+
 /** Builds the house chart (bhava) House objects for a manual horoscope, anchored so house 1's
  *  middle line coincides exactly with the ascendant (lagna) line at `ascAbsDeg`. Each house is a
  *  30° span centered on its middle line (the lagna degree rotated +30° per house): start cusp =
@@ -1237,6 +1254,8 @@ export function synthesizeOtherDetails(
 ): Pick<
     CalculationResult,
     | "lord22ndDrekkana"
+    | "lord22ndDrekkanaMoon"
+    | "lord22ndDrekkanaSun"
     | "lord64thNavamsa"
     | "badhakaPlanet"
     | "marakaPlanets"
@@ -1300,8 +1319,18 @@ export function synthesizeOtherDetails(
         }
         if (Object.keys(bhavaSuchika).length === 0) bhavaSuchika = undefined;
     }
+    // 22nd Drekkana lords from the Chandra/Ravi lagnas, counted from the bhava madhya of the house each
+    // occupies in the bhava houses the page renders (`buildBhavaHouses`). Without Navamsa data the
+    // planet degrees are placeholders, so there is no meaningful value (0 never matches a planet).
+    const bhavaHouses = buildBhavaHouses(lagna, manualAscAbsDeg(manualHousePlacements));
+    const planetDrekkanaLord = (planetName: number) => {
+        const planet = planets.find(({ name }) => name === planetName);
+        return (hasNavamsaData && planet && get22ndDrekkanaLordFromPlanet(planet, bhavaHouses)) || 0;
+    };
     return {
         lord22ndDrekkana: computeDrekkanaLord(lagna, ascDegree),
+        lord22ndDrekkanaMoon: planetDrekkanaLord(2),
+        lord22ndDrekkanaSun: planetDrekkanaLord(1),
         // The 64th Navamsa Lord is a Navamsa (D9) concept — without entered Navamsa data there is no
         // meaningful value (0 never matches a planet enum, so it never renders as a tag).
         lord64thNavamsa: hasNavamsaData ? computeNavamsaLord(lagna, ascDegree) : 0,

@@ -43,6 +43,7 @@ import { getChartData } from "@/lib/chartDataTransform";
 import type { ChartInput } from "@/lib/chartDataTransform";
 import { ChartType } from "@/lib/chartTypes";
 import { formatDate } from "@/lib/date";
+import { get22ndDrekkanaLordFromPlanet } from "@/lib/drekkanaLord";
 import { readHoroscopeSort } from "@/lib/horoscopeSort";
 import {
     buildBhavaHouses,
@@ -53,6 +54,7 @@ import {
     deriveBirthTimeRange,
     formatNavamsaDegreeRange,
     hasManualNavamsa,
+    manualAscAbsDeg,
     navamsaIndexForSign,
     ownedHousesOf,
     synthesizeOtherDetails,
@@ -151,20 +153,6 @@ function placementsRecord(manual: ManualHouse[]): Record<number, number[]> {
     return result;
 }
 
-/** Effective ascendant absolute degree (0-360) for a manual horoscope: the CENTER of the ascendant's
- *  navamsa wedge (the "mid of the degree range" the calculations tab shows), derived from the entered
- *  `lagnaDegree` when given, else the stored navamsa lagna. When neither is recorded (a manual chart
- *  without Navamsa data) the chart has no degree values, so it falls back to the sign midpoint (15°),
- *  matching the house-middle position every planet gets in that case. The chart's lagna line and
- *  house-1 bhava middle are anchored to this so they stay centered on the highlighted navamsa wedge. */
-function manualAscAbsDeg(mhp: { lagna: number; lagnaDegree?: number; navamsaLagna?: number }): number {
-    const arc = 30 / 9;
-    let index = 5;
-    if (mhp.lagnaDegree !== undefined) index = Math.floor(mhp.lagnaDegree / arc) + 1;
-    else if (mhp.navamsaLagna !== undefined) index = navamsaIndexForSign(mhp.lagna, mhp.navamsaLagna);
-    return (mhp.lagna - 1) * 30 + (index - 0.5) * arc;
-}
-
 /** Navamsa segment (1-9) within its sign that CONTAINS an absolute degree: `{ sign, start, end }`
  *  in-sign degree range. Used to render the calc-tab Start/End boundaries as navamsa segments
  *  (matching the Mid column's DD:MM–DD:MM format), derived from the house cusps `midAbs ± 15°`. */
@@ -206,6 +194,8 @@ export default function HoroscopeDetailPage() {
             panchaPakshi?: number;
             dashas: unknown;
             lord22ndDrekkana: number;
+            lord22ndDrekkanaMoon?: number;
+            lord22ndDrekkanaSun?: number;
             lord64thNavamsa: number;
             badhakaPlanet: number[];
             marakaPlanets: number[];
@@ -482,6 +472,20 @@ export default function HoroscopeDetailPage() {
         calculatedDetails?.ascendant?.sign && calculatedDetails.planets
             ? calculateBadhakaLevels(calculatedDetails.ascendant.sign, calculatedDetails.planets, navamsaAvailable)
             : {};
+
+    // 22nd Drekkana lords (22 දෙර්කාණාධිපති) from the Chandra and Ravi lagnas — computed and stored when
+    // the horoscope is saved (src/lib/drekkanaLord.ts). Legacy docs that predate the fields are
+    // re-derived from the stored houses until the recalculation script runs. Skipped without Navamsa
+    // data, where a manual chart's planet degree is only a placeholder.
+    const drekkanaLordFrom = (planetName: number, stored?: number) => {
+        if (!navamsaAvailable) return undefined;
+        if (stored !== undefined) return stored;
+        const planet = calculatedDetails?.planets?.find(({ name }) => name === planetName);
+        if (!planet || !calculatedDetails?.houses?.length) return undefined;
+        return get22ndDrekkanaLordFromPlanet(planet, calculatedDetails.houses);
+    };
+    const moonDrekkanaLord = drekkanaLordFrom(2, calculatedDetails?.lord22ndDrekkanaMoon);
+    const sunDrekkanaLord = drekkanaLordFrom(1, calculatedDetails?.lord22ndDrekkanaSun);
 
     // Bhava Suchika (භාව සුචික) of the Lagna point — stored value wins; legacy auto docs without
     // the field are recomputed from the birth ascendant; manual charts only use entered Navamsa
@@ -1693,7 +1697,20 @@ export default function HoroscopeDetailPage() {
                                                             key: "drekkana",
                                                             text: t("astrology.drekkanaLordLabel"),
                                                         });
-if (navamsaAvailable && calculatedDetails.lord64thNavamsa === p.name)
+                                                    if (moonDrekkanaLord === p.name)
+                                                        tags.push({
+                                                            key: "drekkanaMoon",
+                                                            text: t("astrology.drekkanaLordMoonLabel"),
+                                                        });
+                                                    if (sunDrekkanaLord === p.name)
+                                                        tags.push({
+                                                            key: "drekkanaSun",
+                                                            text: t("astrology.drekkanaLordSunLabel"),
+                                                        });
+                                                    if (
+                                                        navamsaAvailable &&
+                                                        calculatedDetails.lord64thNavamsa === p.name
+                                                    )
                                                         tags.push({
                                                             key: "navamsa",
                                                             text: t("astrology.navamsaLordLabel"),
@@ -1949,6 +1966,16 @@ if (navamsaAvailable && calculatedDetails.lord64thNavamsa === p.name)
                                                 tags.push({ key: "combustion", text: t("astrology.combustLabel") });
                                             if (calculatedDetails.lord22ndDrekkana === p.name)
                                                 tags.push({ key: "drekkana", text: t("astrology.drekkanaLordLabel") });
+                                            if (moonDrekkanaLord === p.name)
+                                                tags.push({
+                                                    key: "drekkanaMoon",
+                                                    text: t("astrology.drekkanaLordMoonLabel"),
+                                                });
+                                            if (sunDrekkanaLord === p.name)
+                                                tags.push({
+                                                    key: "drekkanaSun",
+                                                    text: t("astrology.drekkanaLordSunLabel"),
+                                                });
                                             if (navamsaAvailable && calculatedDetails.lord64thNavamsa === p.name)
                                                 tags.push({ key: "navamsa", text: t("astrology.navamsaLordLabel") });
                                             if (calculatedDetails.atmakaraka === p.name)

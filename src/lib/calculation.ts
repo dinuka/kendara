@@ -27,6 +27,7 @@ import { PlanetaryStrength } from "@/lib/astrologyEnums";
 import { getBadhakaSign } from "@/lib/badhaka";
 import { computeBhavaSuchika, computeLagnaBhavaSuchika, computeNavamsaLagnaSign } from "@/lib/bhavaSuchika";
 import { computeChartAspects } from "@/lib/chartAspects";
+import { get22ndDrekkanaLord, get22ndDrekkanaLordFromPlanet } from "@/lib/drekkanaLord";
 import logger from "@/lib/logger";
 import type { PlanetAspectsMap } from "@/lib/planetAspects";
 import type { RashiAspectsSetting } from "@/lib/rashiAspects";
@@ -458,6 +459,8 @@ export function calculateHoroscope(
         panchaPakshi: computePanchaPakshi(moonNakshatra, thithi),
         dashas,
         lord22ndDrekkana: computeDrekkanaLord(ascSign, ascLong % 30),
+        lord22ndDrekkanaMoon: computePlanetDrekkanaLord(2, planetDetails, houses),
+        lord22ndDrekkanaSun: computePlanetDrekkanaLord(1, planetDetails, houses),
         lord64thNavamsa: computeNavamsaLord(ascSign, ascLong % 30),
         badhakaPlanet: computeBadhaka(ascSign),
         marakaPlanets: computeMaraka(ascSign, planetDetails),
@@ -563,10 +566,13 @@ function computePushkara(planets: Planet[]): number[] {
 }
 
 function computeDrekkanaLord(ascSign: number, ascDegree: number): number {
-    const ascDrekkanaNum = Math.floor(ascDegree / 10) + 1;
-    const houseOffset = ascDrekkanaNum === 1 ? 8 : ascDrekkanaNum === 2 ? 12 : 4;
-    const houseSign = ((ascSign - 1 + houseOffset - 1) % 12) + 1;
-    return SIGN_LORD[houseSign] || 1;
+    return get22ndDrekkanaLord(ascSign, ascDegree);
+}
+
+/** 22nd Drekkana lord from the bhava a planet (Moon/Sun) occupies; 0 when the planet is missing. */
+function computePlanetDrekkanaLord(planetName: number, planets: Planet[], houses: House[]): number {
+    const planet = planets.find(({ name }) => name === planetName);
+    return (planet && get22ndDrekkanaLordFromPlanet(planet, houses)) || 0;
 }
 
 function computeNavamsaLord(ascSign: number, ascDegree: number): number {
