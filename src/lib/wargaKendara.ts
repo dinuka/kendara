@@ -25,10 +25,12 @@ import type { CalculationResult, House, Planet } from "@/lib/astrology";
 import { computeMaranakaraka, navamsaSign } from "@/lib/astrology";
 import { PlanetaryStrength } from "@/lib/astrologyEnums";
 import { getChartData } from "@/lib/chartDataTransform";
+import type { ChartInput } from "@/lib/chartDataTransform";
 import { ChartType } from "@/lib/chartTypes";
 import { SIGN_LORD, buildWholeSignHouses, computePlanetStrength, hasManualNavamsa } from "@/lib/manualChart";
 import { type PlanetAspectsMap, resolveAspectHouses } from "@/lib/planetAspects";
 import { computeDigBalaPlanets } from "@/lib/shadBalaya";
+import { buildTrimshamshaChart } from "@/lib/trimshamsha";
 
 /** One row of the per-chart Houses table (the chart's whole-sign houses, the planets occupying each
  *  house, and the planets aspecting it). */
@@ -78,8 +80,9 @@ export interface WargaChartEntry {
 }
 
 /** The four charts of the Warga Kendara. Every key is present — null when that chart cannot be
- *  derived from the data (e.g. no navamsa lagna entered on a manual horoscope). */
-export type WargaKendara = Record<WargaChartKey, WargaChartEntry | null>;
+ *  derived from the data (e.g. no navamsa lagna entered on a manual horoscope). `d30` is optional:
+ *  documents stored before the Trimshamsha (D30) chart lack it and re-derive it at render time. */
+export type WargaKendara = Record<WargaChartKey, WargaChartEntry | null> & { d30?: WargaChartEntry | null };
 
 export type WargaChartKey = "d1" | "d9" | "suryaLagna" | "chandraLagna";
 
@@ -448,6 +451,30 @@ function buildRotatedEntry(
     };
 }
 
+/** Trimshamsha (D30) entry, derived at render time from a D1 chart with real in-sign degrees
+ *  (auto calculations only). It is not part of the stored WargaKendara — D30 is a pure function
+ *  of the stored degrees. */
+export const computeWargaD30Entry = (
+    chart: Pick<ChartInput, "planets" | "ascendant">,
+    planetAspects?: PlanetAspectsMap,
+): WargaChartEntry | null => {
+    if (chart.planets.length === 0) return null;
+    const { planets, houses, ascendant } = buildTrimshamshaChart(chart);
+    const sources: WargaPlanetSource[] = planets.map(({ name, sign, house, strength }) => ({
+        name,
+        sign,
+        house,
+        strength,
+    }));
+    const shape = buildChartShape(ascendant.sign, houses, sources, planetAspects);
+    return {
+        ...shape,
+        marakaPlanets: computeWargaMaraka(ascendant.sign),
+        maranakaraka: computeMaranakaraka(sources.map(({ name, house }) => ({ name, house }))),
+        digBalaPlanets: computeDigBalaPlanets(shape.planets.map(({ name, house }) => ({ name, house }))),
+    };
+};
+
 /** Compute the full Warga Kendara for a calculation result. Pure and deterministic — the same
  *  result always yields the same four entries. */
 export function computeWargaKendara(result: CalculationResult, ctx: WargaKendaraContext): WargaKendara {
@@ -461,6 +488,8 @@ export function computeWargaKendara(result: CalculationResult, ctx: WargaKendara
         d9: ctx.source === "manual" ? buildManualD9Entry(ctx) : buildAutoD9Entry(res, ctx.planetAspects),
         suryaLagna: manualWithoutNavamsa ? null : buildRotatedEntry(res, ChartType.SURYA_LAGNA, ctx.planetAspects),
         chandraLagna: manualWithoutNavamsa ? null : buildRotatedEntry(res, ChartType.CHANDRA_LAGNA, ctx.planetAspects),
+        // D30 needs real in-sign degrees — manual planet degrees are synthetic.
+        d30: ctx.source === "manual" ? null : computeWargaD30Entry(result, ctx.planetAspects),
     };
 }
 
@@ -483,7 +512,10 @@ const WK_KEYS: WargaChartKey[] = ["d1", "d9", "suryaLagna", "chandraLagna"];
 function isValidWargaKendara(value: unknown): value is WargaKendara {
     if (typeof value !== "object" || value === null || Array.isArray(value)) return false;
     const record = value as Record<string, unknown>;
-    return WK_KEYS.every((key) => record[key] === null || isWargaChartEntry(record[key]));
+    return (
+        WK_KEYS.every((key) => record[key] === null || isWargaChartEntry(record[key])) &&
+        (record.d30 === undefined || record.d30 === null || isWargaChartEntry(record.d30))
+    );
 }
 
 /** The stored Warga Kendara of a CalculatedDetails document, when valid. A missing, corrupt, or

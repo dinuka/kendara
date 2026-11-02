@@ -36,6 +36,7 @@ import {
     normalizeMaranakaraka,
 } from "@/lib/astrology";
 import { PlanetaryStrength } from "@/lib/astrologyEnums";
+import { calculateBadhakaLevels } from "@/lib/badhaka";
 import { resolveLagnaBhavaSuchika, resolvePlanetBhavaSuchika } from "@/lib/bhavaSuchika";
 import { type AspectSettings, resolveDisplayAspects } from "@/lib/chartAspects";
 import { getChartData } from "@/lib/chartDataTransform";
@@ -61,10 +62,10 @@ import type { DerivedRanges, ManualHouse, ManualHousePlacements } from "@/lib/ma
 import { computePlanetConjunctions } from "@/lib/planetAspects";
 import { type ShadBalaya, computeShadBalaya, deriveDay, mergeShadBalaya } from "@/lib/shadBalaya";
 import { resolveSubaAsuba } from "@/lib/subaAsuba";
-import { calculateBadhakaLevels } from "@/lib/badhaka";
+import { buildTrimshamshaChart } from "@/lib/trimshamsha";
 import type { WargaVargaKey } from "@/lib/wargaKendara";
 import { VARGA_CATALOG } from "@/lib/wargaKendara";
-import { resolveWargaKendara } from "@/lib/wargaKendara";
+import { computeWargaD30Entry, resolveWargaKendara } from "@/lib/wargaKendara";
 import { resolveYogaDoshas } from "@/lib/yogaDosha";
 
 const STRENGTH_TRANSLATION_KEYS: Record<PlanetaryStrength, string> = {
@@ -484,6 +485,18 @@ export default function HoroscopeDetailPage() {
     // Warga Kendara tables: the stored value wins; legacy documents that predate the field are
     // re-derived from the stored chart data at render time (incl. the D1-only flags).
     const resolvedWargaKendara = resolveWargaKendara(calculatedDetails);
+
+    // Trimshamsha (D30): computed and stored when the horoscope is saved (Chart record + the
+    // wargaKendara.d30 entry). Documents stored before D30 existed re-derive it from the real D1
+    // degrees. Only auto charts have one — manual planet degrees are synthetic (navamsa midpoints / 15°).
+    const trimshamshaSource = !isManualChart && secondChart === "d30" ? calculatedDetails : null;
+    const trimshamshaChart = trimshamshaSource
+        ? (data.charts.find(({ type }) => type === ChartType.TRIMSHAMSHA_D30)?.data ??
+          buildTrimshamshaChart(trimshamshaSource))
+        : null;
+    const trimshamshaEntry = trimshamshaSource
+        ? (resolvedWargaKendara?.d30 ?? computeWargaD30Entry(trimshamshaSource, aspectSettings.planetAspects))
+        : null;
 
     // Yogal/Dosha tags: computed-and-stored entries win (yogaDoshaVersion: 1); legacy documents
     // are re-derived from the stored chart data at render time — same fallback as Warga Kendara.
@@ -1263,6 +1276,16 @@ export default function HoroscopeDetailPage() {
                                                         entry={resolvedWargaKendara?.[secondChart] ?? null}
                                                         noDataMessage={t("astrology.noChartData")}
                                                         showAscendantDegree={secondChart !== "d9"}
+                                                    />
+                                                ) : secondChart === "d30" ? (
+                                                    <WargaChartSection
+                                                        key={secondChart}
+                                                        chartKey={secondChart}
+                                                        caption={`${t("astrology.wargaKendara.vargas.d30.name")} (D30)`}
+                                                        chartData={trimshamshaChart}
+                                                        entry={trimshamshaEntry}
+                                                        noDataMessage={t("astrology.noChartData")}
+                                                        showAscendantDegree={false}
                                                     />
                                                 ) : (
                                                     <figure className="bg-white rounded-lg border p-4">

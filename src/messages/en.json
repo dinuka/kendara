@@ -561,7 +561,8 @@
             "surya-lagna": "Surya Lagna",
             "drekkana-d3": "Drekkana",
             "dasamsa-d10": "Dasamsa",
-            "shodasha-vargas": "Shodasha Vargas"
+            "shodasha-vargas": "Shodasha Vargas",
+            "trimshamsha-d30": "Trimshamsha"
         },
         "chartPairTitle": "Birth & Navamsa",
         "otherCharts": "Other Charts",

@@ -7,6 +7,7 @@ export enum ChartType {
     DREKKANA_D3 = "drekkana-d3",
     DASAMSA_D10 = "dasamsa-d10",
     SHODASHA_VARGAS = "shodasha-vargas",
+    TRIMSHAMSHA_D30 = "trimshamsha-d30",
 }
 
 export const ALL_CHART_TYPES: ChartType[] = Object.values(ChartType);

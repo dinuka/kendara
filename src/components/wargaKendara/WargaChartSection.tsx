@@ -14,7 +14,7 @@ import WargaPlanetsTable from "./WargaPlanetsTable";
 
 interface WargaChartSectionProps {
     /** Warga key of this figure — drives the indication tags and the D1-only table columns. */
-    chartKey: WargaChartKey;
+    chartKey: WargaChartKey | "d30";
     /** Localized figure caption (astrology.chartCaptions.*). */
     caption: string;
     /** SVG figure source; null → the no-data placeholder. */

@@ -1,5 +1,6 @@
 import { Ascendant, CalculationResult, House, Planet } from "@/lib/astrology";
 import { ChartType } from "@/lib/chartTypes";
+import { buildTrimshamshaChart } from "@/lib/trimshamsha";
 
 export interface ChartInput {
     planets: Planet[];
@@ -98,6 +99,7 @@ const LEAN_CHART_TYPES: ReadonlySet<ChartType> = new Set([
     ChartType.NAVAMSA_D9,
     ChartType.CHANDRA_LAGNA,
     ChartType.SURYA_LAGNA,
+    ChartType.TRIMSHAMSHA_D30,
 ]);
 
 export function isLeanChartType(type: ChartType): boolean {
@@ -119,6 +121,10 @@ export function getChartData(result: CalculationResult, type: ChartType): ChartI
             return { houses: result.houses, planets: result.planets, ascendant: result.ascendant };
         }
         return rotateToLagna(result.houses, result.planets, result.ascendant, sun.sign, sun.degree);
+    }
+
+    if (type === ChartType.TRIMSHAMSHA_D30) {
+        return buildTrimshamshaChart(result);
     }
 
     return { houses: result.houses, planets: result.planets, ascendant: result.ascendant };
