@@ -450,8 +450,9 @@ export default function HoroscopeDetailPage() {
 
     // Degree-based planet conjunctions (shared with the calc-tab planet tables): the authoritative
     // conjunction list for the D1 (Lagna) warga Planets table, so its chips match the calc tab.
-    const resolvedConjunctionsByPlanet: Record<number, Aspect[]> =
-        calculatedDetails?.planets?.length ? computePlanetConjunctions(calculatedDetails.planets, orbMap) : {};
+    const resolvedConjunctionsByPlanet: Record<number, Aspect[]> = calculatedDetails?.planets?.length
+        ? computePlanetConjunctions(calculatedDetails.planets, orbMap)
+        : {};
 
     // Aspects (දෘෂ්ඨි): one set of records for every table on this page — the calc-tab Houses and
     // Planets tables and the D1 warga tables. Stored records win; legacy docs are re-derived with the
@@ -1192,56 +1193,56 @@ export default function HoroscopeDetailPage() {
                         <div className="space-y-6">
                             <section>
                                 {navamsaAvailable && (
-                                <div
-                                    role="group"
-                                    aria-label={t("astrology.wargaKendara.secondChartAria")}
-                                    className="flex flex-wrap gap-2 mb-4"
-                                >
-                                    <span
-                                        aria-label={t("astrology.wargaKendara.pinnedAria")}
-                                        className="inline-flex items-center gap-1 text-xs px-3 py-1.5 border rounded bg-indigo-600 text-white border-indigo-600 whitespace-nowrap"
+                                    <div
+                                        role="group"
+                                        aria-label={t("astrology.wargaKendara.secondChartAria")}
+                                        className="flex flex-wrap gap-2 mb-4"
                                     >
-                                        <svg
-                                            width="12"
-                                            height="12"
-                                            viewBox="0 0 24 24"
-                                            fill="none"
-                                            stroke="currentColor"
-                                            strokeWidth="2"
-                                            strokeLinecap="round"
-                                            aria-hidden="true"
-                                            className="shrink-0"
+                                        <span
+                                            aria-label={t("astrology.wargaKendara.pinnedAria")}
+                                            className="inline-flex items-center gap-1 text-xs px-3 py-1.5 border rounded bg-indigo-600 text-white border-indigo-600 whitespace-nowrap"
                                         >
-                                            <rect x="4" y="11" width="16" height="10" rx="2" />
-                                            <path d="M8 11V7a4 4 0 0 1 8 0v4" />
-                                        </svg>
-                                        {t("astrology.wargaKendara.tabs.rashi")}
-                                    </span>
-                                    {SECOND_CHART_KEYS.map((key, index) => {
-                                        const selected = secondChart === key;
-                                        const label = isComputedChart(key)
-                                            ? t(SECOND_CHART_TAB_KEYS[key as "d9" | "suryaLagna" | "chandraLagna"])
-                                            : `${t(`astrology.wargaKendara.vargas.${key}.name`)} (D${VARGA_CATALOG.find((v) => v.key === key)?.d})`;
-                                        return (
-                                            <button
-                                                key={key}
-                                                ref={(el) => {
-                                                    secondChartButtonsRef.current[index] = el;
-                                                }}
-                                                onClick={() => setSecondChart(key)}
-                                                onKeyDown={(event) => handleSecondChartKeyDown(event, index)}
-                                                aria-pressed={selected}
-                                                className={`text-xs px-3 py-1.5 border rounded whitespace-nowrap transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
-                                                    selected
-                                                        ? "bg-indigo-600 text-white border-indigo-600"
-                                                        : "hover:bg-gray-50"
-                                                }`}
+                                            <svg
+                                                width="12"
+                                                height="12"
+                                                viewBox="0 0 24 24"
+                                                fill="none"
+                                                stroke="currentColor"
+                                                strokeWidth="2"
+                                                strokeLinecap="round"
+                                                aria-hidden="true"
+                                                className="shrink-0"
                                             >
-                                                {label}
-                                            </button>
-                                        );
-                                    })}
-                                </div>
+                                                <rect x="4" y="11" width="16" height="10" rx="2" />
+                                                <path d="M8 11V7a4 4 0 0 1 8 0v4" />
+                                            </svg>
+                                            {t("astrology.wargaKendara.tabs.rashi")}
+                                        </span>
+                                        {SECOND_CHART_KEYS.map((key, index) => {
+                                            const selected = secondChart === key;
+                                            const label = isComputedChart(key)
+                                                ? t(SECOND_CHART_TAB_KEYS[key as "d9" | "suryaLagna" | "chandraLagna"])
+                                                : `${t(`astrology.wargaKendara.vargas.${key}.name`)} (D${VARGA_CATALOG.find((v) => v.key === key)?.d})`;
+                                            return (
+                                                <button
+                                                    key={key}
+                                                    ref={(el) => {
+                                                        secondChartButtonsRef.current[index] = el;
+                                                    }}
+                                                    onClick={() => setSecondChart(key)}
+                                                    onKeyDown={(event) => handleSecondChartKeyDown(event, index)}
+                                                    aria-pressed={selected}
+                                                    className={`text-xs px-3 py-1.5 border rounded whitespace-nowrap transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
+                                                        selected
+                                                            ? "bg-indigo-600 text-white border-indigo-600"
+                                                            : "hover:bg-gray-50"
+                                                    }`}
+                                                >
+                                                    {label}
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
                                 )}
 
                                 {(() => {
@@ -1673,7 +1674,8 @@ export default function HoroscopeDetailPage() {
                                                     // Suba/Asuba (සුබ/අසුබ): stored verdict wins;
                                                     // legacy docs are lazily resolved at render.
                                                     const subaAsubaEntry = resolvedSubaAsuba?.[String(p.name)];
-                                                    const conjunctions: Aspect[] = resolvedConjunctionsByPlanet[p.name] ?? [];
+                                                    const conjunctions: Aspect[] =
+                                                        resolvedConjunctionsByPlanet[p.name] ?? [];
                                                     const aspectRecords: Aspect[] =
                                                         displayAspects.receivedByPlanet[p.name] ?? [];
                                                     const tags: {
@@ -1730,7 +1732,10 @@ if (navamsaAvailable && calculatedDetails.lord64thNavamsa === p.name)
                                                             key: "ashtamansha",
                                                             text: t("astrology.ashtamanshaLabel"),
                                                         });
-if (navamsaAvailable && calculatedDetails.wargoththamaPlanets?.includes(p.name)) {
+                                                    if (
+                                                        navamsaAvailable &&
+                                                        calculatedDetails.wargoththamaPlanets?.includes(p.name)
+                                                    ) {
                                                         const crossed =
                                                             calculatedDetails.gandanthaPlanets?.includes(p.name) ||
                                                             calculatedDetails.gandamulaPlanets?.includes(p.name);
@@ -1750,7 +1755,10 @@ if (navamsaAvailable && calculatedDetails.wargoththamaPlanets?.includes(p.name))
                                                             key: "gandamula",
                                                             text: t("astrology.gandamulaLabel"),
                                                         });
-if (navamsaAvailable && calculatedDetails.pushkaraPlanets?.includes(p.name))
+                                                    if (
+                                                        navamsaAvailable &&
+                                                        calculatedDetails.pushkaraPlanets?.includes(p.name)
+                                                    )
                                                         tags.push({
                                                             key: "pushkara",
                                                             text: t("astrology.pushkaraLabel"),
@@ -1794,7 +1802,8 @@ if (navamsaAvailable && calculatedDetails.pushkaraPlanets?.includes(p.name))
                                                                 {navamsaAvailable && (
                                                                     <>
                                                                         {" "}
-                                                                        ({isManualChart
+                                                                        (
+                                                                        {isManualChart
                                                                             ? getPlanetDegreeRange(p)
                                                                             : formatDegree(p.degree)}
                                                                         )
@@ -1973,7 +1982,10 @@ if (navamsaAvailable && calculatedDetails.pushkaraPlanets?.includes(p.name))
                                                     key: "ashtamansha",
                                                     text: t("astrology.ashtamanshaLabel"),
                                                 });
-                                            if (navamsaAvailable && calculatedDetails.wargoththamaPlanets?.includes(p.name)) {
+                                            if (
+                                                navamsaAvailable &&
+                                                calculatedDetails.wargoththamaPlanets?.includes(p.name)
+                                            ) {
                                                 const crossed =
                                                     calculatedDetails.gandanthaPlanets?.includes(p.name) ||
                                                     calculatedDetails.gandamulaPlanets?.includes(p.name);
