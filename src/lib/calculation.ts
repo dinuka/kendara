@@ -729,10 +729,8 @@ function computeSubPeriods(
 ): { antardasha: Antardasha[]; vidasa: Vidasa[]; sukshama: Sukshama[]; prana: Prana[] } {
     const proportionYears = fullYearsForProportion ?? yearsTotal;
     const fullAdPlanets = getCyclePlanets(getStartPlanetIndex(lordPlanet), 9);
-    const adPlanets =
-        adStartOffset === 0
-            ? fullAdPlanets
-            : [...fullAdPlanets.slice(adStartOffset), ...fullAdPlanets.slice(0, adStartOffset)];
+    // ADs before the offset ended before birth, so only the running AD onwards remain
+    const adPlanets = fullAdPlanets.slice(adStartOffset);
     const endDate = addYearsToDate(new Date(startDate), yearsTotal);
 
     // Pre-compute all 9 AD full-proportion durations
@@ -741,6 +739,13 @@ function computeSubPeriods(
         const adLord = fullAdPlanets[ai];
         fullAdDurations.push((proportionYears * getPlanetYears(adLord)) / TOTAL_VIMSHOTTARI_YEARS);
     }
+
+    // Portion of the first AD that had already elapsed before this period started (birth balance)
+    let preAdYears = 0;
+    for (let i = 0; i < adStartOffset; i++) {
+        preAdYears += fullAdDurations[i];
+    }
+    const elapsedInFirstAd = Math.max(0, proportionYears - yearsTotal - preAdYears);
 
     const adList: Antardasha[] = [];
     let currentDate = new Date(startDate);
@@ -755,12 +760,12 @@ function computeSubPeriods(
         // Last AD fills to parent end
         const isLastAd = ai === adPlanets.length - 1;
 
-        // First AD (containing birth): start = birth, end = theoretical end or capped
+        // First AD (containing birth): start = birth, end = its remaining balance or capped
         let adEnd: Date;
         if (isLastAd) {
             adEnd = new Date(endDate);
         } else if (ai === 0) {
-            const theoreticalEnd = addYearsToDate(new Date(startDate), adFullDuration);
+            const theoreticalEnd = addYearsToDate(new Date(startDate), adFullDuration - elapsedInFirstAd);
             adEnd = theoreticalEnd < endDate ? theoreticalEnd : new Date(endDate);
         } else {
             const actualDuration = Math.min(adFullDuration, remainingFromStart);
@@ -770,9 +775,10 @@ function computeSubPeriods(
 
         const adStart = new Date(currentDate);
         const adDurationYears = yearsBetween(adStart, adEnd);
-        const adMonths = Math.round(adDurationYears * 12);
+        const adMonths = +(adDurationYears * 12).toFixed(2);
 
-        if (adMonths < 1 && !isLastAd) {
+        // Never drop the first AD — a short birth balance can leave it under a month
+        if (adMonths < 1 && ai > 0 && !isLastAd) {
             currentDate = new Date(adEnd);
             continue;
         }
@@ -789,15 +795,10 @@ function computeSubPeriods(
             let remainingVdCount = 9;
             let vdStartOffset = 0;
             let firstVdRemainingDays: number | null = null;
+            let elapsedInFirstVd = 0;
 
-            if (ai === 0 && adStartOffset > 0) {
-                const totalFullYears = fullYearsForProportion ?? yearsTotal;
-                const elapsedYears = totalFullYears - yearsTotal;
-                let preAdYears = 0;
-                for (let i = 0; i < adStartOffset; i++) {
-                    preAdYears += fullAdDurations[i];
-                }
-                const elapsedInAd = elapsedYears - preAdYears;
+            if (ai === 0 && elapsedInFirstAd > 0) {
+                const elapsedInAd = elapsedInFirstAd;
 
                 const fullVdSequence = getCyclePlanets(getStartPlanetIndex(adPlanets[0]), 9);
 
@@ -817,8 +818,8 @@ function computeSubPeriods(
                         for (let j = 0; j < vi; j++) {
                             preVdYears += fullVdDurations[j];
                         }
-                        const elapsedInVd = elapsedInAd - preVdYears;
-                        firstVdRemainingDays = fractionToDays(fullVdDurations[vi] - elapsedInVd);
+                        elapsedInFirstVd = elapsedInAd - preVdYears;
+                        firstVdRemainingDays = fractionToDays(fullVdDurations[vi] - elapsedInFirstVd);
                         break;
                     }
                 }
@@ -826,9 +827,7 @@ function computeSubPeriods(
                 remainingVdCount = 9 - vdStartOffset;
                 vdPlanets = fullVdSequence.slice(vdStartOffset);
             } else {
-                for (let i = 0; i < 9; i++) {
-                    vdPlanets.push(adPlanets[(ai + i) % 9]);
-                }
+                vdPlanets = getCyclePlanets(getStartPlanetIndex(adLord), 9);
             }
 
             const vdProportionYears = isLastAd ? adDurationYears : adFullDuration;
@@ -860,22 +859,8 @@ function computeSubPeriods(
                     let skStartOffset = 0;
                     let firstSkRemainingDays: number | null = null;
 
-                    if (ai === 0 && vi === 0 && vdStartOffset > 0) {
-                        const totalFullYears = fullYearsForProportion ?? yearsTotal;
-                        const elapsedYears = totalFullYears - yearsTotal;
-                        let preAdYears = 0;
-                        for (let i = 0; i < adStartOffset; i++) {
-                            preAdYears += fullAdDurations[i];
-                        }
-                        const elapsedInAd = elapsedYears - preAdYears;
-
-                        const fullVdSequence = getCyclePlanets(getStartPlanetIndex(adPlanets[0]), 9);
-                        let preVdYears = 0;
-                        for (let j = 0; j < vdStartOffset; j++) {
-                            preVdYears +=
-                                (adFullDuration * getPlanetYears(fullVdSequence[j])) / TOTAL_VIMSHOTTARI_YEARS;
-                        }
-                        const elapsedInVd = elapsedInAd - preVdYears;
+                    if (ai === 0 && vi === 0 && elapsedInFirstVd > 0) {
+                        const elapsedInVd = elapsedInFirstVd;
 
                         const fullSkSequence = getCyclePlanets(getStartPlanetIndex(vdPlanets[0]), 9);
 
@@ -904,9 +889,7 @@ function computeSubPeriods(
                         remainingSkCount = 9 - skStartOffset;
                         skPlanets = fullSkSequence.slice(skStartOffset);
                     } else {
-                        for (let i = 0; i < 9; i++) {
-                            skPlanets.push(adPlanets[(ai + vi + i) % 9]);
-                        }
+                        skPlanets = getCyclePlanets(getStartPlanetIndex(vdLord), 9);
                     }
 
                     for (let si = 0; si < remainingSkCount; si++) {
@@ -930,8 +913,9 @@ function computeSubPeriods(
                         if (maxDepth >= 5) {
                             let prDate = new Date(skStart);
 
+                            const prPlanets = getCyclePlanets(getStartPlanetIndex(skLord), 9);
                             for (let pi = 0; pi < 9; pi++) {
-                                const prLord = adPlanets[(ai + vi + si + pi) % 9];
+                                const prLord = prPlanets[pi];
                                 const prYears = (skYears * getPlanetYears(prLord)) / TOTAL_VIMSHOTTARI_YEARS;
                                 const prHours = Math.round(prYears * 365.25 * 24);
 

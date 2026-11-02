@@ -609,24 +609,26 @@ export function calculateManualDashas(moonNakshatraId: number, pada: number, bir
         // For the first Mahadasha, the antardasha running at birth is found by locating where the
         // elapsed portion (before birth) falls within the full AD sequence.
         let adStartOffset = 0;
+        // Portion of the running antardasha that had already elapsed before birth
+        let elapsedInFirstAd = 0;
         if (mi === 0 && firstYears < fullYears) {
             const elapsedBeforeBirth = fullYears - firstYears;
             let cumulative = 0;
             for (let ai = 0; ai < 9; ai++) {
                 const adPlanet = VIMSHOTTARI_CYCLE_PLANETS[(startIndex + ai) % 9];
-                cumulative += (fullYears * getVimshottariYears(adPlanet)) / TOTAL_VIMSHOTTARI_YEARS;
-                if (cumulative > elapsedBeforeBirth) {
+                const adFullYears = (fullYears * getVimshottariYears(adPlanet)) / TOTAL_VIMSHOTTARI_YEARS;
+                if (cumulative + adFullYears > elapsedBeforeBirth) {
                     adStartOffset = ai;
+                    elapsedInFirstAd = elapsedBeforeBirth - cumulative;
                     break;
                 }
+                cumulative += adFullYears;
             }
         }
 
         const fullAdPlanets = vimshottariCycle(vimshottariStartIndex(planet), 9);
-        const adPlanets =
-            adStartOffset === 0
-                ? fullAdPlanets
-                : [...fullAdPlanets.slice(adStartOffset), ...fullAdPlanets.slice(0, adStartOffset)];
+        // ADs before the offset ended before birth, so only the running AD onwards remain
+        const adPlanets = fullAdPlanets.slice(adStartOffset);
 
         const antardasha: Antardasha[] = [];
         let adDate = new Date(mdStart);
@@ -637,13 +639,14 @@ export function calculateManualDashas(moonNakshatraId: number, pada: number, bir
             const adLord = adPlanets[ai];
             const adFullYears = (fullYears * getVimshottariYears(adLord)) / TOTAL_VIMSHOTTARI_YEARS;
             const isLastAd = ai === adPlanets.length - 1;
-            let adEnd = addDashaYears(adDate, adFullYears);
+            let adEnd = addDashaYears(adDate, ai === 0 ? adFullYears - elapsedInFirstAd : adFullYears);
             if (isLastAd) adEnd = new Date(mdEnd);
             else if (adEnd > mdEnd) adEnd = new Date(mdEnd);
 
             const adYears = dashaYearsBetween(adDate, adEnd);
-            const adMonths = Math.round(adYears * 12);
-            if (adMonths < 1 && !isLastAd) {
+            const adMonths = +(adYears * 12).toFixed(2);
+            // Never drop the first AD — a short birth balance can leave it under a month
+            if (adMonths < 1 && ai > 0 && !isLastAd) {
                 adDate = new Date(adEnd);
                 continue;
             }

@@ -828,6 +828,7 @@ describe("calculateManualDashas (UT-CH-090..094)", () => {
         expect(md[2].startAge).toBeCloseTo(24.375, 5);
         expect(md[md.length - 1].startAge).toBeCloseTo(100.375, 5);
         expect(md[0].antardasha[0].startAge).toBeCloseTo(0, 5);
-        expect(md[0].antardasha[1].startAge).toBeCloseTo(0.408, 2);
+        // Birth falls 0.117y into the Mars AD (elapsed 2.625y vs cumulative 2.508y), leaving 0.292y
+        expect(md[0].antardasha[1].startAge).toBeCloseTo(0.292, 2);
     });
 });

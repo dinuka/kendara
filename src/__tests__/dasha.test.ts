@@ -226,6 +226,41 @@ describe("calculateDashas", () => {
             expect(allMdLords).toContain(result.currentPeriod.mahadashaLord);
         });
 
+        test("first MD with a balance shorter than a month still has its running AD and VDs", () => {
+            // Moon at the very end of Mrigashira (lord Mars) leaves ~9 days of Mars MD at birth
+            const result = calculateDashas(66.618, 5, 3, new Date("1981-05-16"));
+            const firstMd = result.mahadasha[0];
+            expect(firstMd.durationYears).toBeLessThan(1 / 12);
+            expect(firstMd.antardasha).toHaveLength(1);
+            expect(firstMd.antardasha[0].planet).toBe(2); // Moon AD (last in Mars MD) running at birth
+            expect(firstMd.antardasha[0].startDate).toBe(firstMd.startDate);
+            expect(firstMd.antardasha[0].endDate).toBe(firstMd.endDate);
+            expect(firstMd.antardasha[0].durationMonths).toBeGreaterThan(0);
+            expect(firstMd.antardasha[0].vidasa.length).toBeGreaterThan(0);
+        });
+
+        test("first AD in a truncated MD lasts only its remaining balance", () => {
+            // Saturn MD with ~9.5yr remaining: the running AD must not span its full length,
+            // so the remaining ADs keep their full durations and fill the MD exactly
+            const result = calculateDashas(100, 8, 7, birthDate);
+            const [firstAd, ...restAds] = result.mahadasha[0].antardasha;
+            const fullSaturnAdMonths: Record<number, number> = {
+                7: 36.1,
+                4: 32.3,
+                9: 13.3,
+                6: 38,
+                1: 11.4,
+                2: 19,
+                3: 13.3,
+                8: 34.2,
+                5: 30.4,
+            };
+            expect(firstAd.durationMonths).toBeLessThan(fullSaturnAdMonths[firstAd.planet]);
+            for (const ad of restAds) {
+                expect(ad.durationMonths).toBeCloseTo(fullSaturnAdMonths[ad.planet], 0);
+            }
+        });
+
         test("durationYears in first MD matches remainingYearsAtBirth", () => {
             const result = calculateDashas(5, 1, 9, birthDate);
             expect(result.mahadasha[0].durationYears).toBe(result.mahadasha[0].remainingYearsAtBirth);
