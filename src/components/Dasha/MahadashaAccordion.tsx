@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { useCallback } from "react";
 
 import type { Mahadasha } from "@/lib/astrology";
@@ -19,6 +20,7 @@ interface MahadashaAccordionProps {
     onToggle: (path: string) => void;
     getPlanetName: (id: number) => string;
     getDashaLevelName: (level: string) => string;
+    renderDashaNumbers: (planet: number) => ReactNode;
 }
 
 export default function MahadashaAccordion({
@@ -33,6 +35,7 @@ export default function MahadashaAccordion({
     onToggle,
     getPlanetName,
     getDashaLevelName,
+    renderDashaNumbers,
 }: MahadashaAccordionProps) {
     const isExpanded = expandedPaths.has(path);
     const hasAntardasha = mahadasha.antardasha && mahadasha.antardasha.length > 0;
@@ -78,6 +81,7 @@ export default function MahadashaAccordion({
                 </span>
                 <span className="font-semibold text-gray-800 text-sm">{getPlanetName(mahadasha.planet)}</span>
                 <span className="text-xs text-gray-400">{getDashaLevelName("mahadasha")}</span>
+                {renderDashaNumbers(mahadasha.planet)}
                 <span className="text-xs text-gray-400 ml-auto">
                     {mahadasha.startDate ? (
                         <>
@@ -120,6 +124,7 @@ export default function MahadashaAccordion({
                                     onToggle={onToggle}
                                     getPlanetName={getPlanetName}
                                     getDashaLevelName={getDashaLevelName}
+                                    renderDashaNumbers={renderDashaNumbers}
                                 />
                             );
                         })}

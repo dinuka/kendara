@@ -1,5 +1,7 @@
 "use client";
 
+import type { ReactNode } from "react";
+
 import type { Prana } from "@/lib/astrology";
 import { PLANET_COLORS, PLANET_SYMBOLS } from "@/lib/astrology";
 
@@ -8,9 +10,16 @@ interface PranaRowProps {
     isActive: boolean;
     getPlanetName: (id: number) => string;
     getDashaLevelName: (level: string) => string;
+    renderDashaNumbers: (planet: number) => ReactNode;
 }
 
-export default function PranaRow({ prana, isActive, getPlanetName, getDashaLevelName }: PranaRowProps) {
+export default function PranaRow({
+    prana,
+    isActive,
+    getPlanetName,
+    getDashaLevelName,
+    renderDashaNumbers,
+}: PranaRowProps) {
     return (
         <div className={`flex items-center gap-2 py-1.5 px-2 ml-16 text-xs ${isActive ? "bg-indigo-100 rounded" : ""}`}>
             <span className="text-gray-400 text-[10px]">{String.fromCharCode(0x25cf)}</span>
@@ -22,6 +31,7 @@ export default function PranaRow({ prana, isActive, getPlanetName, getDashaLevel
             </span>
             <span className="text-gray-600">{getPlanetName(prana.planet)}</span>
             <span className="text-[10px] text-gray-400 ml-0.5">{getDashaLevelName("prana")}</span>
+            {renderDashaNumbers(prana.planet)}
             <span className="text-gray-400 ml-auto">
                 {prana.startDate} &mdash; {prana.endDate}
             </span>

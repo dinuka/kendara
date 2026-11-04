@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { useCallback } from "react";
 
 import type { Antardasha } from "@/lib/astrology";
@@ -19,6 +20,7 @@ interface AntardashaAccordionProps {
     onToggle: (path: string) => void;
     getPlanetName: (id: number) => string;
     getDashaLevelName: (level: string) => string;
+    renderDashaNumbers: (planet: number) => ReactNode;
 }
 
 export default function AntardashaAccordion({
@@ -33,6 +35,7 @@ export default function AntardashaAccordion({
     onToggle,
     getPlanetName,
     getDashaLevelName,
+    renderDashaNumbers,
 }: AntardashaAccordionProps) {
     const isExpanded = expandedPaths.has(path);
     const hasVidasa = antardasha.vidasa && antardasha.vidasa.length > 0;
@@ -69,6 +72,7 @@ export default function AntardashaAccordion({
                 </span>
                 <span className="text-gray-700 font-medium">{getPlanetName(antardasha.planet)}</span>
                 <span className="text-xs text-gray-400 ml-1">{getDashaLevelName("antardasha")}</span>
+                {renderDashaNumbers(antardasha.planet)}
                 <span className="text-gray-400 ml-auto text-xs">
                     {antardasha.startDate ? (
                         <>
@@ -110,6 +114,7 @@ export default function AntardashaAccordion({
                                 onToggle={onToggle}
                                 getPlanetName={getPlanetName}
                                 getDashaLevelName={getDashaLevelName}
+                                renderDashaNumbers={renderDashaNumbers}
                             />
                         );
                     })}

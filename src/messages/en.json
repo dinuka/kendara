@@ -400,6 +400,13 @@
             "sukshama": "Sukshama",
             "prana": "Prana"
         },
+        "dashaNumbers": {
+            "position": "{planet} is in house {house}",
+            "ownedHouse": "{planet} owns {sign} (house {house})",
+            "dispositorPosition": "{source} owns no houses — its sign lord {planet} is in house {house}",
+            "dispositorOtherHouse": "{source}'s sign lord {planet} also owns {sign} (house {house})",
+            "nakshatraLord": "Nakshatra lord {planet}"
+        },
         "sign": "Sign",
         "degree": "Degree",
         "lord": "Lord",

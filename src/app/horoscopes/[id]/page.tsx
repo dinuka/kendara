@@ -2234,6 +2234,10 @@ export default function HoroscopeDetailPage() {
                                 dashas={calculatedDetails.dashas as unknown as Dashas}
                                 getPlanetName={getPlanetName}
                                 getDashaLevelName={getDashaLevelName}
+                                getSignName={getSignName}
+                                planets={calculatedDetails.planets}
+                                lagnaSign={calculatedDetails.ascendant.sign}
+                                showNakshatraNumbers={navamsaAvailable}
                             />
                         </div>
                     )}

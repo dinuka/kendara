@@ -3,14 +3,21 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import DashaTimeline from "./DashaTimeline";
-import type { Dashas, Mahadasha } from "@/lib/astrology";
+import type { Dashas, Planet } from "@/lib/astrology";
+import { computeDashaNumbers } from "@/lib/dashaNumbers";
 
 import CurrentPeriodBadge from "./CurrentPeriodBadge";
+import DashaNumberTags from "./DashaNumberTags";
 
 interface DashaSectionProps {
     dashas: Dashas | null;
     getPlanetName: (id: number) => string;
     getDashaLevelName: (level: string) => string;
+    getSignName: (id: number) => string;
+    planets: Planet[];
+    lagnaSign: number;
+    /** Nakshatra lord numbers are only shown when the chart has reliable nakshatra data. */
+    showNakshatraNumbers: boolean;
 }
 
 function findActivePeriodIndex(periods: { startDate: string; endDate: string }[], now: Date): number | null {
@@ -30,7 +37,15 @@ function buildPath(mdIndex: number, adIndex?: number, vdIndex?: number, skIndex?
     return path;
 }
 
-export default function DashaSection({ dashas, getPlanetName, getDashaLevelName }: DashaSectionProps) {
+export default function DashaSection({
+    dashas,
+    getPlanetName,
+    getDashaLevelName,
+    getSignName,
+    planets,
+    lagnaSign,
+    showNakshatraNumbers,
+}: DashaSectionProps) {
     const [expandedPaths, setExpandedPaths] = useState<Set<string>>(new Set());
     const [currentDate] = useState(() => new Date());
 
@@ -88,6 +103,18 @@ export default function DashaSection({ dashas, getPlanetName, getDashaLevelName 
         }
     }, [activeMdIndex, activeAdIndex, activeVdIndex, activeSkIndex]);
 
+    const dashaNumbers = useMemo(
+        () => computeDashaNumbers(planets, lagnaSign, showNakshatraNumbers),
+        [planets, lagnaSign, showNakshatraNumbers],
+    );
+
+    const renderDashaNumbers = useCallback(
+        (planet: number) => (
+            <DashaNumberTags numbers={dashaNumbers[planet]} getPlanetName={getPlanetName} getSignName={getSignName} />
+        ),
+        [dashaNumbers, getPlanetName, getSignName],
+    );
+
     const handleToggle = useCallback((path: string) => {
         setExpandedPaths((prev) => {
             const next = new Set(prev);
@@ -130,6 +157,7 @@ export default function DashaSection({ dashas, getPlanetName, getDashaLevelName 
                 activeSkIndex={activeSkIndex}
                 getPlanetName={getPlanetName}
                 getDashaLevelName={getDashaLevelName}
+                renderDashaNumbers={renderDashaNumbers}
             />
         </div>
     );

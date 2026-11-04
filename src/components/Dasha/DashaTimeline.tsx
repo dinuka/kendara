@@ -1,5 +1,7 @@
 "use client";
 
+import type { ReactNode } from "react";
+
 import type { Mahadasha } from "@/lib/astrology";
 
 import MahadashaAccordion from "./MahadashaAccordion";
@@ -14,6 +16,7 @@ interface DashaTimelineProps {
     activeSkIndex: number | null;
     getPlanetName: (id: number) => string;
     getDashaLevelName: (level: string) => string;
+    renderDashaNumbers: (planet: number) => ReactNode;
 }
 
 export default function DashaTimeline({
@@ -26,6 +29,7 @@ export default function DashaTimeline({
     activeSkIndex,
     getPlanetName,
     getDashaLevelName,
+    renderDashaNumbers,
 }: DashaTimelineProps) {
     if (!mahadasha || mahadasha.length === 0) {
         return <div className="text-center py-8 text-gray-400 text-sm">Dasha data not available.</div>;
@@ -49,6 +53,7 @@ export default function DashaTimeline({
                         onToggle={onToggle}
                         getPlanetName={getPlanetName}
                         getDashaLevelName={getDashaLevelName}
+                        renderDashaNumbers={renderDashaNumbers}
                     />
                 );
             })}

@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { useCallback } from "react";
 
 import type { Vidasa } from "@/lib/astrology";
@@ -18,6 +19,7 @@ interface VidasaAccordionProps {
     onToggle: (path: string) => void;
     getPlanetName: (id: number) => string;
     getDashaLevelName: (level: string) => string;
+    renderDashaNumbers: (planet: number) => ReactNode;
 }
 
 export default function VidasaAccordion({
@@ -31,6 +33,7 @@ export default function VidasaAccordion({
     onToggle,
     getPlanetName,
     getDashaLevelName,
+    renderDashaNumbers,
 }: VidasaAccordionProps) {
     const isExpanded = expandedPaths.has(path);
     const hasSukshama = vidasa.sukshama && vidasa.sukshama.length > 0;
@@ -67,6 +70,7 @@ export default function VidasaAccordion({
                 </span>
                 <span className="text-gray-600 font-medium">{getPlanetName(vidasa.planet)}</span>
                 <span className="text-[10px] text-gray-400 ml-1">{getDashaLevelName("vidasa")}</span>
+                {renderDashaNumbers(vidasa.planet)}
                 <span className="text-gray-400 ml-auto">
                     {vidasa.startDate} &mdash; {vidasa.endDate}
                 </span>
@@ -95,6 +99,7 @@ export default function VidasaAccordion({
                                 onToggle={onToggle}
                                 getPlanetName={getPlanetName}
                                 getDashaLevelName={getDashaLevelName}
+                                renderDashaNumbers={renderDashaNumbers}
                             />
                         );
                     })}

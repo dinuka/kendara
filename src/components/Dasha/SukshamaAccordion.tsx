@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { useCallback } from "react";
 
 import type { Sukshama } from "@/lib/astrology";
@@ -16,6 +17,7 @@ interface SukshamaAccordionProps {
     onToggle: (path: string) => void;
     getPlanetName: (id: number) => string;
     getDashaLevelName: (level: string) => string;
+    renderDashaNumbers: (planet: number) => ReactNode;
 }
 
 export default function SukshamaAccordion({
@@ -27,6 +29,7 @@ export default function SukshamaAccordion({
     onToggle,
     getPlanetName,
     getDashaLevelName,
+    renderDashaNumbers,
 }: SukshamaAccordionProps) {
     const isExpanded = expandedPaths.has(path);
     const hasPrana = sukshama.prana && sukshama.prana.length > 0;
@@ -66,6 +69,7 @@ export default function SukshamaAccordion({
                 </span>
                 <span className="text-gray-600 font-medium">{getPlanetName(sukshama.planet)}</span>
                 <span className="text-[10px] text-gray-400 ml-1">{getDashaLevelName("sukshama")}</span>
+                {renderDashaNumbers(sukshama.planet)}
                 <span className="text-gray-400 ml-auto">
                     {sukshama.startDate} &mdash; {sukshama.endDate}
                 </span>
@@ -89,6 +93,7 @@ export default function SukshamaAccordion({
                                 isActive={isActive && prIdx === 0}
                                 getPlanetName={getPlanetName}
                                 getDashaLevelName={getDashaLevelName}
+                                renderDashaNumbers={renderDashaNumbers}
                             />
                         ))}
                     </div>
