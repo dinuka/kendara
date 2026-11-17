@@ -1,35 +1,34 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { useCallback } from "react";
+import { memo, useCallback } from "react";
 
 import type { Antardasha } from "@/lib/astrology";
 import { PLANET_COLORS, PLANET_SYMBOLS, formatMonthDuration } from "@/lib/astrology";
 
 import VidasaAccordion from "./VidasaAccordion";
+import { pathsFor } from "./expandedPaths";
 
 interface AntardashaAccordionProps {
     antardasha: Antardasha;
     isActive: boolean;
-    defaultExpanded: boolean;
     activeVdIndex: number | null;
     activeSkIndex: number | null;
-    depth: number;
+    activePrIndex: number | null;
     path: string;
-    expandedPaths: Set<string>;
+    expandedPaths: ReadonlySet<string>;
     onToggle: (path: string) => void;
     getPlanetName: (id: number) => string;
     getDashaLevelName: (level: string) => string;
     renderDashaNumbers: (planet: number) => ReactNode;
 }
 
-export default function AntardashaAccordion({
+function AntardashaAccordion({
     antardasha,
     isActive,
-    defaultExpanded,
     activeVdIndex,
     activeSkIndex,
-    depth,
+    activePrIndex,
     path,
     expandedPaths,
     onToggle,
@@ -49,6 +48,7 @@ export default function AntardashaAccordion({
             <div
                 role="button"
                 tabIndex={0}
+                data-dasha-path={path}
                 aria-label={`${getPlanetName(antardasha.planet)} Antardasha`}
                 onClick={handleToggle}
                 onKeyDown={(e) => {
@@ -66,7 +66,10 @@ export default function AntardashaAccordion({
                 </span>
                 <span
                     className="inline-flex items-center justify-center w-4 h-4 text-xs"
-                    style={{ color: PLANET_COLORS[antardasha.planet] ?? "#374151", fontWeight: 300 }}
+                    style={{
+                        color: PLANET_COLORS[antardasha.planet] ?? "#374151",
+                        fontWeight: 300,
+                    }}
                 >
                     {PLANET_SYMBOLS[antardasha.planet] ?? ""}
                 </span>
@@ -95,22 +98,20 @@ export default function AntardashaAccordion({
                     </span>
                 )}
             </div>
-            {hasVidasa && (
-                <div
-                    className={`overflow-hidden transition-all duration-300 ease-in-out ${isExpanded ? "max-h-[20000px]" : "max-h-0"}`}
-                >
+            {hasVidasa && isExpanded && (
+                <div>
                     {antardasha.vidasa.map((vd, vdIdx) => {
                         const vdPath = `${path}/vd:${vdIdx}`;
+                        const isActiveVd = isActive && vdIdx === activeVdIndex;
                         return (
                             <VidasaAccordion
                                 key={vdIdx}
                                 vidasa={vd}
-                                isActive={isActive && vdIdx === activeVdIndex}
-                                defaultExpanded={defaultExpanded && vdIdx === activeVdIndex}
-                                activeSkIndex={vdIdx === activeVdIndex ? activeSkIndex : null}
-                                depth={depth + 1}
+                                isActive={isActiveVd}
+                                activeSkIndex={isActiveVd ? activeSkIndex : null}
+                                activePrIndex={isActiveVd ? activePrIndex : null}
                                 path={vdPath}
-                                expandedPaths={expandedPaths}
+                                expandedPaths={pathsFor(expandedPaths, vdPath)}
                                 onToggle={onToggle}
                                 getPlanetName={getPlanetName}
                                 getDashaLevelName={getDashaLevelName}
@@ -123,3 +124,5 @@ export default function AntardashaAccordion({
         </div>
     );
 }
+
+export default memo(AntardashaAccordion);

@@ -1,33 +1,32 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { useCallback } from "react";
+import { memo, useCallback } from "react";
 
 import type { Vidasa } from "@/lib/astrology";
 import { PLANET_COLORS, PLANET_SYMBOLS, formatDayDuration } from "@/lib/astrology";
 
 import SukshamaAccordion from "./SukshamaAccordion";
+import { pathsFor } from "./expandedPaths";
 
 interface VidasaAccordionProps {
     vidasa: Vidasa;
     isActive: boolean;
-    defaultExpanded: boolean;
     activeSkIndex: number | null;
-    depth: number;
+    activePrIndex: number | null;
     path: string;
-    expandedPaths: Set<string>;
+    expandedPaths: ReadonlySet<string>;
     onToggle: (path: string) => void;
     getPlanetName: (id: number) => string;
     getDashaLevelName: (level: string) => string;
     renderDashaNumbers: (planet: number) => ReactNode;
 }
 
-export default function VidasaAccordion({
+function VidasaAccordion({
     vidasa,
     isActive,
-    defaultExpanded,
     activeSkIndex,
-    depth,
+    activePrIndex,
     path,
     expandedPaths,
     onToggle,
@@ -47,6 +46,7 @@ export default function VidasaAccordion({
             <div
                 role="button"
                 tabIndex={0}
+                data-dasha-path={path}
                 aria-label={`${getPlanetName(vidasa.planet)} Vidasa`}
                 onClick={handleToggle}
                 onKeyDown={(e) => {
@@ -64,7 +64,10 @@ export default function VidasaAccordion({
                 </span>
                 <span
                     className="inline-flex items-center justify-center w-4 h-4 text-xs"
-                    style={{ color: PLANET_COLORS[vidasa.planet] ?? "#374151", fontWeight: 300 }}
+                    style={{
+                        color: PLANET_COLORS[vidasa.planet] ?? "#374151",
+                        fontWeight: 300,
+                    }}
                 >
                     {PLANET_SYMBOLS[vidasa.planet] ?? ""}
                 </span>
@@ -82,20 +85,19 @@ export default function VidasaAccordion({
                     </span>
                 )}
             </div>
-            {hasSukshama && (
-                <div
-                    className={`overflow-hidden transition-all duration-300 ease-in-out ${isExpanded ? "max-h-[10000px]" : "max-h-0"}`}
-                >
+            {hasSukshama && isExpanded && (
+                <div>
                     {vidasa.sukshama.map((sk, skIdx) => {
                         const skPath = `${path}/sk:${skIdx}`;
+                        const isActiveSk = isActive && skIdx === activeSkIndex;
                         return (
                             <SukshamaAccordion
                                 key={skIdx}
                                 sukshama={sk}
-                                isActive={isActive && skIdx === activeSkIndex}
-                                defaultExpanded={defaultExpanded && skIdx === activeSkIndex}
+                                isActive={isActiveSk}
+                                activePrIndex={isActiveSk ? activePrIndex : null}
                                 path={skPath}
-                                expandedPaths={expandedPaths}
+                                isExpanded={expandedPaths.has(skPath)}
                                 onToggle={onToggle}
                                 getPlanetName={getPlanetName}
                                 getDashaLevelName={getDashaLevelName}
@@ -108,3 +110,5 @@ export default function VidasaAccordion({
         </div>
     );
 }
+
+export default memo(VidasaAccordion);

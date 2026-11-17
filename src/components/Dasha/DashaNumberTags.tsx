@@ -1,7 +1,7 @@
 "use client";
 
 import { useI18n } from "@/hooks/useI18n";
-import { Fragment } from "react";
+import { Fragment, memo } from "react";
 
 import type { DashaNumber, PlanetDashaNumbers } from "@/lib/dashaNumbers";
 
@@ -45,7 +45,9 @@ const DashaNumberTags = ({ numbers, getPlanetName, getSignName }: DashaNumberTag
                     <span className="mx-0.5">|</span>
                     {renderTags(
                         nakshatraLordNumbers,
-                        t("astrology.dashaNumbers.nakshatraLord", { planet: getPlanetName(nakshatraLord) }),
+                        t("astrology.dashaNumbers.nakshatraLord", {
+                            planet: getPlanetName(nakshatraLord),
+                        }),
                         "nak",
                     )}
                 </Fragment>
@@ -55,4 +57,4 @@ const DashaNumberTags = ({ numbers, getPlanetName, getSignName }: DashaNumberTag
     );
 };
 
-export default DashaNumberTags;
+export default memo(DashaNumberTags);

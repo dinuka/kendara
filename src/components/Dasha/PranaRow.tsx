@@ -1,31 +1,34 @@
 "use client";
 
 import type { ReactNode } from "react";
+import { memo } from "react";
 
 import type { Prana } from "@/lib/astrology";
 import { PLANET_COLORS, PLANET_SYMBOLS } from "@/lib/astrology";
 
 interface PranaRowProps {
     prana: Prana;
+    path: string;
     isActive: boolean;
     getPlanetName: (id: number) => string;
     getDashaLevelName: (level: string) => string;
     renderDashaNumbers: (planet: number) => ReactNode;
 }
 
-export default function PranaRow({
-    prana,
-    isActive,
-    getPlanetName,
-    getDashaLevelName,
-    renderDashaNumbers,
-}: PranaRowProps) {
+function PranaRow({ prana, path, isActive, getPlanetName, getDashaLevelName, renderDashaNumbers }: PranaRowProps) {
     return (
-        <div className={`flex items-center gap-2 py-1.5 px-2 ml-16 text-xs ${isActive ? "bg-indigo-100 rounded" : ""}`}>
+        <div
+            data-dasha-path={path}
+            aria-current={isActive ? "true" : undefined}
+            className={`flex items-center gap-2 py-1.5 px-2 ml-16 text-xs ${isActive ? "bg-indigo-100 rounded" : ""}`}
+        >
             <span className="text-gray-400 text-[10px]">{String.fromCharCode(0x25cf)}</span>
             <span
                 className="inline-flex items-center justify-center w-4 h-4 text-xs"
-                style={{ color: PLANET_COLORS[prana.planet] ?? "#374151", fontWeight: 300 }}
+                style={{
+                    color: PLANET_COLORS[prana.planet] ?? "#374151",
+                    fontWeight: 300,
+                }}
             >
                 {PLANET_SYMBOLS[prana.planet] ?? ""}
             </span>
@@ -44,3 +47,5 @@ export default function PranaRow({
         </div>
     );
 }
+
+export default memo(PranaRow);

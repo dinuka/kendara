@@ -2,12 +2,13 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 
-import DashaTimeline from "./DashaTimeline";
 import type { Dashas, Planet } from "@/lib/astrology";
 import { computeDashaNumbers } from "@/lib/dashaNumbers";
 
 import CurrentPeriodBadge from "./CurrentPeriodBadge";
 import DashaNumberTags from "./DashaNumberTags";
+import DashaTimeline from "./DashaTimeline";
+import { ancestorPaths, buildPath } from "./expandedPaths";
 
 interface DashaSectionProps {
     dashas: Dashas | null;
@@ -20,7 +21,13 @@ interface DashaSectionProps {
     showNakshatraNumbers: boolean;
 }
 
-function findActivePeriodIndex(periods: { startDate: string; endDate: string }[], now: Date): number | null {
+interface Period {
+    startDate: string;
+    endDate: string;
+}
+
+function findActivePeriodIndex(periods: Period[] | undefined, now: Date): number | null {
+    if (!periods) return null;
     for (let i = 0; i < periods.length; i++) {
         const start = new Date(periods[i].startDate);
         const end = new Date(periods[i].endDate);
@@ -29,12 +36,32 @@ function findActivePeriodIndex(periods: { startDate: string; endDate: string }[]
     return null;
 }
 
-function buildPath(mdIndex: number, adIndex?: number, vdIndex?: number, skIndex?: number): string {
-    let path = `md:${mdIndex}`;
-    if (adIndex !== undefined) path += `/ad:${adIndex}`;
-    if (vdIndex !== undefined) path += `/vd:${vdIndex}`;
-    if (skIndex !== undefined) path += `/sk:${skIndex}`;
-    return path;
+/** Walks down the tree to the running period at each level: [md, ad, vd, sk, pr]. */
+function findActiveIndices(dashas: Dashas | null, now: Date): (number | null)[] {
+    const indices: (number | null)[] = [null, null, null, null, null];
+    if (!dashas?.mahadasha) return indices;
+
+    const md = findActivePeriodIndex(dashas.mahadasha, now);
+    indices[0] = md;
+    if (md === null) return indices;
+
+    const mdNode = dashas.mahadasha[md];
+    const ad = findActivePeriodIndex(mdNode.antardasha, now);
+    indices[1] = ad;
+    if (ad === null) return indices;
+
+    const adNode = mdNode.antardasha[ad];
+    const vd = findActivePeriodIndex(adNode.vidasa, now);
+    indices[2] = vd;
+    if (vd === null) return indices;
+
+    const vdNode = adNode.vidasa[vd];
+    const sk = findActivePeriodIndex(vdNode.sukshama, now);
+    indices[3] = sk;
+    if (sk === null) return indices;
+
+    indices[4] = findActivePeriodIndex(vdNode.sukshama[sk].prana, now);
+    return indices;
 }
 
 export default function DashaSection({
@@ -46,62 +73,31 @@ export default function DashaSection({
     lagnaSign,
     showNakshatraNumbers,
 }: DashaSectionProps) {
-    const [expandedPaths, setExpandedPaths] = useState<Set<string>>(new Set());
+    const [expandedPaths, setExpandedPaths] = useState<ReadonlySet<string>>(() => new Set());
+    const [scrollTarget, setScrollTarget] = useState<string | null>(null);
     const [currentDate] = useState(() => new Date());
 
-    const activeMdIndex = useMemo(() => {
-        if (!dashas) return null;
-        return findActivePeriodIndex(dashas.mahadasha, currentDate);
-    }, [dashas, currentDate]);
+    const activeIndices = useMemo(() => findActiveIndices(dashas, currentDate), [dashas, currentDate]);
+    const [activeMdIndex, activeAdIndex, activeVdIndex, activeSkIndex, activePrIndex] = activeIndices;
 
-    const activeAdIndex = useMemo(() => {
-        if (!dashas || activeMdIndex === null) return null;
-        const md = dashas.mahadasha[activeMdIndex];
-        return findActivePeriodIndex(md.antardasha, currentDate);
-    }, [dashas, activeMdIndex, currentDate]);
-
-    const activeVdIndex = useMemo(() => {
-        if (!dashas || activeMdIndex === null || activeAdIndex === null) return null;
-        const md = dashas.mahadasha[activeMdIndex];
-        const ad = md.antardasha[activeAdIndex];
-        if (!ad || !ad.vidasa) return null;
-        return findActivePeriodIndex(ad.vidasa, currentDate);
-    }, [dashas, activeMdIndex, activeAdIndex, currentDate]);
-
-    const activeSkIndex = useMemo(() => {
-        if (!dashas || activeMdIndex === null || activeAdIndex === null || activeVdIndex === null) return null;
-        const md = dashas.mahadasha[activeMdIndex];
-        const ad = md.antardasha[activeAdIndex];
-        if (!ad || !ad.vidasa) return null;
-        const vd = ad.vidasa[activeVdIndex];
-        if (!vd || !vd.sukshama) return null;
-        return findActivePeriodIndex(vd.sukshama, currentDate);
-    }, [dashas, activeMdIndex, activeAdIndex, activeVdIndex, currentDate]);
-
+    // Open the running period down to the sukshama level (prana rows have no children).
     useEffect(() => {
-        if (activeMdIndex !== null) {
-            const paths = new Set<string>();
-            const activePath = buildPath(activeMdIndex);
-            paths.add(activePath);
-
-            if (activeAdIndex !== null) {
-                const adPath = buildPath(activeMdIndex, activeAdIndex);
-                paths.add(adPath);
-
-                if (activeVdIndex !== null) {
-                    const vdPath = buildPath(activeMdIndex, activeAdIndex, activeVdIndex);
-                    paths.add(vdPath);
-
-                    if (activeSkIndex !== null) {
-                        const skPath = buildPath(activeMdIndex, activeAdIndex, activeVdIndex, activeSkIndex);
-                        paths.add(skPath);
-                    }
-                }
-            }
-
-            setExpandedPaths(paths);
-        }
+        if (activeMdIndex === null) return;
+        const deepest = buildPath(activeMdIndex, activeAdIndex, activeVdIndex, activeSkIndex);
+        setExpandedPaths(new Set(ancestorPaths(deepest)));
     }, [activeMdIndex, activeAdIndex, activeVdIndex, activeSkIndex]);
+
+    // Children mount only once their parent is open, so scroll after the expansion has rendered.
+    useEffect(() => {
+        if (!scrollTarget) return;
+        const frame = requestAnimationFrame(() => {
+            document
+                .querySelector(`[data-dasha-path="${scrollTarget}"]`)
+                ?.scrollIntoView({ behavior: "smooth", block: "center" });
+            setScrollTarget(null);
+        });
+        return () => cancelAnimationFrame(frame);
+    }, [scrollTarget, expandedPaths]);
 
     const dashaNumbers = useMemo(
         () => computeDashaNumbers(planets, lagnaSign, showNakshatraNumbers),
@@ -130,9 +126,12 @@ export default function DashaSection({
     const handleJumpToPeriod = useCallback((path: string) => {
         setExpandedPaths((prev) => {
             const next = new Set(prev);
-            next.add(path);
+            // Prana rows are leaves: open everything above the target, but never the leaf itself.
+            const toOpen = ancestorPaths(path).filter((p) => !p.split("/").pop()?.startsWith("pr:"));
+            toOpen.forEach((p) => next.add(p));
             return next;
         });
+        setScrollTarget(path);
     }, []);
 
     if (!dashas || !dashas.mahadasha || dashas.mahadasha.length === 0) {
@@ -144,6 +143,7 @@ export default function DashaSection({
             <CurrentPeriodBadge
                 currentPeriod={dashas.currentPeriod}
                 mahadashaList={dashas.mahadasha}
+                activeIndices={activeIndices}
                 onJumpToPeriod={handleJumpToPeriod}
                 getPlanetName={getPlanetName}
             />
@@ -155,6 +155,7 @@ export default function DashaSection({
                 activeAdIndex={activeAdIndex}
                 activeVdIndex={activeVdIndex}
                 activeSkIndex={activeSkIndex}
+                activePrIndex={activePrIndex}
                 getPlanetName={getPlanetName}
                 getDashaLevelName={getDashaLevelName}
                 renderDashaNumbers={renderDashaNumbers}

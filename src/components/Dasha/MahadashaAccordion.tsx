@@ -1,35 +1,36 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { useCallback } from "react";
+import { memo, useCallback } from "react";
 
 import type { Mahadasha } from "@/lib/astrology";
 import { PLANET_COLORS, PLANET_SYMBOLS, formatYearDuration } from "@/lib/astrology";
 
 import AntardashaAccordion from "./AntardashaAccordion";
+import { pathsFor } from "./expandedPaths";
 
 interface MahadashaAccordionProps {
     mahadasha: Mahadasha;
     isActive: boolean;
-    defaultExpanded: boolean;
     activeAdIndex: number | null;
     activeVdIndex: number | null;
     activeSkIndex: number | null;
+    activePrIndex: number | null;
     path: string;
-    expandedPaths: Set<string>;
+    expandedPaths: ReadonlySet<string>;
     onToggle: (path: string) => void;
     getPlanetName: (id: number) => string;
     getDashaLevelName: (level: string) => string;
     renderDashaNumbers: (planet: number) => ReactNode;
 }
 
-export default function MahadashaAccordion({
+function MahadashaAccordion({
     mahadasha,
     isActive,
-    defaultExpanded,
     activeAdIndex,
     activeVdIndex,
     activeSkIndex,
+    activePrIndex,
     path,
     expandedPaths,
     onToggle,
@@ -54,6 +55,7 @@ export default function MahadashaAccordion({
             <div
                 role="button"
                 tabIndex={0}
+                data-dasha-path={path}
                 aria-label={`${getPlanetName(mahadasha.planet)} Mahadasha`}
                 onClick={handleToggle}
                 onKeyDown={(e) => {
@@ -75,7 +77,10 @@ export default function MahadashaAccordion({
                 </span>
                 <span
                     className="inline-flex items-center justify-center w-5 h-5 text-sm"
-                    style={{ color: PLANET_COLORS[mahadasha.planet] ?? "#374151", fontWeight: 300 }}
+                    style={{
+                        color: PLANET_COLORS[mahadasha.planet] ?? "#374151",
+                        fontWeight: 300,
+                    }}
                 >
                     {PLANET_SYMBOLS[mahadasha.planet] ?? ""}
                 </span>
@@ -101,36 +106,33 @@ export default function MahadashaAccordion({
                     </span>
                 )}
             </div>
-            {hasAntardasha && (
-                <div
-                    className={`overflow-hidden transition-all duration-300 ease-in-out ${
-                        isExpanded ? "max-h-[30000px]" : "max-h-0"
-                    }`}
-                >
-                    <div className="border-t border-gray-100">
-                        {mahadasha.antardasha.map((ad, adIdx) => {
-                            const adPath = `${path}/ad:${adIdx}`;
-                            return (
-                                <AntardashaAccordion
-                                    key={adIdx}
-                                    antardasha={ad}
-                                    isActive={isActive && adIdx === activeAdIndex}
-                                    defaultExpanded={defaultExpanded && adIdx === activeAdIndex}
-                                    activeVdIndex={adIdx === activeAdIndex ? activeVdIndex : null}
-                                    activeSkIndex={adIdx === activeAdIndex ? activeSkIndex : null}
-                                    depth={1}
-                                    path={adPath}
-                                    expandedPaths={expandedPaths}
-                                    onToggle={onToggle}
-                                    getPlanetName={getPlanetName}
-                                    getDashaLevelName={getDashaLevelName}
-                                    renderDashaNumbers={renderDashaNumbers}
-                                />
-                            );
-                        })}
-                    </div>
+            {/* Children are only mounted while open — a full Vimshottari tree is ~66k rows. */}
+            {hasAntardasha && isExpanded && (
+                <div className="border-t border-gray-100">
+                    {mahadasha.antardasha.map((ad, adIdx) => {
+                        const adPath = `${path}/ad:${adIdx}`;
+                        const isActiveAd = isActive && adIdx === activeAdIndex;
+                        return (
+                            <AntardashaAccordion
+                                key={adIdx}
+                                antardasha={ad}
+                                isActive={isActiveAd}
+                                activeVdIndex={isActiveAd ? activeVdIndex : null}
+                                activeSkIndex={isActiveAd ? activeSkIndex : null}
+                                activePrIndex={isActiveAd ? activePrIndex : null}
+                                path={adPath}
+                                expandedPaths={pathsFor(expandedPaths, adPath)}
+                                onToggle={onToggle}
+                                getPlanetName={getPlanetName}
+                                getDashaLevelName={getDashaLevelName}
+                                renderDashaNumbers={renderDashaNumbers}
+                            />
+                        );
+                    })}
                 </div>
             )}
         </div>
     );
 }
+
+export default memo(MahadashaAccordion);

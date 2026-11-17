@@ -1,8 +1,8 @@
 "use client";
 
 import { useTooltipPosition } from "@/hooks/useTooltipPosition";
-import { useEffect, useId, useRef, useState } from "react";
-import type { KeyboardEvent, MouseEvent } from "react";
+import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
+import type { KeyboardEvent, MouseEvent, RefObject } from "react";
 import { createPortal } from "react-dom";
 
 interface DashaNumberChipProps {
@@ -11,35 +11,80 @@ interface DashaNumberChipProps {
     lines: string[];
 }
 
-/** A dasha label number tag with the same JS-anchored tooltip behaviour as `AspectChip`: hover
- *  (150ms delay) / focus / tap open it; `Esc`, blur, mouseleave or tap again close. The chip sits
- *  inside the accordion header, so clicks and Enter/Space are stopped from toggling the row. */
-const DashaNumberChip = ({ value, lines }: DashaNumberChipProps) => {
-    const [open, setOpen] = useState(false);
-    const hoverTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-    const tooltipId = useId();
-    const { anchorRef, tooltipRef, position, updatePosition } = useTooltipPosition<HTMLSpanElement>(open);
+interface DashaNumberTooltipProps {
+    anchor: RefObject<HTMLSpanElement | null>;
+    id: string;
+    lines: string[];
+}
 
-    const openTooltip = () => {
+/** The portalled tooltip. Kept in its own component so the positioning hook and the scroll/resize
+ *  listeners only exist while a tooltip is open, not once per chip in the dasha tree. */
+const DashaNumberTooltip = ({ anchor, id, lines }: DashaNumberTooltipProps) => {
+    const { anchorRef, tooltipRef, position, updatePosition } = useTooltipPosition<HTMLSpanElement>(true);
+
+    useLayoutEffect(() => {
+        anchorRef.current = anchor.current;
         updatePosition();
-        setOpen(true);
-    };
-
-    const closeTooltip = () => {
-        if (hoverTimer.current) clearTimeout(hoverTimer.current);
-        setOpen(false);
-    };
+    }, [anchor, anchorRef, updatePosition]);
 
     useEffect(() => {
-        if (!open) return;
-        updatePosition();
         window.addEventListener("scroll", updatePosition, true);
         window.addEventListener("resize", updatePosition);
         return () => {
             window.removeEventListener("scroll", updatePosition, true);
             window.removeEventListener("resize", updatePosition);
         };
-    }, [open, updatePosition]);
+    }, [updatePosition]);
+
+    if (!position) return null;
+
+    return createPortal(
+        <div
+            ref={tooltipRef}
+            className="fixed z-50"
+            role="presentation"
+            style={{
+                top: position.top,
+                left: position.left,
+                transform: "translateX(-50%)",
+            }}
+        >
+            <div
+                id={id}
+                role="tooltip"
+                className="pointer-events-none rounded-lg border bg-white shadow-lg z-50 px-3 py-2 text-left max-w-[320px]"
+            >
+                <div className="space-y-0.5">
+                    {lines.map((line, index) => (
+                        <div
+                            key={line}
+                            className={`text-xs leading-[1.5] ${
+                                lines.length > 1 && index === 0 ? "font-semibold text-gray-800" : "text-gray-700"
+                            }`}
+                        >
+                            {line}
+                        </div>
+                    ))}
+                </div>
+            </div>
+        </div>,
+        document.body,
+    );
+};
+
+/** A dasha label number tag with the same JS-anchored tooltip behaviour as `AspectChip`: hover
+ *  (150ms delay) / focus / tap open it; `Esc`, blur, mouseleave or tap again close. The chip sits
+ *  inside the accordion header, so clicks and Enter/Space are stopped from toggling the row. */
+const DashaNumberChip = ({ value, lines }: DashaNumberChipProps) => {
+    const [open, setOpen] = useState(false);
+    const hoverTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const anchorRef = useRef<HTMLSpanElement | null>(null);
+    const tooltipId = useId();
+
+    const closeTooltip = () => {
+        if (hoverTimer.current) clearTimeout(hoverTimer.current);
+        setOpen(false);
+    };
 
     useEffect(
         () => () => {
@@ -53,7 +98,7 @@ const DashaNumberChip = ({ value, lines }: DashaNumberChipProps) => {
         if (open) {
             closeTooltip();
         } else {
-            openTooltip();
+            setOpen(true);
         }
     };
 
@@ -68,12 +113,10 @@ const DashaNumberChip = ({ value, lines }: DashaNumberChipProps) => {
             if (open) {
                 closeTooltip();
             } else {
-                openTooltip();
+                setOpen(true);
             }
         }
     };
-
-    const label = lines.join(" — ");
 
     return (
         <>
@@ -81,14 +124,14 @@ const DashaNumberChip = ({ value, lines }: DashaNumberChipProps) => {
                 ref={anchorRef}
                 role="button"
                 tabIndex={0}
-                aria-label={label}
+                aria-label={lines.join(" — ")}
                 aria-describedby={open ? tooltipId : undefined}
                 onMouseEnter={() => {
                     if (hoverTimer.current) clearTimeout(hoverTimer.current);
-                    hoverTimer.current = setTimeout(openTooltip, 150);
+                    hoverTimer.current = setTimeout(() => setOpen(true), 150);
                 }}
                 onMouseLeave={closeTooltip}
-                onFocus={openTooltip}
+                onFocus={() => setOpen(true)}
                 onBlur={closeTooltip}
                 onClick={handleClick}
                 onKeyDown={handleKeyDown}
@@ -96,39 +139,9 @@ const DashaNumberChip = ({ value, lines }: DashaNumberChipProps) => {
             >
                 {value}
             </span>
-            {open &&
-                position &&
-                typeof document !== "undefined" &&
-                createPortal(
-                    <div
-                        ref={tooltipRef}
-                        className="fixed z-50"
-                        role="presentation"
-                        style={{ top: position.top, left: position.left, transform: "translateX(-50%)" }}
-                    >
-                        <div
-                            id={tooltipId}
-                            role="tooltip"
-                            className="pointer-events-none rounded-lg border bg-white shadow-lg z-50 px-3 py-2 text-left max-w-[320px]"
-                        >
-                            <div className="space-y-0.5">
-                                {lines.map((line, index) => (
-                                    <div
-                                        key={line}
-                                        className={`text-xs leading-[1.5] ${
-                                            lines.length > 1 && index === 0
-                                                ? "font-semibold text-gray-800"
-                                                : "text-gray-700"
-                                        }`}
-                                    >
-                                        {line}
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    </div>,
-                    document.body,
-                )}
+            {open && typeof document !== "undefined" && (
+                <DashaNumberTooltip anchor={anchorRef} id={tooltipId} lines={lines} />
+            )}
         </>
     );
 };

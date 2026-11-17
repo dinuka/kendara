@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { useCallback } from "react";
+import { memo, useCallback } from "react";
 
 import type { Sukshama } from "@/lib/astrology";
 import { PLANET_COLORS, PLANET_SYMBOLS, formatDayDuration } from "@/lib/astrology";
@@ -11,27 +11,27 @@ import PranaRow from "./PranaRow";
 interface SukshamaAccordionProps {
     sukshama: Sukshama;
     isActive: boolean;
-    defaultExpanded: boolean;
+    activePrIndex: number | null;
     path: string;
-    expandedPaths: Set<string>;
+    /** Sukshama is the deepest accordion level, so it only needs its own open state. */
+    isExpanded: boolean;
     onToggle: (path: string) => void;
     getPlanetName: (id: number) => string;
     getDashaLevelName: (level: string) => string;
     renderDashaNumbers: (planet: number) => ReactNode;
 }
 
-export default function SukshamaAccordion({
+function SukshamaAccordion({
     sukshama,
     isActive,
-    defaultExpanded,
+    activePrIndex,
     path,
-    expandedPaths,
+    isExpanded,
     onToggle,
     getPlanetName,
     getDashaLevelName,
     renderDashaNumbers,
 }: SukshamaAccordionProps) {
-    const isExpanded = expandedPaths.has(path);
     const hasPrana = sukshama.prana && sukshama.prana.length > 0;
 
     const handleToggle = useCallback(() => {
@@ -43,6 +43,7 @@ export default function SukshamaAccordion({
             <div
                 role="button"
                 tabIndex={0}
+                data-dasha-path={path}
                 aria-label={`${getPlanetName(sukshama.planet)} Sukshama`}
                 onClick={hasPrana ? handleToggle : undefined}
                 onKeyDown={(e) => {
@@ -63,7 +64,10 @@ export default function SukshamaAccordion({
                 {!hasPrana && <span className="inline-block w-3" />}
                 <span
                     className="inline-flex items-center justify-center w-4 h-4 text-xs"
-                    style={{ color: PLANET_COLORS[sukshama.planet] ?? "#374151", fontWeight: 300 }}
+                    style={{
+                        color: PLANET_COLORS[sukshama.planet] ?? "#374151",
+                        fontWeight: 300,
+                    }}
                 >
                     {PLANET_SYMBOLS[sukshama.planet] ?? ""}
                 </span>
@@ -81,24 +85,23 @@ export default function SukshamaAccordion({
                     </span>
                 )}
             </div>
-            {hasPrana && (
-                <div
-                    className={`overflow-hidden transition-all duration-300 ease-in-out ${isExpanded ? "max-h-[2000px]" : "max-h-0"}`}
-                >
-                    <div className="border-l border-gray-100 ml-[18px]">
-                        {sukshama.prana.map((pr, prIdx) => (
-                            <PranaRow
-                                key={prIdx}
-                                prana={pr}
-                                isActive={isActive && prIdx === 0}
-                                getPlanetName={getPlanetName}
-                                getDashaLevelName={getDashaLevelName}
-                                renderDashaNumbers={renderDashaNumbers}
-                            />
-                        ))}
-                    </div>
+            {hasPrana && isExpanded && (
+                <div className="border-l border-gray-100 ml-[18px]">
+                    {sukshama.prana.map((pr, prIdx) => (
+                        <PranaRow
+                            key={prIdx}
+                            prana={pr}
+                            path={`${path}/pr:${prIdx}`}
+                            isActive={isActive && prIdx === activePrIndex}
+                            getPlanetName={getPlanetName}
+                            getDashaLevelName={getDashaLevelName}
+                            renderDashaNumbers={renderDashaNumbers}
+                        />
+                    ))}
                 </div>
             )}
         </div>
     );
 }
+
+export default memo(SukshamaAccordion);
