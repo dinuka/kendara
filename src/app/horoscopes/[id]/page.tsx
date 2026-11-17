@@ -1536,7 +1536,7 @@ export default function HoroscopeDetailPage() {
                                                         : null;
                                                 const aspectsToHouse = displayAspects.byHouse[h.houseNumber] ?? [];
                                                 return (
-                                                    <tr key={h.houseNumber} className="border-b border-gray-50">
+                                                    <tr key={h.houseNumber} className="border-b border-gray-100 even:bg-gray-100">
                                                         <td className="py-1 pr-3 font-medium">{h.houseNumber}</td>
                                                         <td className="py-1 pr-3 text-gray-600">
                                                             {manualRange
@@ -1797,7 +1797,7 @@ export default function HoroscopeDetailPage() {
                                                             text: t("astrology.digBalaLabel"),
                                                         });
                                                     return (
-                                                        <tr key={p.name} className="border-b border-gray-50">
+                                                        <tr key={p.name} className="border-b border-gray-100 even:bg-gray-100">
                                                             <td className="py-1 pr-3 font-medium">
                                                                 {p.retrograde && p.name !== 8 && p.name !== 9
                                                                     ? `(${getPlanetName(p.name)})`
