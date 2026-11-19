@@ -7,6 +7,8 @@ import { computeDashaNumbers } from "@/lib/dashaNumbers";
 
 import CurrentPeriodBadge from "./CurrentPeriodBadge";
 import DashaNumberTags from "./DashaNumberTags";
+import DashaPlanetTags from "./DashaPlanetTags";
+import type { PlanetTag } from "./DashaPlanetTags";
 import DashaTimeline from "./DashaTimeline";
 import { ancestorPaths, buildPath } from "./expandedPaths";
 
@@ -19,6 +21,8 @@ interface DashaSectionProps {
     lagnaSign: number;
     /** Nakshatra lord numbers are only shown when the chart has reliable nakshatra data. */
     showNakshatraNumbers: boolean;
+    /** Text tags per planet id (22nd drekkana lord, pushkara, uchcha/neecha, …) shown after the numbers. */
+    planetTags: Record<number, PlanetTag[]>;
 }
 
 interface Period {
@@ -72,6 +76,7 @@ export default function DashaSection({
     planets,
     lagnaSign,
     showNakshatraNumbers,
+    planetTags,
 }: DashaSectionProps) {
     const [expandedPaths, setExpandedPaths] = useState<ReadonlySet<string>>(() => new Set());
     const [scrollTarget, setScrollTarget] = useState<string | null>(null);
@@ -106,9 +111,16 @@ export default function DashaSection({
 
     const renderDashaNumbers = useCallback(
         (planet: number) => (
-            <DashaNumberTags numbers={dashaNumbers[planet]} getPlanetName={getPlanetName} getSignName={getSignName} />
+            <>
+                <DashaNumberTags
+                    numbers={dashaNumbers[planet]}
+                    getPlanetName={getPlanetName}
+                    getSignName={getSignName}
+                />
+                <DashaPlanetTags tags={planetTags[planet]} />
+            </>
         ),
-        [dashaNumbers, getPlanetName, getSignName],
+        [dashaNumbers, getPlanetName, getSignName, planetTags],
     );
 
     const handleToggle = useCallback((path: string) => {

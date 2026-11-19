@@ -3,6 +3,7 @@
 import CalculatedChartBadge from "@/components/CalculatedChartBadge";
 import ConfirmDeleteModal from "@/components/ConfirmDeleteModal";
 import DashaSection from "@/components/Dasha/DashaSection";
+import type { PlanetTag } from "@/components/Dasha/DashaPlanetTags";
 import { HouseChart } from "@/components/HouseChart";
 import DerivedRangesSection from "@/components/ManualChart/DerivedRanges";
 import ManualChartEditor from "@/components/ManualChart/ManualChartEditor";
@@ -932,6 +933,78 @@ export default function HoroscopeDetailPage() {
         return PlanetaryStrength.SAMA;
     };
 
+    /** The planet table's "Other" column tags (22nd drekkana lords, 64th navamsa lord, karakas,
+     *  badhaka, nidhanamsha, ashtamansha, wargoththama, gandanta/gandamula, pushkara, shad bala),
+     *  shared by the desktop table, the mobile cards and the dasha labels. */
+    const getPlanetTags = (p: Planet): PlanetTag[] => {
+        const tags: PlanetTag[] = [];
+        if (!calculatedDetails) return tags;
+        if (p.combustion) tags.push({ key: "combustion", text: t("astrology.combustLabel") });
+        if (calculatedDetails.lord22ndDrekkana === p.name)
+            tags.push({ key: "drekkana", text: t("astrology.drekkanaLordLabel") });
+        if (moonDrekkanaLord === p.name) tags.push({ key: "drekkanaMoon", text: t("astrology.drekkanaLordMoonLabel") });
+        if (sunDrekkanaLord === p.name) tags.push({ key: "drekkanaSun", text: t("astrology.drekkanaLordSunLabel") });
+        if (navamsaAvailable && calculatedDetails.lord64thNavamsa === p.name)
+            tags.push({ key: "navamsa", text: t("astrology.navamsaLordLabel") });
+        if (calculatedDetails.atmakaraka === p.name)
+            tags.push({ key: "atmakaraka", text: t("astrology.atmakarakaLabel") });
+        if (resolvedMaranakaraka.includes(p.name))
+            tags.push({ key: "maranakaraka", text: t("astrology.maranakarakaLabel") });
+        if (resolvedYogakaraka.includes(p.name)) tags.push({ key: "yogakaraka", text: t("astrology.yogakarakaLabel") });
+        if (calculatedDetails.marakaPlanets?.includes(p.name))
+            tags.push({ key: "maraka", text: t("astrology.marakaLabel") });
+        if (resolvedBadhakaLevels[p.name])
+            tags.push({
+                key: "badhaka",
+                text: t("astrology.badhakaLevelLabel", { levels: resolvedBadhakaLevels[p.name].join(",") }),
+            });
+        if (calculatedDetails.nidhanamshaPlanets?.includes(p.name))
+            tags.push({ key: "nidhanamsha", text: t("astrology.nidhanamshaLabel") });
+        if (calculatedDetails.ashtamanshaPlanets?.includes(p.name))
+            tags.push({ key: "ashtamansha", text: t("astrology.ashtamanshaLabel") });
+        if (navamsaAvailable && calculatedDetails.wargoththamaPlanets?.includes(p.name)) {
+            const crossed =
+                calculatedDetails.gandanthaPlanets?.includes(p.name) ||
+                calculatedDetails.gandamulaPlanets?.includes(p.name);
+            tags.push({ key: "wargoththama", text: t("astrology.wargoththamaLabel"), strikethrough: crossed });
+        }
+        if (calculatedDetails.gandanthaPlanets?.includes(p.name))
+            tags.push({ key: "gandanta", text: t("astrology.gandantaLabel") });
+        if (calculatedDetails.gandamulaPlanets?.includes(p.name))
+            tags.push({ key: "gandamula", text: t("astrology.gandamulaLabel") });
+        if (navamsaAvailable && calculatedDetails.pushkaraPlanets?.includes(p.name))
+            tags.push({ key: "pushkara", text: t("astrology.pushkaraLabel") });
+        const shadBalayaPlanet = resolvedShadbalaya?.[String(p.name)];
+        if (shadBalayaPlanet?.cheshtaBala.value)
+            tags.push({ key: "cheshtaBala", text: t("astrology.cheshtaBalaLabel") });
+        if (shadBalayaPlanet?.kalaBala.value) tags.push({ key: "kalaBala", text: t("astrology.kalaBalaLabel") });
+        if (shadBalayaPlanet?.digBala.value) tags.push({ key: "digBala", text: t("astrology.digBalaLabel") });
+        return tags;
+    };
+
+    /** Dignities worth flagging on a dasha label (the planet table shows them in its strength column). */
+    const DASHA_DIGNITY_STRENGTHS = new Set<PlanetaryStrength>([
+        PlanetaryStrength.ATHI_UCHCHA,
+        PlanetaryStrength.UCHCHA,
+        PlanetaryStrength.MOOLATRIKONA,
+        PlanetaryStrength.OWN_SIGN,
+        PlanetaryStrength.NEECHA,
+        PlanetaryStrength.ATHI_NEECHA,
+    ]);
+
+    /** Dasha label tags per planet id: its dignity (uchcha/neecha/…) then the "Other" column tags. */
+    const getDashaPlanetTags = (): Record<number, PlanetTag[]> => {
+        const result: Record<number, PlanetTag[]> = {};
+        calculatedDetails?.planets?.forEach((p) => {
+            const strength = getStrength(p.strength);
+            const dignity: PlanetTag[] = DASHA_DIGNITY_STRENGTHS.has(strength)
+                ? [{ key: "strength", text: t(`astrology.${STRENGTH_TRANSLATION_KEYS[strength]}`) }]
+                : [];
+            result[p.name] = [...dignity, ...getPlanetTags(p)];
+        });
+        return result;
+    };
+
     const PLANET_SYMBOLS: Record<number, string> = {
         1: "☉",
         2: "☽",
@@ -1536,7 +1609,10 @@ export default function HoroscopeDetailPage() {
                                                         : null;
                                                 const aspectsToHouse = displayAspects.byHouse[h.houseNumber] ?? [];
                                                 return (
-                                                    <tr key={h.houseNumber} className="border-b border-gray-100 even:bg-gray-100">
+                                                    <tr
+                                                        key={h.houseNumber}
+                                                        className="border-b border-gray-100 even:bg-gray-100"
+                                                    >
                                                         <td className="py-1 pr-3 font-medium">{h.houseNumber}</td>
                                                         <td className="py-1 pr-3 text-gray-600">
                                                             {manualRange
@@ -1682,122 +1758,12 @@ export default function HoroscopeDetailPage() {
                                                         resolvedConjunctionsByPlanet[p.name] ?? [];
                                                     const aspectRecords: Aspect[] =
                                                         displayAspects.receivedByPlanet[p.name] ?? [];
-                                                    const tags: {
-                                                        key: string;
-                                                        text: string;
-                                                        strikethrough?: boolean;
-                                                    }[] = [];
-                                                    if (p.combustion)
-                                                        tags.push({
-                                                            key: "combustion",
-                                                            text: t("astrology.combustLabel"),
-                                                        });
-                                                    if (calculatedDetails.lord22ndDrekkana === p.name)
-                                                        tags.push({
-                                                            key: "drekkana",
-                                                            text: t("astrology.drekkanaLordLabel"),
-                                                        });
-                                                    if (moonDrekkanaLord === p.name)
-                                                        tags.push({
-                                                            key: "drekkanaMoon",
-                                                            text: t("astrology.drekkanaLordMoonLabel"),
-                                                        });
-                                                    if (sunDrekkanaLord === p.name)
-                                                        tags.push({
-                                                            key: "drekkanaSun",
-                                                            text: t("astrology.drekkanaLordSunLabel"),
-                                                        });
-                                                    if (
-                                                        navamsaAvailable &&
-                                                        calculatedDetails.lord64thNavamsa === p.name
-                                                    )
-                                                        tags.push({
-                                                            key: "navamsa",
-                                                            text: t("astrology.navamsaLordLabel"),
-                                                        });
-                                                    if (calculatedDetails.atmakaraka === p.name)
-                                                        tags.push({
-                                                            key: "atmakaraka",
-                                                            text: t("astrology.atmakarakaLabel"),
-                                                        });
-                                                    if (resolvedMaranakaraka.includes(p.name))
-                                                        tags.push({
-                                                            key: "maranakaraka",
-                                                            text: t("astrology.maranakarakaLabel"),
-                                                        });
-                                                    if (resolvedYogakaraka.includes(p.name))
-                                                        tags.push({
-                                                            key: "yogakaraka",
-                                                            text: t("astrology.yogakarakaLabel"),
-                                                        });
-                                                    if (calculatedDetails.marakaPlanets?.includes(p.name))
-                                                        tags.push({ key: "maraka", text: t("astrology.marakaLabel") });
-                                                    if (resolvedBadhakaLevels[p.name])
-                                                        tags.push({
-                                                            key: "badhaka",
-                                                            text: t("astrology.badhakaLevelLabel", {
-                                                                levels: resolvedBadhakaLevels[p.name].join(","),
-                                                            }),
-                                                        });
-                                                    if (calculatedDetails.nidhanamshaPlanets?.includes(p.name))
-                                                        tags.push({
-                                                            key: "nidhanamsha",
-                                                            text: t("astrology.nidhanamshaLabel"),
-                                                        });
-                                                    if (calculatedDetails.ashtamanshaPlanets?.includes(p.name))
-                                                        tags.push({
-                                                            key: "ashtamansha",
-                                                            text: t("astrology.ashtamanshaLabel"),
-                                                        });
-                                                    if (
-                                                        navamsaAvailable &&
-                                                        calculatedDetails.wargoththamaPlanets?.includes(p.name)
-                                                    ) {
-                                                        const crossed =
-                                                            calculatedDetails.gandanthaPlanets?.includes(p.name) ||
-                                                            calculatedDetails.gandamulaPlanets?.includes(p.name);
-                                                        tags.push({
-                                                            key: "wargoththama",
-                                                            text: t("astrology.wargoththamaLabel"),
-                                                            strikethrough: crossed,
-                                                        });
-                                                    }
-                                                    if (calculatedDetails.gandanthaPlanets?.includes(p.name))
-                                                        tags.push({
-                                                            key: "gandanta",
-                                                            text: t("astrology.gandantaLabel"),
-                                                        });
-                                                    if (calculatedDetails.gandamulaPlanets?.includes(p.name))
-                                                        tags.push({
-                                                            key: "gandamula",
-                                                            text: t("astrology.gandamulaLabel"),
-                                                        });
-                                                    if (
-                                                        navamsaAvailable &&
-                                                        calculatedDetails.pushkaraPlanets?.includes(p.name)
-                                                    )
-                                                        tags.push({
-                                                            key: "pushkara",
-                                                            text: t("astrology.pushkaraLabel"),
-                                                        });
-                                                    const shadBalayaPlanet = resolvedShadbalaya?.[String(p.name)];
-                                                    if (shadBalayaPlanet?.cheshtaBala.value)
-                                                        tags.push({
-                                                            key: "cheshtaBala",
-                                                            text: t("astrology.cheshtaBalaLabel"),
-                                                        });
-                                                    if (shadBalayaPlanet?.kalaBala.value)
-                                                        tags.push({
-                                                            key: "kalaBala",
-                                                            text: t("astrology.kalaBalaLabel"),
-                                                        });
-                                                    if (shadBalayaPlanet?.digBala.value)
-                                                        tags.push({
-                                                            key: "digBala",
-                                                            text: t("astrology.digBalaLabel"),
-                                                        });
+                                                    const tags = getPlanetTags(p);
                                                     return (
-                                                        <tr key={p.name} className="border-b border-gray-100 even:bg-gray-100">
+                                                        <tr
+                                                            key={p.name}
+                                                            className="border-b border-gray-100 even:bg-gray-100"
+                                                        >
                                                             <td className="py-1 pr-3 font-medium">
                                                                 {p.retrograde && p.name !== 8 && p.name !== 9
                                                                     ? `(${getPlanetName(p.name)})`
@@ -1961,83 +1927,7 @@ export default function HoroscopeDetailPage() {
                                             const aspectRecords: Aspect[] =
                                                 displayAspects.receivedByPlanet[p.name] ?? [];
 
-                                            const tags: { key: string; text: string; strikethrough?: boolean }[] = [];
-                                            if (p.combustion)
-                                                tags.push({ key: "combustion", text: t("astrology.combustLabel") });
-                                            if (calculatedDetails.lord22ndDrekkana === p.name)
-                                                tags.push({ key: "drekkana", text: t("astrology.drekkanaLordLabel") });
-                                            if (moonDrekkanaLord === p.name)
-                                                tags.push({
-                                                    key: "drekkanaMoon",
-                                                    text: t("astrology.drekkanaLordMoonLabel"),
-                                                });
-                                            if (sunDrekkanaLord === p.name)
-                                                tags.push({
-                                                    key: "drekkanaSun",
-                                                    text: t("astrology.drekkanaLordSunLabel"),
-                                                });
-                                            if (navamsaAvailable && calculatedDetails.lord64thNavamsa === p.name)
-                                                tags.push({ key: "navamsa", text: t("astrology.navamsaLordLabel") });
-                                            if (calculatedDetails.atmakaraka === p.name)
-                                                tags.push({ key: "atmakaraka", text: t("astrology.atmakarakaLabel") });
-                                            if (resolvedMaranakaraka.includes(p.name))
-                                                tags.push({
-                                                    key: "maranakaraka",
-                                                    text: t("astrology.maranakarakaLabel"),
-                                                });
-                                            if (resolvedYogakaraka.includes(p.name))
-                                                tags.push({
-                                                    key: "yogakaraka",
-                                                    text: t("astrology.yogakarakaLabel"),
-                                                });
-                                            if (calculatedDetails.marakaPlanets?.includes(p.name))
-                                                tags.push({ key: "maraka", text: t("astrology.marakaLabel") });
-                                            if (resolvedBadhakaLevels[p.name])
-                                                tags.push({
-                                                    key: "badhaka",
-                                                    text: t("astrology.badhakaLevelLabel", {
-                                                        levels: resolvedBadhakaLevels[p.name].join(","),
-                                                    }),
-                                                });
-                                            if (calculatedDetails.nidhanamshaPlanets?.includes(p.name))
-                                                tags.push({
-                                                    key: "nidhanamsha",
-                                                    text: t("astrology.nidhanamshaLabel"),
-                                                });
-                                            if (calculatedDetails.ashtamanshaPlanets?.includes(p.name))
-                                                tags.push({
-                                                    key: "ashtamansha",
-                                                    text: t("astrology.ashtamanshaLabel"),
-                                                });
-                                            if (
-                                                navamsaAvailable &&
-                                                calculatedDetails.wargoththamaPlanets?.includes(p.name)
-                                            ) {
-                                                const crossed =
-                                                    calculatedDetails.gandanthaPlanets?.includes(p.name) ||
-                                                    calculatedDetails.gandamulaPlanets?.includes(p.name);
-                                                tags.push({
-                                                    key: "wargoththama",
-                                                    text: t("astrology.wargoththamaLabel"),
-                                                    strikethrough: crossed,
-                                                });
-                                            }
-                                            if (calculatedDetails.gandanthaPlanets?.includes(p.name))
-                                                tags.push({ key: "gandanta", text: t("astrology.gandantaLabel") });
-                                            if (calculatedDetails.gandamulaPlanets?.includes(p.name))
-                                                tags.push({ key: "gandamula", text: t("astrology.gandamulaLabel") });
-                                            if (navamsaAvailable && calculatedDetails.pushkaraPlanets?.includes(p.name))
-                                                tags.push({ key: "pushkara", text: t("astrology.pushkaraLabel") });
-                                            const shadBalayaPlanet = resolvedShadbalaya?.[String(p.name)];
-                                            if (shadBalayaPlanet?.cheshtaBala.value)
-                                                tags.push({
-                                                    key: "cheshtaBala",
-                                                    text: t("astrology.cheshtaBalaLabel"),
-                                                });
-                                            if (shadBalayaPlanet?.kalaBala.value)
-                                                tags.push({ key: "kalaBala", text: t("astrology.kalaBalaLabel") });
-                                            if (shadBalayaPlanet?.digBala.value)
-                                                tags.push({ key: "digBala", text: t("astrology.digBalaLabel") });
+                                            const tags = getPlanetTags(p);
 
                                             const STRENGTH_COLORS: Record<string, string> = {
                                                 athiUchcha: "text-green-700 font-semibold",
@@ -2238,6 +2128,7 @@ export default function HoroscopeDetailPage() {
                                 planets={calculatedDetails.planets}
                                 lagnaSign={calculatedDetails.ascendant.sign}
                                 showNakshatraNumbers={navamsaAvailable}
+                                planetTags={getDashaPlanetTags()}
                             />
                         </div>
                     )}
