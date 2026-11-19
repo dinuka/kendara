@@ -6,8 +6,16 @@ export enum DashaNumberReason {
     POSITION = "position",
     OWNED_HOUSE = "ownedHouse",
     DISPOSITOR_POSITION = "dispositorPosition",
-    DISPOSITOR_OTHER_HOUSE = "dispositorOtherHouse",
+    DISPOSITOR_HOUSE = "dispositorHouse",
+    NODE_NAKSHATRA_LORD_POSITION = "nodeNakshatraLordPosition",
+    NODE_NAKSHATRA_LORD_HOUSE = "nodeNakshatraLordHouse",
 }
+
+/** Reasons that open a new sub-group inside a Rahu/Ketu number list (rendered with a separator). */
+export const DASHA_NUMBER_GROUP_STARTS = new Set<DashaNumberReason>([
+    DashaNumberReason.DISPOSITOR_POSITION,
+    DashaNumberReason.NODE_NAKSHATRA_LORD_POSITION,
+]);
 
 export interface DashaNumber {
     /** House number shown on the tag. */
@@ -44,51 +52,91 @@ const signsOwnedBy = (planet: number): number[] => {
     return signs;
 };
 
-/** Position + house numbers for one planet. Rahu/Ketu own no houses, so their sign lord's position
- *  and the sign lord's other sign(s) are used in place of owned houses. */
-const numbersFor = (planetId: number, planetById: Map<number, PlanetData>, lagnaSign: number): DashaNumber[] => {
+/** A planet's position followed by every house it owns, attributed to `source`. */
+const positionAndHouses = (
+    planet: PlanetData,
+    source: number,
+    lagnaSign: number,
+    positionReason: DashaNumberReason,
+    houseReason: DashaNumberReason,
+): DashaNumber[] => [
+    { value: planet.house, reason: positionReason, planet: planet.name, source },
+    ...signsOwnedBy(planet.name).map((sign) => ({
+        value: houseOfSign(lagnaSign, sign),
+        reason: houseReason,
+        planet: planet.name,
+        source,
+        sign,
+    })),
+];
+
+/** Position + house numbers for one planet. Rahu/Ketu own no houses, so after their own position
+ *  they take their sign lord's position and houses, then their nakshatra lord's position and houses
+ *  (only the position when that lord is itself a node; skipped when it is the node itself). */
+const numbersFor = (
+    planetId: number,
+    planetById: Map<number, PlanetData>,
+    lagnaSign: number,
+    includeNakshatra: boolean,
+): DashaNumber[] => {
     const planet = planetById.get(planetId);
     if (!planet) return [];
 
+    if (!NODES.has(planetId)) {
+        return positionAndHouses(
+            planet,
+            planetId,
+            lagnaSign,
+            DashaNumberReason.POSITION,
+            DashaNumberReason.OWNED_HOUSE,
+        );
+    }
+
     const numbers: DashaNumber[] = [
-        { value: planet.house, reason: DashaNumberReason.POSITION, planet: planetId, source: planetId },
+        {
+            value: planet.house,
+            reason: DashaNumberReason.POSITION,
+            planet: planetId,
+            source: planetId,
+        },
     ];
 
-    if (!NODES.has(planetId)) {
-        signsOwnedBy(planetId).forEach((sign) => {
-            numbers.push({
-                value: houseOfSign(lagnaSign, sign),
-                reason: DashaNumberReason.OWNED_HOUSE,
-                planet: planetId,
-                source: planetId,
-                sign,
-            });
+    const dispositor = planetById.get(SIGN_LORD[planet.sign]);
+    if (dispositor) {
+        numbers.push(
+            ...positionAndHouses(
+                dispositor,
+                planetId,
+                lagnaSign,
+                DashaNumberReason.DISPOSITOR_POSITION,
+                DashaNumberReason.DISPOSITOR_HOUSE,
+            ),
+        );
+    }
+
+    const nakshatraLordId = includeNakshatra && planet.nakshatra ? getNakshatraLord(planet.nakshatra) : null;
+    const nakshatraLord = nakshatraLordId === null ? undefined : planetById.get(nakshatraLordId);
+    if (!nakshatraLord || nakshatraLord.name === planetId) return numbers;
+
+    if (NODES.has(nakshatraLord.name)) {
+        numbers.push({
+            value: nakshatraLord.house,
+            reason: DashaNumberReason.NODE_NAKSHATRA_LORD_POSITION,
+            planet: nakshatraLord.name,
+            source: planetId,
         });
         return numbers;
     }
 
-    const dispositorId = SIGN_LORD[planet.sign];
-    const dispositor = planetById.get(dispositorId);
-    if (!dispositor) return numbers;
-
-    numbers.push({
-        value: dispositor.house,
-        reason: DashaNumberReason.DISPOSITOR_POSITION,
-        planet: dispositorId,
-        source: planetId,
-    });
-
-    signsOwnedBy(dispositorId).forEach((sign) => {
-        if (sign === planet.sign) return;
-
-        numbers.push({
-            value: houseOfSign(lagnaSign, sign),
-            reason: DashaNumberReason.DISPOSITOR_OTHER_HOUSE,
-            planet: dispositorId,
-            source: planetId,
-            sign,
-        });
-    });
+    numbers.push(
+        ...positionAndHouses(
+            nakshatraLord,
+            planetId,
+            lagnaSign,
+            DashaNumberReason.NODE_NAKSHATRA_LORD_POSITION,
+            DashaNumberReason.NODE_NAKSHATRA_LORD_HOUSE,
+        ),
+    );
 
     return numbers;
 };
@@ -107,9 +155,10 @@ const computeDashaNumbers = (
         const nakshatraLord = includeNakshatra && nakshatra ? getNakshatraLord(nakshatra) : null;
 
         result[name] = {
-            own: numbersFor(name, planetById, lagnaSign),
+            own: numbersFor(name, planetById, lagnaSign, includeNakshatra),
             nakshatraLord,
-            nakshatraLordNumbers: nakshatraLord === null ? [] : numbersFor(nakshatraLord, planetById, lagnaSign),
+            nakshatraLordNumbers:
+                nakshatraLord === null ? [] : numbersFor(nakshatraLord, planetById, lagnaSign, includeNakshatra),
         };
     });
 

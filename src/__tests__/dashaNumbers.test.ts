@@ -53,21 +53,34 @@ describe("computeDashaNumbers", () => {
         expect(values(numbers[Planet.SUN].own)).toEqual([5, 5]);
     });
 
-    it("uses the sign lord's position and its other sign for Rahu", () => {
-        // Rahu in Capricorn (10) → Saturn in Taurus (2) → Aquarius (11)
+    it("uses the sign lord's and nakshatra lord's positions and houses for Rahu", () => {
+        // Rahu in Capricorn (10) → Saturn in Taurus (2), owns 10 and 11 → Krittika lord Sun in 5, owns 5
         const { own } = numbers[Planet.RAHU];
-        expect(values(own)).toEqual([10, 2, 11]);
-        expect(own[1]).toMatchObject({ reason: DashaNumberReason.DISPOSITOR_POSITION, planet: Planet.SATURN });
-        expect(own[2]).toMatchObject({
-            reason: DashaNumberReason.DISPOSITOR_OTHER_HOUSE,
+        expect(values(own)).toEqual([10, 2, 10, 11, 5, 5]);
+        expect(own.map(({ reason }) => reason)).toEqual([
+            DashaNumberReason.POSITION,
+            DashaNumberReason.DISPOSITOR_POSITION,
+            DashaNumberReason.DISPOSITOR_HOUSE,
+            DashaNumberReason.DISPOSITOR_HOUSE,
+            DashaNumberReason.NODE_NAKSHATRA_LORD_POSITION,
+            DashaNumberReason.NODE_NAKSHATRA_LORD_HOUSE,
+        ]);
+        expect(own[3]).toMatchObject({
             planet: Planet.SATURN,
+            source: Planet.RAHU,
             sign: ZodiacSign.AQUARIUS,
         });
+        expect(own[4]).toMatchObject({ planet: Planet.SUN, source: Planet.RAHU });
     });
 
-    it("adds no extra house when the node's sign lord owns a single sign", () => {
-        // Ketu in Cancer (4) → Moon in Cancer (4), Moon owns only Cancer
-        expect(values(numbers[Planet.KETU].own)).toEqual([4, 4]);
+    it("lists the single house of a node's single-sign sign lord", () => {
+        // Ketu in Cancer (4) → Moon in Cancer (4), owns 4 → Sun in 5, owns 5
+        expect(values(numbers[Planet.KETU].own)).toEqual([4, 4, 4, 5, 5]);
+    });
+
+    it("drops the node's nakshatra lord numbers when nakshatra data is unavailable", () => {
+        const withoutNakshatra = computeDashaNumbers(planets, LAGNA, false);
+        expect(values(withoutNakshatra[Planet.RAHU].own)).toEqual([10, 2, 10, 11]);
     });
 
     it("computes the nakshatra lord's numbers", () => {
@@ -77,9 +90,31 @@ describe("computeDashaNumbers", () => {
     });
 
     it("applies the node rule when the nakshatra lord is Ketu", () => {
-        // Mars in Ashwini → Ketu: in 4, Moon in 4
+        // Mars in Ashwini → Ketu: in 4, Moon in 4 owns 4, Sun in 5 owns 5
         expect(numbers[Planet.MARS].nakshatraLord).toBe(Planet.KETU);
-        expect(values(numbers[Planet.MARS].nakshatraLordNumbers)).toEqual([4, 4]);
+        expect(values(numbers[Planet.MARS].nakshatraLordNumbers)).toEqual([4, 4, 4, 5, 5]);
+    });
+
+    it("shows only the position when a node's nakshatra lord is the other node", () => {
+        // Ketu in Ardra (Rahu's nakshatra): Rahu's own groups are not repeated
+        const chart = planets.map((item) => (item.name === Planet.KETU ? { ...item, nakshatra: 6 } : item));
+        expect(values(computeDashaNumbers(chart, LAGNA, true)[Planet.KETU].own)).toEqual([4, 4, 4, 10]);
+    });
+
+    it("matches the Dhanu lagna Venus mahadasha example", () => {
+        // Venus in Dhanu (Mula → Ketu); Ketu in Vrushabha (Mrigashira → Mars); Mars in Kataka
+        const chart = [
+            planet(Planet.VENUS, ZodiacSign.SAGITTARIUS, 19),
+            planet(Planet.KETU, ZodiacSign.TAURUS, 5),
+            planet(Planet.MARS, ZodiacSign.CANCER, 7),
+        ].map((item) => ({
+            ...item,
+            house: ((item.sign - ZodiacSign.SAGITTARIUS + 12) % 12) + 1,
+        }));
+        const venus = computeDashaNumbers(chart, ZodiacSign.SAGITTARIUS, true)[Planet.VENUS];
+        expect(values(venus.own)).toEqual([1, 6, 11]);
+        expect(venus.nakshatraLord).toBe(Planet.KETU);
+        expect(values(venus.nakshatraLordNumbers)).toEqual([6, 1, 6, 11, 8, 5, 12]);
     });
 
     it("omits nakshatra numbers when nakshatra data is unavailable", () => {

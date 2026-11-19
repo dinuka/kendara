@@ -404,7 +404,9 @@
             "position": "{planet} {house} වන භාවයේ",
             "ownedHouse": "{planet} {sign} රාශියට අධිපති ({house} වන භාවය)",
             "dispositorPosition": "{source}ට භාව අධිපතිත්වයක් නැත — රාශි අධිපති {planet} {house} වන භාවයේ",
-            "dispositorOtherHouse": "{source}ගේ රාශි අධිපති {planet} {sign} රාශියටද අධිපති ({house} වන භාවය)",
+            "dispositorHouse": "{source}ගේ රාශි අධිපති {planet} {sign} රාශියට අධිපති ({house} වන භාවය)",
+            "nodeNakshatraLordPosition": "{source}ගේ නක්ෂත්‍ර අධිපති {planet} {house} වන භාවයේ",
+            "nodeNakshatraLordHouse": "{source}ගේ නක්ෂත්‍ර අධිපති {planet} {sign} රාශියට අධිපති ({house} වන භාවය)",
             "nakshatraLord": "නක්ෂත්‍ර අධිපති {planet}"
         },
         "sign": "රාශිය",

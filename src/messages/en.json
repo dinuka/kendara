@@ -404,7 +404,9 @@
             "position": "{planet} is in house {house}",
             "ownedHouse": "{planet} owns {sign} (house {house})",
             "dispositorPosition": "{source} owns no houses — its sign lord {planet} is in house {house}",
-            "dispositorOtherHouse": "{source}'s sign lord {planet} also owns {sign} (house {house})",
+            "dispositorHouse": "{source}'s sign lord {planet} owns {sign} (house {house})",
+            "nodeNakshatraLordPosition": "{source}'s nakshatra lord {planet} is in house {house}",
+            "nodeNakshatraLordHouse": "{source}'s nakshatra lord {planet} owns {sign} (house {house})",
             "nakshatraLord": "Nakshatra lord {planet}"
         },
         "sign": "Sign",

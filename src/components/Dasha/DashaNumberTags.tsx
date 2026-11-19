@@ -3,6 +3,7 @@
 import { useI18n } from "@/hooks/useI18n";
 import { Fragment, memo } from "react";
 
+import { DASHA_NUMBER_GROUP_STARTS } from "@/lib/dashaNumbers";
 import type { DashaNumber, PlanetDashaNumbers } from "@/lib/dashaNumbers";
 
 import DashaNumberChip from "./DashaNumberChip";
@@ -28,11 +29,14 @@ const DashaNumberTags = ({ numbers, getPlanetName, getSignName }: DashaNumberTag
 
     const renderTags = (list: DashaNumber[], heading: string | null, keyPrefix: string) =>
         list.map((item, index) => (
-            <DashaNumberChip
-                key={`${keyPrefix}-${index}`}
-                value={item.value}
-                lines={heading ? [heading, describe(item)] : [describe(item)]}
-            />
+            <Fragment key={`${keyPrefix}-${index}`}>
+                {index > 0 && DASHA_NUMBER_GROUP_STARTS.has(item.reason) && (
+                    <span aria-hidden="true" className="mx-px">
+                        ·
+                    </span>
+                )}
+                <DashaNumberChip value={item.value} lines={heading ? [heading, describe(item)] : [describe(item)]} />
+            </Fragment>
         ));
 
     const { own, nakshatraLord, nakshatraLordNumbers } = numbers;
