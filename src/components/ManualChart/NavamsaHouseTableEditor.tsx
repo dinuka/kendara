@@ -11,6 +11,8 @@ interface NavamsaHouseTableEditorProps {
     navamsaLagna: number;
     navamsaHouses: Record<number, number[]>;
     computedNavamsaHouseByPlanet?: Record<number, number>;
+    /** Planets placed automatically from their entered degree — shown locked (no remove). */
+    degreeDrivenPlanets?: Set<number>;
     onAdd: (house: number, planet: number) => void;
     onRemove: (house: number, planet: number) => void;
 }
@@ -19,6 +21,7 @@ export default function NavamsaHouseTableEditor({
     navamsaLagna,
     navamsaHouses,
     computedNavamsaHouseByPlanet,
+    degreeDrivenPlanets,
     onAdd,
     onRemove,
 }: NavamsaHouseTableEditorProps) {
@@ -66,15 +69,18 @@ export default function NavamsaHouseTableEditor({
                                                 const computedHouse = computedNavamsaHouseByPlanet?.[planet];
                                                 const differs =
                                                     computedHouse !== undefined && computedHouse !== houseNumber;
+                                                const fromDegree = degreeDrivenPlanets?.has(planet) ?? false;
                                                 return (
                                                     <span
                                                         key={planet}
                                                         title={
-                                                            differs
-                                                                ? t("manualChart.computedDiffers", {
-                                                                      house: computedHouse,
-                                                                  })
-                                                                : undefined
+                                                            fromDegree
+                                                                ? t("manualChart.navamsaFromDegree")
+                                                                : differs
+                                                                  ? t("manualChart.computedDiffers", {
+                                                                        house: computedHouse,
+                                                                    })
+                                                                  : undefined
                                                         }
                                                         className={`inline-flex items-center gap-1 border rounded px-1.5 py-0.5 text-xs ${
                                                             differs
@@ -89,16 +95,22 @@ export default function NavamsaHouseTableEditor({
                                                         {differs && (
                                                             <span className="text-amber-600 font-semibold">•</span>
                                                         )}
-                                                        <button
-                                                            type="button"
-                                                            aria-label={t("manualChart.removePlanet", {
-                                                                planet: t(`astrology.planetNames.${planet}`),
-                                                            })}
-                                                            onClick={() => onRemove(houseNumber, planet)}
-                                                            className="text-gray-400 hover:text-red-500 ml-0.5"
-                                                        >
-                                                            ×
-                                                        </button>
+                                                        {fromDegree ? (
+                                                            <span className="text-indigo-500 text-[10px] ml-0.5">
+                                                                {t("manualChart.autoTag")}
+                                                            </span>
+                                                        ) : (
+                                                            <button
+                                                                type="button"
+                                                                aria-label={t("manualChart.removePlanet", {
+                                                                    planet: t(`astrology.planetNames.${planet}`),
+                                                                })}
+                                                                onClick={() => onRemove(houseNumber, planet)}
+                                                                className="text-gray-400 hover:text-red-500 ml-0.5"
+                                                            >
+                                                                ×
+                                                            </button>
+                                                        )}
                                                     </span>
                                                 );
                                             })}

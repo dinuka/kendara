@@ -27,7 +27,13 @@ import { PlanetaryStrength } from "@/lib/astrologyEnums";
 import { getChartData } from "@/lib/chartDataTransform";
 import type { ChartInput } from "@/lib/chartDataTransform";
 import { ChartType } from "@/lib/chartTypes";
-import { SIGN_LORD, buildWholeSignHouses, computePlanetStrength, hasManualNavamsa } from "@/lib/manualChart";
+import {
+    SIGN_LORD,
+    buildWholeSignHouses,
+    computePlanetStrength,
+    hasManualNavamsa,
+    manualTrimshamshaSource,
+} from "@/lib/manualChart";
 import { type PlanetAspectsMap, resolveAspectHouses } from "@/lib/planetAspects";
 import { computeDigBalaPlanets } from "@/lib/shadBalaya";
 import { buildTrimshamshaChart } from "@/lib/trimshamsha";
@@ -101,6 +107,9 @@ export interface WargaManualHousePlacements {
     lagna: number;
     navamsaLagna?: number;
     navamsaHouses?: Array<{ houseNumber: number; sign: number; planets: number[] }> | null;
+    /** Entered Lagna degree / planet degrees — together they unlock the manual D30 entry. */
+    lagnaDegree?: number | null;
+    planetDegrees?: Record<number, number> | null;
     validation?: unknown;
 }
 
@@ -475,6 +484,14 @@ export const computeWargaD30Entry = (
     };
 };
 
+/** Manual-horoscope D30 entry from the entered degrees (see `manualTrimshamshaSource`). */
+function buildManualD30Entry(result: CalculationResult, ctx: WargaKendaraContext): WargaChartEntry | null {
+    const source = Array.isArray(result.planets)
+        ? manualTrimshamshaSource(result.planets, ctx.manualHousePlacements)
+        : null;
+    return source ? computeWargaD30Entry(source, ctx.planetAspects) : null;
+}
+
 /** Compute the full Warga Kendara for a calculation result. Pure and deterministic — the same
  *  result always yields the same four entries. */
 export function computeWargaKendara(result: CalculationResult, ctx: WargaKendaraContext): WargaKendara {
@@ -488,8 +505,12 @@ export function computeWargaKendara(result: CalculationResult, ctx: WargaKendara
         d9: ctx.source === "manual" ? buildManualD9Entry(ctx) : buildAutoD9Entry(res, ctx.planetAspects),
         suryaLagna: manualWithoutNavamsa ? null : buildRotatedEntry(res, ChartType.SURYA_LAGNA, ctx.planetAspects),
         chandraLagna: manualWithoutNavamsa ? null : buildRotatedEntry(res, ChartType.CHANDRA_LAGNA, ctx.planetAspects),
-        // D30 needs real in-sign degrees — manual planet degrees are synthetic.
-        d30: ctx.source === "manual" ? null : computeWargaD30Entry(result, ctx.planetAspects),
+        // D30 needs real in-sign degrees: manual charts only have them for an entered Lagna degree and
+        // the planets with an entered degree (amsha + kala); otherwise their degrees are synthetic.
+        d30:
+            ctx.source === "manual"
+                ? buildManualD30Entry(result, ctx)
+                : computeWargaD30Entry(result, ctx.planetAspects),
     };
 }
 

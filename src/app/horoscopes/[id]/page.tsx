@@ -56,6 +56,7 @@ import {
     formatNavamsaDegreeRange,
     hasManualNavamsa,
     manualAscAbsDeg,
+    manualTrimshamshaSource,
     navamsaIndexForSign,
     ownedHousesOf,
     synthesizeOtherDetails,
@@ -360,7 +361,11 @@ export default function HoroscopeDetailPage() {
                     };
                     const moon = (d.calculatedDetails.planets as Planet[]).find((p) => p.name === 2);
                     const moonNakshatra = moon
-                        ? computeMoonNakshatra(moon.sign, hasManualNavamsa(mhp) ? moon.navamsaSign : undefined)
+                        ? computeMoonNakshatra(
+                              moon.sign,
+                              hasManualNavamsa(mhp) ? moon.navamsaSign : undefined,
+                              mhp.planetDegrees?.[2],
+                          )
                         : undefined;
                     const birthDate = d.horoscope?.birthDate ? new Date(d.horoscope.birthDate) : null;
                     d = {
@@ -371,6 +376,10 @@ export default function HoroscopeDetailPage() {
                             manualHousePlacements: {
                                 ...mhp,
                                 validation: synthesizeValidation(mhp),
+                            },
+                            ascendant: {
+                                ...d.calculatedDetails.ascendant,
+                                degree: mhp.lagnaDegree ?? d.calculatedDetails.ascendant.degree,
                             },
                             houses: (() => {
                                 const lagna = mhp.lagna;
@@ -439,6 +448,13 @@ export default function HoroscopeDetailPage() {
     // is a real calculation, so neither column is rendered. Rendered sections gate on this flag below.
     const navamsaAvailable = !isManualChart || hasManualNavamsa(calculatedDetails?.manualHousePlacements);
 
+    // Entered degrees (amsha + kala) make a manual chart behave like one with a birth time: the
+    // ascendant / planets carrying a degree show it exactly (and anchor the house cusps) instead of
+    // the navamsa-segment range or sign-only placeholder.
+    const manualPlanetDegrees: Record<number, number> = calculatedDetails?.manualHousePlacements?.planetDegrees ?? {};
+    const hasExactAscendant = !isManualChart || calculatedDetails?.manualHousePlacements?.lagnaDegree !== undefined;
+    const hasExactDegree = (p: Planet): boolean => !isManualChart || manualPlanetDegrees[p.name] !== undefined;
+
     // Degree-based planet conjunctions (shared with the calc-tab planet tables): the authoritative
     // conjunction list for the D1 (Lagna) warga Planets table, so its chips match the calc tab.
     const resolvedConjunctionsByPlanet: Record<number, Aspect[]> = calculatedDetails?.planets?.length
@@ -499,11 +515,17 @@ export default function HoroscopeDetailPage() {
 
     // Trimshamsha (D30): computed and stored when the horoscope is saved (Chart record + the
     // wargaKendara.d30 entry). Documents stored before D30 existed re-derive it from the real D1
-    // degrees. Only auto charts have one — manual planet degrees are synthetic (navamsa midpoints / 15°).
-    const trimshamshaSource = !isManualChart && secondChart === "d30" ? calculatedDetails : null;
+    // degrees. Manual charts have one only from their entered degrees (Lagna degree + the planets
+    // with an amsha/kala) — other manual degrees are synthetic (navamsa midpoints / 15°).
+    const trimshamshaSource =
+        secondChart !== "d30" || !calculatedDetails
+            ? null
+            : isManualChart
+              ? manualTrimshamshaSource(calculatedDetails.planets ?? [], calculatedDetails.manualHousePlacements)
+              : calculatedDetails;
     const trimshamshaChart = trimshamshaSource
-        ? (data.charts.find(({ type }) => type === ChartType.TRIMSHAMSHA_D30)?.data ??
-          buildTrimshamshaChart(trimshamshaSource))
+        ? (!isManualChart && data.charts.find(({ type }) => type === ChartType.TRIMSHAMSHA_D30)?.data) ||
+          buildTrimshamshaChart(trimshamshaSource)
         : null;
     const trimshamshaEntry = trimshamshaSource
         ? (resolvedWargaKendara?.d30 ?? computeWargaD30Entry(trimshamshaSource, aspectSettings.planetAspects))
@@ -811,13 +833,18 @@ export default function HoroscopeDetailPage() {
         if (horoscope.source !== "manual" || !calculatedDetails?.manualHousePlacements)
             return calculatedDetails?.planets ?? [];
         if (!navamsaAvailable) {
-            return calculatedDetails.planets.map((p) => ({
-                ...p,
-                degree: 15,
-                absoluteDegree: (p.sign - 1) * 30 + 15,
-            }));
+            return calculatedDetails.planets.map((p) =>
+                hasExactDegree(p)
+                    ? p
+                    : {
+                          ...p,
+                          degree: 15,
+                          absoluteDegree: (p.sign - 1) * 30 + 15,
+                      },
+            );
         }
         return calculatedDetails.planets.map((p) => {
+            if (hasExactDegree(p)) return p;
             const index = navamsaIndexForSign(p.sign, p.navamsaSign ?? p.sign);
             const arc = 30 / 9;
             const degree = (index - 0.5) * arc;
@@ -1232,6 +1259,7 @@ export default function HoroscopeDetailPage() {
                         initialBirthDate={birthDateInputValue(horoscope.birthDate)}
                         initialLagna={calculatedDetails.manualHousePlacements.lagna}
                         initialLagnaDegree={calculatedDetails.manualHousePlacements.lagnaDegree}
+                        initialPlanetDegrees={calculatedDetails.manualHousePlacements.planetDegrees}
                         initialNavamsaLagna={calculatedDetails.manualHousePlacements.navamsaLagna ?? 0}
                         initialHouses={placementsRecord(calculatedDetails.manualHousePlacements.houses)}
                         initialNavamsaHouses={
@@ -1467,10 +1495,10 @@ export default function HoroscopeDetailPage() {
                                         <p className="text-sm mb-1">
                                             {getSignName(calculatedDetails.ascendant.sign)} (
                                             {getPlanetName(calculatedDetails.ascendant.lord)})
-                                            {navamsaAvailable && (
+                                            {(navamsaAvailable || hasExactAscendant) && (
                                                 <>
                                                     {" "}
-                                                    {isManualChart
+                                                    {isManualChart && !hasExactAscendant
                                                         ? formatNavamsaDegreeRange(
                                                               getAscMidRange().start,
                                                               getAscMidRange().end,
@@ -1593,7 +1621,9 @@ export default function HoroscopeDetailPage() {
                                         <tbody>
                                             {calculatedDetails.houses.map((h) => {
                                                 const planetsInHouse = getPlanetsInHouse(h.houseNumber);
-                                                const isManualRow = isManualChart;
+                                                // An entered lagna degree gives real cusps (rendered
+                                                // like an auto chart from the bhava houses).
+                                                const isManualRow = isManualChart && !hasExactAscendant;
                                                 // Without Navamsa data a manual chart carries no
                                                 // degree values: houses show the sign only.
                                                 const showSignOnly = isManualRow && !navamsaAvailable;
@@ -1656,10 +1686,16 @@ export default function HoroscopeDetailPage() {
                                                         <td className="py-1 pr-3">
                                                             {planetsInHouse.length > 0
                                                                 ? planetsInHouse
-                                                                      .map(
-                                                                          (p) =>
-                                                                              `${getPlanetName(p.name)}${showSignOnly ? "" : ` (${manualRange ? getPlanetDegreeRange(p) : formatDegree(p.degree)})`}`,
-                                                                      )
+                                                                      .map((p) => {
+                                                                          const degreeLabel = hasExactDegree(p)
+                                                                              ? formatDegree(p.degree)
+                                                                              : navamsaAvailable
+                                                                                ? getPlanetDegreeRange(p)
+                                                                                : null;
+                                                                          return degreeLabel
+                                                                              ? `${getPlanetName(p.name)} (${degreeLabel})`
+                                                                              : getPlanetName(p.name);
+                                                                      })
                                                                       .join(", ")
                                                                 : "—"}
                                                         </td>
@@ -1782,13 +1818,13 @@ export default function HoroscopeDetailPage() {
                                                             </td>
                                                             <td className="py-1 pr-3">
                                                                 {getSignName(p.sign)}
-                                                                {navamsaAvailable && (
+                                                                {(navamsaAvailable || hasExactDegree(p)) && (
                                                                     <>
                                                                         {" "}
                                                                         (
-                                                                        {isManualChart
-                                                                            ? getPlanetDegreeRange(p)
-                                                                            : formatDegree(p.degree)}
+                                                                        {hasExactDegree(p)
+                                                                            ? formatDegree(p.degree)
+                                                                            : getPlanetDegreeRange(p)}
                                                                         )
                                                                     </>
                                                                 )}
@@ -2021,10 +2057,10 @@ export default function HoroscopeDetailPage() {
                                                                 <span className="font-medium text-gray-700">
                                                                     {t("astrology.degree")}:
                                                                 </span>{" "}
-                                                                {navamsaAvailable &&
-                                                                    (isManualChart
-                                                                        ? getPlanetDegreeRange(p)
-                                                                        : formatDegree(p.degree))}
+                                                                {(navamsaAvailable || hasExactDegree(p)) &&
+                                                                    (hasExactDegree(p)
+                                                                        ? formatDegree(p.degree)
+                                                                        : getPlanetDegreeRange(p))}
                                                             </p>
                                                             {conjunctions.length > 0 && (
                                                                 <p>

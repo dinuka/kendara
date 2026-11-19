@@ -118,14 +118,36 @@ export function parseManualChartBody(body: unknown): ManualChartPayload {
     if (navamsaHouses && Object.keys(navamsaHouses).length > 0 && !navamsaLagna) {
         return { ok: false, error: "navamsaLagna is required when navamsa houses are provided" };
     }
+    let planetDegrees: Record<number, number> | undefined;
+    if (b.planetDegrees !== undefined && b.planetDegrees !== null) {
+        if (typeof b.planetDegrees !== "object" || Array.isArray(b.planetDegrees)) {
+            return { ok: false, error: "planetDegrees must be an object keyed by planet (1-9)" };
+        }
+        const placed = new Set(Object.values(houses.value).flat());
+        planetDegrees = {};
+        for (const [key, value] of Object.entries(b.planetDegrees as Record<string, unknown>)) {
+            const planet = Number(key);
+            if (!Number.isInteger(planet) || planet < PLANET_MIN || planet > PLANET_MAX) {
+                return { ok: false, error: `invalid planet key in planetDegrees: ${key}` };
+            }
+            if (typeof value !== "number" || !Number.isFinite(value) || value < 0 || value >= 30) {
+                return { ok: false, error: `degree for planet ${key} must be a number in [0, 30)` };
+            }
+            if (!placed.has(planet)) {
+                return { ok: false, error: `planet ${key} has a degree but is not placed in a house` };
+            }
+            planetDegrees[planet] = value;
+        }
+        if (Object.keys(planetDegrees).length === 0) planetDegrees = undefined;
+    }
     return {
         ok: true,
-        value: { lagna, lagnaDegree, houses: houses.value, navamsaLagna, navamsaHouses },
+        value: { lagna, lagnaDegree, houses: houses.value, navamsaLagna, navamsaHouses, planetDegrees },
     };
 }
 
-export function synthesizeAscendant(lagna: number): Ascendant {
-    return { sign: lagna, degree: 0, lord: SIGN_LORD[lagna] || 1 };
+export function synthesizeAscendant(lagna: number, degree = 0): Ascendant {
+    return { sign: lagna, degree, lord: SIGN_LORD[lagna] || 1 };
 }
 
 /** Strip absent optional keys (`lagnaDegree`, `navamsaLagna`) from a ManualHousePlacements object
@@ -137,6 +159,7 @@ export function sanitizeManualHousePlacements(placements: ManualHousePlacements)
     const clean: ManualHousePlacements = { ...placements };
     if (clean.lagnaDegree === undefined) delete clean.lagnaDegree;
     if (clean.navamsaLagna === undefined) delete clean.navamsaLagna;
+    if (!clean.planetDegrees || Object.keys(clean.planetDegrees).length === 0) delete clean.planetDegrees;
     return clean;
 }
 
@@ -159,11 +182,14 @@ export function synthesizePlanets(result: ManualChartResult): Planet[] {
     return result.planetsTable.map((row) => {
         // Manual charts without Navamsa data treat every planet as sitting at the middle degree of
         // its house (15° within the sign), and derive Nakshatra/Pada from that point — this is what
-        // later rules (dashas, ganita, search) resolve against (TODO.md manual-chart issues).
-        const degree = row.navamsa ? (row.navamsa.degreeRangeStart + row.navamsa.degreeRangeEnd) / 2 : 15;
-        const { nakshatra, pada } = row.navamsa
-            ? { nakshatra: row.navamsa.nakshatra, pada: row.navamsa.pada }
-            : nakshatraAndPada((row.sign - 1) * 30 + 15);
+        // later rules (dashas, ganita, search) resolve against (TODO.md manual-chart issues). An
+        // entered degree (amsha + kala) always wins over both fallbacks.
+        const degree =
+            row.degree ?? (row.navamsa ? (row.navamsa.degreeRangeStart + row.navamsa.degreeRangeEnd) / 2 : 15);
+        const { nakshatra, pada } =
+            row.degree === undefined && row.navamsa
+                ? { nakshatra: row.navamsa.nakshatra, pada: row.navamsa.pada }
+                : nakshatraAndPada((row.sign - 1) * 30 + degree);
         return {
             name: row.planet,
             sign: row.sign,
@@ -209,7 +235,11 @@ export function synthesizeCalculation(result: ManualChartResult, birthDate?: Dat
     // The Moon's Navamsa segment only exists when Navamsa data was entered — without it the sign
     // midpoint (15°) is used, matching every other planet's house-middle synthesized position.
     const moonNakshatra = moon
-        ? computeMoonNakshatra(moon.sign, hasManualNavamsa(manualHousePlacements) ? moon.navamsaSign : undefined)
+        ? computeMoonNakshatra(
+              moon.sign,
+              hasManualNavamsa(manualHousePlacements) ? moon.navamsaSign : undefined,
+              manualHousePlacements.planetDegrees?.[2],
+          )
         : { id: 1, pada: 1, lord: 9 };
     const thithi = computeThithiFromPlanets(planets);
     // Suba Asuba (සුබ අසුබ): per-planet Naisargika benefic/malefic verdict, with the Kendra-lordship
@@ -220,7 +250,7 @@ export function synthesizeCalculation(result: ManualChartResult, birthDate?: Dat
     // manual entry cannot vouch for, so the source tag drives what the rules accept.
     const yogaDoshas = computeYogaDoshas(buildChartFacts({ ascendantSign: lagna, source: "manual", planets }));
     const calc: CalculationResult = {
-        ascendant: synthesizeAscendant(lagna),
+        ascendant: synthesizeAscendant(lagna, manualHousePlacements.lagnaDegree ?? 0),
         houses,
         planets,
         nakshatra: {

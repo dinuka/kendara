@@ -870,7 +870,6 @@
         "modeCalculated": "Calculated Chart",
         "lagna": "Lagna (Laya)",
         "lagnaDegree": "Lagna degree",
-        "lagnaDegreePlaceholder": "0–29.99 (optional)",
         "birthDate": "Birth date",
         "birthDateOptional": "(optional)",
         "birthDateHint": "Fill planets automatically from the birth date at the birth time (12:00, Colombo)",
@@ -957,7 +956,13 @@
             "10": "Oct",
             "11": "Nov",
             "12": "Dec"
-        }
+        },
+        "amsha": "Amsha",
+        "kala": "Kala",
+        "planetDegreeHint": "Optional: enter a planet's degree as amsha° kala′ (e.g. 23° 20′). Its Navamsa is then placed automatically.",
+        "navamsaFromDegree": "Placed automatically from the entered degree",
+        "navamsaNeedsLagna": "Enter the Lagna degree or pick a Navamsa Lagna to place planets with a degree in the Navamsa.",
+        "autoTag": "auto"
     },
     "currentPlanets": {
         "toggleLabel": "Show Current Planets",

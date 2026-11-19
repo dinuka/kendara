@@ -50,6 +50,9 @@ export interface ManualHousePlacements {
     /** Navamsa (D9) Lagna — drives the navamsa house signs. Absent when no navamsa chart entered. */
     navamsaLagna?: number;
     navamsaHouses?: ManualHouse[];
+    /** Entered planet degrees within their birth sign (planet enum → 0 ≤ d < 30, amsha + kala/60).
+     *  A planet with a degree gets its Navamsa placement derived automatically. */
+    planetDegrees?: Record<number, number>;
     validation: PlacementValidation;
 }
 
@@ -61,6 +64,8 @@ export interface ManualPlanetRow {
     conjunctions: number[];
     aspectsPlanets: number[];
     other: string[];
+    /** Entered degree within the birth sign, when the user supplied one. */
+    degree?: number;
     navamsa?: NavamsaEnrichment;
 }
 
@@ -123,6 +128,9 @@ export interface ManualChartInput {
     /** Navamsa (D9) Lagna — required to enter the navamsa chart; drives navamsa house signs. */
     navamsaLagna?: number;
     navamsaHouses?: Record<number, number[]>;
+    /** Entered planet degrees within their birth sign (planet enum → 0 ≤ d < 30). Planets with a
+     *  degree are auto-placed in the Navamsa chart (overriding any manual D9 placement). */
+    planetDegrees?: Record<number, number>;
     /** Aspect settings consumed during derivation (settings tab). */
     aspectOptions?: ManualAspectOptions;
 }
@@ -254,6 +262,7 @@ export function manualPlacementsToInput(placements: ManualHousePlacements): Manu
         navamsaLagna: placements.navamsaLagna ?? undefined,
         houses: toRecord(placements.houses),
         navamsaHouses: toRecord(placements.navamsaHouses),
+        planetDegrees: placements.planetDegrees ?? undefined,
     };
 }
 
@@ -439,13 +448,145 @@ export function computePlanetStrength(planet: number, sign: number, degree = 0):
 const NAVAMSA_ARC = 30 / 9;
 const NAKSHATRA_ARC = 360 / 27;
 const PADA_ARC = NAKSHATRA_ARC / 4;
+const KALA_PER_AMSHA = 60;
+const KALA_PER_SIGN = 30 * KALA_PER_AMSHA;
+
+/** Degree within a sign from its amsha (අංශක, 0-29) and kala (කලා, 0-59) parts, e.g. 23° 20' → 23.333…
+ *  Returns null when either part is out of range or not an integer. */
+export function degreeFromAmshaKala(amsha: number, kala: number): number | null {
+    if (!Number.isInteger(amsha) || !Number.isInteger(kala)) return null;
+    if (amsha < 0 || amsha > 29 || kala < 0 || kala > 59) return null;
+    return amsha + kala / KALA_PER_AMSHA;
+}
+
+/** A degree within a sign as whole kala, clamped to [0, 29° 59']. */
+function toKala(degreeInSign: number): number {
+    return Math.min(Math.max(Math.round(degreeInSign * KALA_PER_AMSHA), 0), KALA_PER_SIGN - 1);
+}
+
+/** Split a degree within a sign into amsha + kala (rounded to the nearest kala, capped at 29° 59'). */
+export function splitAmshaKala(degree: number): { amsha: number; kala: number } {
+    const totalKala = toKala(degree);
+    return { amsha: Math.floor(totalKala / KALA_PER_AMSHA), kala: totalKala % KALA_PER_AMSHA };
+}
+
+/** Navamsa wedge (1-9) containing a degree within a sign. The +1e-9 pins exact boundaries such as
+ *  23° 20' (= start of the 8th wedge, ~6.9999999 wedges in doubles) to the upper wedge — the same
+ *  rule as `computeNavamsaLagnaSign` in bhavaSuchika.ts. */
+export function navamsaWedgeForDegree(degreeInSign: number): number {
+    const clamped = Math.min(Math.max(degreeInSign, 0), 30);
+    return Math.min(Math.floor(clamped / NAVAMSA_ARC + 1e-9) + 1, 9);
+}
+
+/** Navamsa (D9) sign of a point at `degreeInSign` within `birthSign`. */
+export function deriveNavamsaSignFromDegree(birthSign: number, degreeInSign: number): number {
+    return navamsaSign(birthSign, navamsaWedgeForDegree(degreeInSign));
+}
+
+/** Trimshamsha (D30) input for a manual horoscope. D30 needs real in-sign degrees, so it exists only
+ *  when the Lagna degree was entered and at least one planet carries an entered degree; only those
+ *  planets are placed (planets without a degree have no D30 sign). Null otherwise. */
+export function manualTrimshamshaSource(
+    planets: AstroPlanet[],
+    mhp:
+        | { lagna: number; lagnaDegree?: number | null; planetDegrees?: Record<number, number> | null }
+        | null
+        | undefined,
+): { planets: AstroPlanet[]; ascendant: { sign: number; degree: number; lord: number } } | null {
+    if (!mhp || mhp.lagnaDegree === undefined || mhp.lagnaDegree === null) return null;
+    const degrees = mhp.planetDegrees ?? {};
+    const withDegree = planets
+        .filter((p) => degrees[p.name] !== undefined)
+        .map((p) => ({ ...p, degree: degrees[p.name], absoluteDegree: (p.sign - 1) * 30 + degrees[p.name] }));
+    if (withDegree.length === 0) return null;
+    return {
+        planets: withDegree,
+        ascendant: { sign: mhp.lagna, degree: mhp.lagnaDegree, lord: SIGN_LORD[mhp.lagna] || 1 },
+    };
+}
+
+/** Rahu ↔ Ketu partner (the lunar nodes always sit exactly opposite each other); null otherwise. */
+export function nodePartner(planet: number): number | null {
+    if (planet === Planet.RAHU) return Planet.KETU;
+    if (planet === Planet.KETU) return Planet.RAHU;
+    return null;
+}
+
+/** The house opposite `house` (7th from it): 3 → 9, 9 → 3, 12 → 6. */
+export function oppositeHouse(house: number): number {
+    return mod12(house + 5) + 1;
+}
+
+/** Place `planet` in `house` (moving it out of any other house). When it is Rahu or Ketu, the
+ *  partner node is placed in the opposite house too, since the two are always 180° apart — in the
+ *  birth chart and in the Navamsa alike. */
+export function placePlanetWithNode(
+    placements: Record<number, number[]>,
+    house: number,
+    planet: number,
+): Record<number, number[]> {
+    const partner = nodePartner(planet);
+    const moving = partner === null ? [planet] : [planet, partner];
+    const next: Record<number, number[]> = {};
+    for (const [key, planets] of Object.entries(placements)) {
+        const kept = planets.filter((p) => !moving.includes(p));
+        if (kept.length > 0) next[Number(key)] = kept;
+    }
+    next[house] = [...(next[house] ?? []), planet];
+    if (partner !== null) {
+        const opposite = oppositeHouse(house);
+        next[opposite] = [...(next[opposite] ?? []), partner];
+    }
+    return next;
+}
+
+/** Keep only degrees for planets placed in the birth houses, with values in [0, 30). */
+export function cleanPlanetDegrees(
+    houses: Record<number, number[]>,
+    planetDegrees: Record<number, number> | null | undefined,
+): Record<number, number> {
+    const placed = new Set(Object.values(houses).flat());
+    const result: Record<number, number> = {};
+    for (const [key, degree] of Object.entries(planetDegrees ?? {})) {
+        const planet = Number(key);
+        if (placed.has(planet) && Number.isFinite(degree) && degree >= 0 && degree < 30) result[planet] = degree;
+    }
+    return result;
+}
+
+/** Navamsa placements with every degree-bearing planet moved to the D9 house its degree implies
+ *  (relative to `navamsaLagna`). Planets without a degree keep their manual placement. Returns the
+ *  input unchanged when there is no navamsa lagna or no degrees. */
+export function applyDegreeNavamsaPlacements(
+    lagna: number,
+    houses: Record<number, number[]>,
+    navamsaLagna: number | undefined,
+    navamsaHouses: Record<number, number[]> | undefined,
+    planetDegrees: Record<number, number> | undefined,
+): Record<number, number[]> {
+    const current = navamsaHouses ?? {};
+    const degrees = cleanPlanetDegrees(houses, planetDegrees);
+    if (!navamsaLagna || navamsaLagna < 1 || navamsaLagna > 12 || Object.keys(degrees).length === 0) return current;
+    const houseSigns = deriveHouseSigns(lagna);
+    const birthHouseOf = placementsToMap(houses);
+    const result: Record<number, number[]> = {};
+    for (const [key, planets] of Object.entries(current)) {
+        const kept = planets.filter((p) => degrees[p] === undefined);
+        if (kept.length > 0) result[Number(key)] = kept;
+    }
+    for (const [key, degree] of Object.entries(degrees)) {
+        const planet = Number(key);
+        const navSign = deriveNavamsaSignFromDegree(houseSigns[birthHouseOf[planet] - 1], degree);
+        const navHouse = mod12(navSign - navamsaLagna) + 1;
+        result[navHouse] = [...(result[navHouse] ?? []), planet];
+    }
+    return result;
+}
 
 /** The Navamsa Lagna implied by an ascendant degree within the birth sign: which 3°20' wedge
  *  (1-9, `navamsaSign`) contains the given degree 0 ≤ d < 30. Always one of `navamsaLagnaOptions`. */
 export function deriveNavamsaLagnaFromDegree(birthSign: number, degreeInSign: number): number {
-    const clamped = Math.min(Math.max(degreeInSign, 0), 29.9999);
-    const wedge = Math.floor(clamped / NAVAMSA_ARC) + 1;
-    return navamsaSign(birthSign, wedge);
+    return deriveNavamsaSignFromDegree(birthSign, degreeInSign);
 }
 
 /** The 9 navamsa signs that belong to a given source sign (the Navamsa Lagna must be one of these).
@@ -512,9 +653,12 @@ export function computeAscendantNakshatra(mhp: { lagna: number; lagnaDegree?: nu
 export function computeMoonNakshatra(
     birthSign: number,
     navamsaSignForMoon?: number,
+    degreeInSign?: number,
 ): { id: number; pada: number; lord: number } {
     let absDegree: number;
-    if (navamsaSignForMoon !== undefined) {
+    if (degreeInSign !== undefined) {
+        absDegree = (birthSign - 1) * 30 + degreeInSign;
+    } else if (navamsaSignForMoon !== undefined) {
         const index = navamsaIndexForSign(birthSign, navamsaSignForMoon);
         absDegree = (birthSign - 1) * 30 + (index - 0.5) * NAVAMSA_ARC;
     } else {
@@ -717,6 +861,7 @@ export function nakshatraAndPada(absoluteDegree: number): { nakshatra: number; p
 export function deriveNavamsaData(
     planetBirthSigns: Record<number, number>,
     planetNavamsaSigns: Record<number, number>,
+    planetDegrees: Record<number, number> = {},
 ): NavamsaEnrichment[] {
     const result: NavamsaEnrichment[] = [];
     for (const [planetKey, birthSign] of Object.entries(planetBirthSigns)) {
@@ -726,7 +871,9 @@ export function deriveNavamsaData(
         const navamsaIndex = navamsaIndexForSign(birthSign, navSign);
         const start = (navamsaIndex - 1) * NAVAMSA_ARC;
         const end = navamsaIndex * NAVAMSA_ARC;
-        const midpoint = (start + end) / 2;
+        // An entered degree pins the exact point (Nakshatra/Pada, Atmakaraka); otherwise the
+        // segment midpoint stands in for it.
+        const midpoint = planetDegrees[planet] ?? (start + end) / 2;
         const absoluteDegreeMidpoint = (birthSign - 1) * 30 + midpoint;
         const { nakshatra, pada } = nakshatraAndPada(absoluteDegreeMidpoint);
         result.push({
@@ -760,13 +907,14 @@ export interface PlanetsTableInput {
     houseOfPlanet: Record<number, number>;
     navamsaEnrichment?: NavamsaEnrichment[];
     aspectOptions?: ManualAspectOptions;
+    planetDegrees?: Record<number, number>;
 }
 
 /** Derive the read-only planets table from house placements. Sign comes from the house, strength is
  *  sign-based (exaltation/debilitation/moolatrikona/own/friend/enemy/sama at degree 0), conjunctions/aspects
  *  from the shared rules, and "Other" carries the 22nd Drekkana Lord / 64th Navamsa Lord / Atmakaraka tags. */
 export function derivePlanetsTable(input: PlanetsTableInput): ManualPlanetRow[] {
-    const { lagna, houseOfPlanet, navamsaEnrichment = [], aspectOptions } = input;
+    const { lagna, houseOfPlanet, navamsaEnrichment = [], aspectOptions, planetDegrees = {} } = input;
     const houseSigns = deriveHouseSigns(lagna);
     const conjunctions = computeConjunctions(houseOfPlanet);
     const { byPlanet } = computeManualChartAspects(houseOfPlanet, houseSigns, aspectOptions);
@@ -802,14 +950,16 @@ export function derivePlanetsTable(input: PlanetsTableInput): ManualPlanetRow[] 
             if (atmakaraka === planet) other.push("atmakaraka");
             if (maranakaraka.includes(planet)) other.push("maranakaraka");
             if (yogakaraka.includes(planet)) other.push("yogakaraka");
+            const degree = planetDegrees[planet];
             return {
                 planet,
                 sign,
-                strength: computePlanetStrength(planet, sign, 0),
+                strength: computePlanetStrength(planet, sign, degree ?? 0),
                 house,
                 conjunctions: conjunctions[planet] ?? [],
                 aspectsPlanets: (byPlanet[planet] ?? []).map(({ planetName }) => planetName),
                 other,
+                ...(degree !== undefined ? { degree } : {}),
                 navamsa: enrichmentByPlanet[planet],
             };
         })
@@ -938,18 +1088,30 @@ export function deriveRanges(
 export function compute(input: ManualChartInput, currentShani?: CurrentShani | null): ManualChartResult {
     const houseOfPlanet = placementsToMap(input.houses);
     const houseSigns = deriveHouseSigns(input.lagna);
-    const aspectOptions = input.aspectOptions;
+    const planetDegrees = cleanPlanetDegrees(input.houses, input.planetDegrees);
+    const hasPlanetDegrees = Object.keys(planetDegrees).length > 0;
+    // Entered degrees feed the aspect engine's degree arm (it reads `planetDegrees` by string key).
+    const aspectOptions: ManualAspectOptions | undefined = hasPlanetDegrees
+        ? {
+              ...input.aspectOptions,
+              planetDegrees: Object.fromEntries(Object.entries(planetDegrees).map(([p, d]) => [String(p), d])),
+          }
+        : input.aspectOptions;
 
     let navamsaHouses: ManualHouse[] = [];
     let navamsaEnrichment: NavamsaEnrichment[] = [];
     const navamsaLagna = input.navamsaLagna;
+    // Planets with an entered degree are placed in the Navamsa automatically.
+    const inputNavamsaHouses = applyDegreeNavamsaPlacements(
+        input.lagna,
+        input.houses,
+        navamsaLagna,
+        input.navamsaHouses,
+        planetDegrees,
+    );
     const navamsaActive =
-        navamsaLagna &&
-        navamsaLagna >= 1 &&
-        navamsaLagna <= 12 &&
-        input.navamsaHouses &&
-        Object.keys(input.navamsaHouses).length > 0;
-    const navHouseOfPlanet = navamsaActive ? placementsToMap(input.navamsaHouses ?? {}) : undefined;
+        navamsaLagna && navamsaLagna >= 1 && navamsaLagna <= 12 && Object.keys(inputNavamsaHouses).length > 0;
+    const navHouseOfPlanet = navamsaActive ? placementsToMap(inputNavamsaHouses) : undefined;
     const navHouseSigns = navamsaActive ? deriveHouseSigns(navamsaLagna as number) : undefined;
 
     // Resolve navamsa-sign fallback for the aspect degree arm, then thread through both charts.
@@ -963,14 +1125,14 @@ export function compute(input: ManualChartInput, currentShani?: CurrentShani | n
         for (const [planetKey, house] of Object.entries(houseOfPlanet)) {
             planetBirthSigns[Number(planetKey)] = houseSigns[house - 1];
         }
-        navamsaEnrichment = deriveNavamsaData(planetBirthSigns, navamsaSigns);
+        navamsaEnrichment = deriveNavamsaData(planetBirthSigns, navamsaSigns, planetDegrees);
     }
     const resolvedOptions: ManualAspectOptions | undefined = aspectOptions
         ? { ...aspectOptions, ...(navamsaSigns ? { navamsaSigns } : {}) }
         : undefined;
 
     const houses = buildHouses(input.lagna, houseOfPlanet, resolvedOptions);
-    const validation = validatePlacements(houseOfPlanet, input.navamsaHouses, !!navamsaLagna);
+    const validation = validatePlacements(houseOfPlanet, inputNavamsaHouses, !!navamsaLagna);
     if (navamsaActive && navHouseOfPlanet) {
         navamsaHouses = buildHouses(navamsaLagna as number, navHouseOfPlanet, resolvedOptions);
     }
@@ -980,6 +1142,7 @@ export function compute(input: ManualChartInput, currentShani?: CurrentShani | n
         houseOfPlanet,
         navamsaEnrichment,
         aspectOptions: resolvedOptions,
+        planetDegrees,
     });
     const derivedRanges = deriveRanges(input.lagna, houseOfPlanet, navamsaEnrichment, currentShani);
 
@@ -990,6 +1153,7 @@ export function compute(input: ManualChartInput, currentShani?: CurrentShani | n
             navamsaLagna,
             houses,
             navamsaHouses: navamsaHouses.length > 0 ? navamsaHouses : undefined,
+            ...(hasPlanetDegrees ? { planetDegrees } : {}),
             validation,
         },
         planetsTable,
@@ -1087,10 +1251,11 @@ export function manualAscAbsDeg(mhp: {
     lagnaDegree?: number | null;
     navamsaLagna?: number | null;
 }): number {
+    // An entered lagna degree is the real ascendant (treated like a chart with a birth time).
+    if (mhp.lagnaDegree !== undefined && mhp.lagnaDegree !== null) return (mhp.lagna - 1) * 30 + mhp.lagnaDegree;
     const arc = 30 / 9;
     let index = 5;
-    if (mhp.lagnaDegree !== undefined && mhp.lagnaDegree !== null) index = Math.floor(mhp.lagnaDegree / arc) + 1;
-    else if (mhp.navamsaLagna !== undefined && mhp.navamsaLagna !== null)
+    if (mhp.navamsaLagna !== undefined && mhp.navamsaLagna !== null)
         index = navamsaIndexForSign(mhp.lagna, mhp.navamsaLagna);
     return (mhp.lagna - 1) * 30 + (index - 0.5) * arc;
 }

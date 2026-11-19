@@ -1,5 +1,6 @@
 "use client";
 
+import AmshaKalaFields, { type AmshaKalaInput } from "@/components/ManualChart/AmshaKalaFields";
 import PlanetPicker from "@/components/ManualChart/PlanetPicker";
 import { planetColor, planetGlyph, signGlyph } from "@/components/ManualChart/visuals";
 import { useI18n } from "@/hooks/useI18n";
@@ -11,6 +12,9 @@ interface HouseTableEditorProps {
     lagna: number;
     houses: Record<number, number[]>;
     computedHouseByPlanet?: Record<number, number>;
+    /** Entered amsha/kala per planet (planet enum → inputs). */
+    planetDegrees?: Record<number, AmshaKalaInput>;
+    onDegreeChange?: (planet: number, field: keyof AmshaKalaInput, value: string) => void;
     onAdd: (house: number, planet: number) => void;
     onRemove: (house: number, planet: number) => void;
 }
@@ -19,6 +23,8 @@ export default function HouseTableEditor({
     lagna,
     houses,
     computedHouseByPlanet,
+    planetDegrees = {},
+    onDegreeChange,
     onAdd,
     onRemove,
 }: HouseTableEditorProps) {
@@ -34,6 +40,7 @@ export default function HouseTableEditor({
             <h3 className="font-semibold text-sm mb-3 text-indigo-700 uppercase tracking-wide">
                 {t("manualChart.houseTableTitle")}
             </h3>
+            {onDegreeChange && <p className="text-xs text-gray-400 mb-2">{t("manualChart.planetDegreeHint")}</p>}
             <div className="overflow-x-auto">
                 <table className="w-full table-fixed text-sm">
                     <thead>
@@ -90,6 +97,15 @@ export default function HouseTableEditor({
                                                         {t(`astrology.planetNames.${planet}`)}
                                                         {differs && (
                                                             <span className="text-amber-600 font-semibold">•</span>
+                                                        )}
+                                                        {onDegreeChange && (
+                                                            <AmshaKalaFields
+                                                                value={planetDegrees[planet] ?? { amsha: "", kala: "" }}
+                                                                onChange={(field, value) =>
+                                                                    onDegreeChange(planet, field, value)
+                                                                }
+                                                                label={t(`astrology.planetNames.${planet}`)}
+                                                            />
                                                         )}
                                                         <button
                                                             type="button"
