@@ -6,6 +6,9 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 const QuickAddLocationModal = dynamic(() => import("@/components/QuickAddLocationModal"), { ssr: false });
 
+const SEARCH_LIMIT = 100;
+const SEARCH_DEBOUNCE_MS = 250;
+
 interface LocationOption {
     id: string;
     name: string;
@@ -27,6 +30,8 @@ export default function LocationPicker({ selectedLocationId, onChange, disabled 
     const [open, setOpen] = useState(false);
     const [locations, setLocations] = useState<LocationOption[]>([]);
     const [loading, setLoading] = useState(true);
+    const [searching, setSearching] = useState(false);
+    const [hasAnyLocations, setHasAnyLocations] = useState(false);
     const [error, setError] = useState("");
     const [search, setSearch] = useState("");
     const [showQuickAdd, setShowQuickAdd] = useState(false);
@@ -36,32 +41,65 @@ export default function LocationPicker({ selectedLocationId, onChange, disabled 
     const ref = useRef<HTMLDivElement>(null);
     const searchInputRef = useRef<HTMLInputElement>(null);
     const triggerRef = useRef<HTMLButtonElement>(null);
+    const requestSeq = useRef(0);
+    const isFirstLoad = useRef(true);
 
-    const fetchLocations = useCallback(async () => {
-        setLoading(true);
-        setError("");
-        try {
-            const res = await fetch("/api/location?limit=100");
-            if (!res.ok) throw new Error("Failed to load");
-            const data = await res.json();
-            setLocations(data.locations || []);
-        } catch {
-            setError(t("location_picker.error"));
-        } finally {
-            setLoading(false);
-        }
-    }, [t]);
+    /** Searches server-side — there are more locations than one page holds, so filtering a
+     *  preloaded list in the browser would hide everything past the first page. */
+    const fetchLocations = useCallback(
+        async (query: string = "") => {
+            const seq = ++requestSeq.current;
+            if (isFirstLoad.current) setLoading(true);
+            else setSearching(true);
+            setError("");
+            try {
+                const params = new URLSearchParams({ limit: String(SEARCH_LIMIT) });
+                if (query.trim()) params.set("search", query.trim());
+                const res = await fetch(`/api/location?${params}`);
+                if (!res.ok) throw new Error("Failed to load");
+                const data = await res.json();
+                if (seq !== requestSeq.current) return;
+                setLocations(data.locations || []);
+                if (!query.trim()) setHasAnyLocations((data.total ?? 0) > 0);
+            } catch {
+                if (seq === requestSeq.current) setError(t("location_picker.error"));
+            } finally {
+                if (seq === requestSeq.current) {
+                    isFirstLoad.current = false;
+                    setLoading(false);
+                    setSearching(false);
+                }
+            }
+        },
+        [t],
+    );
 
     useEffect(() => {
-        fetchLocations();
-    }, [fetchLocations]);
+        const timer = setTimeout(() => fetchLocations(search), isFirstLoad.current ? 0 : SEARCH_DEBOUNCE_MS);
+        return () => clearTimeout(timer);
+    }, [fetchLocations, search]);
 
     useEffect(() => {
-        if (selectedLocationId && locations.length > 0) {
-            const found = locations.find((l) => l.id === selectedLocationId);
-            if (found) setSelectedLocation(found);
+        if (!selectedLocationId || selectedLocation?.id === selectedLocationId) return;
+
+        const found = locations.find((l) => l.id === selectedLocationId);
+        if (found) {
+            setSelectedLocation(found);
+            return;
         }
-    }, [selectedLocationId, locations]);
+
+        // The selected location may not be in the current result page — load it directly.
+        let cancelled = false;
+        fetch(`/api/location/${selectedLocationId}`)
+            .then((res) => (res.ok ? res.json() : null))
+            .then((loc: LocationOption | null) => {
+                if (!cancelled && loc) setSelectedLocation(loc);
+            })
+            .catch(() => undefined);
+        return () => {
+            cancelled = true;
+        };
+    }, [selectedLocationId, selectedLocation, locations]);
 
     useEffect(() => {
         const handler = (e: MouseEvent) => {
@@ -83,8 +121,9 @@ export default function LocationPicker({ selectedLocationId, onChange, disabled 
     const publicLocations = locations.filter((l) => l.isPublic);
     const myLocations = locations.filter((l) => !l.isPublic);
 
-    const filteredPublic = publicLocations.filter((l) => l.name.toLowerCase().includes(search.toLowerCase()));
-    const filteredMine = myLocations.filter((l) => l.name.toLowerCase().includes(search.toLowerCase()));
+    // Results are already filtered server-side (with spelling tolerance), so no client filter here.
+    const filteredPublic = publicLocations;
+    const filteredMine = myLocations;
 
     const allFiltered = [...filteredPublic, ...filteredMine];
 
@@ -160,7 +199,7 @@ export default function LocationPicker({ selectedLocationId, onChange, disabled 
                     <p className="text-xs text-red-600">{error}</p>
                     <button
                         type="button"
-                        onClick={fetchLocations}
+                        onClick={() => fetchLocations(search)}
                         className="text-xs text-red-600 underline mt-1 hover:no-underline"
                     >
                         {t("location_picker.retry")}
@@ -170,7 +209,7 @@ export default function LocationPicker({ selectedLocationId, onChange, disabled 
         );
     }
 
-    if (locations.length === 0 && !selectedLocation) {
+    if (!hasAnyLocations && !selectedLocation) {
         return (
             <div>
                 <label className="block text-sm font-medium mb-1">{t("location_picker.title")}</label>
@@ -247,7 +286,7 @@ export default function LocationPicker({ selectedLocationId, onChange, disabled 
                     </div>
 
                     <div className="max-h-60 overflow-y-auto">
-                        {search && allFiltered.length === 0 && (
+                        {search && !searching && allFiltered.length === 0 && (
                             <p className="px-3 py-4 text-sm text-gray-400 text-center">{t("locations.search_empty")}</p>
                         )}
 

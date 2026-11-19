@@ -1,4 +1,4 @@
-import { validateCoordinate } from "@/lib/location";
+import { buildNameSearchPattern, validateCoordinate } from "@/lib/location";
 
 jest.mock("@/lib/db", () => ({
     connectDB: jest.fn().mockResolvedValue(undefined),
@@ -112,5 +112,34 @@ describe("validateCoordinate", () => {
     test("both out of range", () => {
         const result = validateCoordinate(100, 200);
         expect(result.valid).toBe(false);
+    });
+});
+
+describe("buildNameSearchPattern", () => {
+    const matches = (search: string, name: string) => new RegExp(buildNameSearchPattern(search), "i").test(name);
+
+    test.each([
+        ["Mathara", "Matara"],
+        ["matara", "Matara"],
+        ["Rathnapura", "Ratnapura"],
+        ["Kaluthara", "Kalutara"],
+        ["Hikaduwa", "Hikkaduwa"],
+        ["Kote", "Sri Jayewardenepura Kotte"],
+        ["ja ela", "Ja-ela"],
+        ["Hambantota", "Hambantota"],
+        ["nuwara", "Nuwara Eliya"],
+    ])("%s matches %s", (search, name) => {
+        expect(matches(search, name)).toBe(true);
+    });
+
+    test("does not match unrelated names", () => {
+        expect(matches("Matara", "Matale")).toBe(false);
+        expect(matches("Galle", "Kegalle Town")).toBe(true);
+        expect(matches("Galle", "Gampaha")).toBe(false);
+    });
+
+    test("escapes regex metacharacters", () => {
+        expect(() => new RegExp(buildNameSearchPattern("a(b[c"))).not.toThrow();
+        expect(matches("(", "Kandy")).toBe(false);
     });
 });

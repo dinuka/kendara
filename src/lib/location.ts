@@ -26,6 +26,33 @@ interface UpdateData {
     isPublic?: boolean;
 }
 
+/** Consonants that Sinhala/Tamil place names are romanised both with and without a trailing "h"
+ *  (Matara / Mathara, Ratnapura / Rathnapura, Kalutara / Kaluthara). */
+const ASPIRABLE = new Set(["t", "d", "k", "g", "b", "p", "c", "s"]);
+
+/** Builds a case-insensitive regex source for location-name search that tolerates common
+ *  romanisation differences: optional "h" after aspirable consonants, single vs doubled letters
+ *  (Hikaduwa / Hikkaduwa) and space vs hyphen (Ja Ela / Ja-ela). */
+export function buildNameSearchPattern(search: string): string {
+    const chars = [...search.trim().toLowerCase()];
+    const normalized: string[] = [];
+
+    for (const ch of chars) {
+        const prev = normalized[normalized.length - 1];
+        if (ch === "h" && prev && ASPIRABLE.has(prev)) continue;
+        if (ch === prev && /[a-z]/.test(ch)) continue;
+        normalized.push(ch);
+    }
+
+    return normalized
+        .map((ch) => {
+            if (/[\s-]/.test(ch)) return "[\\s-]*";
+            if (!/[a-z]/.test(ch)) return ch.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+            return ASPIRABLE.has(ch) ? `${ch}+h?` : `${ch}+`;
+        })
+        .join("");
+}
+
 export async function listLocations(
     userId: string,
     role?: string,
@@ -43,8 +70,7 @@ export async function listLocations(
               };
 
     if (search && search.trim()) {
-        const escaped = search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-        filter.name = { $regex: escaped, $options: "i" };
+        filter.name = { $regex: buildNameSearchPattern(search), $options: "i" };
     }
 
     const total = await Location.countDocuments(filter);
