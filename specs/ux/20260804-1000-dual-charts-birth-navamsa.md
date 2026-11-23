@@ -8,7 +8,7 @@
 
 ## Overview
 
-The Charts tab (ජන්ම කේන්ද්රය / නවාංශකය) of the horoscope detail page currently renders **one chart at a time**, behind an 8-button chart-type selector (`birth`, `navamsa-d9`, `house`, `chandra-lagna`, `surya-lagna`, `drekkana-d3`, `dasamsa-d10`, `shodasha-vargas`). A `selectedChart` state drives which single chart renders inside a `flex justify-center bg-white rounded-lg border p-4 overflow-auto` card.
+The Charts tab (ජන්ම කේන්දරය / නවාංශකය) of the horoscope detail page currently renders **one chart at a time**, behind an 8-button chart-type selector (`birth`, `navamsa-d9`, `house`, `chandra-lagna`, `surya-lagna`, `drekkana-d3`, `dasamsa-d10`, `shodasha-vargas`). A `selectedChart` state drives which single chart renders inside a `flex justify-center bg-white rounded-lg border p-4 overflow-auto` card.
 
 **User pain point:** The two most important charts in Vedic astrology — the birth chart (D1) and the navamsa chart (D9) — are frequently studied *together* (e.g. checking whether a planet's navamsa placement confirms or modifies its D1 placement, comparing D1 lagna vs D9 lagna). Today the user must:
 
@@ -77,7 +77,7 @@ Two options were considered:
 │  වෙනත් සටහන්  ────────────────────────────────────────────────────        │
 │  (uppercase tracking-wide section header, indigo-700)                    │
 │                                                                          │
-│  [ භාව ] [ චන්ද්ර ලග්න ] [ සූර්ය ලග්න ] [ D3 ] [ D10 ] [ වර්ග ]       │
+│  [ භාව ] [ චන්ද්‍ර ලග්න ] [ සූර්ය ලග්න ] [ D3 ] [ D10 ] [ වර්ග ]       │
 │  ┌──────────────────────────────────────────────────────────────┐        │
 │  │   (single chart card — house / chandra / surya / fallback    │        │
 │  │    rendered exactly as today, one at a time)                 │        │
@@ -109,7 +109,7 @@ Two options were considered:
 │  └────────────────────────┘  │
 │                              │
 │  වෙනත් සටහන්                  │
-│  [ භාව ] [ චන්ද්ර ලග්න ] …   │
+│  [ භාව ] [ චන්ද්‍ර ලග්න ] …   │
 │  ┌────────────────────────┐  │
 │  │  (single chart)        │  │
 │  └────────────────────────┘  │
@@ -234,14 +234,14 @@ The app shell is a **fixed 256px sidebar** (`Sidebar.tsx:29`, `w-64`, no respons
 "chartPairTitle": "ජන්ම හා නවාංශක",
 "otherCharts": "වෙනත් සටහන්",
 "chartCaptions": {
-    "birth": "ජන්ම කේන්ද්රය (D1)",
+    "birth": "ජන්ම කේන්දරය (D1)",
     "navamsa-d9": "නවාංශකය (D9)"
 }
 ```
 
 Notes:
 
-- Sinhala strings use the user-requested full forms: ජන්ම කේන්ද්රය ("birth chart"), නවාංශකය ("navamsa"). The existing short `chartTypes` values (ජන්ම / නවාංශක) remain for the compact buttons.
+- Sinhala strings use the user-requested full forms: ජන්ම කේන්දරය ("birth chart"), නවාංශකය ("navamsa"). The existing short `chartTypes` values (ජන්ම / නවාංශක) remain for the compact buttons.
 - The `(D1)` / `(D9)` suffix matches the existing D-number convention (`navamsaka: "Navamsaka (D9)"`, and the D3/D10 chart labels) and is meaningful to the study audience. If the team prefers plainer captions, drop the suffix — but the two files must stay identical in structure.
 - "වෙනත් සටහන්" reuses the established word for charts (`horoscope.charts` = "සටහන්").
 

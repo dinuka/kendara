@@ -279,8 +279,8 @@ function evaluateManglikRule(rule: ManglikRuleId, facts: ChartFacts): RuleEvalua
  *  - Mutual aspect: the lords aspect each other on the per-planet orbs (stored graha drishti)
  *  - Parivartana: each lord occupies the sign owned by the other
  * House lordships are evaluated from THREE reference points — Lagna, Moon and Sun (the doc adds
- * "මේවා චන්ද්ර ලග්නයෙන් හා සුර්ය ලග්නයෙන්ද සෑදේ"). A yoga does NOT form when the same planet
- * rules both houses (the doc's "එකම ග්රහයා වුවහොත් මෙය නොයැදේ" — e.g. Saturn owns both Makara and
+ * "මේවා චන්ද්‍ර ලග්නයෙන් හා සුර්ය ලග්නයෙන්ද සෑදේ"). A yoga does NOT form when the same planet
+ * rules both houses (the doc's "එකම ග්‍රහයා වුවහොත් මෙය නොයැදේ" — e.g. Saturn owns both Makara and
  * Kumbha, so a reference whose two houses fall on Capricorn/Aquarius can never create a Parashara
  * yoga). Priyamrityu forms from EITHER the 6-7 pair OR the 7-8 pair. Formation only — strength of
  * the lords is NOT used to create the yoga.

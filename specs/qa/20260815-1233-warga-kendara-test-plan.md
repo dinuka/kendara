@@ -164,19 +164,19 @@ This test plan covers the **වර්ග කේනදර (Warga Kendara / divisi
 
 | ID | Test Case | Steps | Expected | Maps to |
 |----|-----------|-------|----------|---------|
-| UI-WK-300 | Strip renders with D1 pinned + D9 default | open an auto horoscope → charts tab | strip shows `[🔒 රාශි (D1)] [නවාංශක (D9)✓] [සූර්ය ලග්න] [චන්ද්ර ලග්න]`; D1 is a `<span>` (not `<button>`), `tabindex="-1"`, lock glyph `aria-hidden`, `aria-label` = "Rāśi (D1) — always shown" / "රාශි (D1) — සැමවිටම පෙන්වයි"; D9 button `aria-pressed="true"`; exactly two chart figures | US-WK-002/003, UX Q1/Q6 |
+| UI-WK-300 | Strip renders with D1 pinned + D9 default | open an auto horoscope → charts tab | strip shows `[🔒 රාශි (D1)] [නවාංශක (D9)✓] [සූර්ය ලග්න] [චන්ද්‍ර ලග්න]`; D1 is a `<span>` (not `<button>`), `tabindex="-1"`, lock glyph `aria-hidden`, `aria-label` = "Rāśi (D1) — always shown" / "රාශි (D1) — සැමවිටම පෙන්වයි"; D9 button `aria-pressed="true"`; exactly two chart figures | US-WK-002/003, UX Q1/Q6 |
 | UI-WK-301 | Section title | inspect the charts-tab header | "වර්ග කේනදර" / "Warga Kendara" (new key) replaces the `chartPairTitle` usage on this page (`page.tsx:1091`) | UX Q1, US-WK-002 |
 | UI-WK-302 | Default pair D1 + D9 | fresh page load | grid shows D1 (left) + D9 (right); D9 tables carry no Nakshatra/Bhava Suchika columns | US-WK-003 AC1, US-WK-006 |
 | UI-WK-303 | Clicking D1 = no-op | click/tap the D1 badge | zero state change; no console error; second chart unchanged | US-WK-003 AC2, UX Q1 |
 | UI-WK-304 | Clicking selected second tab = no-op | click D9 while D9 selected | view unchanged; `aria-pressed` stays on D9 | US-WK-003 AC4 |
 | UI-WK-305 | Swap D9 → Surya Lagna | click [සූර්ය ලග්න] | `aria-pressed` moves D9 → Surya Lagna; right figure crossfades (150ms); indication tags + Houses/Planets tables swap to Surya Lagna data (no D1-only columns); D1 figure untouched | US-WK-003 AC3, UX Flow 2 |
-| UI-WK-306 | Swap D9 → Chandra Lagna | click [චන්ද්ර ලග්න] | D1 + Chandra Lagna displayed; Chandra tables populated | US-WK-003 AC3 |
+| UI-WK-306 | Swap D9 → Chandra Lagna | click [චන්ද්‍ර ලග්න] | D1 + Chandra Lagna displayed; Chandra tables populated | US-WK-003 AC3 |
 | UI-WK-307 | Swap back to D9 | click [නවාංශක (D9)] after a swap | D1 + D9 restored; no duplicate figures | US-WK-003 |
 | UI-WK-308 | Exactly two figures at all times | DOM query after each of D9/Surya/Chandra selection | always exactly 2 chart-figure cards; never 1 or 3 | US-WK-003 AC3 |
 | UI-WK-309 | Rapid switching settles on last selection | click Surya → Chandra → Surya quickly | settles on D1 + Surya Lagna; exactly two figures; tables match the final selection (no stale/partial data) | US-WK-003 edge |
 | UI-WK-310 | Reset on horoscope navigation | navigate from horoscope A to horoscope B | second chart resets to D9 (state keyed per horoscope id; no persistence) | US-WK-003 edge, arch §page.tsx |
 | UI-WK-311 | D1 indication tags | inspect D1 figure caption area | chips beneath caption, above Houses table: SI `සමස්ත ජීවිතය · ශරීරය · පොදු තත්ත්ව` (3 chips) / EN `Overall life · Body · General circumstances` (3 chips after comma-split); chip row `aria-label` = indication label ("Main indication") | US-WK-001 AC1, UX Q2 |
-| UI-WK-312 | D9 indication tags | inspect D9 figure | SI `විවාහය · ධර්මය · ග්රහ බලය` (3 chips) / EN `Marriage · Dharma · Strength of planets` (3 chips) | US-WK-001 AC1/AC2 |
+| UI-WK-312 | D9 indication tags | inspect D9 figure | SI `විවාහය · ධර්මය · ග්‍රහ බලය` (3 chips) / EN `Marriage · Dharma · Strength of planets` (3 chips) | US-WK-001 AC1/AC2 |
 | UI-WK-313 | Surya/Chandra Lagna indication tags | swap to each | own indication tags render (provisional "Sun-based chart" / "Moon-based chart" EN or SI equivalents per shipped i18n) | US-WK-001 AC2, UX Q2 |
 | UI-WK-314 | Locale switch re-renders tags | `useI18n()` SI ⇄ EN | tag chips re-render immediately in the new locale; no stale mix | US-WK-001 AC3, US-WK-012 |
 | UI-WK-315 | Unresolvable indication → `—` | temporarily remove a varga indication key (dev only) | tag row renders `—`; never empty, never crash | US-WK-001 edge |
@@ -224,7 +224,7 @@ This test plan covers the **වර්ග කේනදර (Warga Kendara / divisi
 | BI-WK-385 | Enum labels reused | planet/sign/strength names resolve via existing `astrology.planetNames`/`signNames`/`strength` maps — no duplicated strings |
 | BI-WK-386 | Chart captions | `astrology.chartCaptions.suryaLagna` / `chandraLagna` added to both locales; reused for the figure captions |
 | BI-WK-387 | Locale switch | `useI18n()` SI ⇄ EN re-renders tabs, tags, table headers, chips immediately; no stale mix (same horoscope, both sessions) |
-| BI-WK-388 | SI width | at 360px, SI tab labels (රාශි (D1), නවාංශක (D9), සූර්ය ලග්න, චන්ද්ර ලග්න) + lock glyph fit within the `overflow-x-auto` strip; chips wrap without clipping | 
+| BI-WK-388 | SI width | at 360px, SI tab labels (රාශි (D1), නවාංශක (D9), සූර්ය ලග්න, චන්ද්‍ර ලග්න) + lock glyph fit within the `overflow-x-auto` strip; chips wrap without clipping | 
 
 ## 8. Responsive Testing (UX §Responsive Behavior)
 
@@ -258,7 +258,7 @@ This test plan covers the **වර්ග කේනදර (Warga Kendara / divisi
 
 | ID | Flow | Steps | Expected | Maps to |
 |----|------|-------|----------|---------|
-| E2E-WK-400 | Auto horoscope full render (fixture) | open `6a68e337150a9f9377fab96d` → charts tab | strip D1 pinned + D9 selected; D1 tags සමස්ත ජීවිතය · ශරීරය · පොදු තත්ත්ව; D9 tags විවාහය · ධර්මය · ග්රහ බලය; D1 Saturn = Capricorn \| Own Sign with Combust/Maranakaraka/Maraka/Kala Bala; D9 Saturn = Cancer \| Enemy with no D1-only chips | US-WK-001/005/006/007/008 |
+| E2E-WK-400 | Auto horoscope full render (fixture) | open `6a68e337150a9f9377fab96d` → charts tab | strip D1 pinned + D9 selected; D1 tags සමස්ත ජීවිතය · ශරීරය · පොදු තත්ත්ව; D9 tags විවාහය · ධර්මය · ග්‍රහ බලය; D1 Saturn = Capricorn \| Own Sign with Combust/Maranakaraka/Maraka/Kala Bala; D9 Saturn = Cancer \| Enemy with no D1-only chips | US-WK-001/005/006/007/008 |
 | E2E-WK-401 | Pair permutations | select Surya Lagna then Chandra Lagna then D9 | D1+Surya → D1+Chandra → D1+D9; each swap updates tags + tables; exactly two figures always | US-WK-003 |
 | E2E-WK-402 | D1 lock + no-op clicks | click D1 badge, click selected second tab | nothing changes; no console errors | US-WK-003 AC2/AC4 |
 | E2E-WK-403 | Manual with Navamsa | open manual horoscope with navamsa data | all four tabs usable; D9 tables use entered navamsa chart | US-WK-010 AC1/AC2 |

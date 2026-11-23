@@ -1,5 +1,6 @@
 import { Ascendant, CalculationResult, House, Planet } from "@/lib/astrology";
 import { ChartType } from "@/lib/chartTypes";
+import { buildDrekkanaChart } from "@/lib/drekkana";
 import { buildTrimshamshaChart } from "@/lib/trimshamsha";
 
 export interface ChartInput {
@@ -99,6 +100,7 @@ const LEAN_CHART_TYPES: ReadonlySet<ChartType> = new Set([
     ChartType.NAVAMSA_D9,
     ChartType.CHANDRA_LAGNA,
     ChartType.SURYA_LAGNA,
+    ChartType.DREKKANA_D3,
     ChartType.TRIMSHAMSHA_D30,
 ]);
 
@@ -121,6 +123,10 @@ export function getChartData(result: CalculationResult, type: ChartType): ChartI
             return { houses: result.houses, planets: result.planets, ascendant: result.ascendant };
         }
         return rotateToLagna(result.houses, result.planets, result.ascendant, sun.sign, sun.degree);
+    }
+
+    if (type === ChartType.DREKKANA_D3) {
+        return buildDrekkanaChart(result);
     }
 
     if (type === ChartType.TRIMSHAMSHA_D30) {

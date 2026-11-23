@@ -4,6 +4,7 @@ import {
     hasStoredHouseAspects,
     receivedPlanetAspects,
     resolveDisplayAspects,
+    rotateDisplayAspects,
 } from "@/lib/chartAspects";
 
 // Aries lagna, whole-sign houses: house N holds sign N, house middle at 15°.
@@ -171,5 +172,19 @@ describe("resolveDisplayAspects — one set of records for every view", () => {
         const display = resolveDisplayAspects({ planets: legacyPlanets, houses: legacyHouses });
         expect(display.byHouse).toEqual(fresh.byHouse);
         expect(display.receivedByPlanet).toEqual(receivedPlanetAspects(storedPlanets));
+    });
+});
+
+describe("rotateDisplayAspects", () => {
+    it("keeps D1 planet records and re-keys house records by sign", () => {
+        const record = { planetName: 1, aspectType: 180 } as never;
+        const d1 = { receivedByPlanet: { 2: [record] }, byHouse: { 1: [], 7: [record] } };
+        const d1Houses = Array.from({ length: 12 }, (_, i) => ({ houseNumber: i + 1, sign: i + 1 }));
+        // Rotated so sign 4 is house 1 → sign 7 (D1 house 7) is house 4.
+        const rotated = Array.from({ length: 12 }, (_, i) => ({ houseNumber: i + 1, sign: ((i + 3) % 12) + 1 }));
+        const result = rotateDisplayAspects(d1, d1Houses, rotated);
+        expect(result.receivedByPlanet).toBe(d1.receivedByPlanet);
+        expect(result.byHouse[4]).toEqual([record]);
+        expect(result.byHouse[1]).toEqual([]);
     });
 });

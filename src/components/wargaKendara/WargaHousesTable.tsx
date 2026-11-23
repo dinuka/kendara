@@ -15,6 +15,8 @@ interface WargaHousesTableProps {
     /** D1 only: house → the calculation tab's aspect records (true deltas from the house middle).
      *  When present these replace the whole-sign row aspects. */
     aspectMap?: Record<number, Aspect[]>;
+    /** False on whole-sign charts (D9/D3/D30): aspect tooltips omit the always-zero delta. */
+    showAspectDelta?: boolean;
 }
 
 const PLANET_SYMBOLS: Record<number, string> = {
@@ -49,7 +51,7 @@ function aspectChipRecord(planetName: number, aspectType: number): Aspect {
  *  real <table> (>= 640px); mobile renders complete-info cards per the warga mobile wireframe (all
  *  columns visible, no expansion). Aspect cells render the aspecting planets as AspectChip tags —
  *  same chips as the Planets table, each anchoring the compact aspect tooltip (UI-WK-320). */
-const WargaHousesTable = ({ houses, planets, caption, aspectMap }: WargaHousesTableProps) => {
+const WargaHousesTable = ({ houses, planets, caption, aspectMap, showAspectDelta = true }: WargaHousesTableProps) => {
     const { t } = useI18n();
     const getSignName = (sign: number): string => t(`astrology.signNames.${sign}`);
     const getPlanetName = (planetName: number): string => t(`astrology.planetNames.${planetName}`);
@@ -70,6 +72,7 @@ const WargaHousesTable = ({ houses, planets, caption, aspectMap }: WargaHousesTa
             <span className="inline-flex flex-wrap gap-1">
                 {effectiveAspects(house).map((aspect) => (
                     <AspectChip
+                        showDelta={showAspectDelta}
                         key={aspect.planetName}
                         aspect={aspect}
                         planetLabel={getPlanetName(aspect.planetName)}

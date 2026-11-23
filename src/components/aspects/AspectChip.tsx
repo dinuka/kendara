@@ -18,6 +18,8 @@ export interface AspectChipProps {
     planetLabel: string;
     /** Whole-sign the aspecting planet occupies — the `{aspectingSign}` of rashi reason lines. */
     aspectingSign?: number;
+    /** False on whole-sign charts (D9/D3/D30): the tooltip omits the (always zero) delta. */
+    showDelta?: boolean;
 }
 
 /** Planets/houses table aspect chip — planet name only (UX §8.1), anchoring the compact
@@ -26,7 +28,7 @@ export interface AspectChipProps {
  *  blur, mouseleave or tap-outside close. The `title` fallback carries the same full text (delta
  *  exactly once) for no-JS/print. The tooltip is portaled to `document.body` and measured after
  *  mount so it sits right next to the tag. */
-export default function AspectChip({ aspect, planetLabel, aspectingSign }: AspectChipProps) {
+export default function AspectChip({ aspect, planetLabel, aspectingSign, showDelta = true }: AspectChipProps) {
     const { t, locale } = useI18n();
     const tokens: AspectTooltipTokens = {
         label: t("astrology.drishti.label"),
@@ -34,7 +36,8 @@ export default function AspectChip({ aspect, planetLabel, aspectingSign }: Aspec
         arrow: t("astrology.drishti.arrow"),
         getSignName: (sign) => t(`astrology.signNames.${sign}`),
     };
-    const { lines, single, delta, title } = composeAspectTooltip(tokens, { aspect, aspectingSign });
+    const { lines, single, delta, title } = composeAspectTooltip(tokens, { aspect, aspectingSign, showDelta });
+    const hasTooltip = lines.length > 0;
 
     const [open, setOpen] = useState(false);
     const hoverTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -74,7 +77,7 @@ export default function AspectChip({ aspect, planetLabel, aspectingSign }: Aspec
                 ref={anchorRef}
                 type="button"
                 aria-describedby={open ? tooltipId : undefined}
-                title={title}
+                title={title || undefined}
                 onMouseEnter={() => {
                     if (hoverTimer.current) clearTimeout(hoverTimer.current);
                     hoverTimer.current = setTimeout(openTooltip, 150);
@@ -94,6 +97,7 @@ export default function AspectChip({ aspect, planetLabel, aspectingSign }: Aspec
                 {planetLabel}
             </button>
             {open &&
+                hasTooltip &&
                 position &&
                 typeof document !== "undefined" &&
                 createPortal(

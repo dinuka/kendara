@@ -27,6 +27,8 @@ interface WargaPlanetsTableProps {
     /** D1 only: planet → the calculation tab's received-aspect records (true deltas). When present
      *  these replace the whole-sign row aspects. */
     aspectMap?: Record<number, Aspect[]>;
+    /** False on whole-sign charts (D9/D3/D30): aspect tooltips omit the always-zero delta. */
+    showAspectDelta?: boolean;
 }
 
 const STRENGTH_TRANSLATION_KEYS: Record<PlanetaryStrength, string> = {
@@ -155,6 +157,7 @@ const WargaPlanetsTable = ({
     bhavaSuchika,
     conjunctionMap,
     aspectMap,
+    showAspectDelta = true,
 }: WargaPlanetsTableProps) => {
     const { t } = useI18n();
     const getSignName = (sign: number): string => t(`astrology.signNames.${sign}`);
@@ -199,6 +202,7 @@ const WargaPlanetsTable = ({
             <span className="inline-flex flex-wrap gap-1">
                 {effectiveAspects(planet).map((aspect) => (
                     <AspectChip
+                        showDelta={showAspectDelta}
                         key={aspect.planetName}
                         aspect={aspect}
                         planetLabel={getPlanetName(aspect.planetName)}
@@ -220,7 +224,13 @@ const WargaPlanetsTable = ({
         effectiveConjunctions(planet).length > 0 ? (
             <span className="inline-flex flex-wrap gap-1">
                 {effectiveConjunctions(planet).map((q) => (
-                    <AspectChip key={q.planetName} aspect={q} planetLabel={getPlanetName(q.planetName)} aspectingSign={planet.sign} />
+                    <AspectChip
+                        showDelta={showAspectDelta}
+                        key={q.planetName}
+                        aspect={q}
+                        planetLabel={getPlanetName(q.planetName)}
+                        aspectingSign={planet.sign}
+                    />
                 ))}
             </span>
         ) : (
@@ -273,7 +283,11 @@ const WargaPlanetsTable = ({
             parts.push(`${t("astrology.bhavaSuchika.label")} ${bhavaSuchikaCell(planet)}`);
         }
         parts.push(
-            `${t("astrology.conjunctions")} ${effectiveConjunctions(planet).map((q) => getPlanetName(q.planetName)).join(", ") || noDetails}`,
+            `${t("astrology.conjunctions")} ${
+                effectiveConjunctions(planet)
+                    .map((q) => getPlanetName(q.planetName))
+                    .join(", ") || noDetails
+            }`,
         );
         parts.push(
             `${t("astrology.aspects")} ${
@@ -385,6 +399,7 @@ const WargaPlanetsTable = ({
                                 <span className="inline-flex flex-wrap gap-1">
                                     {effectiveConjunctions(planet).map((q) => (
                                         <AspectChip
+                                            showDelta={showAspectDelta}
                                             key={q.planetName}
                                             aspect={q}
                                             planetLabel={getPlanetName(q.planetName)}

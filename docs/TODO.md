@@ -8,10 +8,8 @@
 
 ### Manual calculated horoscope issues
 
-- Should possible adding without Navansaka. Then the system should not generate Navansaka or other Warga kendara for such horoscope.
-  - So Navansaka related calculation should hidden from calculation tables.
-  - Degree's no need to shows.
-  - Consider all planet in the house middle degree.  
+### Calculation
+- Need to calculate and show planets in Kendarasthana. 
 
 ### search query
 

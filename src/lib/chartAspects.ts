@@ -210,3 +210,20 @@ export const resolveDisplayAspects = (
     );
     return { receivedByPlanet, byHouse };
 };
+
+/** D1 aspect records re-keyed onto a chart that re-numbers the same houses (Surya/Chandra Lagna).
+ *  Planet degrees and whole-sign targets are unchanged by the rotation, so the planet records are
+ *  the D1 ones and each rotated house takes the records of the D1 house holding the same sign. */
+export const rotateDisplayAspects = (
+    d1: DisplayAspects,
+    d1Houses: Array<Pick<House, "houseNumber" | "sign">>,
+    rotatedHouses: Array<Pick<House, "houseNumber" | "sign">>,
+): DisplayAspects => {
+    const d1HouseBySign = new Map(d1Houses.map(({ houseNumber, sign }) => [sign, houseNumber]));
+    const byHouse: Record<number, Aspect[]> = {};
+    rotatedHouses.forEach(({ houseNumber, sign }) => {
+        const d1House = d1HouseBySign.get(sign);
+        byHouse[houseNumber] = d1House !== undefined ? (d1.byHouse[d1House] ?? []) : [];
+    });
+    return { receivedByPlanet: d1.receivedByPlanet, byHouse };
+};

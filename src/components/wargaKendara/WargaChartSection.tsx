@@ -6,7 +6,9 @@ import type { Aspect } from "@/lib/astrology";
 import type { DisplayAspects } from "@/lib/chartAspects";
 import { toBirthChartData } from "@/lib/chartDataTransform";
 import type { ChartInput } from "@/lib/chartDataTransform";
-import type { WargaChartEntry, WargaChartKey } from "@/lib/wargaKendara";
+import type { RashiAspectsSetting } from "@/lib/rashiAspects";
+import { resolveWargaDisplayAspects } from "@/lib/wargaKendara";
+import type { WargaChartEntry, WargaChartKey, WargaDegreeVargaKey } from "@/lib/wargaKendara";
 
 import WargaHousesTable from "./WargaHousesTable";
 import WargaIndicationTags from "./WargaIndicationTags";
@@ -14,7 +16,7 @@ import WargaPlanetsTable from "./WargaPlanetsTable";
 
 interface WargaChartSectionProps {
     /** Warga key of this figure — drives the indication tags and the D1-only table columns. */
-    chartKey: WargaChartKey | "d30";
+    chartKey: WargaChartKey | WargaDegreeVargaKey;
     /** Localized figure caption (astrology.chartCaptions.*). */
     caption: string;
     /** SVG figure source; null → the no-data placeholder. */
@@ -29,13 +31,22 @@ interface WargaChartSectionProps {
     showAscendantDegree?: boolean;
     /** Per-planet Bhava Suchika values for the D1 Planets table (existing top-level field). */
     bhavaSuchika?: Record<number, number>;
-    /** Degree-based conjunction records for the D1 Planets table — the same orb-matched Aspect[]
+    /** Degree-based conjunction records (D1 and Surya/Chandra Lagna) for the Planets table — the same orb-matched Aspect[]
      *  records as the calculation tab (true deltas; Rahu/Ketu only via a partner's orb). When
-     *  present the D1 table renders these instead of the stored whole-sign conjunctions. */
+     *  present the table renders these instead of the stored whole-sign conjunctions. */
     conjunctionMap?: Record<number, Aspect[]>;
-    /** D1 aspect records — the same records as the calculation tab (resolveDisplayAspects). */
+    /** Degree-based aspect records — D1's (resolveDisplayAspects), or for Surya/Chandra Lagna the
+     *  same records re-keyed onto the rotated houses (rotateDisplayAspects). Omitted → whole-sign
+     *  records from `entry`. */
     displayAspects?: DisplayAspects;
+    /** Rashi Aspects setting for the non-D1 charts' whole-sign rashi aspects (default rules when
+     *  omitted). D1 uses `displayAspects` instead. */
+    rashiAspects?: RashiAspectsSetting;
 }
+
+/** Charts whose aspect records carry real degree differences (D1 and its Sun/Moon rotations). The
+ *  whole-sign vargas (D9/D3/D30) have no degree difference, so their tooltips hide it. */
+const DEGREE_ASPECT_CHARTS: ReadonlySet<string> = new Set(["d1", "suryaLagna", "chandraLagna"]);
 
 /** One Warga Kendara figure: caption, main-indication tag chips, the SVG chart, and the per-chart
  *  Houses/Planets tables (architecture component sketch). When `entry` is null the figure slot
@@ -51,8 +62,13 @@ const WargaChartSection = ({
     bhavaSuchika,
     conjunctionMap,
     displayAspects,
+    rashiAspects,
 }: WargaChartSectionProps) => {
     const isD1 = chartKey === "d1";
+    const showAspectDelta = DEGREE_ASPECT_CHARTS.has(chartKey);
+    // D1 and the Surya/Chandra Lagna rotations render the degree-based engine records (passed in);
+    // the whole-sign vargas get planetary + rashi aspect records from their own entry.
+    const chartAspects = displayAspects ?? (entry ? resolveWargaDisplayAspects(entry, rashiAspects) : undefined);
 
     return (
         <figure className="bg-white rounded-lg border p-4">
@@ -78,15 +94,17 @@ const WargaChartSection = ({
                         houses={entry.houses}
                         planets={entry.planets}
                         caption={caption}
-                        aspectMap={isD1 ? displayAspects?.byHouse : undefined}
+                        aspectMap={chartAspects?.byHouse}
+                        showAspectDelta={showAspectDelta}
                     />
                     <WargaPlanetsTable
                         entry={entry}
                         caption={caption}
                         isD1={isD1}
                         bhavaSuchika={bhavaSuchika}
-                        conjunctionMap={isD1 ? conjunctionMap : undefined}
-                        aspectMap={isD1 ? displayAspects?.receivedByPlanet : undefined}
+                        conjunctionMap={conjunctionMap}
+                        aspectMap={chartAspects?.receivedByPlanet}
+                        showAspectDelta={showAspectDelta}
                     />
                 </>
             ) : (

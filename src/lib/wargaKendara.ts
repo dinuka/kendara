@@ -21,7 +21,7 @@
  *    - maranakaraka: computeMaranakaraka against the chart's whole-sign row houses (p.house).
  *    - digBala: planets sitting on their dig bala target house (see shadBalaya.DIG_HOUSE).
  */
-import type { CalculationResult, House, Planet } from "@/lib/astrology";
+import type { Aspect, AspectReason, CalculationResult, House, Planet } from "@/lib/astrology";
 import { computeMaranakaraka, navamsaSign } from "@/lib/astrology";
 import { PlanetaryStrength } from "@/lib/astrologyEnums";
 import { getChartData } from "@/lib/chartDataTransform";
@@ -34,8 +34,16 @@ import {
     hasManualNavamsa,
     manualTrimshamshaSource,
 } from "@/lib/manualChart";
+import type { DisplayAspects } from "@/lib/chartAspects";
 import { type PlanetAspectsMap, resolveAspectHouses } from "@/lib/planetAspects";
+import {
+    DEFAULT_RASHI_ASPECTS,
+    type RashiAspectsSetting,
+    computeRashiAspectSigns,
+    isRashiTargetEnabled,
+} from "@/lib/rashiAspects";
 import { computeDigBalaPlanets } from "@/lib/shadBalaya";
+import { buildDrekkanaChart } from "@/lib/drekkana";
 import { buildTrimshamshaChart } from "@/lib/trimshamsha";
 
 /** One row of the per-chart Houses table (the chart's whole-sign houses, the planets occupying each
@@ -86,9 +94,16 @@ export interface WargaChartEntry {
 }
 
 /** The four charts of the Warga Kendara. Every key is present — null when that chart cannot be
- *  derived from the data (e.g. no navamsa lagna entered on a manual horoscope). `d30` is optional:
- *  documents stored before the Trimshamsha (D30) chart lack it and re-derive it at render time. */
-export type WargaKendara = Record<WargaChartKey, WargaChartEntry | null> & { d30?: WargaChartEntry | null };
+ *  derived from the data (e.g. no navamsa lagna entered on a manual horoscope). `d3` and `d30` are
+ *  optional: documents stored before the Drekkana (D3) / Trimshamsha (D30) charts lack them and
+ *  re-derive them at render time. */
+export type WargaKendara = Record<WargaChartKey, WargaChartEntry | null> & {
+    d3?: WargaChartEntry | null;
+    d30?: WargaChartEntry | null;
+};
+
+/** Degree-mapped vargas computed from the D1 in-sign degrees (stored as optional WargaKendara keys). */
+export type WargaDegreeVargaKey = "d3" | "d30";
 
 export type WargaChartKey = "d1" | "d9" | "suryaLagna" | "chandraLagna";
 
@@ -150,6 +165,98 @@ export type WargaVargaKey = (typeof VARGA_CATALOG)[number]["key"];
 const aspectAngle = (planet: number, fromHouse: number, toHouse: number, planetAspects?: PlanetAspectsMap): number => {
     const n = ((toHouse - fromHouse + 12) % 12) + 1;
     return n > 1 && resolveAspectHouses(planet, planetAspects).includes(n) ? (n - 1) * 30 : 0;
+};
+
+/** Whole-sign aspect record for a warga chip: the angle IS the aspect, so there is no degree gap
+ *  or delta. Further reasons for the same aspecting planet are pushed onto `reasons`. */
+const wargaAspectRecord = (planetName: number, reason: AspectReason): Aspect => ({
+    planetName,
+    aspectType: reason.angle,
+    planetAbsoluteDegree: 0,
+    degreeGap: 0,
+    exactAspectDegree: reason.angle,
+    isBeneficial: reason.type === "planetary" && (reason.angle === 60 || reason.angle === 120),
+    delta: 0,
+    reasons: [reason],
+});
+
+const addWargaReason = (records: Map<number, Aspect>, aspecter: number, reason: AspectReason) => {
+    const existing = records.get(aspecter);
+    if (existing) existing.reasons?.push(reason);
+    else records.set(aspecter, wargaAspectRecord(aspecter, reason));
+};
+
+/** Display aspect records of a non-D1 Warga chart: the entry's stored whole-sign planetary aspects
+ *  plus whole-sign Rashi aspects (රාශි දෘෂ්ඨි) from each planet's sign in THIS chart, filtered by the
+ *  Rashi Aspects setting. Computed at render time so stored entries (which carry planetary aspects
+ *  only) and the live setting both apply. An aspecter hitting a target by both arms keeps one record
+ *  with both reasons (planetary first) — the same shape as the D1 engine (chartAspects.ts). */
+export const resolveWargaDisplayAspects = (
+    entry: Pick<WargaChartEntry, "houses" | "planets">,
+    rashiAspects: RashiAspectsSetting = DEFAULT_RASHI_ASPECTS,
+): DisplayAspects => {
+    const houseRecords = new Map<number, Map<number, Aspect>>();
+    entry.houses.forEach(({ houseNumber, aspects }) => {
+        const records = new Map<number, Aspect>();
+        aspects.forEach(({ planetName, aspectType }) =>
+            addWargaReason(records, planetName, {
+                type: "planetary",
+                angle: aspectType,
+                delta: 0,
+            }),
+        );
+        houseRecords.set(houseNumber, records);
+    });
+    const planetRecords = new Map<number, Map<number, Aspect>>();
+    entry.planets.forEach(({ name }) => planetRecords.set(name, new Map()));
+    entry.planets.forEach(({ name, aspects }) => {
+        aspects.forEach(({ planetName, aspectType }) => {
+            const records = planetRecords.get(planetName);
+            if (records)
+                addWargaReason(records, name, {
+                    type: "planetary",
+                    angle: aspectType,
+                    delta: 0,
+                });
+        });
+    });
+
+    entry.planets.forEach(({ name, sign }) => {
+        computeRashiAspectSigns(sign)
+            .filter((target) => isRashiTargetEnabled(sign, target, rashiAspects))
+            .forEach((aspectedSign) => {
+                const reason: AspectReason = {
+                    type: "rashi",
+                    angle: ((aspectedSign - sign + 12) % 12) * 30,
+                    delta: 0,
+                    aspectedSign,
+                };
+                entry.houses
+                    .filter((house) => house.sign === aspectedSign)
+                    .forEach(({ houseNumber }) => {
+                        const records = houseRecords.get(houseNumber);
+                        if (records) addWargaReason(records, name, { ...reason });
+                    });
+                entry.planets
+                    .filter((target) => target.name !== name && target.sign === aspectedSign)
+                    .forEach((target) => {
+                        const records = planetRecords.get(target.name);
+                        if (records) addWargaReason(records, name, { ...reason });
+                    });
+            });
+    });
+
+    const sorted = (records: Map<number, Aspect>): Aspect[] =>
+        [...records.values()].sort((a, b) => a.planetName - b.planetName);
+    const byHouse: Record<number, Aspect[]> = {};
+    houseRecords.forEach((records, houseNumber) => {
+        byHouse[houseNumber] = sorted(records);
+    });
+    const receivedByPlanet: Record<number, Aspect[]> = {};
+    planetRecords.forEach((records, name) => {
+        receivedByPlanet[name] = sorted(records);
+    });
+    return { receivedByPlanet, byHouse };
 };
 
 /** Navamsa wedge index (1-9) containing the degree within a sign. */
@@ -460,15 +567,22 @@ function buildRotatedEntry(
     };
 }
 
-/** Trimshamsha (D30) entry, derived at render time from a D1 chart with real in-sign degrees
- *  (auto calculations only). It is not part of the stored WargaKendara — D30 is a pure function
- *  of the stored degrees. */
-export const computeWargaD30Entry = (
+type DegreeVargaBuilder = (chart: Pick<ChartInput, "planets" | "ascendant">) => ChartInput;
+
+const DEGREE_VARGA_BUILDERS: Record<WargaDegreeVargaKey, DegreeVargaBuilder> = {
+    d3: buildDrekkanaChart,
+    d30: buildTrimshamshaChart,
+};
+
+/** Drekkana (D3) / Trimshamsha (D30) entry from a D1 chart with real in-sign degrees. A pure
+ *  function of the degrees, so documents stored before the key existed re-derive it at render time. */
+export const computeWargaDegreeVargaEntry = (
+    key: WargaDegreeVargaKey,
     chart: Pick<ChartInput, "planets" | "ascendant">,
     planetAspects?: PlanetAspectsMap,
 ): WargaChartEntry | null => {
     if (chart.planets.length === 0) return null;
-    const { planets, houses, ascendant } = buildTrimshamshaChart(chart);
+    const { planets, houses, ascendant } = DEGREE_VARGA_BUILDERS[key](chart);
     const sources: WargaPlanetSource[] = planets.map(({ name, sign, house, strength }) => ({
         name,
         sign,
@@ -484,12 +598,22 @@ export const computeWargaD30Entry = (
     };
 };
 
-/** Manual-horoscope D30 entry from the entered degrees (see `manualTrimshamshaSource`). */
-function buildManualD30Entry(result: CalculationResult, ctx: WargaKendaraContext): WargaChartEntry | null {
+/** Trimshamsha (D30) entry — see computeWargaDegreeVargaEntry. */
+export const computeWargaD30Entry = (
+    chart: Pick<ChartInput, "planets" | "ascendant">,
+    planetAspects?: PlanetAspectsMap,
+): WargaChartEntry | null => computeWargaDegreeVargaEntry("d30", chart, planetAspects);
+
+/** Manual-horoscope D3/D30 entry from the entered degrees (see `manualTrimshamshaSource`). */
+function buildManualDegreeVargaEntry(
+    key: WargaDegreeVargaKey,
+    result: CalculationResult,
+    ctx: WargaKendaraContext,
+): WargaChartEntry | null {
     const source = Array.isArray(result.planets)
         ? manualTrimshamshaSource(result.planets, ctx.manualHousePlacements)
         : null;
-    return source ? computeWargaD30Entry(source, ctx.planetAspects) : null;
+    return source ? computeWargaDegreeVargaEntry(key, source, ctx.planetAspects) : null;
 }
 
 /** Compute the full Warga Kendara for a calculation result. Pure and deterministic — the same
@@ -505,12 +629,16 @@ export function computeWargaKendara(result: CalculationResult, ctx: WargaKendara
         d9: ctx.source === "manual" ? buildManualD9Entry(ctx) : buildAutoD9Entry(res, ctx.planetAspects),
         suryaLagna: manualWithoutNavamsa ? null : buildRotatedEntry(res, ChartType.SURYA_LAGNA, ctx.planetAspects),
         chandraLagna: manualWithoutNavamsa ? null : buildRotatedEntry(res, ChartType.CHANDRA_LAGNA, ctx.planetAspects),
-        // D30 needs real in-sign degrees: manual charts only have them for an entered Lagna degree and
-        // the planets with an entered degree (amsha + kala); otherwise their degrees are synthetic.
+        // D3/D30 need real in-sign degrees: manual charts only have them for an entered Lagna degree
+        // and the planets with an entered degree (amsha + kala); otherwise their degrees are synthetic.
+        d3:
+            ctx.source === "manual"
+                ? buildManualDegreeVargaEntry("d3", result, ctx)
+                : computeWargaDegreeVargaEntry("d3", result, ctx.planetAspects),
         d30:
             ctx.source === "manual"
-                ? buildManualD30Entry(result, ctx)
-                : computeWargaD30Entry(result, ctx.planetAspects),
+                ? buildManualDegreeVargaEntry("d30", result, ctx)
+                : computeWargaDegreeVargaEntry("d30", result, ctx.planetAspects),
     };
 }
 
@@ -535,7 +663,9 @@ function isValidWargaKendara(value: unknown): value is WargaKendara {
     const record = value as Record<string, unknown>;
     return (
         WK_KEYS.every((key) => record[key] === null || isWargaChartEntry(record[key])) &&
-        (record.d30 === undefined || record.d30 === null || isWargaChartEntry(record.d30))
+        (["d3", "d30"] as const).every(
+            (key) => record[key] === undefined || record[key] === null || isWargaChartEntry(record[key]),
+        )
     );
 }
 
@@ -578,7 +708,10 @@ export function resolveWargaKendara(calculatedDetails: unknown): WargaKendara | 
                 atmakaraka: doc.atmakaraka,
                 badhakaPlanet: doc.badhakaPlanet,
             } as unknown as CalculationResult,
-            { source: manualHousePlacements ? "manual" : "auto", manualHousePlacements },
+            {
+                source: manualHousePlacements ? "manual" : "auto",
+                manualHousePlacements,
+            },
         );
     } catch (error) {
         console.warn("[wargaKendara] failed to derive warga charts from stored data", error);

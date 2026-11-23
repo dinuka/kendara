@@ -72,7 +72,7 @@ New coverage: `shadbalayaApi.test.ts` (10), plus `recalculationJob.test.ts` US-S
 - **E2E-SB-113** — Non-owner share-link viewer sees read-only checkboxes + ⓘ + `readOnlyNotice`; no PATCH is sent on interaction.
 - **E2E-SB-114** — Super-admin can toggle a non-owned horoscope's Shad Bala.
 - **E2E-SB-115** — Changing AstrologySettings (any orb/rashi setting) triggers recalculation; overridden cells survive, recomputed cells update.
-- **UI-SB-201** — Desktop table shows 8 columns (ග්රහයා + 6 balas + අනුපාතය) × 9 rows; ratios `(n/6)` right-aligned.
+- **UI-SB-201** — Desktop table shows 8 columns (ග්‍රහයා + 6 balas + අනුපාතය) × 9 rows; ratios `(n/6)` right-aligned.
 - **UI-SB-202** — Hover/focus a cell opens the reason tooltip after ~150 ms with heading, state line, `·` reasons, and indigo override footer for overridden cells; `Esc` closes it.
 - **UI-SB-203** — Mobile view (< md) renders per-planet cards with bala chips that wrap to 2-1 columns.
 - **UI-SB-204** — Sinhala locale renders all strings in Sinhala with wider tooltips; English locale renders English.

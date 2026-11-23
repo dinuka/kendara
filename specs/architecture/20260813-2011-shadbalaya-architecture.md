@@ -20,7 +20,7 @@ The calculations tab of the horoscope detail page shows a derived planets table,
 | Drishti | දෘෂ්ඨි බලය | Aspect strength — manually entered only | No |
 | Naisargika | නෛසර්ගික බලය | Natural strength — absent only for the Maranakaraka planets | Yes (auto + manual) |
 
-The table has **8 columns**: ග්රහයා (Planet), the six bala columns, and අනුපාතය (Anupatha ratio) shown as `(n/6)` — the count of checked balas over 6, not a division result.
+The table has **8 columns**: ග්‍රහයා (Planet), the six bala columns, and අනුපාතය (Anupatha ratio) shown as `(n/6)` — the count of checked balas over 6, not a division result.
 
 Each bala renders as a **checkbox** (checked = planet has the bala). Checkboxes are auto-checked from the rules below where the system can calculate them; the student may **check/uncheck any bala** and the change **auto-saves**. Every checkbox has a **tooltip** explaining why it is checked or unchecked. User overrides persist and are **never wiped** by the AstrologySettings recalculation job.
 
@@ -298,7 +298,7 @@ The page computes the resolved `shadbalaya` via `mergeShadBalaya(computeShadBala
 
 ### Rendering
 
-- **Desktop**: `overflow-x-auto` table, 8 columns in order — ග්රහයා (Planet), ස්ථාන බල, චේෂ්ටා බලය, කාල බලය, දිග් බලය, දෘෂ්ඨි බලය, නෛසර්ගික බලය, අනුපාතය — one row per planet 1–9 (9 rows), planet names via `getPlanetName` (existing numeric-Planet → i18n labels, US-SB-011 AC5).
+- **Desktop**: `overflow-x-auto` table, 8 columns in order — ග්‍රහයා (Planet), ස්ථාන බල, චේෂ්ටා බලය, කාල බලය, දිග් බලය, දෘෂ්ඨි බලය, නෛසර්ගික බලය, අනුපාතය — one row per planet 1–9 (9 rows), planet names via `getPlanetName` (existing numeric-Planet → i18n labels, US-SB-011 AC5).
 - **Bala cells**: a checkbox per bala; checked = has the bala. The ratio column renders `t("astrology.shadbalaya.ratioFormat", { n })` as `(n/6)`, derived from the six `value` flags at render time — never stored (US-SB-010).
 - **Mobile**: card view (`sm:hidden`) following the existing planets-table mobile pattern.
 - **Read-only (US-SB-014)**: when `isEditable === false` (share links, other students' public horoscopes) render the checked state without interactive checkboxes (disabled checkboxes); ratio and tooltips still render.

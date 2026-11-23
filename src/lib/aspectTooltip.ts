@@ -30,6 +30,10 @@ export interface AspectTooltipData {
     aspect: Pick<Aspect, "aspectType" | "exactAspectDegree" | "degreeGap" | "delta" | "reasons">;
     /** Whole-sign the aspecting planet occupies — the `{aspectingSign}` of rashi reason lines. */
     aspectingSign?: number;
+    /** False for whole-sign charts (D9/D3/D30) whose records carry no real degree difference — the
+     *  delta is omitted everywhere (no inline delta, no `Δ` footer; a conjunction has no lines).
+     *  Default true. */
+    showDelta?: boolean;
 }
 
 export interface AspectTooltipResult {
@@ -50,10 +54,11 @@ const REASON_ORDER: Record<AspectReason["type"], number> = { planetary: 0, rashi
  *  `Δ {delta}` footer (the delta is never repeated per line). Legacy aspects (no `reasons`) are
  *  treated as a single planetary reason. */
 export function composeAspectTooltip(tokens: AspectTooltipTokens, data: AspectTooltipData): AspectTooltipResult {
-    const { aspect, aspectingSign } = data;
+    const { aspect, aspectingSign, showDelta = true } = data;
     // A conjunction (0°) tooltip carries ONLY the positional difference — no drishti label, no
     //  house, no angle. The planets' angular separation IS the whole reason (UX §8.1.1 note).
     if ((aspect.aspectType ?? aspect.exactAspectDegree ?? 0) <= 0) {
+        if (!showDelta) return { lines: [], single: true, delta: "", title: "" };
         const deltaStr = formatSignedDelta(aspect.delta ?? aspect.degreeGap ?? 0);
         return { lines: [deltaStr], single: true, delta: deltaStr, title: deltaStr };
     }
@@ -88,6 +93,11 @@ export function composeAspectTooltip(tokens: AspectTooltipTokens, data: AspectTo
         }
         return house !== null ? `${tokens.label} ${house} (${angle})` : `${tokens.label} (${angle})`;
     };
+
+    if (!showDelta) {
+        const body = effectiveReasons.map((reason) => renderReason(reason, false));
+        return { lines: body, single: true, delta: "", title: body.join("\n") };
+    }
 
     if (single) {
         const line = renderReason(effectiveReasons[0], true);

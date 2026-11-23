@@ -1148,7 +1148,7 @@ describe("Dharma Karmadhipati Yoga (UT-DK-001..011)", () => {
     });
 
     test("UT-DK-012: the 9th/10th sambandha is evaluated from the Moon reference too (Parashara overrides)", () => {
-        // docs/parashara-yoga.md note "මේවා චන්ද්ර ලග්නයෙන් හා සුර්ය ලග්නයෙන්ද සෑදේ". Lagna
+        // docs/parashara-yoga.md note "මේවා චන්ද්‍ර ලග්නයෙන් හා සුර්ය ලග්නයෙන්ද සෑදේ". Lagna
         // (Aries) lords Jupiter(5)/Saturn(7) — Saturn absent → Lagna reference skipped. Moon in
         // Cancer (4): 9th house = Pisces (lord Jupiter 5), 10th = Aries (lord Mars 3) — Jupiter and
         // Mars are conjunct → the yoga fires from the Moon reference with its lords/params.
@@ -1235,7 +1235,7 @@ describe("Parashara Sambandha Yoga (UT-PS-001..010)", () => {
         expect(ps.params).toEqual({ house1: 1, house2: 2, lord1: 5, lord2: 7, reference: "Sun" });
     });
 
-    test("UT-PS-007: same-lord exclusion — a Saturn-ruled 10/11 pair never forms bhumiDravya (doc 'එකම ග්රහයා වුවහොත්')", () => {
+    test("UT-PS-007: same-lord exclusion — a Saturn-ruled 10/11 pair never forms bhumiDravya (doc 'එකම ග්‍රහයා වුවහොත්')", () => {
         // From Aries, the 10th (Capricorn) and 11th (Aquarius) houses are BOTH ruled by Saturn —
         // bhumiDravya must stay absent even though the very same conjunct pair forms the adjacent
         // dharmaKarmadhipati (9th=Jupiter / 10th=Saturn) from the Lagna reference.

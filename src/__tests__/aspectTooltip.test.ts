@@ -182,3 +182,36 @@ describe("composeAspectTooltip — multi reason", () => {
         expect(result.lines[1]).toBe("Rashi drishti Cancer → Libra");
     });
 });
+
+describe("composeAspectTooltip — showDelta false (whole-sign vargas)", () => {
+    it("omits the delta from single and multi reason tooltips", () => {
+        const single = composeAspectTooltip(tokens, {
+            aspect: aspect({ aspectType: 180, reasons: [{ type: "planetary", angle: 180, delta: 0 }] }),
+            showDelta: false,
+        });
+        expect(single.lines).toEqual(["Planet drishti 7 (180)"]);
+        expect(single.single).toBe(true);
+        expect(deltaCount(single.title)).toBe(0);
+
+        const multi = composeAspectTooltip(tokens, {
+            aspect: aspect({
+                aspectType: 120,
+                reasons: [
+                    { type: "planetary", angle: 120, delta: 0 },
+                    { type: "rashi", angle: 120, delta: 0, aspectedSign: 5 },
+                ],
+            }),
+            aspectingSign: 1,
+            showDelta: false,
+        });
+        expect(multi.lines).toEqual(["Planet drishti 5 (120)", "Rashi drishti Aries → Leo"]);
+        expect(multi.single).toBe(true);
+        expect(multi.title).not.toContain("Δ");
+    });
+
+    it("gives a conjunction no tooltip lines", () => {
+        const result = composeAspectTooltip(tokens, { aspect: aspect({ aspectType: 0 }), showDelta: false });
+        expect(result.lines).toEqual([]);
+        expect(result.title).toBe("");
+    });
+});

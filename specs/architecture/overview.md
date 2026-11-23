@@ -139,7 +139,7 @@
 
 ### 7. Shad Bala (ෂඩ් බලය) — Six-Strengths Table
 
-- A per-planet ෂඩ් බලය table in the calculations tab: 8 columns (ග්රහයා, ස්ථාන බල, චේෂ්ටා බලය, කාල බලය, දිග් බලය, දෘෂ්ඨි බලය, නෛසර්ගික බලය, අනුපාතය), 9 rows, with checkbox toggles and reason tooltips per bala.
+- A per-planet ෂඩ් බලය table in the calculations tab: 8 columns (ග්‍රහයා, ස්ථාන බල, චේෂ්ටා බලය, කාල බලය, දිග් බලය, දෘෂ්ඨි බලය, නෛසර්ගික බලය, අනුපාතය), 9 rows, with checkbox toggles and reason tooltips per bala.
 - Each bala is a Boolean computed from stored chart data (`planets` + `houses`) by a pure shared module `src/lib/shadBalaya.ts` (`computeShadBalaya(planets, houses, ctx)`) — no ephemeris, no I/O — so the same module runs server-side at calculation time and client-side for legacy-document lazy recompute. Results are stored on `CalculatedDetails.shadbalaya` (keyed by numeric Planet enum string `"1"`…`"9"`); the ratio `(n/6)` is derived at render time, never stored.
 - Rules: Sthana = checked unless Neecha AND enemy-sign together; Cheshta = Uttarayana (sign-based for both sources), Shukla paksha Moon, same-sign Shukla-Chandra conjunction, Vakra, planet-war (deferred); Kala = day/night (Sun-in-houses-7-12 rule), paksha conditions, varga loads (deferred); Dig = 1st/10th/4th/7th directional houses (Rahu/Ketu never); Naisargika = present unless Maranakaraka; Drishti = manual only.
 - Students may toggle any bala; toggles persist with `overridden: true` and are **preserved across the AstrologySettings full recalculation** (`mergeShadBalaya(computed, stored)` keeps `overridden: true` entries, recomputes the rest — mirroring `manualHousePlacements`).
