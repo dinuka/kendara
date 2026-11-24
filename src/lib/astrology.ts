@@ -217,8 +217,9 @@ export function formatDegree(deg: number): string {
 
 export interface AspectReason {
     /** Source of the drishti: the Planet-Aspects setting ("planetary") or the fixed Rashi
-     *  Chara/Thira/Ubaya rules ("rashi"). Each distinct reason renders as its own tooltip line. */
-    type: "planetary" | "rashi";
+     *  Chara/Thira/Ubaya rules ("rashi"), or a Kendrasthana record (1/4/7/10 house — "kendra",
+     *  src/lib/kendrasthana.ts). Each distinct reason renders as its own tooltip line. */
+    type: "planetary" | "rashi" | "kendra";
     /** Matched angle for this reason (planetary: the nearest configured/default degree; rashi:
      *  `30` × the zodiacal sign-gap). */
     angle: number;

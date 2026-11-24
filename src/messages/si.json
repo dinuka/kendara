@@ -307,6 +307,7 @@
         "thithi": "තිති",
         "panchaPakshi": "පංච පක්ෂී",
         "aspects": "දෘෂ්ටි",
+        "kendrasthana": "කේන්ද්‍රස්ථාන",
         "aspectReason": {
             "infoGlyph": "දෘෂ්ඨි හේතුව පෙන්වන්න"
         },
@@ -325,6 +326,7 @@
         },
         "drishti": {
             "label": "ග්‍රහ දෘෂ්ඨි",
+            "kendraLabel": "කේන්ද්‍රස්ථාන",
             "rashiLabel": "රාශි දෘෂ්ඨි",
             "line": "{prefix} {house} ({angle}) ({delta})",
             "lineNoHouse": "{prefix} ({angle}) ({delta})",

@@ -20,6 +20,7 @@ const SIGN_NAMES: Record<number, string> = {
 const tokens: AspectTooltipTokens = {
     label: "Planet drishti",
     rashiLabel: "Rashi drishti",
+    kendraLabel: "Kendrasthana",
     arrow: "→",
     getSignName: (sign) => SIGN_NAMES[sign] ?? `Sign ${sign}`,
 };

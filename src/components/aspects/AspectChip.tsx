@@ -33,6 +33,7 @@ export default function AspectChip({ aspect, planetLabel, aspectingSign, showDel
     const tokens: AspectTooltipTokens = {
         label: t("astrology.drishti.label"),
         rashiLabel: t("astrology.drishti.rashiLabel"),
+        kendraLabel: t("astrology.drishti.kendraLabel"),
         arrow: t("astrology.drishti.arrow"),
         getSignName: (sign) => t(`astrology.signNames.${sign}`),
     };

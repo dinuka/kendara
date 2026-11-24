@@ -307,6 +307,7 @@
         "thithi": "Thithi",
         "panchaPakshi": "Pancha Pakshi",
         "aspects": "Aspects",
+        "kendrasthana": "Kendrasthana",
         "aspectReason": {
             "infoGlyph": "Show aspect reason"
         },
@@ -325,6 +326,7 @@
         },
         "drishti": {
             "label": "Planet drishti",
+            "kendraLabel": "Kendrasthana",
             "rashiLabel": "Rashi drishti",
             "line": "{prefix} {house} ({angle}) ({delta})",
             "lineNoHouse": "{prefix} ({angle}) ({delta})",

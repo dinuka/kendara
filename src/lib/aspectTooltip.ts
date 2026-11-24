@@ -20,6 +20,8 @@ export interface AspectTooltipTokens {
     label: string;
     /** `astrology.drishti.rashiLabel` — e.g. "Rashi drishti" / "රාශි දෘෂ්ඨි". */
     rashiLabel: string;
+    /** `astrology.drishti.kendraLabel` — e.g. "Kendrasthana" / "කේන්ද්‍රස්ථාන". */
+    kendraLabel: string;
     /** `astrology.drishti.arrow` — the language-neutral `→`. */
     arrow: string;
     /** Localized sign-name resolver (`astrology.signNames.{n}`). */
@@ -47,7 +49,7 @@ export interface AspectTooltipResult {
     title: string;
 }
 
-const REASON_ORDER: Record<AspectReason["type"], number> = { planetary: 0, rashi: 1 };
+const REASON_ORDER: Record<AspectReason["type"], number> = { planetary: 0, rashi: 1, kendra: 2 };
 
 /** Compose the compact reason lines (UX §8.1.1). Single reason keeps the inline signed delta;
  *  ≥2 reasons render one line per reason WITHOUT deltas and the caller appends the single shared
@@ -55,6 +57,15 @@ const REASON_ORDER: Record<AspectReason["type"], number> = { planetary: 0, rashi
  *  treated as a single planetary reason. */
 export function composeAspectTooltip(tokens: AspectTooltipTokens, data: AspectTooltipData): AspectTooltipResult {
     const { aspect, aspectingSign, showDelta = true } = data;
+    // Kendrasthana record (4/7/10): one line "Kendrasthana {house} ({angle}) ({delta})".
+    const kendra = aspect.reasons?.find((reason) => reason.type === "kendra");
+    if (kendra) {
+        const head = `${tokens.kendraLabel} ${kendra.angle / 30 + 1} (${kendra.angle})`;
+        if (!showDelta) return { lines: [head], single: true, delta: "", title: head };
+        const deltaStr = formatSignedDelta(kendra.delta);
+        const line = `${head} (${deltaStr})`;
+        return { lines: [line], single: true, delta: deltaStr, title: line };
+    }
     // A conjunction (0°) tooltip carries ONLY the positional difference — no drishti label, no
     //  house, no angle. The planets' angular separation IS the whole reason (UX §8.1.1 note).
     if ((aspect.aspectType ?? aspect.exactAspectDegree ?? 0) <= 0) {

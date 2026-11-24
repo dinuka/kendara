@@ -40,6 +40,7 @@ import { PlanetaryStrength } from "@/lib/astrologyEnums";
 import { calculateBadhakaLevels } from "@/lib/badhaka";
 import { resolveLagnaBhavaSuchika, resolvePlanetBhavaSuchika } from "@/lib/bhavaSuchika";
 import { type AspectSettings, resolveDisplayAspects, rotateDisplayAspects } from "@/lib/chartAspects";
+import { computeKendrasthana } from "@/lib/kendrasthana";
 import { getChartData } from "@/lib/chartDataTransform";
 import type { ChartInput } from "@/lib/chartDataTransform";
 import { ChartType } from "@/lib/chartTypes";
@@ -466,6 +467,13 @@ export default function HoroscopeDetailPage() {
     // Planets tables and the D1 warga tables. Stored records win; legacy docs are re-derived with the
     // same engine (src/lib/chartAspects.ts). Planet rows list the planets aspecting them.
     const displayAspects = resolveDisplayAspects(calculatedDetails, aspectSettings);
+    // Kendrasthana (4/7/10 houses): derived at render with the aspect engine's point/difference rule
+    // (src/lib/kendrasthana.ts). Houses list every kendra planet; planets only those within the orb.
+    const kendrasthana = computeKendrasthana(
+        calculatedDetails?.planets ?? [],
+        calculatedDetails?.houses ?? [],
+        aspectSettings.planetaryOrbs,
+    );
     const planetSignOf = (name: number): number | undefined =>
         calculatedDetails?.planets?.find((p) => p.name === name)?.sign;
 
@@ -1638,6 +1646,7 @@ export default function HoroscopeDetailPage() {
                                                 <th className="py-1 pr-3">{t("astrology.end")}</th>
                                                 <th className="py-1 pr-3">{t("astrology.planets")}</th>
                                                 <th className="py-1 pr-3">{t("astrology.aspects")}</th>
+                                                <th className="py-1 pr-3">{t("astrology.kendrasthana")}</th>
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -1660,6 +1669,7 @@ export default function HoroscopeDetailPage() {
                                                           )
                                                         : null;
                                                 const aspectsToHouse = displayAspects.byHouse[h.houseNumber] ?? [];
+                                                const kendraOfHouse = kendrasthana.byHouse[h.houseNumber] ?? [];
                                                 return (
                                                     <tr
                                                         key={h.houseNumber}
@@ -1737,6 +1747,21 @@ export default function HoroscopeDetailPage() {
                                                                 "—"
                                                             )}
                                                         </td>
+                                                        <td className="py-1 pr-3">
+                                                            {kendraOfHouse.length > 0 ? (
+                                                                <div className="flex flex-wrap gap-1">
+                                                                    {kendraOfHouse.map((a) => (
+                                                                        <AspectChip
+                                                                            key={a.planetName}
+                                                                            aspect={a}
+                                                                            planetLabel={`${PLANET_SYMBOLS[a.planetName] ?? ""} ${getPlanetName(a.planetName)}`.trim()}
+                                                                        />
+                                                                    ))}
+                                                                </div>
+                                                            ) : (
+                                                                "—"
+                                                            )}
+                                                        </td>
                                                     </tr>
                                                 );
                                             })}
@@ -1793,6 +1818,7 @@ export default function HoroscopeDetailPage() {
                                                 )}
                                                 <th className="py-1 pr-3">{t("astrology.conjunctions")}</th>
                                                 <th className="py-1 pr-3">{t("astrology.aspects")}</th>
+                                                <th className="py-1 pr-3">{t("astrology.kendrasthana")}</th>
                                                 <th className="py-1 pr-3">{t("astrology.other")}</th>
                                             </tr>
                                         </thead>
@@ -1816,6 +1842,7 @@ export default function HoroscopeDetailPage() {
                                                         resolvedConjunctionsByPlanet[p.name] ?? [];
                                                     const aspectRecords: Aspect[] =
                                                         displayAspects.receivedByPlanet[p.name] ?? [];
+                                                    const kendraRecords: Aspect[] = kendrasthana.byPlanet[p.name] ?? [];
                                                     const tags = getPlanetTags(p);
                                                     return (
                                                         <tr
@@ -1923,6 +1950,21 @@ export default function HoroscopeDetailPage() {
                                                                 )}
                                                             </td>
                                                             <td className="py-1 pr-3">
+                                                                {kendraRecords.length > 0 ? (
+                                                                    <div className="flex flex-wrap gap-1">
+                                                                        {kendraRecords.map((a) => (
+                                                                            <AspectChip
+                                                                                key={a.planetName}
+                                                                                aspect={a}
+                                                                                planetLabel={`${PLANET_SYMBOLS[a.planetName] ?? ""} ${getPlanetName(a.planetName)}`.trim()}
+                                                                            />
+                                                                        ))}
+                                                                    </div>
+                                                                ) : (
+                                                                    "—"
+                                                                )}
+                                                            </td>
+                                                            <td className="py-1 pr-3">
                                                                 {tags.length > 0 ? (
                                                                     <span className="flex flex-wrap gap-1">
                                                                         {tags.map((tag) => (
@@ -1984,6 +2026,7 @@ export default function HoroscopeDetailPage() {
 
                                             const aspectRecords: Aspect[] =
                                                 displayAspects.receivedByPlanet[p.name] ?? [];
+                                            const kendraRecords: Aspect[] = kendrasthana.byPlanet[p.name] ?? [];
 
                                             const tags = getPlanetTags(p);
 
@@ -2115,6 +2158,22 @@ export default function HoroscopeDetailPage() {
                                                                                 aspectingSign={planetSignOf(
                                                                                     a.planetName,
                                                                                 )}
+                                                                            />
+                                                                        ))}
+                                                                    </span>
+                                                                </p>
+                                                            )}
+                                                            {kendraRecords.length > 0 && (
+                                                                <p>
+                                                                    <span className="font-medium text-gray-700">
+                                                                        {t("astrology.kendrasthana")}:
+                                                                    </span>{" "}
+                                                                    <span className="inline-flex flex-wrap gap-1">
+                                                                        {kendraRecords.map((a) => (
+                                                                            <AspectChip
+                                                                                key={a.planetName}
+                                                                                aspect={a}
+                                                                                planetLabel={`${PLANET_SYMBOLS[a.planetName] ?? ""} ${getPlanetName(a.planetName)}`.trim()}
                                                                             />
                                                                         ))}
                                                                     </span>
