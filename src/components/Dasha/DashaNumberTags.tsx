@@ -39,7 +39,7 @@ const DashaNumberTags = ({ numbers, getPlanetName, getSignName }: DashaNumberTag
             </Fragment>
         ));
 
-    const { own, nakshatraLord, nakshatraLordNumbers } = numbers;
+    const { own, nakshatraLord, nakshatraLordNumbers, conjunctions, nakshatraLordConjunctions } = numbers;
 
     return (
         <span className="inline-flex items-center gap-0.5 text-[10px] text-gray-400">
@@ -56,6 +56,30 @@ const DashaNumberTags = ({ numbers, getPlanetName, getSignName }: DashaNumberTag
                     )}
                 </Fragment>
             )}
+            {conjunctions.map(({ planet, numbers: conjunctionNumbers }) => (
+                <Fragment key={`conj-${planet}`}>
+                    <span className="mx-0.5">|</span>
+                    {renderTags(
+                        conjunctionNumbers,
+                        t("astrology.dashaNumbers.conjunction", { planet: getPlanetName(planet) }),
+                        `conj-${planet}`,
+                    )}
+                </Fragment>
+            ))}
+            {nakshatraLord !== null &&
+                nakshatraLordConjunctions.map(({ planet, numbers: conjunctionNumbers }) => (
+                    <Fragment key={`nak-conj-${planet}`}>
+                        <span className="mx-0.5">|</span>
+                        {renderTags(
+                            conjunctionNumbers,
+                            t("astrology.dashaNumbers.nakshatraLordConjunction", {
+                                planet: getPlanetName(planet),
+                                lord: getPlanetName(nakshatraLord),
+                            }),
+                            `nak-conj-${planet}`,
+                        )}
+                    </Fragment>
+                ))}
             )
         </span>
     );

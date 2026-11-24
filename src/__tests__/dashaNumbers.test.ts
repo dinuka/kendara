@@ -122,4 +122,75 @@ describe("computeDashaNumbers", () => {
         expect(withoutNakshatra[Planet.MARS].nakshatraLord).toBeNull();
         expect(withoutNakshatra[Planet.MARS].nakshatraLordNumbers).toEqual([]);
     });
+
+    it("adds a number group for every planet conjunct with the dasha planet", () => {
+        // Dhanu lagna: Mercury and Venus in Vrushabha (6); Mercury owns 7 and 10, Venus owns 6 and 11
+        const chart = [
+            planet(Planet.MERCURY, ZodiacSign.TAURUS, 5),
+            planet(Planet.VENUS, ZodiacSign.TAURUS, 5),
+            planet(Planet.MARS, ZodiacSign.ARIES, 3),
+        ].map((item) => ({
+            ...item,
+            house: ((item.sign - ZodiacSign.SAGITTARIUS + 12) % 12) + 1,
+        }));
+        const mercury = computeDashaNumbers(chart, ZodiacSign.SAGITTARIUS, true)[Planet.MERCURY];
+        expect(values(mercury.own)).toEqual([6, 7, 10]);
+        expect(values(mercury.nakshatraLordNumbers)).toEqual([5, 5, 12]);
+        expect(mercury.conjunctions.map(({ planet: id }) => id)).toEqual([Planet.VENUS]);
+        expect(values(mercury.conjunctions[0].numbers)).toEqual([6, 6, 11]);
+    });
+
+    it("applies the node rule to a conjunct Rahu", () => {
+        // Saturn and Rahu in Capricorn (10)
+        const chart = planets.map((item) =>
+            item.name === Planet.SATURN ? { ...item, sign: ZodiacSign.CAPRICORN, house: 10 } : item,
+        );
+        const saturn = computeDashaNumbers(chart, LAGNA, true)[Planet.SATURN];
+        expect(saturn.conjunctions.map(({ planet: id }) => id)).toEqual([Planet.RAHU]);
+        expect(values(saturn.conjunctions[0].numbers)).toEqual([10, 10, 10, 11, 5, 5]);
+    });
+
+    it("has no conjunction groups for a planet alone in its sign", () => {
+        expect(numbers[Planet.MARS].conjunctions).toEqual([]);
+    });
+
+    it("adds the nakshatra lord's conjunct planets, with the node rule for Rahu", () => {
+        // Dhanu lagna: Mercury in Vrushabha (6, Mrigashira → Mars); Mars and Rahu in Kumbha (3);
+        // Rahu → Saturn in 1 owns 2 and 3 → Purva Bhadrapada lord Jupiter in 5 owns 1 and 4
+        const chart = [
+            planet(Planet.MERCURY, ZodiacSign.TAURUS, 5),
+            planet(Planet.VENUS, ZodiacSign.TAURUS, 5),
+            planet(Planet.MARS, ZodiacSign.AQUARIUS, 24),
+            planet(Planet.RAHU, ZodiacSign.AQUARIUS, 25),
+            planet(Planet.SATURN, ZodiacSign.SAGITTARIUS, 21),
+            planet(Planet.JUPITER, ZodiacSign.ARIES, 1),
+        ].map((item) => ({
+            ...item,
+            house: ((item.sign - ZodiacSign.SAGITTARIUS + 12) % 12) + 1,
+        }));
+        const mercury = computeDashaNumbers(chart, ZodiacSign.SAGITTARIUS, true)[Planet.MERCURY];
+        expect(values(mercury.own)).toEqual([6, 7, 10]);
+        expect(values(mercury.nakshatraLordNumbers)).toEqual([3, 5, 12]);
+        expect(values(mercury.conjunctions[0].numbers)).toEqual([6, 6, 11]);
+        expect(mercury.nakshatraLordConjunctions.map(({ planet: id }) => id)).toEqual([Planet.RAHU]);
+        expect(values(mercury.nakshatraLordConjunctions[0].numbers)).toEqual([3, 1, 2, 3, 5, 1, 4]);
+    });
+
+    it("skips nakshatra lord conjunctions already shown in the label", () => {
+        // Mars in Ashwini (Ketu), conjunct Ketu: Ketu's conjunct planets exclude Mars itself
+        const chart = planets.map((item) =>
+            item.name === Planet.MARS ? { ...item, sign: ZodiacSign.CANCER, house: 4 } : item,
+        );
+        const mars = computeDashaNumbers(chart, LAGNA, true)[Planet.MARS];
+        expect(mars.conjunctions.map(({ planet: id }) => id)).toEqual([Planet.MOON, Planet.KETU]);
+        expect(mars.nakshatraLordConjunctions).toEqual([]);
+    });
+
+    it("does not repeat a node's nakshatra lord numbers in a separate group", () => {
+        // Rahu in Krittika: the Sun's 5 5 is already part of Rahu's own numbers
+        const rahu = numbers[Planet.RAHU];
+        expect(values(rahu.own)).toEqual([10, 2, 10, 11, 5, 5]);
+        expect(rahu.nakshatraLord).toBe(Planet.SUN);
+        expect(rahu.nakshatraLordNumbers).toEqual([]);
+    });
 });

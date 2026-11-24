@@ -34,6 +34,15 @@ export interface PlanetDashaNumbers {
     /** Nakshatra lord of the planet; null when nakshatra data is unavailable. */
     nakshatraLord: number | null;
     nakshatraLordNumbers: DashaNumber[];
+    /** Planets in the same sign as the planet, each with its own position and house numbers. */
+    conjunctions: ConjunctionNumbers[];
+    /** Planets in the same sign as the nakshatra lord, skipping planets already shown in the label. */
+    nakshatraLordConjunctions: ConjunctionNumbers[];
+}
+
+export interface ConjunctionNumbers {
+    planet: number;
+    numbers: DashaNumber[];
 }
 
 const NODES = new Set<number>([Planet.RAHU, Planet.KETU]);
@@ -141,8 +150,10 @@ const numbersFor = (
     return numbers;
 };
 
-/** Dasha label numbers (e.g. ශනි මහ දශා (3 4 10 | 5 8 4)) for every planet in the chart, keyed by
- *  planet id: the planet's position and houses, then its nakshatra lord's position and houses. */
+/** Dasha label numbers (e.g. ශනි මහ දශා (3 4 10 | 5 8 4 | 3 2 7)) for every planet in the chart, keyed
+ *  by planet id: the planet's position and houses, its nakshatra lord's position and houses, the
+ *  position and houses of every planet conjunct with it (same sign), then of every planet conjunct
+ *  with its nakshatra lord. */
 const computeDashaNumbers = (
     planets: PlanetData[],
     lagnaSign: number,
@@ -151,14 +162,38 @@ const computeDashaNumbers = (
     const planetById = new Map(planets.map((planet) => [planet.name, planet]));
     const result: Record<number, PlanetDashaNumbers> = {};
 
+    /** Numbers of every planet sharing `planetId`'s sign, except the ones in `skip`. */
+    const conjunctionsOf = (planetId: number, skip: Set<number>): ConjunctionNumbers[] => {
+        const sign = planetById.get(planetId)?.sign;
+        if (sign === undefined) return [];
+
+        return planets
+            .filter((other) => other.name !== planetId && other.sign === sign && !skip.has(other.name))
+            .map((other) => ({
+                planet: other.name,
+                numbers: numbersFor(other.name, planetById, lagnaSign, includeNakshatra),
+            }))
+            .filter(({ numbers }) => numbers.length > 0);
+    };
+
     planets.forEach(({ name, nakshatra }) => {
         const nakshatraLord = includeNakshatra && nakshatra ? getNakshatraLord(nakshatra) : null;
+        const conjunctions = conjunctionsOf(name, new Set());
+        const shown = new Set([name, ...conjunctions.map(({ planet }) => planet)]);
+        // A node's own numbers already end with its (non-node) nakshatra lord's position and houses.
+        const nakshatraLordInOwn =
+            NODES.has(name) && nakshatraLord !== null && nakshatraLord !== name && !NODES.has(nakshatraLord);
 
         result[name] = {
             own: numbersFor(name, planetById, lagnaSign, includeNakshatra),
             nakshatraLord,
             nakshatraLordNumbers:
-                nakshatraLord === null ? [] : numbersFor(nakshatraLord, planetById, lagnaSign, includeNakshatra),
+                nakshatraLord === null || nakshatraLordInOwn
+                    ? []
+                    : numbersFor(nakshatraLord, planetById, lagnaSign, includeNakshatra),
+            conjunctions,
+            nakshatraLordConjunctions:
+                nakshatraLord === null || nakshatraLord === name ? [] : conjunctionsOf(nakshatraLord, shown),
         };
     });
 

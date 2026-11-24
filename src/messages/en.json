@@ -412,7 +412,9 @@
             "dispositorHouse": "{source}'s sign lord {planet} owns {sign} (house {house})",
             "nodeNakshatraLordPosition": "{source}'s nakshatra lord {planet} is in house {house}",
             "nodeNakshatraLordHouse": "{source}'s nakshatra lord {planet} owns {sign} (house {house})",
-            "nakshatraLord": "Nakshatra lord {planet}"
+            "nakshatraLord": "Nakshatra lord {planet}",
+            "conjunction": "Conjunct with {planet}",
+            "nakshatraLordConjunction": "{planet}, conjunct with nakshatra lord {lord}"
         },
         "sign": "Sign",
         "degree": "Degree",

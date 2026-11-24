@@ -410,9 +410,11 @@
             "ownedHouse": "{planet} {sign} රාශියට අධිපති ({house} වන භාවය)",
             "dispositorPosition": "{source}ට භාව අධිපතිත්වයක් නැත — රාශි අධිපති {planet} {house} වන භාවයේ",
             "dispositorHouse": "{source}ගේ රාශි අධිපති {planet} {sign} රාශියට අධිපති ({house} වන භාවය)",
-            "nodeNakshatraLordPosition": "{source}ගේ නක්ෂත්‍ර අධිපති {planet} {house} වන භාවයේ",
-            "nodeNakshatraLordHouse": "{source}ගේ නක්ෂත්‍ර අධිපති {planet} {sign} රාශියට අධිපති ({house} වන භාවය)",
-            "nakshatraLord": "නක්ෂත්‍ර අධිපති {planet}"
+            "nodeNakshatraLordPosition": "{source}ගේ නැකත් අධිපති {planet} {house} වන භාවයේ",
+            "nodeNakshatraLordHouse": "{source}ගේ නැකත් අධිපති {planet} {sign} රාශියට අධිපති ({house} වන භාවය)",
+            "nakshatraLord": "නැකත් අධිපති {planet}",
+            "conjunction": "{planet} සමඟ සංයෝග",
+            "nakshatraLordConjunction": "නැකත් අධිපති {lord} සමඟ සංයෝග {planet}"
         },
         "sign": "රාශිය",
         "degree": "අංශකය",
@@ -1562,8 +1564,8 @@
                 "am03": "කුජ දෙස ශනි බලා සිටියි.",
                 "am04": "ශනි කුජට අයත් රාශියක සිටියි.",
                 "am05": "කුජ ශනිට අයත් රාශියක සිටියි.",
-                "am06": "ශනි කුජට අයත් නක්ෂත්‍රයක සිටියි.",
-                "am07": "කුජ ශනිට අයත් නක්ෂත්‍රයක සිටියි.",
+                "am06": "ශනි කුජට අයත් නැකතක සිටියි.",
+                "am07": "කුජ ශනිට අයත් නැකතක සිටියි.",
                 "am08": "ශනි සහ කුජ රාශි හුවමාරු (පරිවර්තන) කරයි."
             },
             "theme": {
@@ -1886,7 +1888,7 @@
             "planetsInHouse": "මෙම භාවයේ ග්‍රහයෝ",
             "houseLoad": "ගෘහ භාරය සහ පිහිටීම",
             "houseLord": "භාවාධිපති හා පිහිටීම",
-            "nakshatraLoad": "නක්ෂත්‍ර භාරය සහ පිහිටීම",
+            "nakshatraLoad": "නැකත් භාරය සහ පිහිටීම",
             "subTagPlanet": "කාරක ග්‍රහයෝ",
             "chandraLagnaHouse": "චන්ද්‍ර ලග්නය — අදාළ ගෘහය",
             "suryaLagnaHouse": "සූර්ය ලග්නය — අදාළ ගෘහය",
@@ -1909,7 +1911,7 @@
             },
             "ratio": "{green}/{total} ක් හොඳයි",
             "houseLoadLabel": "ගෘහ භාරය: {count} · ග්‍රහයෝ {planets} · {sign}",
-            "nakshatraLoadLabel": "නක්ෂත්‍ර භාරය: {name} {pada}",
+            "nakshatraLoadLabel": "නැකත් භාරය: {name} {pada}",
             "chartHouseLabel": "{chart} · {house} වන ගෘහය · ග්‍රහයෝ {planets} · භාරය {load}",
             "wargaLagnaLabel": "{chart} ලග්නය · {sign} · භාරය {load}",
             "d1LoadInWargaLabel": "D1 භාරය: {planet} · {sign} · {house}",
