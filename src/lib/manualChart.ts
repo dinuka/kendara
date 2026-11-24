@@ -12,7 +12,7 @@ import { Planet, PlanetaryStrength } from "@/lib/astrologyEnums";
 import { getBadhakaSign } from "@/lib/badhaka";
 import { computeLagnaBhavaSuchika, computePlanetBhavaSuchika } from "@/lib/bhavaSuchika";
 import { type ChartAspects, computeChartAspects } from "@/lib/chartAspects";
-import { get22ndDrekkanaLord, get22ndDrekkanaLordFromPlanet } from "@/lib/drekkanaLord";
+import { get22ndDrekkanaLord, get22ndDrekkanaLordFromPlanet, getExtraDrekkanaLords } from "@/lib/drekkanaLord";
 import { type PlanetAspectsMap, derivePlanetAbsoluteDegree } from "@/lib/planetAspects";
 import type { RashiAspectsSetting } from "@/lib/rashiAspects";
 
@@ -923,6 +923,7 @@ export function derivePlanetsTable(input: PlanetsTableInput): ManualPlanetRow[] 
 
     const ascDegree = 0;
     const lord22ndDrekkana = computeDrekkanaLord(lagna, ascDegree);
+    const extraDrekkanaLords = getExtraDrekkanaLords(lagna, ascDegree);
     const lord64thNavamsa = computeNavamsaLord(lagna, ascDegree);
     const maranakaraka = computeMaranakaraka(
         Object.entries(houseOfPlanet).map(([name, house]) => ({ name: Number(name), house, absoluteDegree: 0 })),
@@ -945,7 +946,10 @@ export function derivePlanetsTable(input: PlanetsTableInput): ManualPlanetRow[] 
             const planet = Number(planetKey);
             const sign = houseSigns[house - 1];
             const other: string[] = [];
+            if (extraDrekkanaLords.lord10thDrekkana === planet) other.push("lord10thDrekkana");
+            if (extraDrekkanaLords.lord16thDrekkana === planet) other.push("lord16thDrekkana");
             if (lord22ndDrekkana === planet) other.push("lord22ndDrekkana");
+            if (extraDrekkanaLords.lord34thDrekkana === planet) other.push("lord34thDrekkana");
             if (lord64thNavamsa === planet) other.push("lord64thNavamsa");
             if (atmakaraka === planet) other.push("atmakaraka");
             if (maranakaraka.includes(planet)) other.push("maranakaraka");
@@ -1421,6 +1425,9 @@ export function synthesizeOtherDetails(
     | "lord22ndDrekkana"
     | "lord22ndDrekkanaMoon"
     | "lord22ndDrekkanaSun"
+    | "lord10thDrekkana"
+    | "lord16thDrekkana"
+    | "lord34thDrekkana"
     | "lord64thNavamsa"
     | "badhakaPlanet"
     | "marakaPlanets"
@@ -1496,6 +1503,7 @@ export function synthesizeOtherDetails(
         lord22ndDrekkana: computeDrekkanaLord(lagna, ascDegree),
         lord22ndDrekkanaMoon: planetDrekkanaLord(2),
         lord22ndDrekkanaSun: planetDrekkanaLord(1),
+        ...getExtraDrekkanaLords(lagna, ascDegree),
         // The 64th Navamsa Lord is a Navamsa (D9) concept — without entered Navamsa data there is no
         // meaningful value (0 never matches a planet enum, so it never renders as a tag).
         lord64thNavamsa: hasNavamsaData ? computeNavamsaLord(lagna, ascDegree) : 0,

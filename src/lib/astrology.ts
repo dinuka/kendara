@@ -478,6 +478,10 @@ export interface CalculationResult {
     /** 22nd Drekkana lord from the Ravi lagna — counted from the bhava madhya of the Sun's house.
      *  0 for manual charts without Navamsa data. Absent on legacy docs. */
     lord22ndDrekkanaSun?: number;
+    /** 10th / 16th / 34th Drekkana lords of the lagna (src/lib/drekkanaLord.ts). Absent on legacy docs. */
+    lord10thDrekkana?: number;
+    lord16thDrekkana?: number;
+    lord34thDrekkana?: number;
     lord64thNavamsa: number;
     badhakaPlanet: number[];
     marakaPlanets: number[];

@@ -1,6 +1,7 @@
 "use client";
 
 import AspectChip from "@/components/aspects/AspectChip";
+import type { PlanetTag } from "@/components/Dasha/DashaPlanetTags";
 import { useI18n } from "@/hooks/useI18n";
 
 import { getNakshatraLord } from "@/lib/astrology";
@@ -29,6 +30,9 @@ interface WargaPlanetsTableProps {
     aspectMap?: Record<number, Aspect[]>;
     /** False on whole-sign charts (D9/D3/D30): aspect tooltips omit the always-zero delta. */
     showAspectDelta?: boolean;
+    /** Planet → the calculation tab's full "Other" tags (drekkana/navamsa lords, karakas, badhaka,
+     *  nidhanamsha, …). When present these replace the entry's built-in flag list. */
+    otherTags?: Record<number, PlanetTag[]>;
 }
 
 const STRENGTH_TRANSLATION_KEYS: Record<PlanetaryStrength, string> = {
@@ -158,6 +162,7 @@ const WargaPlanetsTable = ({
     conjunctionMap,
     aspectMap,
     showAspectDelta = true,
+    otherTags,
 }: WargaPlanetsTableProps) => {
     const { t } = useI18n();
     const getSignName = (sign: number): string => t(`astrology.signNames.${sign}`);
@@ -172,7 +177,9 @@ const WargaPlanetsTable = ({
     );
 
     const flagCell = (planet: WargaPlanetRow): OtherItem[] =>
-        skeletons
+        otherTags
+            ? (otherTags[planet.name] ?? []).map(({ key, text, strikethrough }) => ({ key, label: text, strikethrough }))
+            : skeletons
             .filter((item) => flagApplies(entry, item.key, planet.name))
             .map((item) => ({
                 ...item,

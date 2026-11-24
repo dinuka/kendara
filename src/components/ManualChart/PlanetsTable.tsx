@@ -25,7 +25,10 @@ const STRENGTH_KEYS: Record<PlanetaryStrength, string> = {
 };
 
 const OTHER_KEYS: Record<string, string> = {
+    lord10thDrekkana: "lord10thDrekkana",
+    lord16thDrekkana: "lord16thDrekkana",
     lord22ndDrekkana: "lord22ndDrekkana",
+    lord34thDrekkana: "lord34thDrekkana",
     lord64thNavamsa: "lord64thNavamsa",
     atmakaraka: "atmakaraka",
     maranakaraka: "maranakaraka",

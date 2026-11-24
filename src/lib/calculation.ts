@@ -27,7 +27,7 @@ import { PlanetaryStrength } from "@/lib/astrologyEnums";
 import { getBadhakaSign } from "@/lib/badhaka";
 import { computeBhavaSuchika, computeLagnaBhavaSuchika, computeNavamsaLagnaSign } from "@/lib/bhavaSuchika";
 import { computeChartAspects } from "@/lib/chartAspects";
-import { get22ndDrekkanaLord, get22ndDrekkanaLordFromPlanet } from "@/lib/drekkanaLord";
+import { get22ndDrekkanaLord, get22ndDrekkanaLordFromPlanet, getExtraDrekkanaLords } from "@/lib/drekkanaLord";
 import logger from "@/lib/logger";
 import type { PlanetAspectsMap } from "@/lib/planetAspects";
 import type { RashiAspectsSetting } from "@/lib/rashiAspects";
@@ -461,6 +461,7 @@ export function calculateHoroscope(
         lord22ndDrekkana: computeDrekkanaLord(ascSign, ascLong % 30),
         lord22ndDrekkanaMoon: computePlanetDrekkanaLord(2, planetDetails, houses),
         lord22ndDrekkanaSun: computePlanetDrekkanaLord(1, planetDetails, houses),
+        ...getExtraDrekkanaLords(ascSign, ascLong % 30),
         lord64thNavamsa: computeNavamsaLord(ascSign, ascLong % 30),
         badhakaPlanet: computeBadhaka(ascSign),
         marakaPlanets: computeMaraka(ascSign, planetDetails),

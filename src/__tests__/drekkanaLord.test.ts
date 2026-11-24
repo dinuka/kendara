@@ -3,7 +3,7 @@ import type { IHoroscope } from "@/models/Horoscope";
 import type { House } from "@/lib/astrology";
 import { Planet, ZodiacSign } from "@/lib/astrologyEnums";
 import { calculateHoroscope } from "@/lib/calculation";
-import { get22ndDrekkanaLord, get22ndDrekkanaLordFromPlanet } from "@/lib/drekkanaLord";
+import { get22ndDrekkanaLord, get22ndDrekkanaLordFromPlanet, getNthDrekkanaLord } from "@/lib/drekkanaLord";
 import { buildBhavaHouses, compute } from "@/lib/manualChart";
 import { synthesizeCalculation } from "@/lib/manualChartDetails";
 
@@ -17,6 +17,37 @@ describe("get22ndDrekkanaLord", () => {
         expect(get22ndDrekkanaLord(ZodiacSign.LEO, 0)).toBe(Planet.JUPITER);
         expect(get22ndDrekkanaLord(ZodiacSign.LEO, 15)).toBe(Planet.MOON);
         expect(get22ndDrekkanaLord(ZodiacSign.LEO, 25)).toBe(Planet.MARS);
+    });
+});
+
+describe("getNthDrekkanaLord", () => {
+    test("22nd matches get22ndDrekkanaLord for every sign and drekkana", () => {
+        for (let sign = 1; sign <= 12; sign++) {
+            for (const degree of [0, 9.99, 10, 19.99, 20, 29.99]) {
+                expect(getNthDrekkanaLord(22, sign, degree)).toBe(get22ndDrekkanaLord(sign, degree));
+            }
+        }
+    });
+
+    test("10th drekkana uses the 4th, 8th and 12th lords", () => {
+        // Aries: 4th Cancer (Moon), 8th Scorpio (Mars), 12th Pisces (Jupiter).
+        expect(getNthDrekkanaLord(10, ZodiacSign.ARIES, 5)).toBe(Planet.MOON);
+        expect(getNthDrekkanaLord(10, ZodiacSign.ARIES, 15)).toBe(Planet.MARS);
+        expect(getNthDrekkanaLord(10, ZodiacSign.ARIES, 25)).toBe(Planet.JUPITER);
+    });
+
+    test("16th drekkana uses the 6th, 10th and 2nd lords", () => {
+        // Aries: 6th Virgo (Mercury), 10th Capricorn (Saturn), 2nd Taurus (Venus).
+        expect(getNthDrekkanaLord(16, ZodiacSign.ARIES, 5)).toBe(Planet.MERCURY);
+        expect(getNthDrekkanaLord(16, ZodiacSign.ARIES, 15)).toBe(Planet.SATURN);
+        expect(getNthDrekkanaLord(16, ZodiacSign.ARIES, 25)).toBe(Planet.VENUS);
+    });
+
+    test("34th drekkana uses the 12th, 4th and 8th lords", () => {
+        // Leo: 12th Cancer (Moon), 4th Scorpio (Mars), 8th Pisces (Jupiter).
+        expect(getNthDrekkanaLord(34, ZodiacSign.LEO, 5)).toBe(Planet.MOON);
+        expect(getNthDrekkanaLord(34, ZodiacSign.LEO, 15)).toBe(Planet.MARS);
+        expect(getNthDrekkanaLord(34, ZodiacSign.LEO, 25)).toBe(Planet.JUPITER);
     });
 });
 

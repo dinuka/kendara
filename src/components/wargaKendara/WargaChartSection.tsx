@@ -1,6 +1,7 @@
 "use client";
 
 import { BirthChart } from "@/components/BirthChart";
+import type { PlanetTag } from "@/components/Dasha/DashaPlanetTags";
 
 import type { Aspect } from "@/lib/astrology";
 import type { DisplayAspects } from "@/lib/chartAspects";
@@ -42,6 +43,8 @@ interface WargaChartSectionProps {
     /** Rashi Aspects setting for the non-D1 charts' whole-sign rashi aspects (default rules when
      *  omitted). D1 uses `displayAspects` instead. */
     rashiAspects?: RashiAspectsSetting;
+    /** Planet → full "Other" tags for the Planets table (D1: the calculation tab's tags). */
+    otherTags?: Record<number, PlanetTag[]>;
 }
 
 /** Charts whose aspect records carry real degree differences (D1 and its Sun/Moon rotations). The
@@ -63,6 +66,7 @@ const WargaChartSection = ({
     conjunctionMap,
     displayAspects,
     rashiAspects,
+    otherTags,
 }: WargaChartSectionProps) => {
     const isD1 = chartKey === "d1";
     const showAspectDelta = DEGREE_ASPECT_CHARTS.has(chartKey);
@@ -105,6 +109,7 @@ const WargaChartSection = ({
                         conjunctionMap={conjunctionMap}
                         aspectMap={chartAspects?.receivedByPlanet}
                         showAspectDelta={showAspectDelta}
+                        otherTags={otherTags}
                     />
                 </>
             ) : (

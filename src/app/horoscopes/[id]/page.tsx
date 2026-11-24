@@ -45,7 +45,7 @@ import { getChartData } from "@/lib/chartDataTransform";
 import type { ChartInput } from "@/lib/chartDataTransform";
 import { ChartType } from "@/lib/chartTypes";
 import { formatDate } from "@/lib/date";
-import { get22ndDrekkanaLordFromPlanet } from "@/lib/drekkanaLord";
+import { get22ndDrekkanaLordFromPlanet, getNthDrekkanaLord } from "@/lib/drekkanaLord";
 import { readHoroscopeSort } from "@/lib/horoscopeSort";
 import {
     buildBhavaHouses,
@@ -200,6 +200,9 @@ export default function HoroscopeDetailPage() {
             lord22ndDrekkana: number;
             lord22ndDrekkanaMoon?: number;
             lord22ndDrekkanaSun?: number;
+            lord10thDrekkana?: number;
+            lord16thDrekkana?: number;
+            lord34thDrekkana?: number;
             lord64thNavamsa: number;
             badhakaPlanet: number[];
             marakaPlanets: number[];
@@ -512,6 +515,17 @@ export default function HoroscopeDetailPage() {
     };
     const moonDrekkanaLord = drekkanaLordFrom(2, calculatedDetails?.lord22ndDrekkanaMoon);
     const sunDrekkanaLord = drekkanaLordFrom(1, calculatedDetails?.lord22ndDrekkanaSun);
+
+    // 10th / 16th / 34th Drekkana lords of the lagna — stored when the horoscope is saved; legacy docs
+    // without the fields are derived from the stored ascendant sign + degree.
+    const lagnaDrekkanaLord = (n: number, stored?: number) => {
+        if (stored !== undefined) return stored;
+        const asc = calculatedDetails?.ascendant;
+        return asc?.sign ? getNthDrekkanaLord(n, asc.sign, asc.degree ?? 0) : undefined;
+    };
+    const drekkanaLord10 = lagnaDrekkanaLord(10, calculatedDetails?.lord10thDrekkana);
+    const drekkanaLord16 = lagnaDrekkanaLord(16, calculatedDetails?.lord16thDrekkana);
+    const drekkanaLord34 = lagnaDrekkanaLord(34, calculatedDetails?.lord34thDrekkana);
 
     // Bhava Suchika (භාව සුචික) of the Lagna point — stored value wins; legacy auto docs without
     // the field are recomputed from the birth ascendant; manual charts only use entered Navamsa
@@ -984,8 +998,11 @@ export default function HoroscopeDetailPage() {
         const tags: PlanetTag[] = [];
         if (!calculatedDetails) return tags;
         if (p.combustion) tags.push({ key: "combustion", text: t("astrology.combustLabel") });
+        if (drekkanaLord10 === p.name) tags.push({ key: "drekkana10", text: t("astrology.drekkanaLord10Label") });
+        if (drekkanaLord16 === p.name) tags.push({ key: "drekkana16", text: t("astrology.drekkanaLord16Label") });
         if (calculatedDetails.lord22ndDrekkana === p.name)
             tags.push({ key: "drekkana", text: t("astrology.drekkanaLordLabel") });
+        if (drekkanaLord34 === p.name) tags.push({ key: "drekkana34", text: t("astrology.drekkanaLord34Label") });
         if (moonDrekkanaLord === p.name) tags.push({ key: "drekkanaMoon", text: t("astrology.drekkanaLordMoonLabel") });
         if (sunDrekkanaLord === p.name) tags.push({ key: "drekkanaSun", text: t("astrology.drekkanaLordSunLabel") });
         if (navamsaAvailable && calculatedDetails.lord64thNavamsa === p.name)
@@ -1025,6 +1042,10 @@ export default function HoroscopeDetailPage() {
         if (shadBalayaPlanet?.digBala.value) tags.push({ key: "digBala", text: t("astrology.digBalaLabel") });
         return tags;
     };
+
+    /** Planet id → the "Other" column tags, for the birth chart's Planets table. */
+    const getPlanetTagsByPlanet = (): Record<number, PlanetTag[]> =>
+        Object.fromEntries((calculatedDetails?.planets ?? []).map((p) => [p.name, getPlanetTags(p)]));
 
     /** Dignities worth flagging on a dasha label (the planet table shows them in its strength column). */
     const DASHA_DIGNITY_STRENGTHS = new Set<PlanetaryStrength>([
@@ -1392,6 +1413,7 @@ export default function HoroscopeDetailPage() {
                                                 ascendantDegreeLabel={getBirthChartAscendantDegreeLabel()}
                                                 bhavaSuchika={resolvedPlanetBhavaSuchika}
                                                 conjunctionMap={resolvedConjunctionsByPlanet}
+                                                otherTags={getPlanetTagsByPlanet()}
                                                 displayAspects={displayAspects}
                                             />
                                             {navamsaAvailable &&
