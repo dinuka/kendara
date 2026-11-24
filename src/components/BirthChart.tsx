@@ -102,6 +102,104 @@ function insetFromFarCorner(far: Point, nearPt: Point, adjacent: Point, inset: n
     ];
 }
 
+interface Box {
+    x1: number;
+    y1: number;
+    x2: number;
+    y2: number;
+}
+
+/** Horizontal extent of convex polygon `poly` along the line at height `y`, or null outside it. */
+function polygonSpanAtY(poly: Point[], y: number): [number, number] | null {
+    const xs: number[] = [];
+    for (let i = 0; i < poly.length; i++) {
+        const [ax, ay] = poly[i];
+        const [bx, by] = poly[(i + 1) % poly.length];
+        if (y < Math.min(ay, by) || y > Math.max(ay, by)) continue;
+        if (ay === by) xs.push(ax, bx);
+        else xs.push(ax + ((y - ay) * (bx - ax)) / (by - ay));
+    }
+    return xs.length === 0 ? null : [Math.min(...xs), Math.max(...xs)];
+}
+
+/** Widest horizontal run inside `poly` across the whole band [top, bottom], kept `pad` px clear of
+ *  the polygon's edges and of every obstacle box overlapping the band. */
+function widestFreeSegment(poly: Point[], top: number, bottom: number, obstacles: Box[], pad: number) {
+    const atTop = polygonSpanAtY(poly, top);
+    const atBottom = polygonSpanAtY(poly, bottom);
+    if (!atTop || !atBottom) return null;
+    let segments: [number, number][] = [[Math.max(atTop[0], atBottom[0]) + pad, Math.min(atTop[1], atBottom[1]) - pad]];
+    for (const o of obstacles) {
+        if (o.y2 <= top || o.y1 >= bottom) continue;
+        segments = segments.flatMap(([l, r]) => {
+            const out: [number, number][] = [];
+            if (o.x1 - pad > l) out.push([l, Math.min(r, o.x1 - pad)]);
+            if (o.x2 + pad < r) out.push([Math.max(l, o.x2 + pad), r]);
+            return out;
+        });
+    }
+    let best: [number, number] | null = null;
+    for (const s of segments) if (s[1] > s[0] && (!best || s[1] - s[0] > best[1] - best[0])) best = s;
+    return best;
+}
+
+const ENTRY_GAP = 4;
+
+/** Rough rendered width of a planet row (Sinhala short names are one glyph cluster each). */
+function estimateRowWidth(entries: ChartEntry[], fontSize: number, lordPlanet: number | null): number {
+    let width = 0;
+    entries.forEach((p, i) => {
+        if (i > 0) width += ENTRY_GAP;
+        if (p === INDU_LAGNA) {
+            width += fontSize * 1.3;
+            return;
+        }
+        const fs = p.name === lordPlanet ? fontSize + 4 : fontSize;
+        const isRetrograde = p.retrograde && p.name !== 8 && p.name !== 9;
+        width += fs * 1.1 + (isRetrograde ? fs * 0.8 : 0);
+    });
+    return width;
+}
+
+/** Places each row of planets top-down inside `poly`, at the first height where the row's
+ *  estimated width fits clear of the edges and obstacles. Returns null if any row doesn't fit. */
+function layoutRowsInPolygon(
+    rows: ChartEntry[][],
+    poly: Point[],
+    obstacles: Box[],
+    fontSize: number,
+    lordPlanet: number | null,
+): Point[] | null {
+    const ys = poly.map((p) => p[1]);
+    const maxY = Math.max(...ys);
+    const lineHeight = fontSize * 2;
+    const placements: Point[] = [];
+    let y = Math.min(...ys) + fontSize + 2;
+    for (const row of rows) {
+        const hasLord = row.some((p) => p !== INDU_LAGNA && p.name === lordPlanet);
+        const fs = hasLord ? fontSize + 4 : fontSize;
+        const needed = estimateRowWidth(row, fontSize, lordPlanet);
+        let placed = false;
+        for (; y + fs * 0.4 <= maxY; y++) {
+            const seg = widestFreeSegment(poly, y - fs, y + fs * 0.4, obstacles, 3);
+            if (seg && seg[1] - seg[0] >= needed) {
+                placements.push([(seg[0] + seg[1]) / 2, y]);
+                y += lineHeight;
+                placed = true;
+                break;
+            }
+        }
+        if (!placed) return null;
+    }
+    return placements;
+}
+
+/** Rough box of a single-line label for obstacle avoidance. */
+function labelBox(x: number, y: number, anchor: "start" | "middle" | "end", width: number, fontSize: number): Box {
+    const x1 = anchor === "start" ? x : anchor === "end" ? x - width : x - width / 2;
+    return { x1, y1: y - fontSize, x2: x1 + width, y2: y + fontSize * 0.4 };
+}
+
 type HighlightTier = "selected" | "trine" | "lordHouse";
 
 const TIER_COLORS: Record<HighlightTier, string> = {
@@ -296,6 +394,64 @@ export function BirthChart({
         );
     };
 
+    /** Selected corner house: number+sign label, sign icon at the center-facing apex, and planets
+     *  laid out row by row where the triangle is wide enough, clear of the label and icon. */
+    const renderSelectedCornerHouse = (
+        houseNum: number,
+        sign: number | undefined,
+        tri: Point[],
+        label: { x: number; y: number; anchor: "start" | "middle" | "end" },
+        glyph: Point,
+    ) => {
+        const fontSize = 10;
+        const glyphSize = 16;
+        const glyphHalf = glyphSize * 0.85;
+        const obstacles: Box[] = [
+            labelBox(label.x, label.y, label.anchor, 64, 11),
+            { x1: glyph[0] - glyphHalf, y1: glyph[1] - glyphHalf, x2: glyph[0] + glyphHalf, y2: glyph[1] + glyphHalf },
+        ];
+        const housePlanets = planetsByHouse[houseNum] || [];
+        const chunk = (size: number) => {
+            const rows: ChartEntry[][] = [];
+            for (let i = 0; i < housePlanets.length; i += size) rows.push(housePlanets.slice(i, i + size));
+            return rows;
+        };
+
+        let rows: ChartEntry[][] = [];
+        let positions: Point[] | null = null;
+        for (const size of [2, 1, 3]) {
+            rows = chunk(size);
+            positions = layoutRowsInPolygon(rows, tri, obstacles, fontSize, lordPlanet);
+            if (positions) break;
+        }
+        if (!positions) {
+            // Nothing fits cleanly (very crowded house): stack 2-per-row around the centroid.
+            rows = chunk(2);
+            const cx = (tri[0][0] + tri[1][0] + tri[2][0]) / 3;
+            const cy = (tri[0][1] + tri[1][1] + tri[2][1]) / 3;
+            positions = rows.map((_, i) => [cx, cy + (i - (rows.length - 1) / 2) * 20]);
+        }
+
+        return (
+            <>
+                <text
+                    x={label.x}
+                    y={label.y}
+                    textAnchor={label.anchor}
+                    fontSize={11}
+                    fontWeight="bold"
+                    fill="#dc2626"
+                >
+                    {houseNum} {sign ? SIGN_SHORT_SI[sign] : ""}
+                </text>
+                {rows.map((row, i) => (
+                    <g key={i}>{renderPlanetRow(row, positions[i][0], positions[i][1], fontSize)}</g>
+                ))}
+                {renderSignGlyph(sign, glyph[0], glyph[1], glyphSize)}
+            </>
+        );
+    };
+
     return (
         <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} className="max-w-full h-auto">
             <defs>
@@ -333,14 +489,26 @@ export function BirthChart({
                           : spec.labelSide === "left"
                             ? spec.x + 20
                             : spec.x + UNIT - 20;
+                // Icon center sits SELECTED_GLYPH_INSET from the inner edge: the badge radius
+                // (24 * 0.85 ≈ 20) plus a ~10px gap, matching the corner houses' breathing room.
+                const SELECTED_GLYPH_INSET = 30;
+                const SELECTED_GLYPH_RADIUS = 24 * 0.85;
                 const innerPos =
                     spec.labelSide === "top"
-                        ? spec.y + UNIT - 22
+                        ? spec.y + UNIT - SELECTED_GLYPH_INSET
                         : spec.labelSide === "bottom"
-                          ? spec.y + 22
+                          ? spec.y + SELECTED_GLYPH_INSET
                           : spec.labelSide === "left"
-                            ? spec.x + UNIT - 20
-                            : spec.x + 20;
+                            ? spec.x + UNIT - SELECTED_GLYPH_INSET
+                            : spec.x + SELECTED_GLYPH_INSET;
+                // Left/right houses: center planet rows in the space between the outer border and
+                // the icon, so wide rows don't run under it.
+                const selectedRowsX =
+                    spec.labelSide === "left"
+                        ? (spec.x + innerPos - SELECTED_GLYPH_RADIUS) / 2
+                        : spec.labelSide === "right"
+                          ? (innerPos + SELECTED_GLYPH_RADIUS + spec.x + UNIT) / 2
+                          : cx;
 
                 return (
                     <g key={houseNum} onClick={() => toggleHouse(houseNum)} className="cursor-pointer">
@@ -368,8 +536,12 @@ export function BirthChart({
                                 </text>
                                 {renderPlanetsAroundIcon(
                                     houseNum,
-                                    cx,
-                                    spec.labelSide === "top" ? [cy - 26, cy - 6, cy + 18] : [cy - 6, cy + 18, cy + 42],
+                                    selectedRowsX,
+                                    spec.labelSide === "top"
+                                        ? [cy - 30, cy - 10, cy + 12]
+                                        : spec.labelSide === "bottom"
+                                          ? [cy, cy + 19, cy + 38]
+                                          : [cy - 6, cy + 18, cy + 42],
                                     13,
                                 )}
                                 {renderSignGlyph(sign, isVertical ? cx : innerPos, isVertical ? innerPos : cy, 24)}
@@ -467,37 +639,21 @@ export function BirthChart({
 
                         <g className="pointer-events-none">
                             {isSelectedA ? (
-                                <>
-                                    <text
-                                        x={
-                                            aLeftAlignSelected
-                                                ? aLeftAlignX
-                                                : aRightAlignSelected
-                                                  ? x + UNIT - 6
-                                                  : adjacent1[0] + (adjacent1[0] === x ? 22 : -22)
-                                        }
-                                        y={adjacent1[1] + (adjacent1[1] === y ? 22 : -22)}
-                                        textAnchor={
-                                            aLeftAlignSelected ? "start" : aRightAlignSelected ? "end" : "middle"
-                                        }
-                                        fontSize={11}
-                                        fontWeight="bold"
-                                        fill="#dc2626"
-                                    >
-                                        {houseA} {signA ? SIGN_SHORT_SI[signA] : ""}
-                                    </text>
-                                    {renderPlanetsAroundIcon(
-                                        houseA,
-                                        aCenterX,
-                                        [aCenterY - 33, aCenterY - 11, aCenterY + 11, aCenterY + 33],
-                                        10,
-                                        2,
-                                    )}
-                                    {(() => {
-                                        const [ix, iy] = insetFromFarCorner(far, nearPt, adjacent1, 28);
-                                        return renderSignGlyph(signA, ix, iy, 16);
-                                    })()}
-                                </>
+                                renderSelectedCornerHouse(
+                                    houseA,
+                                    signA,
+                                    [nearPt, far, adjacent1],
+                                    {
+                                        x: aLeftAlignSelected
+                                            ? aLeftAlignX
+                                            : aRightAlignSelected
+                                              ? x + UNIT - 6
+                                              : adjacent1[0] + (adjacent1[0] === x ? 22 : -22),
+                                        y: adjacent1[1] + (adjacent1[1] === y ? 22 : -22),
+                                        anchor: aLeftAlignSelected ? "start" : aRightAlignSelected ? "end" : "middle",
+                                    },
+                                    insetFromFarCorner(far, nearPt, adjacent1, 28),
+                                )
                             ) : (
                                 <>
                                     <text
@@ -536,37 +692,21 @@ export function BirthChart({
                             )}
 
                             {isSelectedB ? (
-                                <>
-                                    <text
-                                        x={
-                                            bLeftAlignSelected
-                                                ? bLeftAlignX
-                                                : bRightAlignSelected
-                                                  ? x + UNIT - 6
-                                                  : adjacent2[0] + (adjacent2[0] === x ? 22 : -22)
-                                        }
-                                        y={adjacent2[1] + (adjacent2[1] === y ? 22 : -22)}
-                                        textAnchor={
-                                            bLeftAlignSelected ? "start" : bRightAlignSelected ? "end" : "middle"
-                                        }
-                                        fontSize={11}
-                                        fontWeight="bold"
-                                        fill="#dc2626"
-                                    >
-                                        {houseB} {signB ? SIGN_SHORT_SI[signB] : ""}
-                                    </text>
-                                    {renderPlanetsAroundIcon(
-                                        houseB,
-                                        bCenterX,
-                                        [bCenterY - 33, bCenterY - 11, bCenterY + 11, bCenterY + 33],
-                                        10,
-                                        2,
-                                    )}
-                                    {(() => {
-                                        const [ix, iy] = insetFromFarCorner(far, nearPt, adjacent2, 28);
-                                        return renderSignGlyph(signB, ix, iy, 16);
-                                    })()}
-                                </>
+                                renderSelectedCornerHouse(
+                                    houseB,
+                                    signB,
+                                    [nearPt, far, adjacent2],
+                                    {
+                                        x: bLeftAlignSelected
+                                            ? bLeftAlignX
+                                            : bRightAlignSelected
+                                              ? x + UNIT - 6
+                                              : adjacent2[0] + (adjacent2[0] === x ? 22 : -22),
+                                        y: adjacent2[1] + (adjacent2[1] === y ? 22 : -22),
+                                        anchor: bLeftAlignSelected ? "start" : bRightAlignSelected ? "end" : "middle",
+                                    },
+                                    insetFromFarCorner(far, nearPt, adjacent2, 28),
+                                )
                             ) : (
                                 <>
                                     <text
