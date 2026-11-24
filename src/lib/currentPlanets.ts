@@ -1,8 +1,9 @@
 import swisseph from "swisseph-v2";
 
-import { CurrentPlanetRecord, House, NATURAL_ENEMIES, NATURAL_FRIENDS } from "@/lib/astrology";
-import { COMBUSTION_ORBS, Planet } from "@/lib/astrologyEnums";
+import { CurrentPlanetRecord, House } from "@/lib/astrology";
+import { COMBUSTION_ORBS, Planet, PlanetaryStrength } from "@/lib/astrologyEnums";
 import logger from "@/lib/logger";
+import { computePlanetStrength } from "@/lib/planetDignity";
 
 const AYANAMSHA_MAP: Record<string, number> = {
     lahari: 1,
@@ -24,61 +25,6 @@ const PLANET_TO_SWE: Record<number, number> = {
     [Planet.RAHU]: 10,
 };
 
-const EXALTATION: Record<number, number> = {
-    1: 1,
-    2: 2,
-    3: 10,
-    4: 6,
-    5: 4,
-    6: 12,
-    7: 7,
-};
-
-const DEBILITATION: Record<number, number> = {
-    1: 7,
-    2: 8,
-    3: 4,
-    4: 12,
-    5: 10,
-    6: 6,
-    7: 1,
-};
-
-const OWN_SIGNS: Record<number, number[]> = {
-    1: [5],
-    2: [4],
-    3: [1, 8],
-    4: [3, 6],
-    5: [9, 12],
-    6: [2, 7],
-    7: [10, 11],
-};
-
-const MOOLATRIKONA_RANGE: Record<number, { sign: number; start: number; end: number } | null> = {
-    1: { sign: 5, start: 0, end: 20 },
-    2: null,
-    3: { sign: 1, start: 0, end: 12 },
-    4: { sign: 6, start: 16, end: 20 },
-    5: { sign: 9, start: 0, end: 10 },
-    6: { sign: 7, start: 0, end: 15 },
-    7: { sign: 11, start: 0, end: 20 },
-};
-
-const SIGN_LORD: Record<number, number> = {
-    1: 3,
-    2: 6,
-    3: 4,
-    4: 2,
-    5: 1,
-    6: 4,
-    7: 6,
-    8: 3,
-    9: 5,
-    10: 7,
-    11: 7,
-    12: 5,
-};
-
 function getNakshatra(longitude: number): { nakshatra: number; pada: number } {
     const normalizedLong = ((longitude % 360) + 360) % 360;
     const nakshatraNum = Math.floor(normalizedLong / NAKSHATRA_ARC);
@@ -91,16 +37,22 @@ function getSign(degree: number): number {
     return Math.floor((((degree % 360) + 360) % 360) / 30) + 1;
 }
 
-function computeStrength(planet: number, sign: number): string {
-    if (EXALTATION[planet] === sign) return "Uchcha";
-    if (DEBILITATION[planet] === sign) return "Neecha";
-    const mRange = MOOLATRIKONA_RANGE[planet];
-    if (mRange && mRange.sign === sign) return "Moolatrikona";
-    if (OWN_SIGNS[planet]?.includes(sign)) return "OwnSign";
-    const signLord = SIGN_LORD[sign];
-    if (NATURAL_FRIENDS[planet]?.includes(signLord)) return "Mitra";
-    if (NATURAL_ENEMIES[planet]?.includes(signLord)) return "Shatru";
-    return "Sama";
+/** Transit dignity as the display key used on `CurrentPlanetRecord.strength`; athi-uccha/neecha
+ *  collapse into Uchcha/Neecha. */
+const STRENGTH_KEY: Record<PlanetaryStrength, string> = {
+    [PlanetaryStrength.ATHI_UCHCHA]: "Uchcha",
+    [PlanetaryStrength.UCHCHA]: "Uchcha",
+    [PlanetaryStrength.NEECHA]: "Neecha",
+    [PlanetaryStrength.ATHI_NEECHA]: "Neecha",
+    [PlanetaryStrength.MOOLATRIKONA]: "Moolatrikona",
+    [PlanetaryStrength.OWN_SIGN]: "OwnSign",
+    [PlanetaryStrength.MITRA]: "Mitra",
+    [PlanetaryStrength.SHATRU]: "Shatru",
+    [PlanetaryStrength.SAMA]: "Sama",
+};
+
+function computeStrength(planet: number, sign: number, degree: number): string {
+    return STRENGTH_KEY[computePlanetStrength(planet, sign, degree)];
 }
 
 function isCombust(planet: number, sunLongitude: number, planetLongitude: number): boolean {
@@ -213,7 +165,7 @@ export function computeCurrentPlanets(ayanamsha: string, birthHouses: House[], f
             const { nakshatra, pada } = getNakshatra(longitude);
             const retrograde = speed < 0;
             const combustion = isCombust(p, sunLongitude, longitude);
-            const strength = computeStrength(p, sign);
+            const strength = computeStrength(p, sign, degree);
 
             planets.push({
                 name: p,

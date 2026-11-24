@@ -30,11 +30,11 @@ import { ChartType } from "@/lib/chartTypes";
 import {
     SIGN_LORD,
     buildWholeSignHouses,
-    computePlanetStrength,
     hasManualNavamsa,
     manualTrimshamshaSource,
 } from "@/lib/manualChart";
 import type { DisplayAspects } from "@/lib/chartAspects";
+import { computePlanetStrength } from "@/lib/planetDignity";
 import { type PlanetAspectsMap, resolveAspectHouses } from "@/lib/planetAspects";
 import {
     DEFAULT_RASHI_ASPECTS,

@@ -9,8 +9,7 @@
 ### Manual calculated horoscope issues
 
 ### Calculation
-- Need to calculate and show planets in Kendarasthana. 
-
+- Need to calculate 10, 16, 34 Derkanadipathi. It should same as the 22 Derkanadipathi. Need to show in the plants table as 10 දෙ.ධි, etc...
 ### search query
 
 ### Student notepad

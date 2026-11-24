@@ -5,7 +5,8 @@
 import type { Ascendant, Planet } from "@/lib/astrology";
 import { ZodiacSign } from "@/lib/astrologyEnums";
 import type { ChartInput } from "@/lib/chartDataTransform";
-import { SIGN_LORD, buildWholeSignHouses, computePlanetStrength } from "@/lib/manualChart";
+import { SIGN_LORD, buildWholeSignHouses } from "@/lib/manualChart";
+import { computePlanetStrength } from "@/lib/planetDignity";
 
 /** Varga sign (1-12) for a D1 sign (1-12) and the degree within that sign. */
 export type VargaSignFn = (sign: number, degreeInSign: number | undefined) => ZodiacSign;

@@ -1,4 +1,4 @@
-import { NATURAL_ENEMIES, NATURAL_FRIENDS, computeMaranakaraka, computeYogakaraka, navamsaSign } from "@/lib/astrology";
+import { computeMaranakaraka, computeYogakaraka, navamsaSign } from "@/lib/astrology";
 import type {
     Antardasha,
     Planet as AstroPlanet,
@@ -13,6 +13,7 @@ import { getBadhakaSign } from "@/lib/badhaka";
 import { computeLagnaBhavaSuchika, computePlanetBhavaSuchika } from "@/lib/bhavaSuchika";
 import { type ChartAspects, computeChartAspects } from "@/lib/chartAspects";
 import { get22ndDrekkanaLord, get22ndDrekkanaLordFromPlanet, getExtraDrekkanaLords } from "@/lib/drekkanaLord";
+import { computePlanetStrength } from "@/lib/planetDignity";
 import { type PlanetAspectsMap, derivePlanetAbsoluteDegree } from "@/lib/planetAspects";
 import type { RashiAspectsSetting } from "@/lib/rashiAspects";
 
@@ -373,76 +374,6 @@ function buildPlanetCountValidation(count: number, active: boolean): ValidationR
         message: count === 9 ? "All 9 planets placed" : `${count}/9 planets placed`,
         count,
     };
-}
-
-const EXALTATION: Record<number, number> = {
-    1: 1,
-    2: 2,
-    3: 10,
-    4: 6,
-    5: 4,
-    6: 12,
-    7: 7,
-};
-
-const DEBILITATION: Record<number, number> = {
-    1: 7,
-    2: 8,
-    3: 4,
-    4: 12,
-    5: 10,
-    6: 6,
-    7: 1,
-};
-
-const OWN_SIGNS: Record<number, number[]> = {
-    1: [5],
-    2: [4],
-    3: [1, 8],
-    4: [3, 6],
-    5: [9, 12],
-    6: [2, 7],
-    7: [10, 11],
-};
-
-const EXALTATION_DEGREE: Record<number, number> = {
-    1: 10,
-    2: 3,
-    3: 28,
-    4: 15,
-    5: 5,
-    6: 27,
-    7: 20,
-};
-
-const MOOLATRIKONA_RANGE: Record<number, { sign: number; start: number; end: number } | null> = {
-    1: { sign: 5, start: 0, end: 20 },
-    2: null,
-    3: { sign: 1, start: 0, end: 12 },
-    4: { sign: 6, start: 16, end: 20 },
-    5: { sign: 9, start: 0, end: 10 },
-    6: { sign: 7, start: 0, end: 15 },
-    7: { sign: 11, start: 0, end: 20 },
-};
-
-/** Sign-based planetary strength (exaltation/debilitation/moolatrikona/own sign/friend/enemy/sama).
- *  Degree is only used for the deep exaltation/debilitation nuance; default 0 means "somewhere in the sign". */
-export function computePlanetStrength(planet: number, sign: number, degree = 0): PlanetaryStrength {
-    const deepDeg = EXALTATION_DEGREE[planet];
-    if (EXALTATION[planet] === sign && deepDeg !== undefined && Math.abs(degree - deepDeg) < 1)
-        return PlanetaryStrength.ATHI_UCHCHA;
-    if (EXALTATION[planet] === sign) return PlanetaryStrength.UCHCHA;
-    if (DEBILITATION[planet] === sign && deepDeg !== undefined && Math.abs(degree - deepDeg) < 1)
-        return PlanetaryStrength.ATHI_NEECHA;
-    if (DEBILITATION[planet] === sign) return PlanetaryStrength.NEECHA;
-    const mRange = MOOLATRIKONA_RANGE[planet];
-    if (mRange && mRange.sign === sign && degree >= mRange.start && degree < mRange.end)
-        return PlanetaryStrength.MOOLATRIKONA;
-    if (OWN_SIGNS[planet]?.includes(sign)) return PlanetaryStrength.OWN_SIGN;
-    const signLord = SIGN_LORD[sign];
-    if (NATURAL_FRIENDS[planet]?.includes(signLord)) return PlanetaryStrength.MITRA;
-    if (NATURAL_ENEMIES[planet]?.includes(signLord)) return PlanetaryStrength.SHATRU;
-    return PlanetaryStrength.SAMA;
 }
 
 const NAVAMSA_ARC = 30 / 9;
