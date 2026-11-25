@@ -1,5 +1,7 @@
 "use client";
 
+import type { ReactNode } from "react";
+
 import { BirthChart } from "@/components/BirthChart";
 import HousesTable from "@/components/chartTables/HousesTable";
 import PlanetsTable from "@/components/chartTables/PlanetsTable";
@@ -18,7 +20,7 @@ import WargaIndicationTags from "./WargaIndicationTags";
 
 interface WargaChartSectionProps {
     /** Warga key of this figure — drives the indication tags and the D1-only table columns. */
-    chartKey: WargaChartKey | WargaDegreeVargaKey;
+    chartKey: WargaChartKey | WargaDegreeVargaKey | "nisheka";
     /** Localized figure caption (astrology.chartCaptions.*). */
     caption: string;
     /** SVG figure source; null → the no-data placeholder. */
@@ -54,6 +56,8 @@ interface WargaChartSectionProps {
     pranapadaLagnaSign?: number;
     /** Sun's sidereal longitude, for the Upagraha markers on the D1 figure only. */
     sunLongitude?: number;
+    /** Extra content under the indication tags (e.g. the Nisheka calculation steps). */
+    details?: ReactNode;
 }
 
 /** Charts whose aspect records carry real degree differences (D1 and its Sun/Moon rotations). The
@@ -81,6 +85,7 @@ const WargaChartSection = ({
     gulikaLagnaSign,
     pranapadaLagnaSign,
     sunLongitude,
+    details,
 }: WargaChartSectionProps) => {
     const { t } = useI18n();
     const isD1 = chartKey === "d1";
@@ -103,6 +108,7 @@ const WargaChartSection = ({
         <figure className="bg-white rounded-lg border p-4">
             <figcaption className="text-sm font-semibold text-gray-700">{caption}</figcaption>
             <WargaIndicationTags chartKey={chartKey} />
+            {details}
             {chartData ? (
                 <div className="flex justify-center mt-2">
                     <BirthChart

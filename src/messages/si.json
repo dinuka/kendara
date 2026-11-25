@@ -618,7 +618,8 @@
             "birth": "ජන්ම කේන්දරය (D1)",
             "navamsa-d9": "නවාංශකය (D9)",
             "suryaLagna": "සූර්ය ලග්න කේන්දරය",
-            "chandraLagna": "චන්ද්‍ර ලග්න කේන්දරය"
+            "chandraLagna": "චන්ද්‍ර ලග්න කේන්දරය",
+            "nisheka": "නිශේක කේන්දරය"
         },
         "wargaKendara": {
             "title": "වර්ග කේනදර",
@@ -626,7 +627,8 @@
                 "rashi": "රාශි (D1)",
                 "navamsa": "නවාංශක (D9)",
                 "suryaLagna": "සූර්ය ලග්න",
-                "chandraLagna": "චන්ද්‍ර ලග්න"
+                "chandraLagna": "චන්ද්‍ර ලග්න",
+                "nisheka": "නිශේක"
             },
             "pinnedAria": "රාශි (D1) — සැමවිටම පෙන්වයි",
             "secondChartAria": "දෙවන සටහන තෝරන්න",
@@ -715,7 +717,27 @@
                 "chandraLagna": {
                     "name": "චන්ද්‍ර ලග්න",
                     "indication": "චන්ද්‍ර ලග්න පාදක විශ්ලේෂණය"
+                },
+                "nisheka": {
+                    "name": "නිශේක",
+                    "indication": "ගර්භ ධාරණය, උපතට පෙර තත්ත්වය, දෙමාපියන්"
                 }
+            },
+            "nisheka": {
+                "title": "නිශේක ගණනය (BPHS 4.27–29)",
+                "saturnMandi": "A · ශනි – මාන්දි",
+                "lagnaNinth": "B · ලග්නය → නවම භාව මධ්‍යය",
+                "lagnaLord": "ලග්නාධිපති",
+                "invisible": "අදෘශ්‍ය අර්ධය",
+                "visible": "දෘශ්‍ය අර්ධය",
+                "onHorizon": "ක්ෂිතිජය මත",
+                "moonCorrection": "C · රාශියේ සඳු",
+                "notAdded": "එකතු නොකෙරේ",
+                "total": "X = A + B + C",
+                "elapsed": "උපතට පෙර කාලය",
+                "elapsedValue": "මාස {months}, දින {days}, පැය {hours} මිනිත්තු {minutes}",
+                "dateTime": "නිශේක දිනය හා වේලාව",
+                "lagna": "නිශේක ලග්නය"
             }
         },
         "padaFormat": "{pada} වෙනි පාදය",

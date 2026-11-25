@@ -29,6 +29,7 @@ import { get22ndDrekkanaLord, get22ndDrekkanaLordFromPlanet, getExtraDrekkanaLor
 import { type GulikaLagna, findGulikaPeriod, weekdayOfJulianDay } from "@/lib/gulikaLagna";
 import { HoraLagna, calculateHoraLagna } from "@/lib/horaLagna";
 import logger from "@/lib/logger";
+import { type Nisheka, type NishekaPlanet, calculateNishekaOffset, subtractElapsed } from "@/lib/nishekaLagna";
 import { type PranapadaLagna, calculatePranapadaLagna } from "@/lib/pranapadaLagna";
 import { computePlanetStrength } from "@/lib/planetDignity";
 import type { PlanetAspectsMap } from "@/lib/planetAspects";
@@ -256,6 +257,102 @@ export function computeGulikaLagna(jdBirth: number, lat: number, lng: number): G
     };
 }
 
+/** Swiss Ephemeris body per planet enum, for the planets that can rule a sign (Sun..Saturn). */
+const SWE_BODY: Record<number, number> = {
+    1: swisseph.SE_SUN,
+    2: swisseph.SE_MOON,
+    3: swisseph.SE_MARS,
+    4: swisseph.SE_MERCURY,
+    5: swisseph.SE_JUPITER,
+    6: swisseph.SE_VENUS,
+    7: swisseph.SE_SATURN,
+};
+
+const pad2 = (n: number): string => String(n).padStart(2, "0");
+
+/** Nisheka Lagna and chart (docs/nisheka-lagna.md, BPHS ch. 4 sl. 27–29). Mandi is the Gulika
+ *  Lagna longitude; the Lagna and 9th bhava madhya are Sripati bhava madhyas (Porphyry cusps).
+ *  `birthWallClockMs` holds the local birth date/time in its UTC fields. The nisheka planets come
+ *  from the same jyotish-calculations call as the birth chart. Undefined without Mandi or when an
+ *  ephemeris call fails. Expects the sidereal mode set; restores it before returning. */
+export function computeNisheka(
+    jdBirth: number,
+    birthWallClockMs: number,
+    lat: number,
+    lng: number,
+    timezone: number,
+    ayanamshaId: number,
+    mandiLongitude: number | undefined,
+): Nisheka | undefined {
+    if (mandiLongitude === undefined) {
+        logger.warn("no Mandi (Gulika Lagna) for this birth; skipping Nisheka Lagna");
+        return undefined;
+    }
+    const flags = swisseph.SEFLG_SWIEPH | swisseph.SEFLG_SIDEREAL;
+    const sripati = swisseph.swe_houses_ex(jdBirth, swisseph.SEFLG_SIDEREAL, lat, lng, "O");
+    const ascendantLongitude = ((sripati.ascendant % 360) + 360) % 360;
+    const ninthCuspLongitude = sripati.house[8];
+    const lagnaLord = SIGN_LORD[getSign(ascendantLongitude)];
+    const saturn = swisseph.swe_calc_ut(jdBirth, swisseph.SE_SATURN, flags);
+    const moon = swisseph.swe_calc_ut(jdBirth, swisseph.SE_MOON, flags);
+    const lord = swisseph.swe_calc_ut(jdBirth, SWE_BODY[lagnaLord], flags);
+    if (saturn.error !== undefined || moon.error !== undefined || lord.error !== undefined) {
+        logger.warn("planet positions for Nisheka failed; skipping Nisheka Lagna");
+        return undefined;
+    }
+
+    const offset = calculateNishekaOffset({
+        ascendant: ascendantLongitude,
+        ninthCusp: ninthCuspLongitude,
+        saturn: saturn.longitude,
+        mandi: mandiLongitude,
+        lagnaLord: lord.longitude,
+        moon: moon.longitude,
+    });
+    const wallClock = new Date(subtractElapsed(birthWallClockMs, offset.elapsed));
+    const localDate = `${wallClock.getUTCFullYear()}-${pad2(wallClock.getUTCMonth() + 1)}-${pad2(wallClock.getUTCDate())}`;
+    const localTime = `${pad2(wallClock.getUTCHours())}:${pad2(wallClock.getUTCMinutes())}:${pad2(wallClock.getUTCSeconds())}`;
+
+    const positions = jyotish.grahas.getGrahasPosition(
+        { dateString: localDate, timeString: localTime, lat, lng, timezone },
+        { zodiacType: "S", ayanamsha: ayanamshaId, houseType: "P" },
+    );
+    swisseph.swe_set_sid_mode(ayanamshaId, 0, 0);
+
+    const position = (longitude: number) => ({
+        absoluteDegree: +longitude.toFixed(4),
+        sign: getSign(longitude),
+        degree: +(longitude % 30).toFixed(4),
+    });
+    const planets: NishekaPlanet[] = Object.keys(GRAHA_MAP).map((key) => {
+        const p = positions[key];
+        return {
+            name: GRAHA_MAP[key],
+            ...position(p.longitude),
+            nakshatra: getNakshatraId(p.nakshatra.name),
+            pada: p.nakshatra.pada,
+            retrograde: !!p.isRetrograde,
+        };
+    });
+    logger.debug("nisheka %s %s: arc %d", localDate, localTime, offset.totalAngle);
+
+    return {
+        ...offset,
+        ascendantLongitude: +ascendantLongitude.toFixed(4),
+        ninthCuspLongitude: +ninthCuspLongitude.toFixed(4),
+        saturnLongitude: +saturn.longitude.toFixed(4),
+        mandiLongitude: +mandiLongitude.toFixed(4),
+        lagnaLord,
+        lagnaLordLongitude: +lord.longitude.toFixed(4),
+        moonLongitude: +moon.longitude.toFixed(4),
+        dateTime: new Date(wallClock.getTime() - timezone * 3_600_000).toISOString(),
+        localDate,
+        localTime,
+        ascendant: position(positions.La.longitude),
+        planets,
+    };
+}
+
 export function calculateHoroscope(
     data: IHoroscope,
     planetaryOrbs: Record<string, number> = DEFAULT_ORBS,
@@ -322,6 +419,15 @@ export function calculateHoroscope(
     const horaLagna = computeHoraLagna(jd.julianDayUT, data.latitude, data.longitude);
     const gulikaLagna = computeGulikaLagna(jd.julianDayUT, data.latitude, data.longitude);
     const pranapadaLagna = computePranapadaLagna(jd.julianDayUT, data.latitude, data.longitude);
+    const nisheka = computeNisheka(
+        jd.julianDayUT,
+        Date.UTC(year, +month - 1, +day, hours, minutes),
+        data.latitude,
+        data.longitude,
+        timezone,
+        ayanamshaId,
+        gulikaLagna?.absoluteDegree,
+    );
 
     const houses: House[] = Array.from({ length: 12 }, (_, i) => {
         const cusp = cusps[i];
@@ -506,6 +612,7 @@ export function calculateHoroscope(
         horaLagna,
         gulikaLagna,
         pranapadaLagna,
+        nisheka,
     };
 
     return {

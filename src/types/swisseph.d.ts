@@ -3,6 +3,12 @@ declare module "swisseph-v2" {
     export const SEFLG_SPEED: number;
     export const SE_GREG_CAL: number;
     export const SE_SUN: number;
+    export const SE_MOON: number;
+    export const SE_MARS: number;
+    export const SE_MERCURY: number;
+    export const SE_JUPITER: number;
+    export const SE_VENUS: number;
+    export const SE_SATURN: number;
     export const SE_CALC_RISE: number;
     export const SE_CALC_SET: number;
     export const SEFLG_SWIEPH: number;

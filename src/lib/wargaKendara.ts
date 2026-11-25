@@ -582,7 +582,15 @@ export const computeWargaDegreeVargaEntry = (
     planetAspects?: PlanetAspectsMap,
 ): WargaChartEntry | null => {
     if (chart.planets.length === 0) return null;
-    const { planets, houses, ascendant } = DEGREE_VARGA_BUILDERS[key](chart);
+    return computeWargaChartEntry(DEGREE_VARGA_BUILDERS[key](chart), planetAspects);
+};
+
+/** Table entry for any built chart (whole-sign houses from its lagna) — used for the degree vargas
+ *  and the Nisheka chart, which are pure functions of stored data and derived at render time. */
+export const computeWargaChartEntry = (
+    { planets, houses, ascendant }: ChartInput,
+    planetAspects?: PlanetAspectsMap,
+): WargaChartEntry => {
     const sources: WargaPlanetSource[] = planets.map(({ name, sign, house, strength }) => ({
         name,
         sign,

@@ -93,6 +93,8 @@ const CalculatedDetailsSchema = new Schema<ICalculatedDetails>({
     gulikaLagna: { type: Schema.Types.Mixed },
     /** Pranapada Lagna (src/lib/pranapadaLagna.ts). Absent on legacy docs until recalculated, and on manual charts. */
     pranapadaLagna: { type: Schema.Types.Mixed },
+    /** Nisheka Lagna and chart (src/lib/nishekaLagna.ts). Absent on legacy docs until recalculated, and on manual charts. */
+    nisheka: { type: Schema.Types.Mixed },
     badhakaPlanet: [Number],
     marakaPlanets: [Number],
     nidhanamshaPlanets: [Number],

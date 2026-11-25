@@ -618,7 +618,8 @@
             "birth": "Birth Chart (D1)",
             "navamsa-d9": "Navamsa Chart (D9)",
             "suryaLagna": "Surya Lagna Chart",
-            "chandraLagna": "Chandra Lagna Chart"
+            "chandraLagna": "Chandra Lagna Chart",
+            "nisheka": "Nisheka Chart"
         },
         "wargaKendara": {
             "title": "Warga Kendara",
@@ -626,7 +627,8 @@
                 "rashi": "Rāśi (D1)",
                 "navamsa": "Navāṁśa (D9)",
                 "suryaLagna": "Surya Lagna",
-                "chandraLagna": "Chandra Lagna"
+                "chandraLagna": "Chandra Lagna",
+                "nisheka": "Nisheka"
             },
             "pinnedAria": "Rāśi (D1) — always shown",
             "secondChartAria": "Select second chart",
@@ -715,7 +717,27 @@
                 "chandraLagna": {
                     "name": "Chandra Lagna",
                     "indication": "Moon-based analysis"
+                },
+                "nisheka": {
+                    "name": "Nisheka",
+                    "indication": "Conception, Pre-birth condition, Parents"
                 }
+            },
+            "nisheka": {
+                "title": "Nisheka calculation (BPHS 4.27–29)",
+                "saturnMandi": "A · Saturn – Mandi",
+                "lagnaNinth": "B · Lagna → 9th bhava madhya",
+                "lagnaLord": "Lagna lord",
+                "invisible": "below the horizon",
+                "visible": "above the horizon",
+                "onHorizon": "on the horizon",
+                "moonCorrection": "C · Moon in sign",
+                "notAdded": "not added",
+                "total": "X = A + B + C",
+                "elapsed": "Time before birth",
+                "elapsedValue": "{months} months, {days} days, {hours} h {minutes} m",
+                "dateTime": "Nisheka date & time",
+                "lagna": "Nisheka Lagna"
             }
         },
         "padaFormat": "{pada} Pada",

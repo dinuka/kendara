@@ -83,7 +83,9 @@ import { buildDrekkanaChart } from "@/lib/drekkana";
 import { buildTrimshamshaChart } from "@/lib/trimshamsha";
 import type { WargaVargaKey } from "@/lib/wargaKendara";
 import { VARGA_CATALOG } from "@/lib/wargaKendara";
-import { computeWargaDegreeVargaEntry, resolveWargaKendara } from "@/lib/wargaKendara";
+import { computeWargaChartEntry, computeWargaDegreeVargaEntry, resolveWargaKendara } from "@/lib/wargaKendara";
+import { type Nisheka, buildNishekaChart } from "@/lib/nishekaLagna";
+import NishekaDetails from "@/components/wargaKendara/NishekaDetails";
 import { resolveYogaDoshas } from "@/lib/yogaDosha";
 
 const STRENGTH_TRANSLATION_KEYS: Record<PlanetaryStrength, string> = {
@@ -100,7 +102,7 @@ const STRENGTH_TRANSLATION_KEYS: Record<PlanetaryStrength, string> = {
 
 /** A strip key: a catalog varga (d1..d60) or the two lagna rotations. Only `d9`, `suryaLagna` and
  *  `chandraLagna` have computed figures/tables; the remaining catalog keys show name + tags only. */
-type WargaStripKey = WargaVargaKey | "suryaLagna" | "chandraLagna";
+type WargaStripKey = WargaVargaKey | "suryaLagna" | "chandraLagna" | "nisheka";
 
 /** Second-chart strip order of the Warga Kendara (D1 is the pinned first slot, never a tab). The
  *  computed charts (D9, Surya/Chandra Lagna) come first; the remaining catalog keys follow in
@@ -109,6 +111,7 @@ const SECOND_CHART_KEYS: WargaStripKey[] = [
     "d9",
     "suryaLagna",
     "chandraLagna",
+    "nisheka",
     ...VARGA_CATALOG.filter((v) => v.key !== "d1" && v.key !== "d9").map((v) => v.key as WargaStripKey),
 ];
 
@@ -230,6 +233,7 @@ function HoroscopeDetail() {
             horaLagna?: { sign: number; degree: number };
             gulikaLagna?: { sign: number; degree: number };
             pranapadaLagna?: { sign: number; degree: number };
+            nisheka?: Nisheka;
             badhakaPlanet: number[];
             marakaPlanets: number[];
             nidhanamshaPlanets: number[];
@@ -583,6 +587,12 @@ function HoroscopeDetail() {
             ? (resolvedWargaKendara?.[degreeVargaKey] ??
               computeWargaDegreeVargaEntry(degreeVargaKey, degreeVargaSource, aspectSettings.planetAspects))
             : null;
+
+    // Nisheka (docs/nisheka-lagna.md): computed and stored when the horoscope is saved (auto charts
+    // only); the figure and tables are rebuilt from the stored nisheka planets.
+    const nisheka = secondChart === "nisheka" ? calculatedDetails?.nisheka : undefined;
+    const nishekaChart = nisheka ? buildNishekaChart(nisheka) : null;
+    const nishekaEntry = nishekaChart ? computeWargaChartEntry(nishekaChart, aspectSettings.planetAspects) : null;
 
     // Yogal/Dosha tags: computed-and-stored entries win (yogaDoshaVersion: 1); legacy documents
     // are re-derived from the stored chart data at render time — same fallback as Warga Kendara.
@@ -1460,7 +1470,9 @@ function HoroscopeDetail() {
                                             const selected = secondChart === key;
                                             const label = isComputedChart(key)
                                                 ? t(SECOND_CHART_TAB_KEYS[key as "d9" | "suryaLagna" | "chandraLagna"])
-                                                : `${t(`astrology.wargaKendara.vargas.${key}.name`)} (D${VARGA_CATALOG.find((v) => v.key === key)?.d})`;
+                                                : key === "nisheka"
+                                                  ? t("astrology.wargaKendara.tabs.nisheka")
+                                                  : `${t(`astrology.wargaKendara.vargas.${key}.name`)} (D${VARGA_CATALOG.find((v) => v.key === key)?.d})`;
                                             return (
                                                 <button
                                                     key={key}
@@ -1536,6 +1548,17 @@ function HoroscopeDetail() {
                                                                   ),
                                                               }
                                                             : {})}
+                                                    />
+                                                ) : secondChart === "nisheka" ? (
+                                                    <WargaChartSection
+                                                        key={secondChart}
+                                                        chartKey="nisheka"
+                                                        caption={t("astrology.chartCaptions.nisheka")}
+                                                        chartData={nishekaChart}
+                                                        entry={nishekaEntry}
+                                                        noDataMessage={t("astrology.noChartData")}
+                                                        rashiAspects={aspectSettings.rashiAspects}
+                                                        details={nisheka && <NishekaDetails nisheka={nisheka} />}
                                                     />
                                                 ) : secondChart === "d3" || secondChart === "d30" ? (
                                                     <WargaChartSection
