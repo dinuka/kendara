@@ -4,6 +4,7 @@ declare module "swisseph-v2" {
     export const SE_GREG_CAL: number;
     export const SE_SUN: number;
     export const SE_CALC_RISE: number;
+    export const SE_CALC_SET: number;
     export const SEFLG_SWIEPH: number;
 
     export function swe_utc_time_zone(

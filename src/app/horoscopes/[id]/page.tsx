@@ -50,6 +50,7 @@ import {
     type PlanetTableData,
     type PlanetTableRow,
     withGrahaMaitri,
+    withSpecialLagnas,
     withUpagrahas,
 } from "@/lib/chartTableRows";
 import type { ChartInput } from "@/lib/chartDataTransform";
@@ -226,7 +227,8 @@ function HoroscopeDetail() {
             lord16thDrekkana?: number;
             lord34thDrekkana?: number;
             lord64thNavamsa: number;
-            horaLagna?: { sign: number };
+            horaLagna?: { sign: number; degree: number };
+            gulikaLagna?: { sign: number; degree: number };
             badhakaPlanet: number[];
             marakaPlanets: number[];
             nidhanamshaPlanets: number[];
@@ -1163,7 +1165,15 @@ function HoroscopeDetail() {
             rows,
             available: new Set([...CORE_HOUSE_COLUMNS, "start", "mid", "end", "kendrasthana"]),
         };
-        return d1SunLongitude !== undefined ? withUpagrahas(data, d1SunLongitude) : data;
+        const withUpa = d1SunLongitude !== undefined ? withUpagrahas(data, d1SunLongitude) : data;
+        // Moon's sign read from its house, as the birth chart does, so lean manual data works too.
+        const moonHouse = calculatedDetails.planets?.find((p) => p.name === PlanetId.MOON)?.house;
+        return withSpecialLagnas(withUpa, {
+            ascendantSign: calculatedDetails.ascendant.sign,
+            moonSign: rows.find((r) => r.houseNumber === moonHouse)?.sign,
+            horaLagna: calculatedDetails.horaLagna,
+            gulikaLagna: calculatedDetails.gulikaLagna,
+        });
     };
 
     /** D1 rows of the shared Planets table (see buildD1HouseData). */
@@ -1498,6 +1508,7 @@ function HoroscopeDetail() {
                                                 planetData={d1PlanetData}
                                                 displayAspects={displayAspects}
                                                 horaLagnaSign={calculatedDetails.horaLagna?.sign}
+                                                gulikaLagnaSign={calculatedDetails.gulikaLagna?.sign}
                                                 sunLongitude={d1SunLongitude}
                                             />
                                             {navamsaAvailable &&

@@ -26,6 +26,7 @@ import { getBadhakaSign } from "@/lib/badhaka";
 import { computeBhavaSuchika, computeLagnaBhavaSuchika, computeNavamsaLagnaSign } from "@/lib/bhavaSuchika";
 import { computeChartAspects } from "@/lib/chartAspects";
 import { get22ndDrekkanaLord, get22ndDrekkanaLordFromPlanet, getExtraDrekkanaLords } from "@/lib/drekkanaLord";
+import { type GulikaLagna, findGulikaPeriod, weekdayOfJulianDay } from "@/lib/gulikaLagna";
 import { HoraLagna, calculateHoraLagna } from "@/lib/horaLagna";
 import logger from "@/lib/logger";
 import { computePlanetStrength } from "@/lib/planetDignity";
@@ -166,22 +167,14 @@ const MINUTES_PER_DAY = 24 * 60;
 
 /** Julian Day (UT) of the latest sunrise at or before `jdBirth` at the birth place, or null when
  *  the Sun does not rise there (polar day/night). */
+/** Julian Day (UT) of the first sunrise or sunset after `jd` at the place, or null when there is none. */
+function sunEventAfter(jd: number, lat: number, lng: number, event: number): number | null {
+    const r = swisseph.swe_rise_trans(jd, swisseph.SE_SUN, "", swisseph.SEFLG_SWIEPH, event, lng, lat, 0, 0, 0);
+    return r.error === undefined ? r.transitTime : null;
+}
+
 function findPrecedingSunrise(jdBirth: number, lat: number, lng: number): number | null {
-    const riseAfter = (jd: number): number | null => {
-        const r = swisseph.swe_rise_trans(
-            jd,
-            swisseph.SE_SUN,
-            "",
-            swisseph.SEFLG_SWIEPH,
-            swisseph.SE_CALC_RISE,
-            lng,
-            lat,
-            0,
-            0,
-            0,
-        );
-        return r.error === undefined ? r.transitTime : null;
-    };
+    const riseAfter = (jd: number) => sunEventAfter(jd, lat, lng, swisseph.SE_CALC_RISE);
 
     // Start comfortably more than a day back, then step forward through the rises until the next
     // one would be after birth.
@@ -208,6 +201,41 @@ function computeHoraLagna(jdBirth: number, lat: number, lng: number): HoraLagna 
         return undefined;
     }
     return calculateHoraLagna(sun.longitude, (jdBirth - sunrise) * MINUTES_PER_DAY);
+}
+
+const JD_UNIX_EPOCH = 2440587.5;
+const jdToIso = (jd: number): string => new Date(Math.round((jd - JD_UNIX_EPOCH) * 86_400_000)).toISOString();
+
+/** Gulika Lagna (docs/gulika-lagna.md): the sidereal ascendant at the start of Saturn's part of the
+ *  birth day or night. Undefined when the sunrise/sunset can't be found (polar day/night). Expects
+ *  the sidereal mode set. */
+export function computeGulikaLagna(jdBirth: number, lat: number, lng: number): GulikaLagna | undefined {
+    const sunrise = findPrecedingSunrise(jdBirth, lat, lng);
+    const sunset = sunrise === null ? null : sunEventAfter(sunrise, lat, lng, swisseph.SE_CALC_SET);
+    const nextSunrise = sunset === null ? null : sunEventAfter(sunset, lat, lng, swisseph.SE_CALC_RISE);
+    if (sunrise === null || sunset === null || nextSunrise === null || nextSunrise <= jdBirth) {
+        logger.warn("no sunrise/sunset around birth at lat %d lng %d; skipping Gulika Lagna", lat, lng);
+        return undefined;
+    }
+    const period = findGulikaPeriod({
+        sunrise,
+        sunset,
+        nextSunrise,
+        birth: jdBirth,
+        weekday: weekdayOfJulianDay(sunrise, lng),
+    });
+    const { ascendant } = swisseph.swe_houses_ex(period.start, swisseph.SEFLG_SIDEREAL, lat, lng, "P");
+    const longitude = ((ascendant % 360) + 360) % 360;
+    return {
+        absoluteDegree: +longitude.toFixed(4),
+        sign: Math.floor(longitude / 30) + 1,
+        degree: +(longitude % 30).toFixed(4),
+        isNight: period.isNight,
+        weekday: period.weekday,
+        part: period.part,
+        start: jdToIso(period.start),
+        end: jdToIso(period.end),
+    };
 }
 
 export function calculateHoroscope(
@@ -274,6 +302,7 @@ export function calculateHoroscope(
     );
     const cusps = sweResult.house;
     const horaLagna = computeHoraLagna(jd.julianDayUT, data.latitude, data.longitude);
+    const gulikaLagna = computeGulikaLagna(jd.julianDayUT, data.latitude, data.longitude);
 
     const houses: House[] = Array.from({ length: 12 }, (_, i) => {
         const cusp = cusps[i];
@@ -456,6 +485,7 @@ export function calculateHoroscope(
         yogaDoshaVersion: YOGA_DOSHA_VERSION,
         subaAsuba,
         horaLagna,
+        gulikaLagna,
     };
 
     return {

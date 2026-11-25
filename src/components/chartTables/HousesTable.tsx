@@ -68,6 +68,16 @@ export default function HousesTable({ view, data, planetSigns, showAspectDelta, 
                     })
                     .join(", ");
             }
+            case "other": {
+                if (!row.specialLagnas?.length) return NO_VALUE;
+                const withDegree = optionOn(setting, "degree");
+                return row.specialLagnas
+                    .map(({ key, degreeLabel }) => {
+                        const name = t(`astrology.specialLagna.${key}`);
+                        return withDegree && degreeLabel ? `${name} (${degreeLabel})` : name;
+                    })
+                    .join(", ");
+            }
             case "aspects":
                 return (
                     <AspectChips

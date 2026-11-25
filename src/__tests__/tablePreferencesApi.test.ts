@@ -58,7 +58,7 @@ describe("GET /api/user/table-preferences", () => {
         const { GET } = await load();
         const body = await (await GET()).json();
         expect(body.tablePreferences.charts.houses[0]).toEqual({ id: "number", visible: true });
-        expect(body.tablePreferences.charts.houses).toHaveLength(9);
+        expect(body.tablePreferences.charts.houses).toHaveLength(10);
     });
 });
 
@@ -100,6 +100,7 @@ describe("PUT /api/user/table-preferences", () => {
             "upagraha",
             "aspects",
             "kendrasthana",
+            "other",
             "number",
         ]);
         expect(update.$set.tablePreferences.charts).toEqual(DEFAULT_TABLE_PREFERENCES.charts);

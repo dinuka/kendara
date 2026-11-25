@@ -53,6 +53,8 @@ interface BirthChartProps {
     /** Sign (1-12) of the Hora Lagna, marked with "HL" — D1 birth chart only. The Varnada Lagna
      *  ("VL") is derived from it and the ascendant sign. */
     horaLagnaSign?: number;
+    /** Sign (1-12) of the Gulika Lagna, marked with "GL" — D1 birth chart only. */
+    gulikaLagnaSign?: number;
     /** Sun's sidereal longitude (0-360). When given, the five Upagrahas are marked D/V/P/I/U —
      *  D1 birth chart only, and only when the Sun's degree is known. */
     sunLongitude?: number;
@@ -62,8 +64,14 @@ interface BirthChartProps {
 const INDU_LAGNA = "IL";
 const HORA_LAGNA = "HL";
 const VARNADA_LAGNA = "VL";
+const GULIKA_LAGNA = "GL";
 type UpagrahaMarker = (typeof UPAGRAHA_MARKERS)[keyof typeof UPAGRAHA_MARKERS];
-type LagnaMarker = typeof INDU_LAGNA | typeof HORA_LAGNA | typeof VARNADA_LAGNA | UpagrahaMarker;
+type LagnaMarker =
+    | typeof INDU_LAGNA
+    | typeof HORA_LAGNA
+    | typeof VARNADA_LAGNA
+    | typeof GULIKA_LAGNA
+    | UpagrahaMarker;
 
 const UPAGRAHA_COLOR = "#be123c";
 
@@ -71,6 +79,7 @@ const LAGNA_MARKER_COLORS: Record<string, string> = {
     [INDU_LAGNA]: "#7c3aed",
     [HORA_LAGNA]: "#0f766e",
     [VARNADA_LAGNA]: "#b45309",
+    [GULIKA_LAGNA]: "#1e3a8a",
     ...Object.fromEntries(Object.values(UPAGRAHA_MARKERS).map((marker) => [marker, UPAGRAHA_COLOR])),
 };
 
@@ -269,6 +278,7 @@ export function BirthChart({
     ascendantDegreeLabel,
     showInduLagna = false,
     horaLagnaSign,
+    gulikaLagnaSign,
     sunLongitude,
 }: BirthChartProps) {
     const [selectedHouse, setSelectedHouse] = useState<number | null>(null);
@@ -298,6 +308,7 @@ export function BirthChart({
         addMarker(horaLagnaSign, HORA_LAGNA);
         addMarker(calculateVarnadaLagna(ascendant.sign, horaLagnaSign).sign, VARNADA_LAGNA);
     }
+    if (gulikaLagnaSign) addMarker(gulikaLagnaSign, GULIKA_LAGNA);
     if (sunLongitude !== undefined && Number.isFinite(sunLongitude)) {
         calculateUpagrahas(sunLongitude).forEach(({ key, sign }) => addMarker(sign, UPAGRAHA_MARKERS[key]));
     }

@@ -48,6 +48,8 @@ interface WargaChartSectionProps {
     rashiAspects?: RashiAspectsSetting;
     /** Hora Lagna sign (1-12), marked "HL" on the D1 figure only. */
     horaLagnaSign?: number;
+    /** Gulika Lagna sign (1-12), marked "GL" on the D1 figure only. */
+    gulikaLagnaSign?: number;
     /** Sun's sidereal longitude, for the Upagraha markers on the D1 figure only. */
     sunLongitude?: number;
 }
@@ -74,6 +76,7 @@ const WargaChartSection = ({
     displayAspects,
     rashiAspects,
     horaLagnaSign,
+    gulikaLagnaSign,
     sunLongitude,
 }: WargaChartSectionProps) => {
     const { t } = useI18n();
@@ -105,6 +108,7 @@ const WargaChartSection = ({
                         showAscendantDegree={showAscendantDegree}
                         showInduLagna={isD1}
                         horaLagnaSign={isD1 ? horaLagnaSign : undefined}
+                        gulikaLagnaSign={isD1 ? gulikaLagnaSign : undefined}
                         sunLongitude={isD1 ? sunLongitude : undefined}
                     />
                 </div>

@@ -25,7 +25,8 @@ export type HouseColumnId =
     | "planets"
     | "upagraha"
     | "aspects"
-    | "kendrasthana";
+    | "kendrasthana"
+    | "other";
 
 export type PlanetColumnId =
     | "planet"
@@ -118,6 +119,7 @@ export const HOUSE_COLUMNS: readonly ColumnDef[] = [
     { id: "upagraha", labelKey: "astrology.upagraha.column", options: [DEGREE_OPTION] },
     { id: "aspects", labelKey: "astrology.aspects", options: [SYMBOL_OPTION] },
     { id: "kendrasthana", labelKey: "astrology.kendrasthana", options: [SYMBOL_OPTION] },
+    { id: "other", labelKey: "astrology.other", options: [DEGREE_OPTION] },
 ];
 
 export const PLANET_COLUMNS: readonly ColumnDef[] = [
@@ -177,6 +179,7 @@ export const DEFAULT_TABLE_PREFERENCES: TablePreferences = {
             col("upagraha", true),
             col("aspects", true, ["symbol"]),
             col("kendrasthana", false, ["symbol"]),
+            col("other", true),
         ],
         planets: [
             col("planet", true, ["retrograde"]),
@@ -207,6 +210,7 @@ export const DEFAULT_TABLE_PREFERENCES: TablePreferences = {
             col("upagraha", true),
             col("aspects", true),
             col("kendrasthana", true),
+            col("other", true),
         ],
         planets: [
             col("planet", true, ["symbol"]),

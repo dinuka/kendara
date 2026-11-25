@@ -315,6 +315,12 @@
             "indrachapa": "Indrachapa",
             "upaketu": "Upaketu"
         },
+        "specialLagna": {
+            "indu": "Indu Lagna",
+            "hora": "Hora Lagna",
+            "varnada": "Varnada Lagna",
+            "gulika": "Gulika Lagna"
+        },
         "kendrasthana": "Kendrasthana",
         "aspectReason": {
             "infoGlyph": "Show aspect reason"

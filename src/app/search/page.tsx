@@ -802,6 +802,11 @@ const SearchResultCard = ({
                                                 ? (cd?.horaLagna as { sign?: number } | undefined)?.sign
                                                 : undefined
                                         }
+                                        gulikaLagnaSign={
+                                            resolvedChart === "birth"
+                                                ? (cd?.gulikaLagna as { sign?: number } | undefined)?.sign
+                                                : undefined
+                                        }
                                         sunLongitude={
                                             resolvedChart === "birth" && h.source !== "manual"
                                                 ? planets.find((p) => p.name === PlanetId.SUN)?.absoluteDegree

@@ -315,6 +315,12 @@
             "indrachapa": "ඉන්ද්‍රචාප",
             "upaketu": "උපකේතු"
         },
+        "specialLagna": {
+            "indu": "ඉන්දු ලග්නය",
+            "hora": "හෝරා ලග්නය",
+            "varnada": "වර්ණද ලග්නය",
+            "gulika": "ගුලික ලග්නය"
+        },
         "kendrasthana": "කේන්ද්‍රස්ථාන",
         "aspectReason": {
             "infoGlyph": "දෘෂ්ඨි හේතුව පෙන්වන්න"

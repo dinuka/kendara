@@ -89,6 +89,8 @@ const CalculatedDetailsSchema = new Schema<ICalculatedDetails>({
     lord64thNavamsa: Number,
     /** Hora Lagna (src/lib/horaLagna.ts). Absent on legacy docs until recalculated, and on manual charts. */
     horaLagna: { type: Schema.Types.Mixed },
+    /** Gulika Lagna (src/lib/gulikaLagna.ts). Absent on legacy docs until recalculated, and on manual charts. */
+    gulikaLagna: { type: Schema.Types.Mixed },
     badhakaPlanet: [Number],
     marakaPlanets: [Number],
     nidhanamshaPlanets: [Number],

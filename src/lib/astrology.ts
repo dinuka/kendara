@@ -1,4 +1,5 @@
 import { PanchaPakshi, PlanetaryStrength } from "./astrologyEnums";
+import type { GulikaLagna } from "./gulikaLagna";
 import type { HoraLagna } from "./horaLagna";
 import type { ShadBalaya } from "./shadBalaya";
 import type { SubaAsubaByPlanet } from "./subaAsuba";
@@ -487,6 +488,9 @@ export interface CalculationResult {
     /** Hora Lagna (හෝරා ලග්නය, src/lib/horaLagna.ts). Absent on legacy docs, manual charts, and
      *  when the Sun does not rise at the birth place. */
     horaLagna?: HoraLagna;
+    /** Gulika Lagna (ගුලික ලග්නය, src/lib/gulikaLagna.ts). Absent on legacy docs, manual charts, and
+     *  when the Sun does not rise/set at the birth place. */
+    gulikaLagna?: GulikaLagna;
     badhakaPlanet: number[];
     marakaPlanets: number[];
     nidhanamshaPlanets: number[];
