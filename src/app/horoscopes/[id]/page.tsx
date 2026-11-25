@@ -1,6 +1,8 @@
 "use client";
 
 import CalculatedChartBadge from "@/components/CalculatedChartBadge";
+import HousesTable from "@/components/chartTables/HousesTable";
+import PlanetsTable from "@/components/chartTables/PlanetsTable";
 import ConfirmDeleteModal from "@/components/ConfirmDeleteModal";
 import DashaSection from "@/components/Dasha/DashaSection";
 import type { PlanetTag } from "@/components/Dasha/DashaPlanetTags";
@@ -9,15 +11,14 @@ import DerivedRangesSection from "@/components/ManualChart/DerivedRanges";
 import ManualChartEditor from "@/components/ManualChart/ManualChartEditor";
 import PrivacyBadge from "@/components/PrivacyBadge";
 import PrivacyToggle from "@/components/PrivacyToggle";
-import AspectChip from "@/components/aspects/AspectChip";
 import BhavaSuchikaTag from "@/components/bhavaSuchika/BhavaSuchikaTag";
 import Notepad from "@/components/notepad/Notepad";
-import SubaAsubaBadge from "@/components/papiGrahayan/SubaAsubaBadge";
 import ShadBalaTable from "@/components/shadbalaya/ShadBalaTable";
 import WargaChartSection from "@/components/wargaKendara/WargaChartSection";
 import WargaIndicationTags from "@/components/wargaKendara/WargaIndicationTags";
 import YogaDoshaSection from "@/components/yogaDosha/YogaDoshaSection";
 import { useI18n } from "@/hooks/useI18n";
+import { TablePreferencesProvider } from "@/hooks/useTablePreferences";
 import { useSession } from "next-auth/react";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
@@ -32,7 +33,6 @@ import {
     computeThithiFromPlanets,
     computeYogakaraka,
     formatDegree,
-    getNakshatraLord,
     navamsaSign,
     normalizeMaranakaraka,
 } from "@/lib/astrology";
@@ -42,6 +42,14 @@ import { resolveLagnaBhavaSuchika, resolvePlanetBhavaSuchika } from "@/lib/bhava
 import { type AspectSettings, resolveDisplayAspects, rotateDisplayAspects } from "@/lib/chartAspects";
 import { computeKendrasthana } from "@/lib/kendrasthana";
 import { getChartData } from "@/lib/chartDataTransform";
+import {
+    CORE_HOUSE_COLUMNS,
+    CORE_PLANET_COLUMNS,
+    type HouseTableData,
+    type HouseTableRow,
+    type PlanetTableData,
+    type PlanetTableRow,
+} from "@/lib/chartTableRows";
 import type { ChartInput } from "@/lib/chartDataTransform";
 import { ChartType } from "@/lib/chartTypes";
 import { formatDate } from "@/lib/date";
@@ -67,6 +75,7 @@ import type { DerivedRanges, ManualHouse, ManualHousePlacements } from "@/lib/ma
 import { computePlanetConjunctions } from "@/lib/planetAspects";
 import { type ShadBalaya, computeShadBalaya, deriveDay, mergeShadBalaya } from "@/lib/shadBalaya";
 import { resolveSubaAsuba } from "@/lib/subaAsuba";
+import type { PlanetColumnId } from "@/lib/tableColumns";
 import { buildDrekkanaChart } from "@/lib/drekkana";
 import { buildTrimshamshaChart } from "@/lib/trimshamsha";
 import type { WargaVargaKey } from "@/lib/wargaKendara";
@@ -179,7 +188,18 @@ function birthDateInputValue(value?: Date | string): string {
     return `${y}-${m}-${d}`;
 }
 
+/** Table column layouts are a per-user preference shared by every horoscope; signed-out viewers of
+ *  public horoscopes get the defaults. */
 export default function HoroscopeDetailPage() {
+    const { status } = useSession();
+    return (
+        <TablePreferencesProvider enabled={status === "authenticated"}>
+            <HoroscopeDetail />
+        </TablePreferencesProvider>
+    );
+}
+
+function HoroscopeDetail() {
     const { data: session, status } = useSession();
     const router = useRouter();
     const params = useParams();
@@ -260,8 +280,6 @@ export default function HoroscopeDetailPage() {
     const [deleting, setDeleting] = useState(false);
     const [deleteError, setDeleteError] = useState<string | null>(null);
 
-    const [expandedHouses, setExpandedHouses] = useState<Set<number>>(new Set());
-    const [expandedPlanets, setExpandedPlanets] = useState<Set<number>>(new Set());
 
     const [privacyPanelOpen, setPrivacyPanelOpen] = useState(false);
     const [editingChart, setEditingChart] = useState(false);
@@ -478,8 +496,6 @@ export default function HoroscopeDetailPage() {
         calculatedDetails?.houses ?? [],
         aspectSettings.planetaryOrbs,
     );
-    const planetSignOf = (name: number): number | undefined =>
-        calculatedDetails?.planets?.find((p) => p.name === name)?.sign;
 
     // Maranakaraka is recomputed at render from planets (lagna chart only — never D9) so
     // legacy stored values (a single "any rule → Moon=2") don't stick. Every planet in its
@@ -570,16 +586,6 @@ export default function HoroscopeDetailPage() {
     // Suba/Asuba (සුබ/අසුබ) verdicts: stored entries win; legacy documents that predate the field
     // are recomputed from the stored planets + thithi at render time (see src/lib/subaAsuba.ts).
     const resolvedSubaAsuba = resolveSubaAsuba(calculatedDetails);
-
-    // Per-planet Bhava Suchika values feed the D1 Planets table column. They are the existing
-    // top-level calculatedDetails field — never part of the warga entry itself.
-    const resolvedPlanetBhavaSuchika: Record<number, number> = {};
-    if (calculatedDetails) {
-        [1, 2, 3, 4, 5, 6, 7, 8, 9].forEach((name) => {
-            const value = resolvePlanetBhavaSuchika(calculatedDetails, name);
-            if (value !== undefined) resolvedPlanetBhavaSuchika[name] = value;
-        });
-    }
 
     const handleDelete = async () => {
         setDeleting(true);
@@ -1044,9 +1050,6 @@ export default function HoroscopeDetailPage() {
         return tags;
     };
 
-    /** Planet id → the "Other" column tags, for the birth chart's Planets table. */
-    const getPlanetTagsByPlanet = (): Record<number, PlanetTag[]> =>
-        Object.fromEntries((calculatedDetails?.planets ?? []).map((p) => [p.name, getPlanetTags(p)]));
 
     /** Dignities worth flagging on a dasha label (the planet table shows them in its strength column). */
     const DASHA_DIGNITY_STRENGTHS = new Set<PlanetaryStrength>([
@@ -1069,23 +1072,6 @@ export default function HoroscopeDetailPage() {
             result[p.name] = [...dignity, ...getPlanetTags(p)];
         });
         return result;
-    };
-
-    const PLANET_SYMBOLS: Record<number, string> = {
-        1: "☉",
-        2: "☽",
-        3: "♂",
-        4: "☿",
-        5: "♃",
-        6: "♀",
-        7: "♄",
-        8: "☊",
-        9: "☋",
-    };
-
-    const TAG_COLORS: Record<string, string> = {
-        combust: "bg-orange-100 text-orange-700",
-        atmakaraka: "bg-indigo-100 text-indigo-700",
     };
 
     const SIGN_LORD_MAP: Record<number, number> = {
@@ -1121,6 +1107,91 @@ export default function HoroscopeDetailPage() {
             .filter((p) => p.house === houseNumber)
             .sort((a, b) => a.absoluteDegree - b.absoluteDegree);
     };
+
+    /** In-sign degree label of a planet: the real degree when known, else (manual charts with Navamsa
+     *  data) its navamsa segment range; undefined when neither is known. */
+    const getPlanetDegreeLabel = (p: Planet): string | undefined =>
+        hasExactDegree(p) ? formatDegree(p.degree) : navamsaAvailable ? getPlanetDegreeRange(p) : undefined;
+
+    /** D1 rows of the shared Houses table — rendered by both the Calculations tab and the birth chart
+     *  figure, so the two always show identical values (each with its own column layout). */
+    const buildD1HouseData = (): HouseTableData | undefined => {
+        if (!calculatedDetails) return undefined;
+        // An entered lagna degree gives real cusps (rendered like an auto chart from the bhava houses).
+        const isManualRow = isManualChart && !hasExactAscendant;
+        // Without Navamsa data a manual chart carries no degree values: houses show the sign only.
+        const showSignOnly = isManualRow && !navamsaAvailable;
+        const rows: HouseTableRow[] = calculatedDetails.houses.map((h) => {
+            const manualRange =
+                isManualRow && navamsaAvailable
+                    ? getManualHouseRange(
+                          h.houseNumber,
+                          h.sign,
+                          getAscMidRange().start,
+                          getAscMidRange().end,
+                          getAscendantAbsDeg() ?? 0,
+                      )
+                    : null;
+            const cusp = (key: "start" | "mid" | "end", sign?: number, lord?: number, degree = 0): string =>
+                manualRange
+                    ? manualRange[key]
+                    : showSignOnly
+                      ? getSignName(h.sign)
+                      : formatSignLordDegree(sign, lord, degree, h.sign, h.lord);
+            return {
+                houseNumber: h.houseNumber,
+                sign: h.sign,
+                start: cusp("start", h.startSign, h.startLord, h.startDegree),
+                mid: cusp("mid", h.middleSign, h.middleLord, h.middleDegree),
+                end: cusp("end", h.endSign, h.endLord, h.endDegree),
+                planets: getPlanetsInHouse(h.houseNumber).map((p) => ({
+                    name: p.name,
+                    degreeLabel: getPlanetDegreeLabel(p),
+                })),
+                aspects: displayAspects.byHouse[h.houseNumber] ?? [],
+                kendrasthana: kendrasthana.byHouse[h.houseNumber] ?? [],
+            };
+        });
+        return { rows, available: new Set([...CORE_HOUSE_COLUMNS, "start", "mid", "end", "kendrasthana"]) };
+    };
+
+    /** D1 rows of the shared Planets table (see buildD1HouseData). */
+    const buildD1PlanetData = (): PlanetTableData | undefined => {
+        if (!calculatedDetails) return undefined;
+        const available = new Set<PlanetColumnId>([...CORE_PLANET_COLUMNS, "subaAsuba", "kendrasthana"]);
+        if (navamsaAvailable) {
+            available.add("navamsa").add("navamsaStrength").add("nakshatra").add("bhavaSuchika");
+        }
+        const rows: PlanetTableRow[] = [...calculatedDetails.planets]
+            .sort((a, b) => a.name - b.name)
+            .map((p) => ({
+                name: p.name,
+                retrograde: !!p.retrograde,
+                sign: p.sign,
+                degreeLabel: getPlanetDegreeLabel(p),
+                strength: getStrength(p.strength),
+                // Planet house is its whole-sign Rashi location, never the cusp-boundary range.
+                house: p.house,
+                ownership: ownedHousesOf(p.name, calculatedDetails.houses),
+                // Suba/Asuba and Bhava Suchika: stored values win; legacy docs resolve lazily.
+                subaAsuba: resolvedSubaAsuba?.[String(p.name)],
+                navamsaSign: navamsaAvailable ? p.navamsaSign : undefined,
+                navamsaStrength: navamsaAvailable ? getStrength(p.navamsaStrength) : undefined,
+                nakshatra: navamsaAvailable ? { id: p.nakshatra, pada: p.pada } : undefined,
+                bhavaSuchika: navamsaAvailable ? resolvePlanetBhavaSuchika(calculatedDetails, p.name) : undefined,
+                conjunctions: resolvedConjunctionsByPlanet[p.name] ?? [],
+                aspects: displayAspects.receivedByPlanet[p.name] ?? [],
+                kendrasthana: kendrasthana.byPlanet[p.name] ?? [],
+                tags: getPlanetTags(p),
+            }));
+        return { rows, available, showAspectDelta: true };
+    };
+
+    const d1HouseData = buildD1HouseData();
+    const d1PlanetData = buildD1PlanetData();
+    const d1PlanetSigns: Record<number, number> = Object.fromEntries(
+        (d1PlanetData?.rows ?? []).map((row) => [row.name, row.sign]),
+    );
 
     const tabs = [
         { id: "charts", label: t("horoscope.charts") },
@@ -1412,9 +1483,8 @@ export default function HoroscopeDetailPage() {
                                                 entry={resolvedWargaKendara?.d1 ?? null}
                                                 noDataMessage={t("astrology.noChartData")}
                                                 ascendantDegreeLabel={getBirthChartAscendantDegreeLabel()}
-                                                bhavaSuchika={resolvedPlanetBhavaSuchika}
-                                                conjunctionMap={resolvedConjunctionsByPlanet}
-                                                otherTags={getPlanetTagsByPlanet()}
+                                                houseData={d1HouseData}
+                                                planetData={d1PlanetData}
                                                 displayAspects={displayAspects}
                                                 horaLagnaSign={calculatedDetails.horaLagna?.sign}
                                             />
@@ -1656,586 +1726,17 @@ export default function HoroscopeDetailPage() {
                                 </div>
                             </section>
 
-                            <section className="bg-white rounded-lg border p-4">
-                                <h3 className="font-semibold text-sm mb-3 text-indigo-700 uppercase tracking-wide">
-                                    {t("astrology.houses")}
-                                </h3>
-                                <div className="overflow-x-auto">
-                                    <table className="w-full text-sm">
-                                        <thead>
-                                            <tr className="text-left text-gray-500 border-b">
-                                                <th className="py-1 pr-3">#</th>
-                                                <th className="py-1 pr-3">{t("astrology.start")}</th>
-                                                <th className="py-1 pr-3">{t("astrology.mid")}</th>
-                                                <th className="py-1 pr-3">{t("astrology.end")}</th>
-                                                <th className="py-1 pr-3">{t("astrology.planets")}</th>
-                                                <th className="py-1 pr-3">{t("astrology.aspects")}</th>
-                                                <th className="py-1 pr-3">{t("astrology.kendrasthana")}</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {calculatedDetails.houses.map((h) => {
-                                                const planetsInHouse = getPlanetsInHouse(h.houseNumber);
-                                                // An entered lagna degree gives real cusps (rendered
-                                                // like an auto chart from the bhava houses).
-                                                const isManualRow = isManualChart && !hasExactAscendant;
-                                                // Without Navamsa data a manual chart carries no
-                                                // degree values: houses show the sign only.
-                                                const showSignOnly = isManualRow && !navamsaAvailable;
-                                                const manualRange =
-                                                    isManualRow && navamsaAvailable
-                                                        ? getManualHouseRange(
-                                                              h.houseNumber,
-                                                              h.sign,
-                                                              getAscMidRange().start,
-                                                              getAscMidRange().end,
-                                                              getAscendantAbsDeg() ?? 0,
-                                                          )
-                                                        : null;
-                                                const aspectsToHouse = displayAspects.byHouse[h.houseNumber] ?? [];
-                                                const kendraOfHouse = kendrasthana.byHouse[h.houseNumber] ?? [];
-                                                return (
-                                                    <tr
-                                                        key={h.houseNumber}
-                                                        className="border-b border-gray-100 even:bg-gray-100"
-                                                    >
-                                                        <td className="py-1 pr-3 font-medium">{h.houseNumber}</td>
-                                                        <td className="py-1 pr-3 text-gray-600">
-                                                            {manualRange
-                                                                ? manualRange.start
-                                                                : showSignOnly
-                                                                  ? getSignName(h.sign)
-                                                                  : formatSignLordDegree(
-                                                                        h.startSign,
-                                                                        h.startLord,
-                                                                        h.startDegree,
-                                                                        h.sign,
-                                                                        h.lord,
-                                                                    )}
-                                                        </td>
-                                                        <td className="py-1 pr-3 text-gray-600">
-                                                            {manualRange
-                                                                ? manualRange.mid
-                                                                : showSignOnly
-                                                                  ? getSignName(h.sign)
-                                                                  : formatSignLordDegree(
-                                                                        h.middleSign,
-                                                                        h.middleLord,
-                                                                        h.middleDegree,
-                                                                        h.sign,
-                                                                        h.lord,
-                                                                    )}
-                                                        </td>
-                                                        <td className="py-1 pr-3 text-gray-600">
-                                                            {manualRange
-                                                                ? manualRange.end
-                                                                : showSignOnly
-                                                                  ? getSignName(h.sign)
-                                                                  : formatSignLordDegree(
-                                                                        h.endSign,
-                                                                        h.endLord,
-                                                                        h.endDegree,
-                                                                        h.sign,
-                                                                        h.lord,
-                                                                    )}
-                                                        </td>
-                                                        <td className="py-1 pr-3">
-                                                            {planetsInHouse.length > 0
-                                                                ? planetsInHouse
-                                                                      .map((p) => {
-                                                                          const degreeLabel = hasExactDegree(p)
-                                                                              ? formatDegree(p.degree)
-                                                                              : navamsaAvailable
-                                                                                ? getPlanetDegreeRange(p)
-                                                                                : null;
-                                                                          return degreeLabel
-                                                                              ? `${getPlanetName(p.name)} (${degreeLabel})`
-                                                                              : getPlanetName(p.name);
-                                                                      })
-                                                                      .join(", ")
-                                                                : "—"}
-                                                        </td>
-                                                        <td className="py-1 pr-3">
-                                                            {aspectsToHouse.length > 0 ? (
-                                                                <div className="flex flex-wrap gap-1">
-                                                                    {aspectsToHouse.map((a) => (
-                                                                        <AspectChip
-                                                                            key={a.planetName}
-                                                                            aspect={a}
-                                                                            planetLabel={`${PLANET_SYMBOLS[a.planetName] ?? ""} ${getPlanetName(a.planetName)}`.trim()}
-                                                                            aspectingSign={planetSignOf(a.planetName)}
-                                                                        />
-                                                                    ))}
-                                                                </div>
-                                                            ) : (
-                                                                "—"
-                                                            )}
-                                                        </td>
-                                                        <td className="py-1 pr-3">
-                                                            {kendraOfHouse.length > 0 ? (
-                                                                <div className="flex flex-wrap gap-1">
-                                                                    {kendraOfHouse.map((a) => (
-                                                                        <AspectChip
-                                                                            key={a.planetName}
-                                                                            aspect={a}
-                                                                            planetLabel={`${PLANET_SYMBOLS[a.planetName] ?? ""} ${getPlanetName(a.planetName)}`.trim()}
-                                                                        />
-                                                                    ))}
-                                                                </div>
-                                                            ) : (
-                                                                "—"
-                                                            )}
-                                                        </td>
-                                                    </tr>
-                                                );
-                                            })}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </section>
-
-                            <section className="bg-white rounded-lg border p-4">
-                                <h3 className="font-semibold text-sm mb-3 text-indigo-700 uppercase tracking-wide">
-                                    {t("astrology.planets")}
-                                </h3>
-
-                                {/* Desktop: table view */}
-                                <div className="hidden sm:block overflow-x-auto">
-                                    <table className="w-full text-sm">
-                                        <thead>
-                                            <tr className="text-left text-gray-500 border-b">
-                                                <th className="py-1 pr-3">{t("astrology.planet")}</th>
-                                                <th className="py-1 pr-3">{t("astrology.papiGrahayan.column")}</th>
-                                                <th className="py-1 pr-3">
-                                                    {t("astrology.sign")} ({t("astrology.degree")})
-                                                </th>
-                                                <th className="py-1 pr-3">{t("astrology.strength")}</th>
-                                                <th className="py-1 pr-3">{t("astrology.house")}</th>
-                                                <th className="py-1 pr-3">{t("astrology.ownership")}</th>
-                                                {navamsaAvailable && (
-                                                    <th className="py-1 pr-3">{t("astrology.navamsa")}</th>
-                                                )}
-                                                {navamsaAvailable && (
-                                                    <th className="py-1 pr-3">
-                                                        {t("astrology.navamsa")} {t("astrology.strength")}
-                                                    </th>
-                                                )}
-                                                {navamsaAvailable && (
-                                                    <th className="py-1 pr-3">
-                                                        {t("astrology.nakshatra")} ({t("astrology.pada")})
-                                                    </th>
-                                                )}
-                                                {navamsaAvailable && (
-                                                    <th className="py-1 pr-3">
-                                                        <span className="inline-flex items-center gap-1 whitespace-nowrap">
-                                                            {t("astrology.bhavaSuchika.label")}
-                                                            <button
-                                                                type="button"
-                                                                title={t("astrology.bhavaSuchika.tooltip")}
-                                                                aria-label={t("astrology.bhavaSuchika.infoGlyph")}
-                                                                className="cursor-help text-gray-400 hover:text-indigo-600"
-                                                            >
-                                                                ⓘ
-                                                            </button>
-                                                        </span>
-                                                    </th>
-                                                )}
-                                                <th className="py-1 pr-3">{t("astrology.conjunctions")}</th>
-                                                <th className="py-1 pr-3">{t("astrology.aspects")}</th>
-                                                <th className="py-1 pr-3">{t("astrology.kendrasthana")}</th>
-                                                <th className="py-1 pr-3">{t("astrology.other")}</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {[...calculatedDetails.planets]
-                                                .sort((a, b) => a.name - b.name)
-                                                .map((p) => {
-                                                    // Planet house is its whole-sign Rashi location
-                                                    // (p.house), never the cusp-boundary range.
-                                                    const displayHouse = p.house;
-                                                    // Bhava Suchika (භාව සුචික): stored value wins;
-                                                    // legacy docs are lazily resolved at render.
-                                                    const bhavaSuchikaValue = resolvePlanetBhavaSuchika(
-                                                        calculatedDetails,
-                                                        p.name,
-                                                    );
-                                                    // Suba/Asuba (සුබ/අසුබ): stored verdict wins;
-                                                    // legacy docs are lazily resolved at render.
-                                                    const subaAsubaEntry = resolvedSubaAsuba?.[String(p.name)];
-                                                    const conjunctions: Aspect[] =
-                                                        resolvedConjunctionsByPlanet[p.name] ?? [];
-                                                    const aspectRecords: Aspect[] =
-                                                        displayAspects.receivedByPlanet[p.name] ?? [];
-                                                    const kendraRecords: Aspect[] = kendrasthana.byPlanet[p.name] ?? [];
-                                                    const tags = getPlanetTags(p);
-                                                    return (
-                                                        <tr
-                                                            key={p.name}
-                                                            className="border-b border-gray-100 even:bg-gray-100"
-                                                        >
-                                                            <td className="py-1 pr-3 font-medium">
-                                                                {p.retrograde && p.name !== 8 && p.name !== 9
-                                                                    ? `(${getPlanetName(p.name)})`
-                                                                    : getPlanetName(p.name)}
-                                                            </td>
-                                                            <td className="py-1 pr-3">
-                                                                {subaAsubaEntry ? (
-                                                                    <SubaAsubaBadge
-                                                                        planet={p.name}
-                                                                        entry={subaAsubaEntry}
-                                                                        getPlanetName={getPlanetName}
-                                                                    />
-                                                                ) : (
-                                                                    "—"
-                                                                )}
-                                                            </td>
-                                                            <td className="py-1 pr-3">
-                                                                {getSignName(p.sign)}
-                                                                {(navamsaAvailable || hasExactDegree(p)) && (
-                                                                    <>
-                                                                        {" "}
-                                                                        (
-                                                                        {hasExactDegree(p)
-                                                                            ? formatDegree(p.degree)
-                                                                            : getPlanetDegreeRange(p)}
-                                                                        )
-                                                                    </>
-                                                                )}
-                                                            </td>
-                                                            <td className="py-1 pr-3">
-                                                                {t(
-                                                                    `astrology.${STRENGTH_TRANSLATION_KEYS[getStrength(p.strength)] ?? "neutral"}`,
-                                                                )}
-                                                            </td>
-                                                            <td className="py-1 pr-3">{displayHouse}</td>
-                                                            <td className="py-1 pr-3">
-                                                                {ownedHousesOf(p.name, calculatedDetails.houses).join(
-                                                                    ", ",
-                                                                ) || "—"}
-                                                            </td>
-                                                            {navamsaAvailable && (
-                                                                <td className="py-1 pr-3">
-                                                                    {getSignName(p.navamsaSign)}
-                                                                </td>
-                                                            )}
-                                                            {navamsaAvailable && (
-                                                                <td className="py-1 pr-3">
-                                                                    {t(
-                                                                        `astrology.${STRENGTH_TRANSLATION_KEYS[getStrength(p.navamsaStrength)] ?? "neutral"}`,
-                                                                    )}
-                                                                </td>
-                                                            )}
-                                                            {navamsaAvailable && (
-                                                                <td className="py-1 pr-3 text-gray-600">
-                                                                    {getNakshatraName(p.nakshatra) || p.nakshatra} (
-                                                                    {getPlanetName(getNakshatraLord(p.nakshatra))}) (
-                                                                    {p.pada})
-                                                                </td>
-                                                            )}
-                                                            {navamsaAvailable && (
-                                                                <td className="py-1 pr-3 whitespace-nowrap">
-                                                                    {bhavaSuchikaValue !== undefined
-                                                                        ? `${bhavaSuchikaValue} — ${t(`astrology.bhavaSuchika.names.${bhavaSuchikaValue}`)}`
-                                                                        : "—"}
-                                                                </td>
-                                                            )}
-                                                            <td className="py-1 pr-3">
-                                                                {conjunctions.length > 0 ? (
-                                                                    <div className="flex flex-wrap gap-1">
-                                                                        {conjunctions.map((q) => (
-                                                                            <AspectChip
-                                                                                key={q.planetName}
-                                                                                aspect={q}
-                                                                                planetLabel={`${PLANET_SYMBOLS[q.planetName] ?? ""} ${getPlanetName(q.planetName)}`.trim()}
-                                                                                aspectingSign={p.sign}
-                                                                            />
-                                                                        ))}
-                                                                    </div>
-                                                                ) : (
-                                                                    "—"
-                                                                )}
-                                                            </td>
-                                                            <td className="py-1 pr-3">
-                                                                {aspectRecords.length > 0 ? (
-                                                                    <div className="flex flex-wrap gap-1">
-                                                                        {aspectRecords.map((a) => (
-                                                                            <AspectChip
-                                                                                key={a.planetName}
-                                                                                aspect={a}
-                                                                                planetLabel={`${PLANET_SYMBOLS[a.planetName] ?? ""} ${getPlanetName(a.planetName)}`.trim()}
-                                                                                aspectingSign={planetSignOf(
-                                                                                    a.planetName,
-                                                                                )}
-                                                                            />
-                                                                        ))}
-                                                                    </div>
-                                                                ) : (
-                                                                    "—"
-                                                                )}
-                                                            </td>
-                                                            <td className="py-1 pr-3">
-                                                                {kendraRecords.length > 0 ? (
-                                                                    <div className="flex flex-wrap gap-1">
-                                                                        {kendraRecords.map((a) => (
-                                                                            <AspectChip
-                                                                                key={a.planetName}
-                                                                                aspect={a}
-                                                                                planetLabel={`${PLANET_SYMBOLS[a.planetName] ?? ""} ${getPlanetName(a.planetName)}`.trim()}
-                                                                            />
-                                                                        ))}
-                                                                    </div>
-                                                                ) : (
-                                                                    "—"
-                                                                )}
-                                                            </td>
-                                                            <td className="py-1 pr-3">
-                                                                {tags.length > 0 ? (
-                                                                    <span className="flex flex-wrap gap-1">
-                                                                        {tags.map((tag) => (
-                                                                            <span
-                                                                                key={tag.key}
-                                                                                className={`text-[10px] leading-tight px-1 rounded bg-gray-100 text-gray-600 whitespace-nowrap ${
-                                                                                    tag.strikethrough
-                                                                                        ? "line-through"
-                                                                                        : ""
-                                                                                }`}
-                                                                            >
-                                                                                {tag.text}
-                                                                            </span>
-                                                                        ))}
-                                                                    </span>
-                                                                ) : (
-                                                                    "—"
-                                                                )}
-                                                            </td>
-                                                        </tr>
-                                                    );
-                                                })}
-                                        </tbody>
-                                    </table>
-                                </div>
-
-                                {/* Mobile: card view */}
-                                <div className="block sm:hidden space-y-2">
-                                    {[...calculatedDetails.planets]
-                                        .sort((a, b) => a.name - b.name)
-                                        .map((p) => {
-                                            const isExpanded = expandedPlanets.has(p.name);
-                                            const toggleExpanded = () => {
-                                                setExpandedPlanets((prev) => {
-                                                    const next = new Set(prev);
-                                                    if (next.has(p.name)) {
-                                                        next.delete(p.name);
-                                                    } else {
-                                                        next.add(p.name);
-                                                    }
-                                                    return next;
-                                                });
-                                            };
-                                            const isRetrograde = p.retrograde && p.name !== 8 && p.name !== 9;
-                                            // Planet house is its whole-sign Rashi location (p.house),
-                                            // never the cusp-boundary range.
-                                            const displayHouse = p.house;
-                                            // Bhava Suchika (භාව සුචික): stored value wins; legacy docs
-                                            // are lazily resolved at render.
-                                            const bhavaSuchikaValue = resolvePlanetBhavaSuchika(
-                                                calculatedDetails,
-                                                p.name,
-                                            );
-                                            // Suba/Asuba (සුබ/අසුබ): stored verdict wins; legacy docs
-                                            // are lazily resolved at render.
-                                            const subaAsubaEntry = resolvedSubaAsuba?.[String(p.name)];
-
-                                            const conjunctions: Aspect[] = resolvedConjunctionsByPlanet[p.name] ?? [];
-
-                                            const aspectRecords: Aspect[] =
-                                                displayAspects.receivedByPlanet[p.name] ?? [];
-                                            const kendraRecords: Aspect[] = kendrasthana.byPlanet[p.name] ?? [];
-
-                                            const tags = getPlanetTags(p);
-
-                                            const STRENGTH_COLORS: Record<string, string> = {
-                                                athiUchcha: "text-green-700 font-semibold",
-                                                exalted: "text-green-700 font-semibold",
-                                                athiNeecha: "text-red-600",
-                                                debilitated: "text-red-600",
-                                                moolatrikona: "text-indigo-600 font-semibold",
-                                                ownSign: "text-indigo-600 font-semibold",
-                                            };
-                                            const resolvedStrength = getStrength(p.strength);
-                                            const strengthClass =
-                                                STRENGTH_COLORS[STRENGTH_TRANSLATION_KEYS[resolvedStrength]] ||
-                                                "text-gray-600";
-
-                                            return (
-                                                <div key={p.name} className="border rounded overflow-hidden">
-                                                    <div
-                                                        role="button"
-                                                        tabIndex={0}
-                                                        aria-expanded={isExpanded}
-                                                        onClick={toggleExpanded}
-                                                        onKeyDown={(event) => {
-                                                            if (event.key === "Enter" || event.key === " ") {
-                                                                event.preventDefault();
-                                                                toggleExpanded();
-                                                            }
-                                                        }}
-                                                        className="w-full flex flex-wrap items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50 transition-colors text-left cursor-pointer"
-                                                    >
-                                                        <span className="font-medium whitespace-nowrap">
-                                                            {PLANET_SYMBOLS[p.name]} {getPlanetName(p.name)}
-                                                        </span>
-                                                        {subaAsubaEntry && (
-                                                            <SubaAsubaBadge
-                                                                planet={p.name}
-                                                                entry={subaAsubaEntry}
-                                                                getPlanetName={getPlanetName}
-                                                            />
-                                                        )}
-                                                        {isRetrograde && (
-                                                            <span className="text-amber-600 bg-amber-50 text-[10px] rounded px-1 leading-tight">
-                                                                {t("astrology.retrograde")}
-                                                            </span>
-                                                        )}
-                                                        <span className="text-gray-600 whitespace-nowrap">
-                                                            {getSignName(p.sign)}
-                                                        </span>
-                                                        <span className={`whitespace-nowrap ${strengthClass}`}>
-                                                            {t(
-                                                                `astrology.${STRENGTH_TRANSLATION_KEYS[resolvedStrength] ?? "neutral"}`,
-                                                            )}
-                                                        </span>
-                                                        <span className="text-gray-600 whitespace-nowrap">
-                                                            {t("astrology.house")} {displayHouse}
-                                                        </span>
-                                                        {navamsaAvailable && (
-                                                            <span className="text-gray-500 whitespace-nowrap">
-                                                                {getNakshatraName(p.nakshatra) || p.nakshatra} (
-                                                                {getPlanetName(getNakshatraLord(p.nakshatra))}) (
-                                                                {p.pada})
-                                                            </span>
-                                                        )}
-                                                        {navamsaAvailable && bhavaSuchikaValue !== undefined && (
-                                                            <span className="text-gray-600 whitespace-nowrap">
-                                                                {t("astrology.bhavaSuchika.label")}: {bhavaSuchikaValue}{" "}
-                                                                —{" "}
-                                                                {t(`astrology.bhavaSuchika.names.${bhavaSuchikaValue}`)}
-                                                            </span>
-                                                        )}
-                                                        {tags.length > 0 && (
-                                                            <div className="flex gap-1 shrink-0 flex-wrap">
-                                                                {tags.map((tag) => (
-                                                                    <span
-                                                                        key={tag.key}
-                                                                        className={`text-[10px] leading-tight px-1 rounded bg-gray-100 text-gray-600 ${
-                                                                            tag.strikethrough ? "line-through" : ""
-                                                                        }`}
-                                                                    >
-                                                                        {tag.text}
-                                                                    </span>
-                                                                ))}
-                                                            </div>
-                                                        )}
-                                                        <span className="ml-auto text-gray-400 shrink-0">
-                                                            {isExpanded ? "▼" : "▶"}
-                                                        </span>
-                                                    </div>
-                                                    {isExpanded && (
-                                                        <div className="border-t px-3 py-2 space-y-1.5 text-xs text-gray-600 bg-gray-50">
-                                                            <p>
-                                                                <span className="font-medium text-gray-700">
-                                                                    {t("astrology.degree")}:
-                                                                </span>{" "}
-                                                                {(navamsaAvailable || hasExactDegree(p)) &&
-                                                                    (hasExactDegree(p)
-                                                                        ? formatDegree(p.degree)
-                                                                        : getPlanetDegreeRange(p))}
-                                                            </p>
-                                                            {conjunctions.length > 0 && (
-                                                                <p>
-                                                                    <span className="font-medium text-gray-700">
-                                                                        {t("astrology.conjunctions")}:
-                                                                    </span>{" "}
-                                                                    <span className="inline-flex flex-wrap gap-1">
-                                                                        {conjunctions.map((q) => (
-                                                                            <AspectChip
-                                                                                key={q.planetName}
-                                                                                aspect={q}
-                                                                                planetLabel={`${PLANET_SYMBOLS[q.planetName] ?? ""} ${getPlanetName(q.planetName)}`.trim()}
-                                                                                aspectingSign={p.sign}
-                                                                            />
-                                                                        ))}
-                                                                    </span>
-                                                                </p>
-                                                            )}
-                                                            {aspectRecords.length > 0 && (
-                                                                <p>
-                                                                    <span className="font-medium text-gray-700">
-                                                                        {t("astrology.aspects")}:
-                                                                    </span>{" "}
-                                                                    <span className="inline-flex flex-wrap gap-1">
-                                                                        {aspectRecords.map((a) => (
-                                                                            <AspectChip
-                                                                                key={a.planetName}
-                                                                                aspect={a}
-                                                                                planetLabel={`${PLANET_SYMBOLS[a.planetName] ?? ""} ${getPlanetName(a.planetName)}`.trim()}
-                                                                                aspectingSign={planetSignOf(
-                                                                                    a.planetName,
-                                                                                )}
-                                                                            />
-                                                                        ))}
-                                                                    </span>
-                                                                </p>
-                                                            )}
-                                                            {kendraRecords.length > 0 && (
-                                                                <p>
-                                                                    <span className="font-medium text-gray-700">
-                                                                        {t("astrology.kendrasthana")}:
-                                                                    </span>{" "}
-                                                                    <span className="inline-flex flex-wrap gap-1">
-                                                                        {kendraRecords.map((a) => (
-                                                                            <AspectChip
-                                                                                key={a.planetName}
-                                                                                aspect={a}
-                                                                                planetLabel={`${PLANET_SYMBOLS[a.planetName] ?? ""} ${getPlanetName(a.planetName)}`.trim()}
-                                                                            />
-                                                                        ))}
-                                                                    </span>
-                                                                </p>
-                                                            )}
-                                                            {tags.length > 0 && (
-                                                                <div className="flex flex-wrap gap-1 pt-0.5">
-                                                                    {tags.map((tag) => (
-                                                                        <span
-                                                                            key={tag.key}
-                                                                            className={`bg-white border rounded px-1.5 py-0.5 text-gray-600 ${
-                                                                                tag.strikethrough ? "line-through" : ""
-                                                                            }`}
-                                                                        >
-                                                                            {tag.text}
-                                                                        </span>
-                                                                    ))}
-                                                                </div>
-                                                            )}
-                                                            {navamsaAvailable && (
-                                                                <p>
-                                                                    <span className="font-medium text-gray-700">
-                                                                        {t("astrology.navamsaka")}:
-                                                                    </span>{" "}
-                                                                    {getSignName(p.navamsaSign)} (
-                                                                    {t(
-                                                                        `astrology.${STRENGTH_TRANSLATION_KEYS[getStrength(p.navamsaStrength)] ?? "neutral"}`,
-                                                                    )}
-                                                                    )
-                                                                </p>
-                                                            )}
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            );
-                                        })}
-                                </div>
-                            </section>
+                            {d1HouseData && d1PlanetData && (
+                                <>
+                                    <HousesTable
+                                        view="calculations"
+                                        data={d1HouseData}
+                                        planetSigns={d1PlanetSigns}
+                                        showAspectDelta
+                                    />
+                                    <PlanetsTable view="calculations" data={d1PlanetData} />
+                                </>
+                            )}
 
                             {resolvedShadbalaya && (
                                 <ShadBalaTable

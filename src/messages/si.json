@@ -1983,5 +1983,41 @@
             "planetStrengths": "ග්‍රහ බල",
             "planetFactor": "{factor} — {classification}"
         }
+    },
+    "tableColumns": {
+        "button": "තීරු",
+        "buttonAria": "{table} තීරු සකසන්න",
+        "title": "{table} — තීරු",
+        "appliesToAll": "සියලු කේන්දර සඳහා අදාළ වේ",
+        "listAria": "තීරු — පිළිවෙල වෙනස් කිරීමට ඇදගෙන යන්න හෝ ඊතල භාවිත කරන්න",
+        "alwaysShown": "සැමවිටම පෙන්වයි",
+        "notAvailable": "මෙහි දත්ත නැත",
+        "notAvailableHint": "මෙම සටහනේ මෙම තීරුවට දත්ත නැත. දත්ත ඇති සටහන්වල එය පෙන්වයි.",
+        "moveUp": "{column} ඉහළට",
+        "moveDown": "{column} පහළට",
+        "tags": "පෙන්වන ටැග් ({shown}/{total})",
+        "all": "සියල්ල",
+        "none": "කිසිවක් නැත",
+        "copyFrom": "{tab} ටැබයෙන් පිටපත් කරන්න",
+        "reset": "පෙරනිමියට යළි සකසන්න",
+        "done": "හරි",
+        "visibleCount": "තීරු {total} න් {shown} ක් පෙන්වයි",
+        "status": {
+            "saving": "සුරකිමින්…",
+            "saved": "සුරැකිණි",
+            "error": "සුරැකීමට නොහැකි විය.",
+            "retry": "නැවත උත්සාහ කරන්න"
+        },
+        "columns": {
+            "houseNumber": "භාව අංකය",
+            "navamsaStrength": "නවාංශ බලය",
+            "nakshatraPada": "නැකත (පාදය)"
+        },
+        "options": {
+            "symbol": "ග්‍රහ සංකේත",
+            "degree": "අංශක පෙන්වන්න",
+            "retrograde": "වක්‍ර ග්‍රහයා වරහන් තුළ",
+            "bhavaSuchikaName": "නම පෙන්වන්න"
+        }
     }
 }

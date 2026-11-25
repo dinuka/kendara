@@ -417,6 +417,15 @@ User → Click "Login with Google" →
 | PUT | /api/horoscope/:id/manual-chart | Update a manual horoscope's chart — body: `{ lagna, houses, navamsaHouses }` (owner-only; 409 on `source: "auto"`) |
 | GET | /api/horoscope/:id/dasha | Get dasha timeline data (returns dashas JSON from CalculatedDetails) — optional standalone endpoint; data also available via GET /api/horoscope/:id |
 
+### User Preferences
+
+| Method | Route | Description |
+|--------|-------|-------------|
+| GET | /api/user/table-preferences | Get the caller's Houses/Planets table column layouts — returns `{ tablePreferences }` normalized against the defaults (missing/new columns filled in; 401 unauthenticated) |
+| PUT | /api/user/table-preferences | Save the caller's layouts — body: `{ tablePreferences }`, strictly validated by `parseTablePreferences` (`src/lib/tableColumns.ts`; unknown view/table/column/option, duplicates or wrong types → 400, no partial save); always the caller's own `User` document |
+
+**Table column layouts.** The Houses and Planets tables are one shared component pair (`src/components/chartTables/`) rendered both under every Warga Kendara figure on the Charts tab and on the Calculations tab. Rows come from one builder per chart (`src/lib/chartTableRows.ts`; the D1 rows are built once on the detail page and passed to both tabs, so values are identical). Each tab has its own per-user layout — visible columns, order, and per-column value options (planet symbols, degrees, retrograde brackets, Bhava Suchika name, which "Other" tags) — edited from the "Columns" menu on each table and applied to every horoscope. Columns a chart cannot fill (e.g. Start/Mid/End on D9) are skipped for that chart only. Defaults reproduce the historical layouts.
+
 ### Location
 
 | Method | Route | Description |

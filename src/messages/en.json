@@ -1983,5 +1983,41 @@
             "planetStrengths": "Planet strengths",
             "planetFactor": "{factor} — {classification}"
         }
+    },
+    "tableColumns": {
+        "button": "Columns",
+        "buttonAria": "Configure {table} columns",
+        "title": "{table} — columns",
+        "appliesToAll": "applies to every horoscope",
+        "listAria": "Columns — drag or use the arrows to reorder",
+        "alwaysShown": "Always shown",
+        "notAvailable": "No data here",
+        "notAvailableHint": "This chart has no data for this column. It still shows on charts that do.",
+        "moveUp": "Move {column} up",
+        "moveDown": "Move {column} down",
+        "tags": "Tags shown ({shown}/{total})",
+        "all": "All",
+        "none": "None",
+        "copyFrom": "Copy from {tab} tab",
+        "reset": "Reset to default",
+        "done": "Done",
+        "visibleCount": "{shown} of {total} columns shown",
+        "status": {
+            "saving": "Saving…",
+            "saved": "Saved",
+            "error": "Couldn’t save.",
+            "retry": "Retry"
+        },
+        "columns": {
+            "houseNumber": "House #",
+            "navamsaStrength": "Navamsa Str",
+            "nakshatraPada": "Nakshatra (Pada)"
+        },
+        "options": {
+            "symbol": "Planet symbols",
+            "degree": "Show degree",
+            "retrograde": "Retrograde in brackets",
+            "bhavaSuchikaName": "Show name"
+        }
     }
 }

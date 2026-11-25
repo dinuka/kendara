@@ -12,6 +12,7 @@
 | name | String | Display name |
 | role | Enum(student, super-admin) | System role |
 | preferredLanguage | Enum(si, en) | UI language (si=Sinhala, en=English) |
+| tablePreferences | JSON | Optional. Per-user column layouts of the Houses/Planets tables, applied to every horoscope: `{ charts: { houses, planets }, calculations: { houses, planets } }`, each an ordered array of `{ id, visible, options? }` (column ids/options per `src/lib/tableColumns.ts`). Absent → defaults (Charts tab: compact columns; Calculations tab: full columns) |
 | planetaryOrbs | JSON | DEPRECATED — legacy per-user Planetary Orbs setting (`Record<string, number>` keyed by numeric Planet enum string, e.g., `"1": 15`). No longer read for calculations; the system-wide `AstrologySettings.planetaryOrbs` is the source of truth (see [AstrologySettings](#astrologysettings)). Existing values are ignored |
 | planetAspects | JSON | DEPRECATED — legacy per-user "Planets Aspects houses and degrees" (දෘෂ්ඨි) setting (see [PlanetAspects (System Setting)](#planetaspects-system-setting)). No longer read; existing values are ignored |
 | rashiAspects | JSON | DEPRECATED — legacy per-user "Rashi Aspects" (රාශි දෘෂ්ඨි) setting (see [RashiAspects (System Setting)](#rashiaspects-system-setting)). No longer read; existing values are ignored |
