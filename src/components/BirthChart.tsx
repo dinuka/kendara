@@ -48,12 +48,23 @@ interface BirthChartProps {
     ascendantDegreeLabel?: string;
     /** Marks the Indu Lagna sign's house with "IL" — D1 birth chart only. */
     showInduLagna?: boolean;
+    /** Sign (1-12) of the Hora Lagna, marked with "HL" — D1 birth chart only. */
+    horaLagnaSign?: number;
 }
 
-/** Indu Lagna marker, rendered after a house's planets in the same rows. */
+/** Special lagna markers, rendered after a house's planets in the same rows. */
 const INDU_LAGNA = "IL";
+const HORA_LAGNA = "HL";
+type LagnaMarker = typeof INDU_LAGNA | typeof HORA_LAGNA;
 
-type ChartEntry = ChartPlanet | typeof INDU_LAGNA;
+const LAGNA_MARKER_COLORS: Record<LagnaMarker, string> = {
+    [INDU_LAGNA]: "#7c3aed",
+    [HORA_LAGNA]: "#0f766e",
+};
+
+type ChartEntry = ChartPlanet | LagnaMarker;
+
+const isLagnaMarker = (entry: ChartEntry): entry is LagnaMarker => typeof entry === "string";
 
 const UNIT = 140;
 const W = UNIT * 3;
@@ -150,7 +161,7 @@ function estimateRowWidth(entries: ChartEntry[], fontSize: number, lordPlanet: n
     let width = 0;
     entries.forEach((p, i) => {
         if (i > 0) width += ENTRY_GAP;
-        if (p === INDU_LAGNA) {
+        if (isLagnaMarker(p)) {
             width += fontSize * 1.3;
             return;
         }
@@ -176,7 +187,7 @@ function layoutRowsInPolygon(
     const placements: Point[] = [];
     let y = Math.min(...ys) + fontSize + 2;
     for (const row of rows) {
-        const hasLord = row.some((p) => p !== INDU_LAGNA && p.name === lordPlanet);
+        const hasLord = row.some((p) => !isLagnaMarker(p) && p.name === lordPlanet);
         const fs = hasLord ? fontSize + 4 : fontSize;
         const needed = estimateRowWidth(row, fontSize, lordPlanet);
         let placed = false;
@@ -245,6 +256,7 @@ export function BirthChart({
     showAscendantDegree = true,
     ascendantDegreeLabel,
     showInduLagna = false,
+    horaLagnaSign,
 }: BirthChartProps) {
     const [selectedHouse, setSelectedHouse] = useState<number | null>(null);
 
@@ -257,16 +269,19 @@ export function BirthChart({
         planetsByHouse[p.house].push(p);
     }
 
+    const addMarker = (sign: number, marker: LagnaMarker) => {
+        const house = houses.find((h) => h.sign === sign);
+        if (!house) return;
+        if (!planetsByHouse[house.houseNumber]) planetsByHouse[house.houseNumber] = [];
+        planetsByHouse[house.houseNumber].push(marker);
+    };
+
     // The Moon's sign is read from its house so lean persisted chart data (no planet signs) works.
     const moon = planets.find((p) => p.name === 2);
     if (showInduLagna && moon && signByHouse[moon.house]) {
-        const induLagnaSign = calculateInduLagna(ascendant.sign, signByHouse[moon.house]).sign;
-        const induLagnaHouse = houses.find((h) => h.sign === induLagnaSign);
-        if (induLagnaHouse) {
-            if (!planetsByHouse[induLagnaHouse.houseNumber]) planetsByHouse[induLagnaHouse.houseNumber] = [];
-            planetsByHouse[induLagnaHouse.houseNumber].push(INDU_LAGNA);
-        }
+        addMarker(calculateInduLagna(ascendant.sign, signByHouse[moon.house]).sign, INDU_LAGNA);
     }
+    if (horaLagnaSign) addMarker(horaLagnaSign, HORA_LAGNA);
 
     const { houseTiers, lordPlanet } = useMemo(() => computeHighlights(selectedHouse, houses), [selectedHouse, houses]);
 
@@ -322,10 +337,10 @@ export function BirthChart({
         return (
             <text x={cx} y={cy} textAnchor="middle" fontSize={fontSize} fill="#1f2937">
                 {planetsToShow.map((p, i) => {
-                    if (p === INDU_LAGNA) {
+                    if (isLagnaMarker(p)) {
                         return (
-                            <tspan key={INDU_LAGNA} dx={i === 0 ? 0 : 4} fontWeight="bold" fill="#7c3aed">
-                                {INDU_LAGNA}
+                            <tspan key={p} dx={i === 0 ? 0 : 4} fontWeight="bold" fill={LAGNA_MARKER_COLORS[p]}>
+                                {p}
                             </tspan>
                         );
                     }

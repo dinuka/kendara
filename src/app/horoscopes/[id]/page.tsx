@@ -204,6 +204,7 @@ export default function HoroscopeDetailPage() {
             lord16thDrekkana?: number;
             lord34thDrekkana?: number;
             lord64thNavamsa: number;
+            horaLagna?: { sign: number };
             badhakaPlanet: number[];
             marakaPlanets: number[];
             nidhanamshaPlanets: number[];
@@ -1415,6 +1416,7 @@ export default function HoroscopeDetailPage() {
                                                 conjunctionMap={resolvedConjunctionsByPlanet}
                                                 otherTags={getPlanetTagsByPlanet()}
                                                 displayAspects={displayAspects}
+                                                horaLagnaSign={calculatedDetails.horaLagna?.sign}
                                             />
                                             {navamsaAvailable &&
                                                 (isComputedChart(secondChart) ? (

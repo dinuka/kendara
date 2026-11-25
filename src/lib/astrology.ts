@@ -1,4 +1,5 @@
 import { PanchaPakshi, PlanetaryStrength } from "./astrologyEnums";
+import type { HoraLagna } from "./horaLagna";
 import type { ShadBalaya } from "./shadBalaya";
 import type { SubaAsubaByPlanet } from "./subaAsuba";
 import type { WargaKendara } from "./wargaKendara";
@@ -483,6 +484,9 @@ export interface CalculationResult {
     lord16thDrekkana?: number;
     lord34thDrekkana?: number;
     lord64thNavamsa: number;
+    /** Hora Lagna (හෝරා ලග්නය, src/lib/horaLagna.ts). Absent on legacy docs, manual charts, and
+     *  when the Sun does not rise at the birth place. */
+    horaLagna?: HoraLagna;
     badhakaPlanet: number[];
     marakaPlanets: number[];
     nidhanamshaPlanets: number[];

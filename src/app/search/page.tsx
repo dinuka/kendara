@@ -797,6 +797,11 @@ const SearchResultCard = ({
                                         ascendant={ascendant}
                                         showAscendantDegree={false}
                                         showInduLagna={resolvedChart === "birth"}
+                                        horaLagnaSign={
+                                            resolvedChart === "birth"
+                                                ? (cd?.horaLagna as { sign?: number } | undefined)?.sign
+                                                : undefined
+                                        }
                                     />
                                 );
                             })()}

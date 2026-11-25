@@ -45,6 +45,8 @@ interface WargaChartSectionProps {
     rashiAspects?: RashiAspectsSetting;
     /** Planet → full "Other" tags for the Planets table (D1: the calculation tab's tags). */
     otherTags?: Record<number, PlanetTag[]>;
+    /** Hora Lagna sign (1-12), marked "HL" on the D1 figure only. */
+    horaLagnaSign?: number;
 }
 
 /** Charts whose aspect records carry real degree differences (D1 and its Sun/Moon rotations). The
@@ -67,6 +69,7 @@ const WargaChartSection = ({
     displayAspects,
     rashiAspects,
     otherTags,
+    horaLagnaSign,
 }: WargaChartSectionProps) => {
     const isD1 = chartKey === "d1";
     const showAspectDelta = DEGREE_ASPECT_CHARTS.has(chartKey);
@@ -85,6 +88,7 @@ const WargaChartSection = ({
                         ascendantDegreeLabel={ascendantDegreeLabel}
                         showAscendantDegree={showAscendantDegree}
                         showInduLagna={isD1}
+                        horaLagnaSign={isD1 ? horaLagnaSign : undefined}
                     />
                 </div>
             ) : (
