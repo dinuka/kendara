@@ -50,6 +50,8 @@ interface WargaChartSectionProps {
     horaLagnaSign?: number;
     /** Gulika Lagna sign (1-12), marked "GL" on the D1 figure only. */
     gulikaLagnaSign?: number;
+    /** Pranapada Lagna sign (1-12), marked "PL" on the D1 figure only. */
+    pranapadaLagnaSign?: number;
     /** Sun's sidereal longitude, for the Upagraha markers on the D1 figure only. */
     sunLongitude?: number;
 }
@@ -77,6 +79,7 @@ const WargaChartSection = ({
     rashiAspects,
     horaLagnaSign,
     gulikaLagnaSign,
+    pranapadaLagnaSign,
     sunLongitude,
 }: WargaChartSectionProps) => {
     const { t } = useI18n();
@@ -109,6 +112,7 @@ const WargaChartSection = ({
                         showInduLagna={isD1}
                         horaLagnaSign={isD1 ? horaLagnaSign : undefined}
                         gulikaLagnaSign={isD1 ? gulikaLagnaSign : undefined}
+                        pranapadaLagnaSign={isD1 ? pranapadaLagnaSign : undefined}
                         sunLongitude={isD1 ? sunLongitude : undefined}
                     />
                 </div>

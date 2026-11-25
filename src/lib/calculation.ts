@@ -29,6 +29,7 @@ import { get22ndDrekkanaLord, get22ndDrekkanaLordFromPlanet, getExtraDrekkanaLor
 import { type GulikaLagna, findGulikaPeriod, weekdayOfJulianDay } from "@/lib/gulikaLagna";
 import { HoraLagna, calculateHoraLagna } from "@/lib/horaLagna";
 import logger from "@/lib/logger";
+import { type PranapadaLagna, calculatePranapadaLagna } from "@/lib/pranapadaLagna";
 import { computePlanetStrength } from "@/lib/planetDignity";
 import type { PlanetAspectsMap } from "@/lib/planetAspects";
 import type { RashiAspectsSetting } from "@/lib/rashiAspects";
@@ -165,14 +166,14 @@ const DEFAULT_ORBS: Record<string, number> = {
 
 const MINUTES_PER_DAY = 24 * 60;
 
-/** Julian Day (UT) of the latest sunrise at or before `jdBirth` at the birth place, or null when
- *  the Sun does not rise there (polar day/night). */
 /** Julian Day (UT) of the first sunrise or sunset after `jd` at the place, or null when there is none. */
 function sunEventAfter(jd: number, lat: number, lng: number, event: number): number | null {
     const r = swisseph.swe_rise_trans(jd, swisseph.SE_SUN, "", swisseph.SEFLG_SWIEPH, event, lng, lat, 0, 0, 0);
     return r.error === undefined ? r.transitTime : null;
 }
 
+/** Julian Day (UT) of the latest sunrise at or before `jdBirth` at the birth place, or null when
+ *  the Sun does not rise there (polar day/night). */
 function findPrecedingSunrise(jdBirth: number, lat: number, lng: number): number | null {
     const riseAfter = (jd: number) => sunEventAfter(jd, lat, lng, swisseph.SE_CALC_RISE);
 
@@ -201,6 +202,23 @@ function computeHoraLagna(jdBirth: number, lat: number, lng: number): HoraLagna 
         return undefined;
     }
     return calculateHoraLagna(sun.longitude, (jdBirth - sunrise) * MINUTES_PER_DAY);
+}
+
+/** Pranapada Lagna (docs/done/pranapada-lagna.md): the sidereal Sun at birth, plus 0°/240°/120° by
+ *  the nature of its sign, plus one sign per 15 palas from the preceding sunrise. Undefined when no
+ *  sunrise can be found. Expects the sidereal mode set. */
+export function computePranapadaLagna(jdBirth: number, lat: number, lng: number): PranapadaLagna | undefined {
+    const sunrise = findPrecedingSunrise(jdBirth, lat, lng);
+    if (sunrise === null) {
+        logger.warn("no sunrise found before birth at lat %d lng %d; skipping Pranapada Lagna", lat, lng);
+        return undefined;
+    }
+    const sun = swisseph.swe_calc_ut(jdBirth, swisseph.SE_SUN, swisseph.SEFLG_SWIEPH | swisseph.SEFLG_SIDEREAL);
+    if (sun.error !== undefined) {
+        logger.warn("Sun position at birth failed: %s; skipping Pranapada Lagna", sun.error);
+        return undefined;
+    }
+    return calculatePranapadaLagna(sun.longitude, (jdBirth - sunrise) * MINUTES_PER_DAY);
 }
 
 const JD_UNIX_EPOCH = 2440587.5;
@@ -303,6 +321,7 @@ export function calculateHoroscope(
     const cusps = sweResult.house;
     const horaLagna = computeHoraLagna(jd.julianDayUT, data.latitude, data.longitude);
     const gulikaLagna = computeGulikaLagna(jd.julianDayUT, data.latitude, data.longitude);
+    const pranapadaLagna = computePranapadaLagna(jd.julianDayUT, data.latitude, data.longitude);
 
     const houses: House[] = Array.from({ length: 12 }, (_, i) => {
         const cusp = cusps[i];
@@ -486,6 +505,7 @@ export function calculateHoroscope(
         subaAsuba,
         horaLagna,
         gulikaLagna,
+        pranapadaLagna,
     };
 
     return {

@@ -14,12 +14,13 @@ const lagnasIn = (data: ReturnType<typeof withSpecialLagnas>, sign: number) =>
     data.rows.find((r) => r.sign === sign)?.specialLagnas;
 
 describe("withSpecialLagnas", () => {
-    it("places Indu, Hora and Gulika (with degree) and Varnada Lagna in the rows of their signs", () => {
+    it("places Indu, Hora, Gulika and Pranapada (with degree) and Varnada Lagna in the rows of their signs", () => {
         const data = withSpecialLagnas(base, {
             ascendantSign: 2,
             moonSign: 5,
             horaLagna: { sign: 9, degree: 12.5 },
             gulikaLagna: { sign: 6, degree: 12.5889 },
+            pranapadaLagna: { sign: 11, degree: 3.25 },
         });
         expect(data.available.has("other")).toBe(true);
 
@@ -29,9 +30,10 @@ describe("withSpecialLagnas", () => {
         expect(lagnasIn(data, 9)).toContainEqual({ key: "hora", degreeLabel: "12:30:00" });
         expect(lagnasIn(data, varnada)).toContainEqual({ key: "varnada", degreeLabel: undefined });
         expect(lagnasIn(data, 6)).toContainEqual({ key: "gulika", degreeLabel: "12:35:20" });
+        expect(lagnasIn(data, 11)).toContainEqual({ key: "pranapada", degreeLabel: "03:15:00" });
 
         const total = data.rows.reduce((n, r) => n + (r.specialLagnas?.length ?? 0), 0);
-        expect(total).toBe(4);
+        expect(total).toBe(5);
     });
 
     it("skips Hora/Varnada without a Hora Lagna, and Indu without the Moon's sign", () => {

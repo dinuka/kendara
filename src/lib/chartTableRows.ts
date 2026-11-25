@@ -12,6 +12,7 @@ import type { GulikaLagna } from "@/lib/gulikaLagna";
 import type { HoraLagna } from "@/lib/horaLagna";
 import { calculateInduLagna } from "@/lib/induLagna";
 import { ownedHousesOf } from "@/lib/manualChart";
+import type { PranapadaLagna } from "@/lib/pranapadaLagna";
 import type { SubaAsubaEntry } from "@/lib/subaAsuba";
 import { type HouseColumnId, MAITRI_COLUMN_IDS, type PlanetColumnId } from "@/lib/tableColumns";
 import { type UpagrahaKey, calculateUpagrahas } from "@/lib/upagraha";
@@ -114,7 +115,7 @@ export function withUpagrahas(data: HouseTableData, sunLongitude: number): House
     };
 }
 
-export type SpecialLagnaKey = "indu" | "hora" | "varnada" | "gulika";
+export type SpecialLagnaKey = "indu" | "hora" | "varnada" | "gulika" | "pranapada";
 
 export interface SpecialLagnaInputs {
     ascendantSign: number;
@@ -124,12 +125,14 @@ export interface SpecialLagnaInputs {
     horaLagna?: Pick<HoraLagna, "sign" | "degree">;
     /** Gulika Lagna — absent on legacy docs and manual charts. */
     gulikaLagna?: Pick<GulikaLagna, "sign" | "degree">;
+    /** Pranapada Lagna — absent on legacy docs and manual charts. */
+    pranapadaLagna?: Pick<PranapadaLagna, "sign" | "degree">;
 }
 
-/** Fills each row's special lagnas — Indu (IL) and Varnada (VL) by sign only, Hora (HL) and Gulika
- *  (GL) with their in-sign degree — and makes the "Other" column available. Same lagnas the D1 birth chart marks. */
+/** Fills each row's special lagnas — Indu (IL) and Varnada (VL) by sign only, Hora (HL), Gulika (GL)
+ *  and Pranapada (PL) with their in-sign degree — and makes the "Other" column available. Same lagnas the D1 birth chart marks. */
 export function withSpecialLagnas(data: HouseTableData, inputs: SpecialLagnaInputs): HouseTableData {
-    const { ascendantSign, moonSign, horaLagna, gulikaLagna } = inputs;
+    const { ascendantSign, moonSign, horaLagna, gulikaLagna, pranapadaLagna } = inputs;
     const lagnas: { key: SpecialLagnaKey; sign: number; degreeLabel?: string }[] = [];
     if (moonSign) lagnas.push({ key: "indu", sign: calculateInduLagna(ascendantSign, moonSign).sign });
     if (horaLagna?.sign) {
@@ -138,6 +141,13 @@ export function withSpecialLagnas(data: HouseTableData, inputs: SpecialLagnaInpu
     }
     if (gulikaLagna?.sign) {
         lagnas.push({ key: "gulika", sign: gulikaLagna.sign, degreeLabel: formatDegree(gulikaLagna.degree) });
+    }
+    if (pranapadaLagna?.sign) {
+        lagnas.push({
+            key: "pranapada",
+            sign: pranapadaLagna.sign,
+            degreeLabel: formatDegree(pranapadaLagna.degree),
+        });
     }
     const available = new Set<HouseColumnId>(data.available).add("other");
     return {

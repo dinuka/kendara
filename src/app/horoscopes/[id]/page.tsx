@@ -229,6 +229,7 @@ function HoroscopeDetail() {
             lord64thNavamsa: number;
             horaLagna?: { sign: number; degree: number };
             gulikaLagna?: { sign: number; degree: number };
+            pranapadaLagna?: { sign: number; degree: number };
             badhakaPlanet: number[];
             marakaPlanets: number[];
             nidhanamshaPlanets: number[];
@@ -1173,6 +1174,7 @@ function HoroscopeDetail() {
             moonSign: rows.find((r) => r.houseNumber === moonHouse)?.sign,
             horaLagna: calculatedDetails.horaLagna,
             gulikaLagna: calculatedDetails.gulikaLagna,
+            pranapadaLagna: calculatedDetails.pranapadaLagna,
         });
     };
 
@@ -1509,6 +1511,7 @@ function HoroscopeDetail() {
                                                 displayAspects={displayAspects}
                                                 horaLagnaSign={calculatedDetails.horaLagna?.sign}
                                                 gulikaLagnaSign={calculatedDetails.gulikaLagna?.sign}
+                                                pranapadaLagnaSign={calculatedDetails.pranapadaLagna?.sign}
                                                 sunLongitude={d1SunLongitude}
                                             />
                                             {navamsaAvailable &&
