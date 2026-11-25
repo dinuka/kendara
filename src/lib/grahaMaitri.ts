@@ -58,10 +58,14 @@ export const NATURAL_RELATIONSHIP: Readonly<Record<number, Readonly<Record<numbe
         ]),
     );
 
+/** Sign count from `signA` to `signB`, inclusive (same sign = 1). */
+export function signDistance(signA: number, signB: number): number {
+    return ((((signB - signA) % 12) + 12) % 12) + 1;
+}
+
 /** Temporary relationship of a planet in `signA` towards one in `signB` (signs 1–12). */
 export function temporaryRelationship(signA: number, signB: number): Relationship.FRIEND | Relationship.ENEMY {
-    const distance = ((((signB - signA) % 12) + 12) % 12) + 1;
-    return TEMPORARY_FRIEND_HOUSES.has(distance) ? Relationship.FRIEND : Relationship.ENEMY;
+    return TEMPORARY_FRIEND_HOUSES.has(signDistance(signA, signB)) ? Relationship.FRIEND : Relationship.ENEMY;
 }
 
 /** Natural + temporary → compound. Temporary is never neutral, so the sum maps 1:1 onto the five
@@ -74,6 +78,8 @@ export interface GrahaMaitriEntry {
     planet: number;
     natural: Relationship;
     temporary: Relationship;
+    /** Sign count from the regarding planet to `planet` (1–12) — the reason for `temporary`. */
+    distance: number;
     compound: CompoundRelationship;
 }
 
@@ -88,8 +94,9 @@ export function computeGrahaMaitri(signs: Readonly<Record<number, number>>): Rec
                 .filter((b) => b !== a)
                 .map((b) => {
                     const natural = NATURAL_RELATIONSHIP[a][b];
-                    const temporary = temporaryRelationship(signs[a], signs[b]);
-                    return { planet: b, natural, temporary, compound: compoundRelationship(natural, temporary) };
+                    const distance = signDistance(signs[a], signs[b]);
+                    const temporary = TEMPORARY_FRIEND_HOUSES.has(distance) ? Relationship.FRIEND : Relationship.ENEMY;
+                    return { planet: b, natural, temporary, distance, compound: compoundRelationship(natural, temporary) };
                 }),
         ]),
     );

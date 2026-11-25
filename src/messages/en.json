@@ -373,7 +373,10 @@
             "temporary": "Temporary",
             "friend": "Friend",
             "neutral": "Neutral",
-            "enemy": "Enemy"
+            "enemy": "Enemy",
+            "reasonTitle": "{from} → {planet}: {grade}",
+            "reasonNatural": "Natural: {relation}",
+            "reasonTemporary": "Temporary: {relation} ({planet} in house {house} from {from})"
         },
         "bhavaSuchika": {
             "label": "Bhava Suchika",

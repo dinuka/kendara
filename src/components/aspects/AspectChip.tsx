@@ -1,15 +1,13 @@
 "use client";
 
 import { useI18n } from "@/hooks/useI18n";
-import { useTooltipPosition } from "@/hooks/useTooltipPosition";
-import { useEffect, useId, useRef, useState } from "react";
-import { createPortal } from "react-dom";
 
 import { composeAspectTooltip } from "@/lib/aspectTooltip";
 import type { AspectTooltipTokens } from "@/lib/aspectTooltip";
 import type { Aspect } from "@/lib/astrology";
 
 import AspectTooltip from "./AspectTooltip";
+import TooltipChip from "./TooltipChip";
 
 export interface AspectChipProps {
     /** The planet-to-planet aspect record driving the tooltip reason lines. */
@@ -38,88 +36,27 @@ export default function AspectChip({ aspect, planetLabel, aspectingSign, showDel
         getSignName: (sign) => t(`astrology.signNames.${sign}`),
     };
     const { lines, single, delta, title } = composeAspectTooltip(tokens, { aspect, aspectingSign, showDelta });
-    const hasTooltip = lines.length > 0;
-
-    const [open, setOpen] = useState(false);
-    const hoverTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-    const tooltipId = useId();
-    const { anchorRef, tooltipRef, position, updatePosition } = useTooltipPosition<HTMLButtonElement>(open);
-
-    const openTooltip = () => {
-        updatePosition();
-        setOpen(true);
-    };
-    const closeTooltip = () => {
-        if (hoverTimer.current) clearTimeout(hoverTimer.current);
-        setOpen(false);
-    };
-
-    useEffect(() => {
-        if (!open) return;
-        updatePosition();
-        window.addEventListener("scroll", updatePosition, true);
-        window.addEventListener("resize", updatePosition);
-        return () => {
-            window.removeEventListener("scroll", updatePosition, true);
-            window.removeEventListener("resize", updatePosition);
-        };
-    }, [open, updatePosition]);
-
-    useEffect(
-        () => () => {
-            if (hoverTimer.current) clearTimeout(hoverTimer.current);
-        },
-        [],
-    );
 
     return (
-        <span className="inline-flex">
-            <button
-                ref={anchorRef}
-                type="button"
-                aria-describedby={open ? tooltipId : undefined}
-                title={title || undefined}
-                onMouseEnter={() => {
-                    if (hoverTimer.current) clearTimeout(hoverTimer.current);
-                    hoverTimer.current = setTimeout(openTooltip, 150);
-                }}
-                onMouseLeave={closeTooltip}
-                onFocus={openTooltip}
-                onBlur={closeTooltip}
-                onClick={() => (open ? closeTooltip() : openTooltip())}
-                onKeyDown={(event) => {
-                    if (event.key === "Escape") {
-                        closeTooltip();
-                        anchorRef.current?.focus();
-                    }
-                }}
-                className="inline-flex items-center gap-1 rounded border border-gray-200 bg-white px-1.5 py-0.5 text-xs text-gray-700 hover:border-indigo-300 hover:text-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            >
-                {planetLabel}
-            </button>
-            {open &&
-                hasTooltip &&
-                position &&
-                typeof document !== "undefined" &&
-                createPortal(
-                    <div
-                        ref={tooltipRef}
-                        className="fixed z-50"
-                        role="presentation"
-                        style={{ top: position.top, left: position.left, transform: "translateX(-50%)" }}
-                    >
-                        <AspectTooltip
-                            id={tooltipId}
-                            lines={lines}
-                            single={single}
-                            delta={delta}
-                            title={title}
-                            rashiVerbAria={t("astrology.drishti.rashiVerbAria")}
-                            isSinhala={locale === "si"}
-                        />
-                    </div>,
-                    document.body,
-                )}
-        </span>
+        <TooltipChip
+            label={planetLabel}
+            title={title}
+            className="border-gray-200 bg-white text-gray-700 hover:border-indigo-300 hover:text-indigo-700"
+            renderTooltip={
+                lines.length > 0
+                    ? (id) => (
+                          <AspectTooltip
+                              id={id}
+                              lines={lines}
+                              single={single}
+                              delta={delta}
+                              title={title}
+                              rashiVerbAria={t("astrology.drishti.rashiVerbAria")}
+                              isSinhala={locale === "si"}
+                          />
+                      )
+                    : null
+            }
+        />
     );
 }

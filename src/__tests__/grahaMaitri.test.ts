@@ -100,6 +100,11 @@ describe("computeGrahaMaitri", () => {
         expect(gradeOf(Planet.SUN, Planet.SATURN)).toBe(CompoundRelationship.ADHI_SHATRU);
     });
 
+    it("records the sign count that decides the temporary relationship", () => {
+        const sunToJupiter = maitri[Planet.SUN].find((m) => m.planet === Planet.JUPITER);
+        expect(sunToJupiter).toMatchObject({ distance: 5, temporary: Relationship.ENEMY });
+    });
+
     it("is directional", () => {
         // Moon → Sun: natural friend, Sun is the 11th from Moon (friend) → adhi mitra.
         expect(gradeOf(Planet.MOON, Planet.SUN)).toBe(CompoundRelationship.ADHI_MITRA);

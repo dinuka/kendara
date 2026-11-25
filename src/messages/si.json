@@ -373,7 +373,10 @@
             "temporary": "තත්කාලික",
             "friend": "මිතුරු",
             "neutral": "සම",
-            "enemy": "සතුරු"
+            "enemy": "සතුරු",
+            "reasonTitle": "{from} → {planet}: {grade}",
+            "reasonNatural": "නෛසර්ගික: {relation}",
+            "reasonTemporary": "තත්කාලික: {relation} ({from} සිට {house} වන ස්ථානයේ {planet})"
         },
         "bhavaSuchika": {
             "label": "භාව සුචික",

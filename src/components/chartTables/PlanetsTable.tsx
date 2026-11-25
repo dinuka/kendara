@@ -18,6 +18,7 @@ import {
 } from "@/lib/tableColumns";
 import type { TableView } from "@/lib/tableColumns";
 
+import MaitriChip from "./MaitriChip";
 import TableColumnsMenu from "./TableColumnsMenu";
 import { AspectChips, NO_VALUE, PLANET_SYMBOLS, TableHeading, VIEW_STYLES, strengthKey } from "./tableCells";
 
@@ -36,6 +37,15 @@ const MAITRI_GRADE: Record<MaitriColumnId, CompoundRelationship> = {
     sama: CompoundRelationship.SAMA,
     shatru: CompoundRelationship.SHATRU,
     adhiShatru: CompoundRelationship.ADHI_SHATRU,
+};
+
+/** Tag colours, green (friendship) through grey to red (enmity). */
+const MAITRI_TAG_STYLES: Record<MaitriColumnId, string> = {
+    adhiMitra: "border-green-300 bg-green-100 text-green-900 hover:border-green-500",
+    mitra: "border-green-200 bg-green-50 text-green-700 hover:border-green-400",
+    sama: "border-gray-200 bg-white text-gray-700 hover:border-indigo-300",
+    shatru: "border-red-200 bg-red-50 text-red-700 hover:border-red-400",
+    adhiShatru: "border-red-300 bg-red-100 text-red-900 hover:border-red-500",
 };
 
 const RELATIONSHIP_KEY: Record<Relationship, string> = {
@@ -101,23 +111,37 @@ export default function PlanetsTable({ view, data, caption }: PlanetsTableProps)
             />
         );
         if (setting.id in MAITRI_GRADE) {
-            const grade = MAITRI_GRADE[setting.id as MaitriColumnId];
-            const planets = row.maitri?.filter((m) => m.compound === grade) ?? [];
-            if (planets.length === 0) return NO_VALUE;
+            const column = setting.id as MaitriColumnId;
+            const entries = row.maitri?.filter((m) => m.compound === MAITRI_GRADE[column]) ?? [];
+            if (entries.length === 0) return NO_VALUE;
+            const from = getPlanetName(row.name);
             return (
-                <span className="inline-flex flex-wrap gap-x-1">
-                    {planets.map((m, index) => (
-                        <span
-                            key={m.planet}
-                            className="cursor-help whitespace-nowrap"
-                            title={`${t("astrology.grahaMaitri.natural")}: ${t(RELATIONSHIP_KEY[m.natural])} · ${t(
-                                "astrology.grahaMaitri.temporary",
-                            )}: ${t(RELATIONSHIP_KEY[m.temporary])}`}
-                        >
-                            {getPlanetName(m.planet)}
-                            {index < planets.length - 1 ? "," : ""}
-                        </span>
-                    ))}
+                <span className="inline-flex flex-wrap gap-1">
+                    {entries.map((m) => {
+                        const planet = getPlanetName(m.planet);
+                        const reason: string[] = [
+                            t("astrology.grahaMaitri.reasonTitle", {
+                                from,
+                                planet,
+                                grade: t(`astrology.grahaMaitri.${column}`),
+                            }),
+                            t("astrology.grahaMaitri.reasonNatural", { relation: t(RELATIONSHIP_KEY[m.natural]) }),
+                            t("astrology.grahaMaitri.reasonTemporary", {
+                                relation: t(RELATIONSHIP_KEY[m.temporary]),
+                                planet,
+                                house: m.distance,
+                                from,
+                            }),
+                        ];
+                        return (
+                            <MaitriChip
+                                key={m.planet}
+                                label={planet}
+                                lines={reason}
+                                className={MAITRI_TAG_STYLES[column]}
+                            />
+                        );
+                    })}
                 </span>
             );
         }
