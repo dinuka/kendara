@@ -58,6 +58,16 @@ export default function HousesTable({ view, data, planetSigns, showAspectDelta, 
                     )
                     .join(", ");
             }
+            case "upagraha": {
+                if (!row.upagrahas?.length) return NO_VALUE;
+                const withDegree = optionOn(setting, "degree");
+                return row.upagrahas
+                    .map(({ key, degreeLabel }) => {
+                        const name = t(`astrology.upagraha.${key}`);
+                        return withDegree ? `${name} (${degreeLabel})` : name;
+                    })
+                    .join(", ");
+            }
             case "aspects":
                 return (
                     <AspectChips

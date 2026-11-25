@@ -17,17 +17,24 @@ const ids = (layout: TableLayout, onlyVisible = true) =>
     layout.filter((s) => !onlyVisible || s.visible).map((s) => s.id);
 
 describe("default layouts reproduce the historical tables", () => {
-    it("Charts tab Houses: #, Sign, Planets, Aspects", () => {
-        expect(ids(DEFAULT_TABLE_PREFERENCES.charts.houses)).toEqual(["number", "sign", "planets", "aspects"]);
+    it("Charts tab Houses: #, Sign, Planets, Upagraha, Aspects", () => {
+        expect(ids(DEFAULT_TABLE_PREFERENCES.charts.houses)).toEqual([
+            "number",
+            "sign",
+            "planets",
+            "upagraha",
+            "aspects",
+        ]);
     });
 
-    it("Calculations tab Houses: #, Start, Mid, End, Planets, Aspects, Kendrasthana", () => {
+    it("Calculations tab Houses: #, Start, Mid, End, Planets, Upagraha, Aspects, Kendrasthana", () => {
         expect(ids(DEFAULT_TABLE_PREFERENCES.calculations.houses)).toEqual([
             "number",
             "start",
             "mid",
             "end",
             "planets",
+            "upagraha",
             "aspects",
             "kendrasthana",
         ]);
@@ -108,7 +115,17 @@ describe("normalizeTableLayout", () => {
             ],
             fallback,
         );
-        expect(ids(result, false)).toEqual(["aspects", "kendrasthana", "number", "sign", "start", "mid", "end", "planets"]);
+        expect(ids(result, false)).toEqual([
+            "aspects",
+            "kendrasthana",
+            "number",
+            "sign",
+            "start",
+            "mid",
+            "end",
+            "planets",
+            "upagraha",
+        ]);
     });
 });
 

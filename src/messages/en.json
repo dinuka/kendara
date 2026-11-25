@@ -307,6 +307,14 @@
         "thithi": "Thithi",
         "panchaPakshi": "Pancha Pakshi",
         "aspects": "Aspects",
+        "upagraha": {
+            "column": "Upagraha",
+            "dhuma": "Dhuma",
+            "vyatipata": "Vyatipata",
+            "parivesha": "Parivesha",
+            "indrachapa": "Indrachapa",
+            "upaketu": "Upaketu"
+        },
         "kendrasthana": "Kendrasthana",
         "aspectReason": {
             "infoGlyph": "Show aspect reason"

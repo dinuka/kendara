@@ -6,6 +6,7 @@ import { formatDegree } from "@/lib/astrology";
 import type { ChartAscendant, ChartHouse, ChartPlanet } from "@/lib/chartDataTransform";
 import { PLANET_SHORT_SI, SIGN_SHORT_SI } from "@/lib/chartVisuals";
 import { calculateInduLagna } from "@/lib/induLagna";
+import { UPAGRAHA_MARKERS, calculateUpagrahas } from "@/lib/upagraha";
 import { calculateVarnadaLagna } from "@/lib/varnadaLagna";
 
 /** Cropped icon images (public/zodiac/*.png), silhouette on transparent background, aspect 404x275. */
@@ -52,18 +53,25 @@ interface BirthChartProps {
     /** Sign (1-12) of the Hora Lagna, marked with "HL" — D1 birth chart only. The Varnada Lagna
      *  ("VL") is derived from it and the ascendant sign. */
     horaLagnaSign?: number;
+    /** Sun's sidereal longitude (0-360). When given, the five Upagrahas are marked D/V/P/I/U —
+     *  D1 birth chart only, and only when the Sun's degree is known. */
+    sunLongitude?: number;
 }
 
 /** Special lagna markers, rendered after a house's planets in the same rows. */
 const INDU_LAGNA = "IL";
 const HORA_LAGNA = "HL";
 const VARNADA_LAGNA = "VL";
-type LagnaMarker = typeof INDU_LAGNA | typeof HORA_LAGNA | typeof VARNADA_LAGNA;
+type UpagrahaMarker = (typeof UPAGRAHA_MARKERS)[keyof typeof UPAGRAHA_MARKERS];
+type LagnaMarker = typeof INDU_LAGNA | typeof HORA_LAGNA | typeof VARNADA_LAGNA | UpagrahaMarker;
 
-const LAGNA_MARKER_COLORS: Record<LagnaMarker, string> = {
+const UPAGRAHA_COLOR = "#be123c";
+
+const LAGNA_MARKER_COLORS: Record<string, string> = {
     [INDU_LAGNA]: "#7c3aed",
     [HORA_LAGNA]: "#0f766e",
     [VARNADA_LAGNA]: "#b45309",
+    ...Object.fromEntries(Object.values(UPAGRAHA_MARKERS).map((marker) => [marker, UPAGRAHA_COLOR])),
 };
 
 type ChartEntry = ChartPlanet | LagnaMarker;
@@ -261,6 +269,7 @@ export function BirthChart({
     ascendantDegreeLabel,
     showInduLagna = false,
     horaLagnaSign,
+    sunLongitude,
 }: BirthChartProps) {
     const [selectedHouse, setSelectedHouse] = useState<number | null>(null);
 
@@ -288,6 +297,9 @@ export function BirthChart({
     if (horaLagnaSign) {
         addMarker(horaLagnaSign, HORA_LAGNA);
         addMarker(calculateVarnadaLagna(ascendant.sign, horaLagnaSign).sign, VARNADA_LAGNA);
+    }
+    if (sunLongitude !== undefined && Number.isFinite(sunLongitude)) {
+        calculateUpagrahas(sunLongitude).forEach(({ key, sign }) => addMarker(sign, UPAGRAHA_MARKERS[key]));
     }
 
     const { houseTiers, lordPlanet } = useMemo(() => computeHighlights(selectedHouse, houses), [selectedHouse, houses]);
@@ -386,10 +398,12 @@ export function BirthChart({
         );
     };
 
-    /** Renders a corner house's planets (already degree-sorted) in groups tucked into the two acute
-     *  corners of its triangle (the diagonal's endpoints: `nearPt` and `far`), two groups per corner
-     *  so up to 8 planets show. The sign icon stays centered at the triangle's third vertex
-     *  (`ownCorner`). */
+    /** Renders a corner house's planets and markers (already degree-sorted) in rows tucked into the
+     *  two acute corners of its triangle (the diagonal's endpoints: `nearPt` and `far`), alternating
+     *  corners, each corner's later rows further in. A row that is too wide for its spot (e.g. the
+     *  enlarged lord of a selected house, or extra Lagna/Upagraha markers) slides further inward
+     *  until it fits inside the triangle, clear of the sign icon, the ASC tag, the house number and
+     *  the rows already placed. The sign icon stays at the triangle's centroid. */
     const renderPlanetsInTriangleCorners = (
         houseNum: number,
         nearPt: Point,
@@ -399,18 +413,57 @@ export function BirthChart({
         rowSize = 2,
     ) => {
         const housePlanets = planetsByHouse[houseNum] || [];
-        const groupPositions: Point[] = [
-            insetFromFarCorner(nearPt, far, ownCorner, 20),
-            insetFromFarCorner(far, nearPt, ownCorner, 20),
-            insetFromFarCorner(nearPt, far, ownCorner, 36),
-            insetFromFarCorner(far, nearPt, ownCorner, 36),
+        const rows: ChartEntry[][] = [];
+        for (let i = 0; i < housePlanets.length; i += rowSize) rows.push(housePlanets.slice(i, i + rowSize));
+
+        const tri: Point[] = [nearPt, far, ownCorner];
+        const cx = (nearPt[0] + far[0] + ownCorner[0]) / 3;
+        const cy = (nearPt[1] + far[1] + ownCorner[1]) / 3;
+        // Mirrors the non-selected corner-house rendering: icon at (cx, cy - 10) with size 18, ASC
+        // tag at cy + 14, house number 6px in from the triangle's own (right-angle) corner.
+        const glyphHalf = 18 * 0.85;
+        const cellLeft = Math.min(nearPt[0], far[0]);
+        const cellTop = Math.min(nearPt[1], far[1]);
+        const obstacles: Box[] = [
+            { x1: cx - glyphHalf, y1: cy - 10 - glyphHalf, x2: cx + glyphHalf, y2: cy - 10 + glyphHalf },
+            ownCorner[0] === cellLeft
+                ? labelBox(ownCorner[0] + 6, ownCorner[1] + (ownCorner[1] === cellTop ? 16 : -8), "start", 16, 12)
+                : labelBox(ownCorner[0] - 6, ownCorner[1] + (ownCorner[1] === cellTop ? 16 : -8), "end", 16, 12),
         ];
+        if (ascendant.sign === signByHouse[houseNum]) obstacles.push(labelBox(cx, cy + 14, "middle", 24, 9));
+
+        const MIN_INSET = 20;
+        const LEVEL_STEP = 16;
+        const MAX_INSET = 90;
+        const nextInset = [MIN_INSET, MIN_INSET];
+        const positions: Point[] = rows.map((row, i) => {
+            const side = i % 2;
+            const [from, to] = side === 0 ? [nearPt, far] : [far, nearPt];
+            const hasLord = row.some((p) => !isLagnaMarker(p) && p.name === lordPlanet);
+            const fs = hasLord ? fontSize + 4 : fontSize;
+            const needed = estimateRowWidth(row, fontSize, lordPlanet);
+            const fallback = insetFromFarCorner(from, to, ownCorner, nextInset[side]);
+            let placed: Point | null = null;
+            let inset = nextInset[side];
+            for (; inset <= MAX_INSET; inset += 2) {
+                const [px, py] = insetFromFarCorner(from, to, ownCorner, inset);
+                const seg = widestFreeSegment(tri, py - fs, py + fs * 0.4, obstacles, 2);
+                if (seg && seg[1] - seg[0] >= needed) {
+                    // Stay as close to the corner point as the free run allows.
+                    placed = [Math.min(Math.max(px, seg[0] + needed / 2), seg[1] - needed / 2), py];
+                    break;
+                }
+            }
+            const pos = placed ?? fallback;
+            nextInset[side] = (placed ? inset : nextInset[side]) + LEVEL_STEP;
+            obstacles.push(labelBox(pos[0], pos[1], "middle", needed, fs));
+            return pos;
+        });
+
         return (
             <>
-                {groupPositions.map(([gx, gy], i) => (
-                    <g key={i}>
-                        {renderPlanetRow(housePlanets.slice(i * rowSize, (i + 1) * rowSize), gx, gy, fontSize)}
-                    </g>
+                {rows.map((row, i) => (
+                    <g key={i}>{renderPlanetRow(row, positions[i][0], positions[i][1], fontSize)}</g>
                 ))}
             </>
         );

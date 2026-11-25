@@ -58,7 +58,7 @@ describe("GET /api/user/table-preferences", () => {
         const { GET } = await load();
         const body = await (await GET()).json();
         expect(body.tablePreferences.charts.houses[0]).toEqual({ id: "number", visible: true });
-        expect(body.tablePreferences.charts.houses).toHaveLength(8);
+        expect(body.tablePreferences.charts.houses).toHaveLength(9);
     });
 });
 
@@ -91,7 +91,17 @@ describe("PUT /api/user/table-preferences", () => {
         expect(id).toBe("user-1");
         const saved = update.$set.tablePreferences.calculations.houses.map((s: { id: string }) => s.id);
         // The saved order wins; columns left out are re-inserted after their default predecessor.
-        expect(saved).toEqual(["sign", "start", "mid", "end", "planets", "aspects", "kendrasthana", "number"]);
+        expect(saved).toEqual([
+            "sign",
+            "start",
+            "mid",
+            "end",
+            "planets",
+            "upagraha",
+            "aspects",
+            "kendrasthana",
+            "number",
+        ]);
         expect(update.$set.tablePreferences.charts).toEqual(DEFAULT_TABLE_PREFERENCES.charts);
     });
 

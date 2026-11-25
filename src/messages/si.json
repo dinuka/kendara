@@ -307,6 +307,14 @@
         "thithi": "තිති",
         "panchaPakshi": "පංච පක්ෂී",
         "aspects": "දෘෂ්ටි",
+        "upagraha": {
+            "column": "උපග්‍රහ",
+            "dhuma": "ධූම",
+            "vyatipata": "ව්‍යාතීපාත",
+            "parivesha": "පරිවේෂ",
+            "indrachapa": "ඉන්ද්‍රචාප",
+            "upaketu": "උපකේතු"
+        },
         "kendrasthana": "කේන්ද්‍රස්ථාන",
         "aspectReason": {
             "infoGlyph": "දෘෂ්ඨි හේතුව පෙන්වන්න"

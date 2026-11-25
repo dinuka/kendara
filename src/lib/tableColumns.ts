@@ -16,7 +16,16 @@ export type TableKind = "houses" | "planets";
 export const TABLE_VIEWS: readonly TableView[] = ["charts", "calculations"];
 export const TABLE_KINDS: readonly TableKind[] = ["houses", "planets"];
 
-export type HouseColumnId = "number" | "sign" | "start" | "mid" | "end" | "planets" | "aspects" | "kendrasthana";
+export type HouseColumnId =
+    | "number"
+    | "sign"
+    | "start"
+    | "mid"
+    | "end"
+    | "planets"
+    | "upagraha"
+    | "aspects"
+    | "kendrasthana";
 
 export type PlanetColumnId =
     | "planet"
@@ -106,6 +115,7 @@ export const HOUSE_COLUMNS: readonly ColumnDef[] = [
     { id: "mid", labelKey: "astrology.mid" },
     { id: "end", labelKey: "astrology.end" },
     { id: "planets", labelKey: "astrology.planets", options: [DEGREE_OPTION] },
+    { id: "upagraha", labelKey: "astrology.upagraha.column", options: [DEGREE_OPTION] },
     { id: "aspects", labelKey: "astrology.aspects", options: [SYMBOL_OPTION] },
     { id: "kendrasthana", labelKey: "astrology.kendrasthana", options: [SYMBOL_OPTION] },
 ];
@@ -164,6 +174,7 @@ export const DEFAULT_TABLE_PREFERENCES: TablePreferences = {
             col("mid", false),
             col("end", false),
             col("planets", true, ["degree"]),
+            col("upagraha", true),
             col("aspects", true, ["symbol"]),
             col("kendrasthana", false, ["symbol"]),
         ],
@@ -193,6 +204,7 @@ export const DEFAULT_TABLE_PREFERENCES: TablePreferences = {
             col("mid", true),
             col("end", true),
             col("planets", true),
+            col("upagraha", true),
             col("aspects", true),
             col("kendrasthana", true),
         ],

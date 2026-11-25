@@ -48,6 +48,8 @@ interface WargaChartSectionProps {
     rashiAspects?: RashiAspectsSetting;
     /** Hora Lagna sign (1-12), marked "HL" on the D1 figure only. */
     horaLagnaSign?: number;
+    /** Sun's sidereal longitude, for the Upagraha markers on the D1 figure only. */
+    sunLongitude?: number;
 }
 
 /** Charts whose aspect records carry real degree differences (D1 and its Sun/Moon rotations). The
@@ -72,6 +74,7 @@ const WargaChartSection = ({
     displayAspects,
     rashiAspects,
     horaLagnaSign,
+    sunLongitude,
 }: WargaChartSectionProps) => {
     const { t } = useI18n();
     const isD1 = chartKey === "d1";
@@ -102,6 +105,7 @@ const WargaChartSection = ({
                         showAscendantDegree={showAscendantDegree}
                         showInduLagna={isD1}
                         horaLagnaSign={isD1 ? horaLagnaSign : undefined}
+                        sunLongitude={isD1 ? sunLongitude : undefined}
                     />
                 </div>
             ) : (

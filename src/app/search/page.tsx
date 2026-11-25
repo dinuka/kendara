@@ -21,7 +21,7 @@ import {
     navamsaSign,
     normalizeMaranakaraka,
 } from "@/lib/astrology";
-import { PlanetaryStrength } from "@/lib/astrologyEnums";
+import { Planet as PlanetId, PlanetaryStrength } from "@/lib/astrologyEnums";
 import { resolveLagnaBhavaSuchika, resolvePlanetBhavaSuchika } from "@/lib/bhavaSuchika";
 import { resolveDisplayAspects } from "@/lib/chartAspects";
 import { toBirthChartData } from "@/lib/chartDataTransform";
@@ -800,6 +800,11 @@ const SearchResultCard = ({
                                         horaLagnaSign={
                                             resolvedChart === "birth"
                                                 ? (cd?.horaLagna as { sign?: number } | undefined)?.sign
+                                                : undefined
+                                        }
+                                        sunLongitude={
+                                            resolvedChart === "birth" && h.source !== "manual"
+                                                ? planets.find((p) => p.name === PlanetId.SUN)?.absoluteDegree
                                                 : undefined
                                         }
                                     />

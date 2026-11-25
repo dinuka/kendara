@@ -5,12 +5,13 @@
  * rows plus the set of columns it can actually fill. The table components only render rows — so
  * the Charts tab and the Calculations tab show identical values for the same column.
  */
-import type { Aspect } from "@/lib/astrology";
+import { type Aspect, formatDegree } from "@/lib/astrology";
 import { PlanetaryStrength } from "@/lib/astrologyEnums";
 import { type GrahaMaitriEntry, computeGrahaMaitri } from "@/lib/grahaMaitri";
 import { ownedHousesOf } from "@/lib/manualChart";
 import type { SubaAsubaEntry } from "@/lib/subaAsuba";
 import { type HouseColumnId, MAITRI_COLUMN_IDS, type PlanetColumnId } from "@/lib/tableColumns";
+import { type UpagrahaKey, calculateUpagrahas } from "@/lib/upagraha";
 import type { WargaChartEntry } from "@/lib/wargaKendara";
 
 /** A text tag of the Planets table "Other" column; `key` is one of PLANET_TAG_OPTIONS. */
@@ -29,6 +30,8 @@ export interface HouseTableRow {
     end?: string;
     /** Planets in the house, in display order; `degreeLabel` when a degree is known. */
     planets: { name: number; degreeLabel?: string }[];
+    /** Sun-based Upagrahas in the house's sign (D1 only), with their in-sign degree. */
+    upagrahas?: { key: UpagrahaKey; degreeLabel: string }[];
     aspects: Aspect[];
     kendrasthana?: Aspect[];
 }
@@ -87,6 +90,22 @@ export function withGrahaMaitri(data: PlanetTableData): PlanetTableData {
     const available = new Set<PlanetColumnId>(data.available);
     MAITRI_COLUMN_IDS.forEach((id) => available.add(id));
     return { ...data, rows: data.rows.map((row) => ({ ...row, maitri: maitri[row.name] })), available };
+}
+
+/** Fills each row's Upagrahas (Dhūma … Upaketu) from the Sun's sidereal longitude and makes the
+ *  Upagraha column available. D1 only, and only when the Sun's degree is known. */
+export function withUpagrahas(data: HouseTableData, sunLongitude: number): HouseTableData {
+    const upagrahas = calculateUpagrahas(sunLongitude);
+    const available = new Set<HouseColumnId>(data.available).add("upagraha");
+    return {
+        rows: data.rows.map((row) => ({
+            ...row,
+            upagrahas: upagrahas
+                .filter((u) => u.sign === row.sign)
+                .map(({ key, degree }) => ({ key, degreeLabel: formatDegree(degree) })),
+        })),
+        available,
+    };
 }
 
 /** AspectChip record for a whole-sign aspect: the sign angle IS the aspect — no degree gap or delta. */

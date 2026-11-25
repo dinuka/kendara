@@ -36,7 +36,7 @@ import {
     navamsaSign,
     normalizeMaranakaraka,
 } from "@/lib/astrology";
-import { PlanetaryStrength } from "@/lib/astrologyEnums";
+import { Planet as PlanetId, PlanetaryStrength } from "@/lib/astrologyEnums";
 import { calculateBadhakaLevels } from "@/lib/badhaka";
 import { resolveLagnaBhavaSuchika, resolvePlanetBhavaSuchika } from "@/lib/bhavaSuchika";
 import { type AspectSettings, resolveDisplayAspects, rotateDisplayAspects } from "@/lib/chartAspects";
@@ -50,6 +50,7 @@ import {
     type PlanetTableData,
     type PlanetTableRow,
     withGrahaMaitri,
+    withUpagrahas,
 } from "@/lib/chartTableRows";
 import type { ChartInput } from "@/lib/chartDataTransform";
 import { ChartType } from "@/lib/chartTypes";
@@ -1114,6 +1115,11 @@ function HoroscopeDetail() {
     const getPlanetDegreeLabel = (p: Planet): string | undefined =>
         hasExactDegree(p) ? formatDegree(p.degree) : navamsaAvailable ? getPlanetDegreeRange(p) : undefined;
 
+    /** Sun's sidereal longitude for the Upagrahas — only when its degree is known (auto charts, or
+     *  manual charts with an entered Sun degree). */
+    const d1Sun = calculatedDetails?.planets?.find((p) => p.name === PlanetId.SUN);
+    const d1SunLongitude = d1Sun && hasExactDegree(d1Sun) ? d1Sun.absoluteDegree : undefined;
+
     /** D1 rows of the shared Houses table — rendered by both the Calculations tab and the birth chart
      *  figure, so the two always show identical values (each with its own column layout). */
     const buildD1HouseData = (): HouseTableData | undefined => {
@@ -1153,7 +1159,11 @@ function HoroscopeDetail() {
                 kendrasthana: kendrasthana.byHouse[h.houseNumber] ?? [],
             };
         });
-        return { rows, available: new Set([...CORE_HOUSE_COLUMNS, "start", "mid", "end", "kendrasthana"]) };
+        const data: HouseTableData = {
+            rows,
+            available: new Set([...CORE_HOUSE_COLUMNS, "start", "mid", "end", "kendrasthana"]),
+        };
+        return d1SunLongitude !== undefined ? withUpagrahas(data, d1SunLongitude) : data;
     };
 
     /** D1 rows of the shared Planets table (see buildD1HouseData). */
@@ -1488,6 +1498,7 @@ function HoroscopeDetail() {
                                                 planetData={d1PlanetData}
                                                 displayAspects={displayAspects}
                                                 horaLagnaSign={calculatedDetails.horaLagna?.sign}
+                                                sunLongitude={d1SunLongitude}
                                             />
                                             {navamsaAvailable &&
                                                 (isComputedChart(secondChart) ? (
