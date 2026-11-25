@@ -49,6 +49,7 @@ import {
     type HouseTableRow,
     type PlanetTableData,
     type PlanetTableRow,
+    withGrahaMaitri,
 } from "@/lib/chartTableRows";
 import type { ChartInput } from "@/lib/chartDataTransform";
 import { ChartType } from "@/lib/chartTypes";
@@ -1184,7 +1185,7 @@ function HoroscopeDetail() {
                 kendrasthana: kendrasthana.byPlanet[p.name] ?? [],
                 tags: getPlanetTags(p),
             }));
-        return { rows, available, showAspectDelta: true };
+        return withGrahaMaitri({ rows, available, showAspectDelta: true });
     };
 
     const d1HouseData = buildD1HouseData();

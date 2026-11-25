@@ -32,7 +32,13 @@ export type PlanetColumnId =
     | "conjunctions"
     | "aspects"
     | "kendrasthana"
+    | MaitriColumnId
     | "other";
+
+/** Graha Maitri columns — one per compound relationship grade, strongest friendship first. */
+export type MaitriColumnId = "adhiMitra" | "mitra" | "sama" | "shatru" | "adhiShatru";
+
+export const MAITRI_COLUMN_IDS: readonly MaitriColumnId[] = ["adhiMitra", "mitra", "sama", "shatru", "adhiShatru"];
 
 export type ColumnId = HouseColumnId | PlanetColumnId;
 
@@ -127,6 +133,7 @@ export const PLANET_COLUMNS: readonly ColumnDef[] = [
     { id: "conjunctions", labelKey: "astrology.conjunctions", options: [SYMBOL_OPTION] },
     { id: "aspects", labelKey: "astrology.aspects", options: [SYMBOL_OPTION] },
     { id: "kendrasthana", labelKey: "astrology.kendrasthana", options: [SYMBOL_OPTION] },
+    ...MAITRI_COLUMN_IDS.map((id) => ({ id, labelKey: `astrology.grahaMaitri.${id}` })),
     { id: "other", labelKey: "astrology.other", options: PLANET_TAG_OPTIONS },
 ];
 
@@ -174,6 +181,7 @@ export const DEFAULT_TABLE_PREFERENCES: TablePreferences = {
             col("kendrasthana", false, ["symbol"]),
             col("nakshatra", true),
             col("bhavaSuchika", true, ["name"]),
+            ...MAITRI_COLUMN_IDS.map((id) => col(id, false)),
             col("other", true),
         ],
     },
@@ -202,6 +210,7 @@ export const DEFAULT_TABLE_PREFERENCES: TablePreferences = {
             col("conjunctions", true),
             col("aspects", true),
             col("kendrasthana", true),
+            ...MAITRI_COLUMN_IDS.map((id) => col(id, true)),
             col("other", true),
         ],
     },

@@ -363,6 +363,18 @@
         "cheshtaBalaLabel": "Cheshta Bala",
         "kalaBalaLabel": "Kala Bala",
         "digBalaLabel": "Dig Bala",
+        "grahaMaitri": {
+            "adhiMitra": "Great Friends",
+            "mitra": "Friends",
+            "sama": "Neutral",
+            "shatru": "Enemies",
+            "adhiShatru": "Great Enemies",
+            "natural": "Natural",
+            "temporary": "Temporary",
+            "friend": "Friend",
+            "neutral": "Neutral",
+            "enemy": "Enemy"
+        },
         "bhavaSuchika": {
             "label": "Bhava Suchika",
             "tooltip": "The Bhava Suchika of a point is the house (1-12) its Navamsa sign occupies in the birth (Lagna) chart.",

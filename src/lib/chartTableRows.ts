@@ -7,9 +7,10 @@
  */
 import type { Aspect } from "@/lib/astrology";
 import { PlanetaryStrength } from "@/lib/astrologyEnums";
+import { type GrahaMaitriEntry, computeGrahaMaitri } from "@/lib/grahaMaitri";
 import { ownedHousesOf } from "@/lib/manualChart";
 import type { SubaAsubaEntry } from "@/lib/subaAsuba";
-import type { HouseColumnId, PlanetColumnId } from "@/lib/tableColumns";
+import { type HouseColumnId, MAITRI_COLUMN_IDS, type PlanetColumnId } from "@/lib/tableColumns";
 import type { WargaChartEntry } from "@/lib/wargaKendara";
 
 /** A text tag of the Planets table "Other" column; `key` is one of PLANET_TAG_OPTIONS. */
@@ -49,6 +50,8 @@ export interface PlanetTableRow {
     conjunctions: Aspect[];
     aspects: Aspect[];
     kendrasthana?: Aspect[];
+    /** How this planet regards the other classical planets (Graha Maitri); absent for Rahu/Ketu. */
+    maitri?: GrahaMaitriEntry[];
     tags: PlanetTableTag[];
 }
 
@@ -76,6 +79,15 @@ export const CORE_PLANET_COLUMNS: readonly PlanetColumnId[] = [
     "aspects",
     "other",
 ];
+
+/** Fills each row's Graha Maitri from the rows' own signs and makes the five Maitri columns
+ *  available. Meant for the D1 (rashi) chart, which BPHS uses for temporary friendship. */
+export function withGrahaMaitri(data: PlanetTableData): PlanetTableData {
+    const maitri = computeGrahaMaitri(Object.fromEntries(data.rows.map((row) => [row.name, row.sign])));
+    const available = new Set<PlanetColumnId>(data.available);
+    MAITRI_COLUMN_IDS.forEach((id) => available.add(id));
+    return { ...data, rows: data.rows.map((row) => ({ ...row, maitri: maitri[row.name] })), available };
+}
 
 /** AspectChip record for a whole-sign aspect: the sign angle IS the aspect — no degree gap or delta. */
 export function wholeSignAspect(planetName: number, aspectType: number): Aspect {

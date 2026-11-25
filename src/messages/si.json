@@ -363,6 +363,18 @@
         "cheshtaBalaLabel": "චේෂ්ටා බල",
         "kalaBalaLabel": "කාල බල",
         "digBalaLabel": "දිග් බල",
+        "grahaMaitri": {
+            "adhiMitra": "අධි මිතුරු",
+            "mitra": "මිතුරු",
+            "sama": "සම",
+            "shatru": "සතුරු",
+            "adhiShatru": "අධි සතුරු",
+            "natural": "නෛසර්ගික",
+            "temporary": "තත්කාලික",
+            "friend": "මිතුරු",
+            "neutral": "සම",
+            "enemy": "සතුරු"
+        },
         "bhavaSuchika": {
             "label": "භාව සුචික",
             "tooltip": "භාව සුචික යනු මෙම ලක්ෂ්‍යයේ නවාංශක රාශිය ජන්ම (ලග්න) කේන්ද්‍රයේ පිහිටන භාවය (1–12) යි.",

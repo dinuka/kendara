@@ -7,7 +7,15 @@ import type { ReactNode } from "react";
 
 import { getNakshatraLord } from "@/lib/astrology";
 import type { PlanetTableData, PlanetTableRow } from "@/lib/chartTableRows";
-import { type ColumnSetting, type PlanetColumnId, columnDef, optionOn, visibleColumns } from "@/lib/tableColumns";
+import { CompoundRelationship, Relationship } from "@/lib/grahaMaitri";
+import {
+    type ColumnSetting,
+    type MaitriColumnId,
+    type PlanetColumnId,
+    columnDef,
+    optionOn,
+    visibleColumns,
+} from "@/lib/tableColumns";
 import type { TableView } from "@/lib/tableColumns";
 
 import TableColumnsMenu from "./TableColumnsMenu";
@@ -20,6 +28,21 @@ interface PlanetsTableProps {
     /** Chart caption, prefixed to the table's screen-reader caption. */
     caption?: string;
 }
+
+/** Compound relationship grade listed by each Graha Maitri column. */
+const MAITRI_GRADE: Record<MaitriColumnId, CompoundRelationship> = {
+    adhiMitra: CompoundRelationship.ADHI_MITRA,
+    mitra: CompoundRelationship.MITRA,
+    sama: CompoundRelationship.SAMA,
+    shatru: CompoundRelationship.SHATRU,
+    adhiShatru: CompoundRelationship.ADHI_SHATRU,
+};
+
+const RELATIONSHIP_KEY: Record<Relationship, string> = {
+    [Relationship.FRIEND]: "astrology.grahaMaitri.friend",
+    [Relationship.NEUTRAL]: "astrology.grahaMaitri.neutral",
+    [Relationship.ENEMY]: "astrology.grahaMaitri.enemy",
+};
 
 /** Columns shown inline in a mobile card's first line; the rest get their own labeled line. */
 const MOBILE_INLINE: ReadonlySet<PlanetColumnId> = new Set(["subaAsuba", "sign", "strength", "house"]);
@@ -77,6 +100,27 @@ export default function PlanetsTable({ view, data, caption }: PlanetsTableProps)
                 signOf={sign}
             />
         );
+        if (setting.id in MAITRI_GRADE) {
+            const grade = MAITRI_GRADE[setting.id as MaitriColumnId];
+            const planets = row.maitri?.filter((m) => m.compound === grade) ?? [];
+            if (planets.length === 0) return NO_VALUE;
+            return (
+                <span className="inline-flex flex-wrap gap-x-1">
+                    {planets.map((m, index) => (
+                        <span
+                            key={m.planet}
+                            className="cursor-help whitespace-nowrap"
+                            title={`${t("astrology.grahaMaitri.natural")}: ${t(RELATIONSHIP_KEY[m.natural])} · ${t(
+                                "astrology.grahaMaitri.temporary",
+                            )}: ${t(RELATIONSHIP_KEY[m.temporary])}`}
+                        >
+                            {getPlanetName(m.planet)}
+                            {index < planets.length - 1 ? "," : ""}
+                        </span>
+                    ))}
+                </span>
+            );
+        }
         switch (setting.id as PlanetColumnId) {
             case "planet":
                 return planetLabel(setting, row);
