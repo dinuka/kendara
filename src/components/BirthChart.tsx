@@ -6,6 +6,7 @@ import { formatDegree } from "@/lib/astrology";
 import type { ChartAscendant, ChartHouse, ChartPlanet } from "@/lib/chartDataTransform";
 import { PLANET_SHORT_SI, SIGN_SHORT_SI } from "@/lib/chartVisuals";
 import { calculateInduLagna } from "@/lib/induLagna";
+import { calculateVarnadaLagna } from "@/lib/varnadaLagna";
 
 /** Cropped icon images (public/zodiac/*.png), silhouette on transparent background, aspect 404x275. */
 const SIGN_IMAGE_NAMES: Record<number, string> = {
@@ -48,18 +49,21 @@ interface BirthChartProps {
     ascendantDegreeLabel?: string;
     /** Marks the Indu Lagna sign's house with "IL" — D1 birth chart only. */
     showInduLagna?: boolean;
-    /** Sign (1-12) of the Hora Lagna, marked with "HL" — D1 birth chart only. */
+    /** Sign (1-12) of the Hora Lagna, marked with "HL" — D1 birth chart only. The Varnada Lagna
+     *  ("VL") is derived from it and the ascendant sign. */
     horaLagnaSign?: number;
 }
 
 /** Special lagna markers, rendered after a house's planets in the same rows. */
 const INDU_LAGNA = "IL";
 const HORA_LAGNA = "HL";
-type LagnaMarker = typeof INDU_LAGNA | typeof HORA_LAGNA;
+const VARNADA_LAGNA = "VL";
+type LagnaMarker = typeof INDU_LAGNA | typeof HORA_LAGNA | typeof VARNADA_LAGNA;
 
 const LAGNA_MARKER_COLORS: Record<LagnaMarker, string> = {
     [INDU_LAGNA]: "#7c3aed",
     [HORA_LAGNA]: "#0f766e",
+    [VARNADA_LAGNA]: "#b45309",
 };
 
 type ChartEntry = ChartPlanet | LagnaMarker;
@@ -281,7 +285,10 @@ export function BirthChart({
     if (showInduLagna && moon && signByHouse[moon.house]) {
         addMarker(calculateInduLagna(ascendant.sign, signByHouse[moon.house]).sign, INDU_LAGNA);
     }
-    if (horaLagnaSign) addMarker(horaLagnaSign, HORA_LAGNA);
+    if (horaLagnaSign) {
+        addMarker(horaLagnaSign, HORA_LAGNA);
+        addMarker(calculateVarnadaLagna(ascendant.sign, horaLagnaSign).sign, VARNADA_LAGNA);
+    }
 
     const { houseTiers, lordPlanet } = useMemo(() => computeHighlights(selectedHouse, houses), [selectedHouse, houses]);
 
