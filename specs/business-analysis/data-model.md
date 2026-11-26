@@ -7,7 +7,8 @@
 | Field | Type | Description |
 |-------|------|-------------|
 | id | UUID | Primary key |
-| googleId | String | Google SSO ID |
+| googleId | String | Optional. Google SSO account ID (sparse unique) |
+| facebookId | String | Optional. Facebook SSO account ID (sparse unique). A user has at least one provider ID; signing in with a second provider under the same email links it to the existing user |
 | email | String | Email address |
 | name | String | Display name |
 | role | Enum(student, super-admin) | System role |

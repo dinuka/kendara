@@ -28,8 +28,10 @@
         "signOut": "Sign Out"
     },
     "auth": {
-        "signIn": "Sign in with Google",
-        "signInDesc": "Use your Google account to access Kendara",
+        "signIn": "Sign In",
+        "signInDesc": "Use your Google or Facebook account to access Kendara",
+        "signInFacebook": "Sign in with Facebook",
+        "signInGoogle": "Sign in with Google",
         "signOut": "Sign out"
     },
     "horoscope": {

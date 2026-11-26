@@ -28,8 +28,10 @@
         "signOut": "පිටවන්න"
     },
     "auth": {
-        "signIn": "Google සමඟින් පුරනය වන්න",
-        "signInDesc": "කේන්දර වෙත ප්‍රවේශ වීමට ඔබගේ Google ගිණුම භාවිතා කරන්න",
+        "signIn": "පුරනය වන්න",
+        "signInDesc": "කේන්දර වෙත ප්‍රවේශ වීමට ඔබගේ Google හෝ Facebook ගිණුම භාවිතා කරන්න",
+        "signInFacebook": "Facebook සමඟින් පුරනය වන්න",
+        "signInGoogle": "Google සමඟින් පුරනය වන්න",
         "signOut": "පිටවන්න"
     },
     "horoscope": {

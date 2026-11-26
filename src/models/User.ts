@@ -4,7 +4,10 @@ import type { TablePreferences } from "@/lib/tableColumns";
 
 export interface IUser extends Document {
     id: string;
-    googleId: string;
+    /** Set once the user has signed in with Google. At least one provider id is always present. */
+    googleId?: string;
+    /** Set once the user has signed in with Facebook. */
+    facebookId?: string;
     email: string;
     name: string;
     role: "student" | "super-admin";
@@ -18,7 +21,8 @@ export interface IUser extends Document {
 
 const UserSchema = new Schema<IUser>(
     {
-        googleId: { type: String, required: true, unique: true },
+        googleId: { type: String, required: false, unique: true, sparse: true },
+        facebookId: { type: String, required: false, unique: true, sparse: true },
         email: { type: String, required: true },
         name: { type: String, required: true },
         role: { type: String, enum: ["student", "super-admin"], default: "student" },

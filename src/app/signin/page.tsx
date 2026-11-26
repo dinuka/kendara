@@ -45,7 +45,19 @@ export default function SignInPage() {
                             d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
                         />
                     </svg>
-                    <span className="min-w-0 break-words">{t("auth.signIn")}</span>
+                    <span className="min-w-0 break-words">{t("auth.signInGoogle")}</span>
+                </button>
+                <button
+                    onClick={() => signIn("facebook")}
+                    className="mt-3 w-full bg-[#1877F2] border-2 border-[#1877F2] text-white px-4 sm:px-6 py-3 rounded-lg hover:bg-[#166FE5] hover:border-[#166FE5] transition-all flex items-center justify-center gap-3 font-medium"
+                >
+                    <svg className="w-5 h-5 shrink-0" viewBox="0 0 24 24" aria-hidden="true">
+                        <path
+                            fill="currentColor"
+                            d="M24 12.07C24 5.41 18.63 0 12 0S0 5.41 0 12.07C0 18.1 4.39 23.1 10.13 24v-8.44H7.08v-3.49h3.05V9.41c0-3.02 1.79-4.69 4.53-4.69 1.31 0 2.68.23 2.68.23v2.97h-1.51c-1.49 0-1.96.93-1.96 1.89v2.26h3.33l-.53 3.49h-2.8V24C19.61 23.1 24 18.1 24 12.07z"
+                        />
+                    </svg>
+                    <span className="min-w-0 break-words">{t("auth.signInFacebook")}</span>
                 </button>
             </div>
         </div>

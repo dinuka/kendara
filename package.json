@@ -10,6 +10,7 @@
     "test": "jest",
     "format": "prettier --write \"src/**/*.{ts,tsx,css,json}\"",
     "seed-locations": "ts-node --transpile-only -P scripts/tsconfig.scripts.json -r tsconfig-paths/register scripts/seed-locations.ts",
+    "sync-user-indexes": "ts-node --transpile-only -P scripts/tsconfig.scripts.json -r tsconfig-paths/register scripts/sync-user-indexes.ts",
     "recalculate-horoscopes": "ts-node --transpile-only -P scripts/tsconfig.scripts.json -r tsconfig-paths/register scripts/recalculate-horoscopes.ts"
   },
   "dependencies": {
