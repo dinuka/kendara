@@ -13,26 +13,26 @@ import { generateChartSvg } from "@/lib/chartRenderer";
 import { ALL_CHART_TYPES } from "@/lib/chartTypes";
 import { connectDB } from "@/lib/db";
 import logger from "@/lib/logger";
+import { anonymizeIfNeeded, visibleHoroscopeFilter } from "@/lib/privacy";
 import { indexHoroscope } from "@/lib/search/indexer";
 
 export async function GET(req: NextRequest) {
     logger.info("fetching horoscopes");
+    // Signed-out guests may list public horoscopes only.
     const session = await getServerSession(authOptions);
-    if (!session?.user?.id) {
-        logger.warn("unauthorized horoscope GET attempt");
-        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const viewer = session?.user;
 
     await connectDB();
     const { searchParams } = new URL(req.url);
     const publicOnly = searchParams.get("public") === "true";
 
-    const filter = publicOnly ? { isPublic: true } : { $or: [{ "owner.id": session.user.id }, { isPublic: true }] };
+    const filter = publicOnly ? { isPublic: true } : visibleHoroscopeFilter(viewer);
 
     const horoscopes = await Horoscope.find(filter).sort({ createdAt: -1 }).lean();
+    const visible = horoscopes.map((h) => anonymizeIfNeeded(h, viewer?.id, viewer?.role));
 
-    logger.info("found %d horoscopes for user %s", horoscopes.length, session.user.id);
-    return NextResponse.json(horoscopes);
+    logger.info("found %d horoscopes for user %s", visible.length, viewer?.id ?? "guest");
+    return NextResponse.json(visible);
 }
 
 export async function POST(req: NextRequest) {

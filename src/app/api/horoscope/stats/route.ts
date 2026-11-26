@@ -7,6 +7,7 @@ import { Horoscope } from "@/models/Horoscope";
 
 import { connectDB } from "@/lib/db";
 import logger from "@/lib/logger";
+import { visibleHoroscopeFilter } from "@/lib/privacy";
 
 interface CountByKey {
     id: number;
@@ -15,16 +16,11 @@ interface CountByKey {
 
 export async function GET() {
     const session = await getServerSession(authOptions);
-    if (!session?.user?.id) {
-        logger.warn("unauthorized horoscope stats attempt");
-        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const viewerId = session?.user?.id;
 
     await connectDB();
 
-    const visibleHoroscopeIds = await Horoscope.find({
-        $or: [{ "owner.id": session.user.id }, { isPublic: true }],
-    })
+    const visibleHoroscopeIds = await Horoscope.find(visibleHoroscopeFilter(session?.user))
         .distinct("_id")
         .lean();
 
@@ -49,7 +45,7 @@ export async function GET() {
 
     logger.info(
         "horoscope stats computed for user %s: %d signs, %d nakshatras",
-        session.user.id,
+        viewerId ?? "guest",
         bySign.length,
         byNakshatra.length,
     );

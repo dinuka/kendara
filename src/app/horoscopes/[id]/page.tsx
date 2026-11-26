@@ -364,11 +364,8 @@ function HoroscopeDetail() {
     };
 
     useEffect(() => {
-        if (status === "unauthenticated") {
-            router.push("/signin");
-            return;
-        }
-        if (status !== "authenticated") return;
+        // Public horoscopes open for signed-out guests too, so a page link can be shared.
+        if (status === "loading") return;
 
         setLoading(true);
         setData(null);
@@ -376,8 +373,16 @@ function HoroscopeDetail() {
         const { sortBy, sortDir } = readHoroscopeSort();
 
         fetch(`/api/horoscope/${params.id}?sortBy=${sortBy}&sortDir=${sortDir}`)
-            .then((r) => r.json())
+            .then((r) => {
+                // A guest following a link to a private horoscope is asked to sign in.
+                if (!r.ok && status === "unauthenticated") {
+                    router.push("/signin");
+                    return null;
+                }
+                return r.json();
+            })
             .then((d) => {
+                if (d === null) return;
                 if (
                     d?.horoscope?.source === "manual" &&
                     d?.calculatedDetails?.manualHousePlacements &&
@@ -1278,7 +1283,7 @@ function HoroscopeDetail() {
                     )}
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
-                    <Notepad horoscopeId={params.id as string} calculatedDetails={calculatedDetails} />
+                    {session && <Notepad horoscopeId={params.id as string} calculatedDetails={calculatedDetails} />}
                     {horoscope.owner?.id === session?.user?.id && (
                         <>
                             {horoscope.source === "manual" ? (

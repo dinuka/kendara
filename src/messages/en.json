@@ -6,6 +6,7 @@
     "dashboard": {
         "welcome": "Welcome back, {name}!",
         "thisMonth": "This Month Added",
+        "publicHoroscopes": "Public Horoscopes",
         "bySign": "Horoscopes by Sign",
         "byNakshatra": "Horoscopes by Nakshatra",
         "noData": "No data yet",
@@ -59,7 +60,7 @@
         "private": "Private",
         "public": "Public",
         "showName": "Show name",
-        "searchPlaceholder": "Search by name, birth year, or location...",
+        "searchPlaceholder": "Search by name, birth date, year, or location...",
         "searchNoResults": "No horoscopes match your search",
         "nav": {
             "prev": "Previous",

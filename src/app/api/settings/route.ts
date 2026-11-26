@@ -5,12 +5,8 @@ import { getCalculationSettings } from "@/lib/astrologySettings";
 import { connectDB } from "@/lib/db";
 import logger from "@/lib/logger";
 
+/** Public: the system-wide calculation values are needed to render public horoscopes for guests. */
 export async function GET() {
-    const session = await getServerSession();
-    if (!session?.user?.email) {
-        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
     await connectDB();
     const { planetaryOrbs, planetAspects, rashiAspects } = await getCalculationSettings();
 

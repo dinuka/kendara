@@ -7,15 +7,15 @@ import { usePathname } from "next/navigation";
 import Link from "next/link";
 
 const sidebarItems = [
-    { href: "/", key: "nav.dashboard" },
-    { href: "/horoscopes", key: "nav.horoscopes" },
-    { href: "/search", key: "nav.search" },
-    { href: "/locations", key: "nav.locations" },
-    { href: "/settings", key: "nav.settings" },
+    { href: "/", key: "nav.dashboard", guest: true },
+    { href: "/horoscopes", key: "nav.horoscopes", guest: true },
+    { href: "/search", key: "nav.search", guest: false },
+    { href: "/locations", key: "nav.locations", guest: false },
+    { href: "/settings", key: "nav.settings", guest: false },
 ];
 
 export function Sidebar() {
-    const { data: session } = useSession();
+    const { status } = useSession();
     const pathname = usePathname();
     const { t } = useI18n();
 
@@ -25,10 +25,15 @@ export function Sidebar() {
         return pathname === base || pathname.startsWith(base + "/");
     };
 
+    // Guests only get the public pages; nothing renders while the session is still loading.
+    const visibleItems = sidebarItems.filter(
+        (item) => status === "authenticated" || (status === "unauthenticated" && item.guest),
+    );
+
     return (
         <aside className="flex w-64 bg-white border-r border-gray-200 flex-col py-6 shrink-0 overflow-y-auto h-full">
             <nav className="flex flex-col gap-2 px-4">
-                {sidebarItems.map(({ href, key }) => {
+                {visibleItems.map(({ href, key }) => {
                     const active = isActive(href);
                     return (
                         <Link
@@ -45,7 +50,7 @@ export function Sidebar() {
                                     active ? "bg-indigo-600" : "bg-gray-300"
                                 }`}
                             />
-                            {session && t(key)}
+                            {t(key)}
                         </Link>
                     );
                 })}

@@ -38,9 +38,11 @@ export function TopBar() {
 
     const handleSearch = (e: React.FormEvent) => {
         e.preventDefault();
-        if (searchQuery.trim()) {
-            router.push(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
-        }
+        const query = searchQuery.trim();
+        if (!query) return;
+        // Guests can't use the search page; filter the public horoscope list instead.
+        const target = session ? "/search" : "/horoscopes";
+        router.push(`${target}?q=${encodeURIComponent(query)}`);
     };
 
     const initial = session?.user?.name?.trim()?.[0]?.toUpperCase() ?? "?";

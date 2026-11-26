@@ -6,6 +6,7 @@
     "dashboard": {
         "welcome": "ආයුබෝවන්, {name}!",
         "thisMonth": "මෙම මාසයේ එකතු කළ",
+        "publicHoroscopes": "ප්‍රසිද්ධ කේන්දර",
         "bySign": "රාශිය අනුව කේන්දර",
         "byNakshatra": "නැකත අනුව කේන්දර",
         "noData": "දත්ත නොමැත",
@@ -59,7 +60,7 @@
         "private": "පෞද්ගලික",
         "public": "ප්‍රසිද්ධ",
         "showName": "නම පෙන්වන්න",
-        "searchPlaceholder": "නම, උපන් වර්ෂය හෝ ස්ථානය අනුව සොයන්න...",
+        "searchPlaceholder": "නම, උපන් දිනය, වර්ෂය හෝ ස්ථානය අනුව සොයන්න...",
         "searchNoResults": "ඔබේ සෙවුමට ගැළපෙන කේන්දර හමු නොවීය",
         "nav": {
             "prev": "පෙර",

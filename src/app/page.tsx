@@ -66,12 +66,9 @@ export default function DashboardPage() {
     const [error, setError] = useState("");
 
     useEffect(() => {
-        if (status === "unauthenticated") {
-            router.push("/signin");
-            return;
-        }
-        if (status !== "authenticated") return;
+        if (status === "loading") return;
 
+        // Guests get the public horoscopes only (the API filters them).
         fetch("/api/horoscope")
             .then((r) => r.json())
             .then((data) => {
@@ -84,13 +81,12 @@ export default function DashboardPage() {
             .then((r) => r.json())
             .then((data) => setStats({ bySign: data.bySign ?? [], byNakshatra: data.byNakshatra ?? [] }))
             .catch(() => setStats({ bySign: [], byNakshatra: [] }));
-    }, [status, router]);
+    }, [status]);
 
     if (status === "loading" || loading) {
         return <div className="text-center py-20 text-gray-500">{t("common.loading")}</div>;
     }
 
-    if (!session) return null;
 
     const handleDelete = async (id: string) => {
         setDeletingId(id);
@@ -123,27 +119,33 @@ export default function DashboardPage() {
     return (
         <div>
             <div className="flex justify-between items-center mb-8">
-                <h1 className="text-2xl font-bold">{t("dashboard.welcome", { name: session.user?.name ?? "" })}</h1>
-                <div className="flex gap-2">
-                    <Link
-                        href="/horoscopes/new"
-                        className="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700 transition-colors text-sm"
-                    >
-                        + {t("horoscope.addBirth")}
-                    </Link>
-                    <Link
-                        href="/horoscopes/new/manual"
-                        className="border border-indigo-600 text-indigo-600 px-4 py-2 rounded hover:bg-indigo-50 transition-colors text-sm"
-                    >
-                        + {t("horoscope.addCalculated")}
-                    </Link>
-                </div>
+                <h1 className="text-2xl font-bold">
+                    {session ? t("dashboard.welcome", { name: session.user?.name ?? "" }) : t("nav.dashboard")}
+                </h1>
+                {session && (
+                    <div className="flex gap-2">
+                        <Link
+                            href="/horoscopes/new"
+                            className="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700 transition-colors text-sm"
+                        >
+                            + {t("horoscope.addBirth")}
+                        </Link>
+                        <Link
+                            href="/horoscopes/new/manual"
+                            className="border border-indigo-600 text-indigo-600 px-4 py-2 rounded hover:bg-indigo-50 transition-colors text-sm"
+                        >
+                            + {t("horoscope.addCalculated")}
+                        </Link>
+                    </div>
+                )}
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
                 <div className="bg-white p-6 rounded-lg shadow-sm border">
                     <div className="text-3xl font-bold text-indigo-600">{total}</div>
-                    <div className="text-sm text-gray-500 mt-1">{t("horoscope.charts")}</div>
+                    <div className="text-sm text-gray-500 mt-1">
+                        {session ? t("horoscope.charts") : t("dashboard.publicHoroscopes")}
+                    </div>
                 </div>
                 <div className="bg-white p-6 rounded-lg shadow-sm border">
                     <div className="text-3xl font-bold text-indigo-600">{thisMonthCount}</div>
@@ -228,7 +230,7 @@ export default function DashboardPage() {
                                         <PrivacyBadge
                                             isPublic={h.isPublic}
                                             displayName={h.displayName}
-                                            isOwner={true}
+                                            isOwner={isOwner(h)}
                                             size="sm"
                                         />
                                     </td>

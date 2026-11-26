@@ -9,10 +9,10 @@ import { Horoscope } from "@/models/Horoscope";
 import { computeCurrentPlanets } from "@/lib/currentPlanets";
 import { connectDB } from "@/lib/db";
 import logger from "@/lib/logger";
+import { canViewHoroscope } from "@/lib/privacy";
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string; type: string }> }) {
     const session = await getServerSession(authOptions);
-    if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const { id, type } = await params;
     const includeCurrentPlanets = req.nextUrl.searchParams.get("includeCurrentPlanets") === "true";
@@ -20,6 +20,10 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     const timeParam = req.nextUrl.searchParams.get("time");
 
     await connectDB();
+
+    const horoscope = await Horoscope.findById(id).lean();
+    if (!horoscope) return NextResponse.json({ error: "Horoscope not found" }, { status: 404 });
+    if (!canViewHoroscope(horoscope, session?.user)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
     const chart = await Chart.findOne({
         horoscope: { id },
@@ -30,11 +34,6 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     let response: Record<string, unknown> = { ...chart };
 
     if (includeCurrentPlanets && type === "house") {
-        const horoscope = await Horoscope.findById(id).lean();
-        if (!horoscope) return NextResponse.json({ error: "Horoscope not found" }, { status: 404 });
-        if (!horoscope.isPublic && horoscope.owner.id !== session.user.id)
-            return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-
         const calculatedDetails = await CalculatedDetails.findOne({ "horoscope.id": id }).lean();
         if (!calculatedDetails) return NextResponse.json({ error: "Horoscope not calculated" }, { status: 422 });
 

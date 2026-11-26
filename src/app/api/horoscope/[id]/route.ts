@@ -17,16 +17,15 @@ import { connectDB } from "@/lib/db";
 import logger from "@/lib/logger";
 import { deriveAgeRanges, navamsaIndexForSign } from "@/lib/manualChart";
 import { getCurrentShani } from "@/lib/manualChartDetails";
-import { getAnonymousPlaceholder } from "@/lib/privacy";
+import { canViewHoroscope, getAnonymousPlaceholder, visibleHoroscopeFilter } from "@/lib/privacy";
 
 const CALC_FIELDS = ["birthDate", "birthTime", "latitude", "longitude", "ayanamsha"];
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+    // Public horoscopes are readable by signed-out guests too, so the page can be shared by link.
     const session = await getServerSession(authOptions);
-    if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
-    const userId = session.user.id;
-    const userRole = session.user.role;
+    const userId = session?.user?.id;
+    const userRole = session?.user?.role;
 
     const { id } = await params;
     await connectDB();
@@ -34,15 +33,15 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     const horoscope = await Horoscope.findById(id).lean();
     if (!horoscope) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-    if (horoscope.owner.id !== session.user.id && !horoscope.isPublic && session.user.role !== "super-admin") {
+    if (!canViewHoroscope(horoscope, session?.user)) {
         return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
 
-    if (horoscope.owner.id !== session.user.id && session.user.role !== "super-admin" && !horoscope.displayName) {
+    if (horoscope.owner.id !== userId && userRole !== "super-admin" && !horoscope.displayName) {
         horoscope.name = getAnonymousPlaceholder(horoscope._id.toString());
     }
 
-    const accessibleFilter = { $or: [{ "owner.id": userId }, { isPublic: true }] };
+    const accessibleFilter = visibleHoroscopeFilter(session?.user);
 
     const sortBy = req.nextUrl.searchParams.get("sortBy") ?? "name";
     const sortDir = req.nextUrl.searchParams.get("sortDir") === "desc" ? -1 : 1;

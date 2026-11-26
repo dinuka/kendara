@@ -3,8 +3,8 @@
 import ConfirmDeleteModal from "@/components/ConfirmDeleteModal";
 import { useI18n } from "@/hooks/useI18n";
 import { useSession } from "next-auth/react";
-import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useEffect, useMemo, useState } from "react";
 
 import { formatDate } from "@/lib/date";
 import { writeHoroscopeSort } from "@/lib/horoscopeSort";
@@ -26,9 +26,19 @@ interface Horoscope {
 
 type SortableColumn = "name" | "birthDate" | "locationName" | "isPublic";
 
+/** `useSearchParams` needs a Suspense boundary for the static prerender. */
 export default function HoroscopesPage() {
+    return (
+        <Suspense>
+            <HoroscopesList />
+        </Suspense>
+    );
+}
+
+function HoroscopesList() {
     const { data: session, status } = useSession();
     const router = useRouter();
+    const searchParams = useSearchParams();
     const { t } = useI18n();
     const [horoscopes, setHoroscopes] = useState<Horoscope[]>([]);
     const [loading, setLoading] = useState(true);
@@ -38,15 +48,17 @@ export default function HoroscopesPage() {
     const [error, setError] = useState("");
     const [sortColumn, setSortColumn] = useState<SortableColumn>("name");
     const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
-    const [searchQuery, setSearchQuery] = useState("");
+    const [searchQuery, setSearchQuery] = useState(searchParams.get("q") ?? "");
+
+    // The top-bar search lands here with `?q=` (guests have no search page).
+    useEffect(() => {
+        setSearchQuery(searchParams.get("q") ?? "");
+    }, [searchParams]);
 
     useEffect(() => {
-        if (status === "unauthenticated") {
-            router.push("/signin");
-            return;
-        }
-        if (status !== "authenticated") return;
+        if (status === "loading") return;
 
+        // Guests get the public horoscopes only (the API filters them).
         fetch("/api/horoscope")
             .then((r) => r.json())
             .then((data) => {
@@ -54,7 +66,7 @@ export default function HoroscopesPage() {
                 setLoading(false);
             })
             .catch(() => setLoading(false));
-    }, [status, router]);
+    }, [status]);
 
     useEffect(() => {
         writeHoroscopeSort({ sortBy: sortColumn, sortDir: sortDirection });
@@ -73,11 +85,13 @@ export default function HoroscopesPage() {
         const query = searchQuery.trim().toLowerCase();
         const filtered = query
             ? horoscopes.filter((h) => {
-                  const year = h.birthDate ? new Date(h.birthDate).getFullYear().toString() : "";
+                  // formatDate gives yyyy-MM-dd, so this matches a full date, a year or a year-month.
+                  const date = formatDate(h.birthDate);
                   const location = h.locationName || (h.latitude ? `${h.latitude}, ${h.longitude}` : "");
                   return (
                       h.name.toLowerCase().includes(query) ||
-                      year.includes(query) ||
+                      date.includes(query) ||
+                      (h.birthTime ?? "").includes(query) ||
                       location.toLowerCase().includes(query)
                   );
               })
@@ -118,8 +132,6 @@ export default function HoroscopesPage() {
         return <div className="text-center py-20 text-gray-500">{t("common.loading")}</div>;
     }
 
-    if (!session) return null;
-
     const handleDelete = async (id: string) => {
         setDeletingId(id);
         setDeleteError(null);
@@ -135,7 +147,7 @@ export default function HoroscopesPage() {
         }
     };
 
-    const isOwner = (h: Horoscope) => h.owner?.id === session.user?.id;
+    const isOwner = (h: Horoscope) => !!session && h.owner?.id === session.user?.id;
 
     const total = horoscopes.length;
     const publicCount = horoscopes.filter((h) => h.isPublic).length;
@@ -145,36 +157,40 @@ export default function HoroscopesPage() {
         <div>
             <div className="flex justify-between items-center mb-8">
                 <h1 className="text-2xl font-bold">{t("nav.horoscopes")}</h1>
-                <div className="flex gap-2">
-                    <Link
-                        href="/horoscopes/new"
-                        className="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700 transition-colors text-sm"
-                    >
-                        + {t("horoscope.addBirth")}
-                    </Link>
-                    <Link
-                        href="/horoscopes/new/manual"
-                        className="border border-indigo-600 text-indigo-600 px-4 py-2 rounded hover:bg-indigo-50 transition-colors text-sm"
-                    >
-                        + {t("horoscope.addCalculated")}
-                    </Link>
-                </div>
+                {session && (
+                    <div className="flex gap-2">
+                        <Link
+                            href="/horoscopes/new"
+                            className="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700 transition-colors text-sm"
+                        >
+                            + {t("horoscope.addBirth")}
+                        </Link>
+                        <Link
+                            href="/horoscopes/new/manual"
+                            className="border border-indigo-600 text-indigo-600 px-4 py-2 rounded hover:bg-indigo-50 transition-colors text-sm"
+                        >
+                            + {t("horoscope.addCalculated")}
+                        </Link>
+                    </div>
+                )}
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-                <div className="bg-white p-6 rounded-lg shadow-sm border">
-                    <div className="text-3xl font-bold text-indigo-600">{total}</div>
-                    <div className="text-sm text-gray-500 mt-1">{t("horoscope.charts")}</div>
+            {session && (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+                    <div className="bg-white p-6 rounded-lg shadow-sm border">
+                        <div className="text-3xl font-bold text-indigo-600">{total}</div>
+                        <div className="text-sm text-gray-500 mt-1">{t("horoscope.charts")}</div>
+                    </div>
+                    <div className="bg-white p-6 rounded-lg shadow-sm border">
+                        <div className="text-3xl font-bold text-indigo-600">{publicCount}</div>
+                        <div className="text-sm text-gray-500 mt-1">{t("horoscope.public")}</div>
+                    </div>
+                    <div className="bg-white p-6 rounded-lg shadow-sm border">
+                        <div className="text-3xl font-bold text-indigo-600">{privateCount}</div>
+                        <div className="text-sm text-gray-500 mt-1">{t("horoscope.private")}</div>
+                    </div>
                 </div>
-                <div className="bg-white p-6 rounded-lg shadow-sm border">
-                    <div className="text-3xl font-bold text-indigo-600">{publicCount}</div>
-                    <div className="text-sm text-gray-500 mt-1">{t("horoscope.public")}</div>
-                </div>
-                <div className="bg-white p-6 rounded-lg shadow-sm border">
-                    <div className="text-3xl font-bold text-indigo-600">{privateCount}</div>
-                    <div className="text-sm text-gray-500 mt-1">{t("horoscope.private")}</div>
-                </div>
-            </div>
+            )}
 
             {error && (
                 <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4" role="alert">

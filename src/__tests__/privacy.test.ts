@@ -307,9 +307,13 @@ describe("GET /api/horoscope/[id]", () => {
         });
     });
 
-    test("returns 401 for unauthenticated", async () => {
+    test("guest gets 404 for private horoscope", async () => {
+        (Horoscope.findById as jest.Mock).mockReturnValue({
+            lean: jest.fn().mockResolvedValue({ ...baseHoroscope, isPublic: false }),
+        });
+
         const response = await getHoroscope("horo-1", null);
-        expect(response.status).toBe(401);
+        expect(response.status).toBe(404);
     });
 
     test("returns 404 for non-existent horoscope", async () => {
@@ -547,5 +551,26 @@ describe("Search anonymization", () => {
 
         const body = await response.json();
         expect(body.results[0].horoscope.name).toBe("John Doe");
+    });
+});
+
+describe("canViewHoroscope / visibleHoroscopeFilter", () => {
+    const { canViewHoroscope, visibleHoroscopeFilter } = jest.requireActual("@/lib/privacy");
+    const horoscope = (isPublic: boolean) => ({ owner: { id: "owner-1" }, isPublic });
+
+    test("guest can view public horoscopes only", () => {
+        expect(canViewHoroscope(horoscope(true), undefined)).toBe(true);
+        expect(canViewHoroscope(horoscope(false), undefined)).toBe(false);
+    });
+
+    test("owner and super-admin can view private horoscopes", () => {
+        expect(canViewHoroscope(horoscope(false), { id: "owner-1", role: "student" })).toBe(true);
+        expect(canViewHoroscope(horoscope(false), { id: "admin-1", role: "super-admin" })).toBe(true);
+        expect(canViewHoroscope(horoscope(false), { id: "other", role: "student" })).toBe(false);
+    });
+
+    test("guest list filter is public only", () => {
+        expect(visibleHoroscopeFilter(undefined)).toEqual({ isPublic: true });
+        expect(visibleHoroscopeFilter({ id: "u1" })).toEqual({ $or: [{ "owner.id": "u1" }, { isPublic: true }] });
     });
 });
