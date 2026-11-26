@@ -1235,12 +1235,15 @@ function HoroscopeDetail() {
         (d1PlanetData?.rows ?? []).map((row) => [row.name, row.sign]),
     );
 
+    // Other Charts, Notepad, Shad Bala and Metadata are restricted to super admins for now.
+    const isSuperAdmin = session?.user?.role === "super-admin";
+
     const tabs = [
         { id: "charts", label: t("horoscope.charts") },
         { id: "calculations", label: t("horoscope.calculations") },
         { id: "dashas", label: t("horoscope.dashas") },
         { id: "yoga-doshas", label: t("horoscope.yogaDoshas") },
-        { id: "metadata", label: t("horoscope.metadata") },
+        ...(isSuperAdmin ? [{ id: "metadata", label: t("horoscope.metadata") }] : []),
     ];
 
     // The Warga Kendara pair now covers Birth/Navamsa/Surya Lagna/Chandra Lagna, so the Other Charts
@@ -1338,7 +1341,7 @@ function HoroscopeDetail() {
                     )}
                 </div>
                 <div className="flex flex-wrap items-center gap-2 shrink-0">
-                    {session && <Notepad horoscopeId={params.id as string} calculatedDetails={calculatedDetails} />}
+                    {isSuperAdmin && <Notepad horoscopeId={params.id as string} calculatedDetails={calculatedDetails} />}
                     {horoscope.owner?.id === session?.user?.id && (
                         <>
                             {horoscope.source === "manual" ? (
@@ -1687,64 +1690,66 @@ function HoroscopeDetail() {
                                 })()}
                             </section>
 
-                            <section aria-labelledby="other-charts-title">
-                                <h3
-                                    id="other-charts-title"
-                                    className="font-semibold text-sm mb-3 text-indigo-700 uppercase tracking-wide"
-                                >
-                                    {t("astrology.otherCharts")}
-                                </h3>
-                                <div
-                                    role="group"
-                                    aria-label={t("astrology.otherCharts")}
-                                    className="flex gap-2 mb-4 flex-wrap"
-                                >
-                                    {chartTypes.map((type) => (
-                                        <button
-                                            key={type}
-                                            onClick={() => setSelectedChart(type)}
-                                            aria-pressed={selectedChart === type}
-                                            className={`text-xs px-3 py-1.5 border rounded capitalize transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
-                                                selectedChart === type
-                                                    ? "bg-indigo-600 text-white border-indigo-600"
-                                                    : "hover:bg-gray-50"
-                                            }`}
-                                        >
-                                            {t(`astrology.chartTypes.${type}`)}
-                                        </button>
-                                    ))}
-                                </div>
-                                {(() => {
-                                    if (!calculatedDetails) {
+                            {isSuperAdmin && (
+                                <section aria-labelledby="other-charts-title">
+                                    <h3
+                                        id="other-charts-title"
+                                        className="font-semibold text-sm mb-3 text-indigo-700 uppercase tracking-wide"
+                                    >
+                                        {t("astrology.otherCharts")}
+                                    </h3>
+                                    <div
+                                        role="group"
+                                        aria-label={t("astrology.otherCharts")}
+                                        className="flex gap-2 mb-4 flex-wrap"
+                                    >
+                                        {chartTypes.map((type) => (
+                                            <button
+                                                key={type}
+                                                onClick={() => setSelectedChart(type)}
+                                                aria-pressed={selectedChart === type}
+                                                className={`text-xs px-3 py-1.5 border rounded capitalize transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
+                                                    selectedChart === type
+                                                        ? "bg-indigo-600 text-white border-indigo-600"
+                                                        : "hover:bg-gray-50"
+                                                }`}
+                                            >
+                                                {t(`astrology.chartTypes.${type}`)}
+                                            </button>
+                                        ))}
+                                    </div>
+                                    {(() => {
+                                        if (!calculatedDetails) {
+                                            return (
+                                                <div className="bg-white rounded-lg border p-6 text-center text-gray-400 min-h-[300px] flex items-center justify-center">
+                                                    <p className="text-sm">{t("astrology.noChartData")}</p>
+                                                </div>
+                                            );
+                                        }
+
+                                        if (selectedChart === ChartType.HOUSE) {
+                                            return (
+                                                <div className="bg-white rounded-lg border p-2 sm:p-4">
+                                                    <HouseChart
+                                                        planets={getManualAdjustedPlanets()}
+                                                        houses={calculatedDetails.houses}
+                                                        ascendant={calculatedDetails.ascendant}
+                                                        horoscopeId={params.id as string}
+                                                        ascNavamsaNum={getAscendantNavamsaNum()}
+                                                        ascAbsDeg={getAscendantAbsDeg()}
+                                                    />
+                                                </div>
+                                            );
+                                        }
+
                                         return (
                                             <div className="bg-white rounded-lg border p-6 text-center text-gray-400 min-h-[300px] flex items-center justify-center">
                                                 <p className="text-sm">{t("astrology.noChartData")}</p>
                                             </div>
                                         );
-                                    }
-
-                                    if (selectedChart === ChartType.HOUSE) {
-                                        return (
-                                            <div className="bg-white rounded-lg border p-2 sm:p-4">
-                                                <HouseChart
-                                                    planets={getManualAdjustedPlanets()}
-                                                    houses={calculatedDetails.houses}
-                                                    ascendant={calculatedDetails.ascendant}
-                                                    horoscopeId={params.id as string}
-                                                    ascNavamsaNum={getAscendantNavamsaNum()}
-                                                    ascAbsDeg={getAscendantAbsDeg()}
-                                                />
-                                            </div>
-                                        );
-                                    }
-
-                                    return (
-                                        <div className="bg-white rounded-lg border p-6 text-center text-gray-400 min-h-[300px] flex items-center justify-center">
-                                            <p className="text-sm">{t("astrology.noChartData")}</p>
-                                        </div>
-                                    );
-                                })()}
-                            </section>
+                                    })()}
+                                </section>
+                            )}
                         </div>
                     )}
 
@@ -1884,14 +1889,11 @@ function HoroscopeDetail() {
                                 </>
                             )}
 
-                            {resolvedShadbalaya && (
+                            {isSuperAdmin && resolvedShadbalaya && (
                                 <ShadBalaTable
                                     horoscopeId={horoscope._id}
                                     shadbalaya={resolvedShadbalaya}
-                                    isEditable={
-                                        horoscope.owner?.id === session?.user?.id ||
-                                        session?.user?.role === "super-admin"
-                                    }
+                                    isEditable
                                     getPlanetName={getPlanetName}
                                     getSignName={getSignName}
                                 />
@@ -1927,7 +1929,7 @@ function HoroscopeDetail() {
                         </div>
                     )}
 
-                    {activeTab === "metadata" && (
+                    {isSuperAdmin && activeTab === "metadata" && (
                         <div className="bg-white rounded-lg border p-6 text-center text-gray-400">
                             <p>{t("horoscope.metadata")}</p>
                         </div>
