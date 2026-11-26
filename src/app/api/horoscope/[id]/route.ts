@@ -10,8 +10,7 @@ import { Metadata } from "@/models/Metadata";
 
 import { getCalculationSettings } from "@/lib/astrologySettings";
 import { calculateHoroscope } from "@/lib/calculation";
-import { getChartData, isLeanChartType, toBirthChartData } from "@/lib/chartDataTransform";
-import { generateChartSvg } from "@/lib/chartRenderer";
+import { deleteCharts, replaceCharts } from "@/lib/chartStorage";
 import { ALL_CHART_TYPES } from "@/lib/chartTypes";
 import { connectDB } from "@/lib/db";
 import logger from "@/lib/logger";
@@ -156,20 +155,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 
         await CalculatedDetails.findOneAndUpdate({ "horoscope.id": id }, { ...calculated }, { upsert: true });
 
-        await Chart.deleteMany({ "horoscope.id": id });
-
-        const chartDocs = ALL_CHART_TYPES.map((type) => {
-            const chartData = getChartData(calculated, type);
-            return {
-                horoscope: { id },
-                type,
-                data: isLeanChartType(type) ? toBirthChartData(chartData) : chartData,
-                imageKey: "",
-                svgData: generateChartSvg(chartData, type),
-            };
-        });
-
-        await Chart.insertMany(chartDocs);
+        await replaceCharts(id, ALL_CHART_TYPES, () => calculated, { isManual: false });
         logger.info("recalculation complete for horoscope id=%s", id);
     } else {
         logger.info("no calculation fields changed, skipping recalculation for id=%s", id);
@@ -199,7 +185,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
     }
 
     await CalculatedDetails.deleteOne({ "horoscope.id": id });
-    await Chart.deleteMany({ "horoscope.id": id });
+    await deleteCharts(id);
     await Metadata.deleteMany({ "horoscope.id": id });
     await HoroscopeNote.deleteMany({ "horoscope.id": id });
 

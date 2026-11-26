@@ -3,11 +3,11 @@ import { getServerSession } from "next-auth";
 import { NextRequest, NextResponse } from "next/server";
 
 import { CalculatedDetails } from "@/models/CalculatedDetails";
-import { Chart } from "@/models/Chart";
 import { Horoscope } from "@/models/Horoscope";
 import { HoroscopeNote } from "@/models/HoroscopeNote";
 import { Metadata } from "@/models/Metadata";
 
+import { deleteCharts } from "@/lib/chartStorage";
 import { connectDB } from "@/lib/db";
 
 export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -47,7 +47,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
 
     await Horoscope.deleteOne({ _id: id });
     await CalculatedDetails.deleteOne({ "horoscope.id": id });
-    await Chart.deleteMany({ "horoscope.id": id });
+    await deleteCharts(id);
     await Metadata.deleteMany({ "horoscope.id": id });
     await HoroscopeNote.deleteMany({ "horoscope.id": id });
 

@@ -52,9 +52,6 @@ jest.mock("@/lib/chartDataTransform", () => ({
     toBirthChartData: jest.fn().mockReturnValue({}),
 }));
 
-jest.mock("@/lib/chartRenderer", () => ({
-    generateChartSvg: jest.fn().mockReturnValue(""),
-}));
 
 jest.mock("@/lib/chartTypes", () => ({
     ChartType: { BIRTH: "birth", NAVAMSA_D9: "navamsa-d9" },
@@ -89,6 +86,19 @@ jest.mock("@/models/CalculatedDetails", () => ({
         findOneAndUpdate: jest.fn().mockResolvedValue({}),
         find: jest.fn(),
     },
+}));
+
+jest.mock("@/lib/chartRendererRuntime", () => {
+    const renderChartSvg = jest.fn(() => "<svg/>");
+    return { loadChartRenderer: () => ({ renderChartSvg }) };
+});
+jest.mock("@/lib/chartImage", () => ({
+    svgToPng: jest.fn(() => Buffer.from("")),
+}));
+jest.mock("@/lib/storage", () => ({
+    putObject: jest.fn().mockResolvedValue(undefined),
+    getObject: jest.fn(),
+    deleteObjects: jest.fn().mockResolvedValue(undefined),
 }));
 
 jest.mock("@/models/Chart", () => ({

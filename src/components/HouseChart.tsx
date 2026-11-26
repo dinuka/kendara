@@ -1,6 +1,6 @@
 "use client";
 
-import { useI18n } from "@/hooks/useI18n";
+import { useTranslations } from "next-intl";
 import { useCallback, useRef, useState } from "react";
 import type { ReactElement } from "react";
 
@@ -25,6 +25,9 @@ interface HouseChartProps {
      *  When omitted it is `(sign-1)*30 + ascendant.degree` — for manual horoscopes always the 1st
      *  navamsa, so the lagna line wouldn't point through the selected navamsa wedge. */
     ascAbsDeg?: number;
+    /** Render only the bare chart <svg> (no controls, tooltip or zoom) — used by the server-side
+     *  chart image renderer (src/lib/chartSvg.tsx). */
+    svgOnly?: boolean;
 }
 
 type Point = [number, number];
@@ -157,8 +160,10 @@ export function HouseChart({
     horoscopeId,
     ascNavamsaNum,
     ascAbsDeg: ascAbsDegOverride,
+    svgOnly = false,
 }: HouseChartProps) {
-    const { t } = useI18n();
+    // useTranslations (not useI18n) so the chart also renders outside the app router, on the server.
+    const t = useTranslations();
     const [zoom, setZoom] = useState(1);
     const [selectedAbsDeg, setSelectedAbsDeg] = useState<number | null>(null);
     const [showCurrentPlanets, setShowCurrentPlanets] = useState(false);
@@ -740,6 +745,78 @@ export function HouseChart({
     const zoomOut = () => setZoom((z) => Math.max(MIN_ZOOM, +(z - ZOOM_STEP).toFixed(2)));
     const zoomReset = () => setZoom(1);
 
+    const chartSvg = (
+        <svg
+            width={viewSize * zoom}
+            height={viewSize * zoom}
+            viewBox={`${viewOrigin} ${viewOrigin} ${viewSize} ${viewSize}`}
+            className={`m-auto shrink-0 ${zoom <= 1 ? "max-w-full h-auto" : ""}`}
+        >
+            <circle cx={CX} cy={CY} r={R_NAKSHATRA_OUTER} fill="#ffffff" stroke="#d1d5db" strokeWidth={1} />
+            {nakshatraWedges}
+            {padaWedges}
+            {navamsaWedges}
+            {signWedges}
+            {houseWedges}
+            {planetMarkers}
+            {currentPlanetMarkers}
+            {mergedSymbols}
+            <g
+                onClick={() => setSelectedAbsDeg((prev) => (prev === ascAbsDeg ? null : ascAbsDeg))}
+                className="cursor-pointer"
+            >
+                <line x1={CX} y1={CY} x2={lagnaOuterX} y2={lagnaOuterY} stroke="#16a34a" strokeWidth={1.5} />
+                <circle
+                    cx={lagnaLabelX}
+                    cy={lagnaLabelY}
+                    r={11}
+                    fill="#ffffff"
+                    stroke="#16a34a"
+                    strokeWidth={selectedAbsDeg === ascAbsDeg ? 3 : 1.5}
+                />
+                <text
+                    x={lagnaLabelX}
+                    y={lagnaLabelY}
+                    fontSize={13}
+                    fontWeight="bold"
+                    fill="#16a34a"
+                    textAnchor="middle"
+                    dominantBaseline="central"
+                >
+                    ල
+                </text>
+            </g>
+            {loadingCurrent && (
+                <g>
+                    <circle cx={CX} cy={CY} r={28} fill="rgba(255,255,255,0.9)" stroke="#d1d5db" strokeWidth={1} />
+                    <circle
+                        cx={CX}
+                        cy={CY}
+                        r={16}
+                        fill="none"
+                        stroke="#0EA5E9"
+                        strokeWidth={3}
+                        strokeLinecap="round"
+                        className="animate-spin"
+                        style={{ strokeDasharray: 75, strokeDashoffset: 25, transformOrigin: `${CX}px ${CY}px` }}
+                    />
+                    <text
+                        x={CX}
+                        y={CY + 18}
+                        fontSize={9}
+                        fill="#6b7280"
+                        textAnchor="middle"
+                        dominantBaseline="central"
+                    >
+                        loading
+                    </text>
+                </g>
+            )}
+        </svg>
+    );
+
+    if (svgOnly) return chartSvg;
+
     return (
         <div className="flex flex-col items-center gap-0.5 w-full min-w-0" ref={chartRef}>
             {horoscopeId && (
@@ -864,73 +941,7 @@ export function HouseChart({
             </div>
             {/* Zoomed charts scroll inside this box; `m-auto` centers without clipping the left edge. */}
             <div className="w-full max-w-full overflow-auto flex">
-                <svg
-                    width={viewSize * zoom}
-                    height={viewSize * zoom}
-                    viewBox={`${viewOrigin} ${viewOrigin} ${viewSize} ${viewSize}`}
-                    className={`m-auto shrink-0 ${zoom <= 1 ? "max-w-full h-auto" : ""}`}
-                >
-                    <circle cx={CX} cy={CY} r={R_NAKSHATRA_OUTER} fill="#ffffff" stroke="#d1d5db" strokeWidth={1} />
-                    {nakshatraWedges}
-                    {padaWedges}
-                    {navamsaWedges}
-                    {signWedges}
-                    {houseWedges}
-                    {planetMarkers}
-                    {currentPlanetMarkers}
-                    {mergedSymbols}
-                    <g
-                        onClick={() => setSelectedAbsDeg((prev) => (prev === ascAbsDeg ? null : ascAbsDeg))}
-                        className="cursor-pointer"
-                    >
-                        <line x1={CX} y1={CY} x2={lagnaOuterX} y2={lagnaOuterY} stroke="#16a34a" strokeWidth={1.5} />
-                        <circle
-                            cx={lagnaLabelX}
-                            cy={lagnaLabelY}
-                            r={11}
-                            fill="#ffffff"
-                            stroke="#16a34a"
-                            strokeWidth={selectedAbsDeg === ascAbsDeg ? 3 : 1.5}
-                        />
-                        <text
-                            x={lagnaLabelX}
-                            y={lagnaLabelY}
-                            fontSize={13}
-                            fontWeight="bold"
-                            fill="#16a34a"
-                            textAnchor="middle"
-                            dominantBaseline="central"
-                        >
-                            ල
-                        </text>
-                    </g>
-                    {loadingCurrent && (
-                        <g>
-                            <circle cx={CX} cy={CY} r={28} fill="rgba(255,255,255,0.9)" stroke="#d1d5db" strokeWidth={1} />
-                            <circle
-                                cx={CX}
-                                cy={CY}
-                                r={16}
-                                fill="none"
-                                stroke="#0EA5E9"
-                                strokeWidth={3}
-                                strokeLinecap="round"
-                                className="animate-spin"
-                                style={{ strokeDasharray: 75, strokeDashoffset: 25, transformOrigin: `${CX}px ${CY}px` }}
-                            />
-                            <text
-                                x={CX}
-                                y={CY + 18}
-                                fontSize={9}
-                                fill="#6b7280"
-                                textAnchor="middle"
-                                dominantBaseline="central"
-                            >
-                                loading
-                            </text>
-                        </g>
-                    )}
-                </svg>
+                {chartSvg}
             </div>
 
             {tooltipContent && (

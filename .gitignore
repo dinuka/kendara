@@ -15,6 +15,9 @@
 
 # next.js
 /.next/
+
+# pre-compiled chart renderer (scripts/build-chart-renderer.mjs)
+/.chart-renderer/
 /out/
 
 # production

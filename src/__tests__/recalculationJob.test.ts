@@ -32,15 +32,24 @@ jest.mock("@/models/Chart", () => ({
     Chart: {
         insertMany: jest.fn().mockResolvedValue([]),
         deleteMany: jest.fn().mockResolvedValue({}),
+        find: jest.fn(() => ({ lean: jest.fn().mockResolvedValue([]) })),
     },
+}));
+jest.mock("@/lib/storage", () => ({
+    putObject: jest.fn().mockResolvedValue(undefined),
+    deleteObjects: jest.fn().mockResolvedValue(undefined),
+}));
+jest.mock("@/lib/chartRendererRuntime", () => {
+    const renderChartSvg = jest.fn(() => "<svg/>");
+    return { loadChartRenderer: () => ({ renderChartSvg }) };
+});
+jest.mock("@/lib/chartImage", () => ({
+    svgToPng: jest.fn(() => Buffer.from("")),
 }));
 jest.mock("@/lib/chartDataTransform", () => ({
     getChartData: jest.fn(() => ({})),
     isLeanChartType: jest.fn(() => false),
     toBirthChartData: jest.fn((data) => data),
-}));
-jest.mock("@/lib/chartRenderer", () => ({
-    generateChartSvg: jest.fn(() => ""),
 }));
 jest.mock("@/lib/search/indexer", () => ({
     reindexHoroscope: jest.fn().mockResolvedValue(true),

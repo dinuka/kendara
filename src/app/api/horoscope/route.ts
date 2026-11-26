@@ -3,13 +3,11 @@ import { getServerSession } from "next-auth";
 import { NextRequest, NextResponse } from "next/server";
 
 import { CalculatedDetails } from "@/models/CalculatedDetails";
-import { Chart } from "@/models/Chart";
 import { Horoscope } from "@/models/Horoscope";
 
 import { getCalculationSettings } from "@/lib/astrologySettings";
 import { calculateHoroscope } from "@/lib/calculation";
-import { getChartData, isLeanChartType, toBirthChartData } from "@/lib/chartDataTransform";
-import { generateChartSvg } from "@/lib/chartRenderer";
+import { createCharts } from "@/lib/chartStorage";
 import { ALL_CHART_TYPES } from "@/lib/chartTypes";
 import { connectDB } from "@/lib/db";
 import logger from "@/lib/logger";
@@ -84,18 +82,7 @@ export async function POST(req: NextRequest) {
 
     logger.info("saving %d chart records...", ALL_CHART_TYPES.length);
 
-    const chartDocs = ALL_CHART_TYPES.map((type) => {
-        const chartData = getChartData(calculated, type);
-        return {
-            horoscope: { id: horoscope.id },
-            type,
-            data: isLeanChartType(type) ? toBirthChartData(chartData) : chartData,
-            imageKey: "",
-            svgData: generateChartSvg(chartData, type),
-        };
-    });
-
-    await Chart.insertMany(chartDocs);
+    await createCharts(horoscope.id, ALL_CHART_TYPES, () => calculated, { isManual: false });
 
     indexHoroscope(horoscope.id);
     logger.info("horoscope creation complete: id=%s", horoscope.id);

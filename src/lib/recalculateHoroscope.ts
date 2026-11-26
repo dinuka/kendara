@@ -1,12 +1,9 @@
 import { CalculatedDetails } from "@/models/CalculatedDetails";
-import { Chart } from "@/models/Chart";
 import type { IHoroscope } from "@/models/Horoscope";
 
-import type { CalculationResult } from "@/lib/astrology";
 import type { CalculationSettings } from "@/lib/astrologySettings";
 import { calculateHoroscope } from "@/lib/calculation";
-import { getChartData, isLeanChartType, toBirthChartData } from "@/lib/chartDataTransform";
-import { generateChartSvg } from "@/lib/chartRenderer";
+import { replaceCharts } from "@/lib/chartStorage";
 import { ALL_CHART_TYPES, ChartType } from "@/lib/chartTypes";
 import logger from "@/lib/logger";
 import { compute, manualPlacementsToInput } from "@/lib/manualChart";
@@ -18,22 +15,6 @@ import {
 } from "@/lib/manualChartDetails";
 import { reindexHoroscope } from "@/lib/search/indexer";
 import { mergeShadBalaya } from "@/lib/shadBalaya";
-
-/** Replaces every stored Chart doc of a horoscope with freshly generated ones. */
-const replaceCharts = async (id: string, types: ChartType[], sourceOf: (type: ChartType) => CalculationResult) => {
-    const chartDocs = types.map((type) => {
-        const chartData = getChartData(sourceOf(type), type);
-        return {
-            horoscope: { id },
-            type,
-            data: isLeanChartType(type) ? toBirthChartData(chartData) : chartData,
-            imageKey: "",
-            svgData: generateChartSvg(chartData, type),
-        };
-    });
-    await Chart.deleteMany({ "horoscope.id": id });
-    await Chart.insertMany(chartDocs);
-};
 
 /** Recomputes everything a horoscope save produces, against the given system-wide settings — the
  *  same pipeline as the create/edit routes (POST/PUT /api/horoscope, POST /api/horoscope/manual,
@@ -62,12 +43,13 @@ export const recalculateHoroscope = async (
         input.aspectOptions = { planetaryOrbs, planetAspects, rashiAspects };
         const result = compute(input, getCurrentShani(input.lagna));
         const synth = synthesizeCalculation(result, horoscope.birthDate);
+        const manualHousePlacements = sanitizeManualHousePlacements(result.manualHousePlacements);
         await CalculatedDetails.findOneAndUpdate(
             { "horoscope.id": id },
             {
                 ...synth,
                 shadbalaya: mergeShadBalaya(synth.shadbalaya ?? {}, existing?.shadbalaya),
-                manualHousePlacements: sanitizeManualHousePlacements(result.manualHousePlacements),
+                manualHousePlacements,
                 derivedRanges: result.derivedRanges,
             },
             { upsert: true },
@@ -75,6 +57,7 @@ export const recalculateHoroscope = async (
         const navSynth = synthesizeNavamsaCalculation(result, horoscope.birthDate);
         await replaceCharts(id, navSynth ? [ChartType.BIRTH, ChartType.NAVAMSA_D9] : [ChartType.BIRTH], (type) =>
             type === ChartType.NAVAMSA_D9 && navSynth ? navSynth : synth,
+            { isManual: true, manualHousePlacements },
         );
     } else {
         const calculated = calculateHoroscope(horoscope, planetaryOrbs, planetAspects, rashiAspects);
@@ -86,7 +69,7 @@ export const recalculateHoroscope = async (
             },
             { upsert: true },
         );
-        await replaceCharts(id, ALL_CHART_TYPES, () => calculated);
+        await replaceCharts(id, ALL_CHART_TYPES, () => calculated, { isManual: false });
     }
 
     await reindexHoroscope(id);

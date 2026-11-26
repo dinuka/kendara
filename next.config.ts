@@ -10,6 +10,7 @@ const nextConfig: NextConfig = {
       "jyotish-calculations",
       "@xenova/transformers",
       "@qdrant/js-client-rest",
+      "@resvg/resvg-js",
   ],
 };
 

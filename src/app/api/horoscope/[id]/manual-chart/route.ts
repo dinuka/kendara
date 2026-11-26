@@ -3,12 +3,10 @@ import { getServerSession } from "next-auth";
 import { NextRequest, NextResponse } from "next/server";
 
 import { CalculatedDetails } from "@/models/CalculatedDetails";
-import { Chart } from "@/models/Chart";
 import { Horoscope } from "@/models/Horoscope";
 
 import { getCalculationSettings } from "@/lib/astrologySettings";
-import { getChartData, isLeanChartType, toBirthChartData } from "@/lib/chartDataTransform";
-import { generateChartSvg } from "@/lib/chartRenderer";
+import { replaceCharts } from "@/lib/chartStorage";
 import { ChartType } from "@/lib/chartTypes";
 import { connectDB } from "@/lib/db";
 import logger from "@/lib/logger";
@@ -77,31 +75,23 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     const result = compute(parsed.value, currentShani);
 
     const synth = synthesizeCalculation(result, birthDate);
+    const manualHousePlacements = sanitizeManualHousePlacements(result.manualHousePlacements);
     await CalculatedDetails.findOneAndUpdate(
         { "horoscope.id": id },
         {
             ...synth,
-            manualHousePlacements: sanitizeManualHousePlacements(result.manualHousePlacements),
+            manualHousePlacements,
             derivedRanges: result.derivedRanges,
         },
         { upsert: true },
     );
 
-    await Chart.deleteMany({ "horoscope.id": id });
     const navSynth = synthesizeNavamsaCalculation(result, birthDate);
     const chartTypes = navSynth ? [ChartType.BIRTH, ChartType.NAVAMSA_D9] : [ChartType.BIRTH];
-    const chartDocs = chartTypes.map((type) => {
-        const chartSource = type === ChartType.NAVAMSA_D9 && navSynth ? navSynth : synth;
-        const chartData = getChartData(chartSource, type);
-        return {
-            horoscope: { id },
-            type,
-            data: isLeanChartType(type) ? toBirthChartData(chartData) : chartData,
-            imageKey: "",
-            svgData: generateChartSvg(chartData, type),
-        };
+    await replaceCharts(id, chartTypes, (type) => (type === ChartType.NAVAMSA_D9 && navSynth ? navSynth : synth), {
+        isManual: true,
+        manualHousePlacements,
     });
-    await Chart.insertMany(chartDocs);
 
     reindexHoroscope(id);
     logger.info("manual chart update complete: id=%s", id);

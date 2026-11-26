@@ -45,6 +45,12 @@ Tests live in `src/__tests__/*.test.ts` (Jest + ts-jest, node environment). `@/*
 - `src/lib/astrologyEnums.ts` defines numeric enums (`Planet`, `ZodiacSign`, `PlanetaryStrength`) plus lookup maps keyed by *both* English and Sinhala planet/sign names (e.g. `PLANET_NAMES`, `ZODIAC_SIGN_NAMES`) — used for parsing free-text search queries in either language. When adding a new planet/sign alias, add it to these maps rather than doing ad-hoc string matching elsewhere.
 - All astrological values (planets, signs, nakshatras, strengths) are stored/passed as **numeric enum values**, never display strings — display names are resolved per-locale at render time via i18n messages, not hardcoded.
 
+### Chart images (object storage)
+
+- Each `Chart` doc's `imageKey` is the object key of its PNG (`charts/<horoscopeId>/<type>-<ts>.png`) in S3-compatible storage (RustFS locally, `S3_*` env vars, `src/lib/storage.ts`). Only PNG is stored — the SVG is an in-memory step (PNG is what Facebook/og:image previews accept). Served via `/api/horoscope/[id]/chart/[type]/image` and `/api/share/[token]/chart/[type]/image`.
+- Images are rendered from the **same React components as the page** (`BirthChart`, `HouseChart`) by `src/lib/chartSvg.tsx`, with display props shared through `src/lib/chartRenderProps.ts` — change chart display logic there, not inline in the page, or images drift from the web chart.
+- App Router routes can't import `react-dom/server`, so `chartSvg.tsx` is pre-compiled by `scripts/build-chart-renderer.mjs` into `.chart-renderer/index.cjs` (run by `pnpm dev`/`pnpm build`) and loaded at runtime via `src/lib/chartRendererRuntime.ts`. After changing chart components: rebuild (restart dev), then `pnpm regenerate-chart-images` to refresh stored images.
+
 ### i18n
 
 - `next-intl` with locale resolution in `src/i18n/request.ts`: tries the routed locale first, falls back to the `NEXT_LOCALE` cookie, defaults to `si`.

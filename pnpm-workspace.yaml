@@ -1,6 +1,7 @@
 allowBuilds:
   '@parcel/watcher': true
   '@swc/core': true
+  esbuild: true
   protobufjs: true
   sharp: true
   swisseph-v2: true

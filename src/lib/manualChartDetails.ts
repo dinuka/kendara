@@ -177,7 +177,7 @@ export function getCurrentShani(lagna: number): CurrentShani | null {
 }
 
 /** Build full `Planet[]` from the derived planets table so existing chart-rendering helpers
- *  (toBirthChartData, generateChartSvg) work unchanged for manual horoscopes. */
+ *  (toBirthChartData, the chart image renderer) work unchanged for manual horoscopes. */
 export function synthesizePlanets(result: ManualChartResult): Planet[] {
     return result.planetsTable.map((row) => {
         // Manual charts without Navamsa data treat every planet as sitting at the middle degree of
