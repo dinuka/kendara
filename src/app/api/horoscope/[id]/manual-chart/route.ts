@@ -9,6 +9,7 @@ import { getCalculationSettings } from "@/lib/astrologySettings";
 import { replaceCharts } from "@/lib/chartStorage";
 import { ChartType } from "@/lib/chartTypes";
 import { connectDB } from "@/lib/db";
+import { revalidateHoroscope } from "@/lib/revalidate";
 import logger from "@/lib/logger";
 import { compute } from "@/lib/manualChart";
 import {
@@ -94,6 +95,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     });
 
     reindexHoroscope(id);
+    revalidateHoroscope(id);
     logger.info("manual chart update complete: id=%s", id);
 
     return NextResponse.json({

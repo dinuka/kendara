@@ -117,6 +117,37 @@
                 "save_failed": "Failed to save privacy settings",
                 "not_owner": "Only the owner can change privacy settings"
             }
+        },
+        "seo": {
+            "kendaraya": "Horoscope",
+            "titleDefault": "{name} Horoscope (Kendaraya)",
+            "descBirthDate": "born {date}",
+            "descBirthTime": "at {time}",
+            "descBirthPlace": "in {place}",
+            "descLagna": "{lagna} lagna",
+            "descIntro": "{name}'s horoscope",
+            "descTail": "Birth chart, navamsa chart, yogas and dashas.",
+            "imageAltBirth": "{name} – birth chart (rashi)",
+            "imageAltNavamsa": "{name} – navamsa chart",
+            "editorTitle": "Search engine & sharing",
+            "editorHint": "Shown in Google results and in Facebook/WhatsApp link previews. Leave empty to use the generated text.",
+            "title": "Title",
+            "description": "Description",
+            "aliases": "Alias URLs",
+            "aliasPlaceholder": "e.g. mahinda-rajapaksha",
+            "aliasHint": "Each alias opens this horoscope: {path}. Lowercase letters, numbers and hyphens.",
+            "aliasAdd": "Add",
+            "indexed": "Show in search engines",
+            "notPublic": "This horoscope is private, so search engines and link previews can't see it.",
+            "save": "Save",
+            "saved": "SEO data saved",
+            "saveFailed": "Could not save SEO data",
+            "aliasTaken": "Alias already used by another horoscope: {aliases}",
+            "invalid": "Check the highlighted fields",
+            "searchPreview": "Google preview",
+            "sharePreview": "Share preview",
+            "debugger": "Open Facebook Sharing Debugger",
+            "chars": "{count}/{max}"
         }
     },
     "search": {

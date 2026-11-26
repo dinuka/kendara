@@ -6,6 +6,8 @@ import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getMessages } from "next-intl/server";
 import { Geist, Geist_Mono } from "next/font/google";
 
+import { siteUrl } from "@/lib/seo";
+
 import "./globals.css";
 
 const geistSans = Geist({
@@ -19,8 +21,15 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-    title: "Kendara - ජ්‍යෝතිෂ්‍ය අධ්‍යයන වේදිකාව",
-    description: "Astrology study platform for students",
+    metadataBase: new URL(siteUrl()),
+    title: {
+        default: "Kendara - ජ්‍යෝතිෂ්‍ය අධ්‍යයන වේදිකාව",
+        template: "%s | Kendara",
+    },
+    description:
+        "කේන්දර අධ්‍යයන වේදිකාව — ප්‍රසිද්ධ පුද්ගලයන්ගේ කේන්දර, උපන් වේලාව, උපන් ස්ථානය, යෝග සහ දශා. Vedic astrology horoscopes (kendara) with birth charts, navamsa, yogas and dashas.",
+    applicationName: "Kendara",
+    openGraph: { siteName: "Kendara", locale: "si_LK", type: "website" },
 };
 
 export const viewport: Viewport = {

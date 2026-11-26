@@ -5,6 +5,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { Metadata } from "@/models/Metadata";
 
 import { connectDB } from "@/lib/db";
+import { revalidateHoroscope } from "@/lib/revalidate";
 
 export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string; metaId: string }> }) {
     const session = await getServerSession(authOptions);
@@ -25,6 +26,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     if (body.isPublic !== undefined) metadata.isPublic = body.isPublic;
     await metadata.save();
 
+    revalidateHoroscope(id);
     return NextResponse.json(metadata);
 }
 
@@ -42,5 +44,6 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
     }
 
     await Metadata.deleteOne({ _id: metaId });
+    revalidateHoroscope(id);
     return NextResponse.json({ success: true });
 }

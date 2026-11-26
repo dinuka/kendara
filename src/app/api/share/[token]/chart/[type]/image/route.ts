@@ -7,6 +7,7 @@ import { chartImageResponse } from "@/lib/chartStorage";
 import { ALL_CHART_TYPES, ChartType } from "@/lib/chartTypes";
 import { connectDB } from "@/lib/db";
 import logger from "@/lib/logger";
+import { chartImageCacheControl } from "@/lib/seo";
 
 /** GET /api/share/[token]/chart/[type]/image?download=1 — public, gated by the share token
  *  so the URL works as an og:image or in chat apps without a session. */
@@ -27,7 +28,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ toke
     logger.debug("serving shared chart image: horoscope=%s type=%s", link.horoscope.id, type);
 
     return chartImageResponse(chart, {
-        cacheControl: "public, max-age=300",
+        cacheControl: chartImageCacheControl(req.nextUrl.searchParams.get("v"), chart?.imageKey, true),
         download: req.nextUrl.searchParams.get("download") === "1",
     });
 }

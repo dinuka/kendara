@@ -117,6 +117,37 @@
                 "save_failed": "රහස්‍යතා සැකසුම් සුරැකීම අසාර්ථක විය",
                 "not_owner": "හිමිකරුට පමණක් රහස්‍යතා සැකසුම් වෙනස් කළ හැක"
             }
+        },
+        "seo": {
+            "kendaraya": "කේන්දරය",
+            "titleDefault": "{name} කේන්දරය",
+            "descBirthDate": "උපන් දිනය {date}",
+            "descBirthTime": "උපන් වේලාව {time}",
+            "descBirthPlace": "උපන් ස්ථානය {place}",
+            "descLagna": "{lagna} ලග්නය",
+            "descIntro": "{name} ගේ කේන්දරය",
+            "descTail": "රාශි චක්‍රය, නවාංශකය, යෝග සහ දශා.",
+            "imageAltBirth": "{name} – රාශි චක්‍රය (ලග්න කේන්දරය)",
+            "imageAltNavamsa": "{name} – නවාංශක චක්‍රය",
+            "editorTitle": "සෙවුම් යන්ත්‍ර සහ බෙදාගැනීම",
+            "editorHint": "Google ප්‍රතිඵලවල සහ Facebook/WhatsApp සබැඳි පෙරදසුන්වල පෙන්වයි. හිස්ව තැබුවොත් ස්වයංක්‍රීය පෙළ භාවිත වේ.",
+            "title": "මාතෘකාව",
+            "description": "විස්තරය",
+            "aliases": "අන්වර්ථ URL",
+            "aliasPlaceholder": "උදා. mahinda-rajapaksha",
+            "aliasHint": "සෑම අන්වර්ථයක්ම මෙම කේන්දරය විවෘත කරයි: {path}. කුඩා ඉංග්‍රීසි අකුරු, ඉලක්කම් සහ ඉරි පමණි.",
+            "aliasAdd": "එක් කරන්න",
+            "indexed": "සෙවුම් යන්ත්‍රවල පෙන්වන්න",
+            "notPublic": "මෙම කේන්දරය පෞද්ගලික බැවින් සෙවුම් යන්ත්‍රවලට සහ සබැඳි පෙරදසුන්වලට එය නොපෙනේ.",
+            "save": "සුරකින්න",
+            "saved": "SEO දත්ත සුරැකිණි",
+            "saveFailed": "SEO දත්ත සුරැකීමට නොහැකි විය",
+            "aliasTaken": "මෙම අන්වර්ථය වෙනත් කේන්දරයක් භාවිත කරයි: {aliases}",
+            "invalid": "සලකුණු කළ ක්ෂේත්‍ර පරීක්ෂා කරන්න",
+            "searchPreview": "Google පෙරදසුන",
+            "sharePreview": "බෙදාගැනීමේ පෙරදසුන",
+            "debugger": "Facebook Sharing Debugger විවෘත කරන්න",
+            "chars": "{count}/{max}"
         }
     },
     "search": {

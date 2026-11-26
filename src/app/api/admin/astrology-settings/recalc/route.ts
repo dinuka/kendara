@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { getAstrologySettings } from "@/lib/astrologySettings";
 import { connectDB } from "@/lib/db";
+import { revalidateAllHoroscopes } from "@/lib/revalidate";
 import logger from "@/lib/logger";
 import { startRecalculation } from "@/lib/recalculationJob";
 
@@ -56,5 +57,7 @@ export async function POST(req: NextRequest) {
     }
 
     void startRecalculation(horoscopeIds ? { horoscopeIds } : undefined);
+    // cached public views expire now and again (via revalidateAllHoroscopes) when the job ends
+    revalidateAllHoroscopes();
     return statusBody();
 }

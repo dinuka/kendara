@@ -13,9 +13,9 @@ import { calculateHoroscope } from "@/lib/calculation";
 import { deleteCharts, replaceCharts } from "@/lib/chartStorage";
 import { ALL_CHART_TYPES } from "@/lib/chartTypes";
 import { connectDB } from "@/lib/db";
+import { loadHoroscopeDetails } from "@/lib/horoscopeView";
 import logger from "@/lib/logger";
-import { deriveAgeRanges, navamsaIndexForSign } from "@/lib/manualChart";
-import { getCurrentShani } from "@/lib/manualChartDetails";
+import { revalidateHoroscope } from "@/lib/revalidate";
 import { canViewHoroscope, getAnonymousPlaceholder, visibleHoroscopeFilter } from "@/lib/privacy";
 
 const CALC_FIELDS = ["birthDate", "birthTime", "latitude", "longitude", "ayanamsha"];
@@ -88,28 +88,13 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
         total: orderedHoroscopes.length,
     };
 
-    const calculatedDetails = await CalculatedDetails.findOne({ "horoscope.id": id }).lean();
-    const charts = await Chart.find({ "horoscope.id": id }).lean();
-    const metadata = await Metadata.find({ "horoscope.id": id }).lean();
+    // Only owners and super admins see private metadata entries.
+    const { calculatedDetails, charts, metadata } = await loadHoroscopeDetails(horoscope, {
+        publicMetadataOnly: horoscope.owner.id !== userId && userRole !== "super-admin",
+    });
+    const { seo: _seo, ...horoscopeWithoutSeo } = horoscope;
 
-    if (horoscope.source === "manual" && calculatedDetails?.planets) {
-        const planets = calculatedDetails.planets as Array<{ name: number; sign: number; navamsaSign?: number }>;
-        const shani = planets.find((p) => p.name === 7);
-        const lagna = calculatedDetails.manualHousePlacements?.lagna ?? 1;
-        const currentShani = getCurrentShani(lagna);
-
-        if (shani && currentShani && calculatedDetails.derivedRanges) {
-            const navamsaIndex = shani.navamsaSign ? navamsaIndexForSign(shani.sign, shani.navamsaSign) : 1;
-            calculatedDetails.derivedRanges.ageRanges = deriveAgeRanges(
-                navamsaIndex,
-                currentShani.degree,
-                currentShani.sign,
-                shani.sign,
-            );
-        }
-    }
-
-    return NextResponse.json({ horoscope, calculatedDetails, charts, metadata, navigation });
+    return NextResponse.json({ horoscope: horoscopeWithoutSeo, calculatedDetails, charts, metadata, navigation });
 }
 
 export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -118,7 +103,8 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 
     const { id } = await params;
     await connectDB();
-    const body = await req.json();
+    // SEO data is admin-only (PUT /api/admin/horoscope/[id]/seo); ownership is never client-set
+    const { seo: _seo, owner: _owner, ...body } = await req.json();
 
     const horoscope = await Horoscope.findById(id);
     if (!horoscope) return NextResponse.json({ error: "Not found" }, { status: 404 });
@@ -161,6 +147,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
         logger.info("no calculation fields changed, skipping recalculation for id=%s", id);
     }
 
+    revalidateHoroscope(id);
     return NextResponse.json(horoscope);
 }
 
@@ -189,5 +176,6 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
     await Metadata.deleteMany({ "horoscope.id": id });
     await HoroscopeNote.deleteMany({ "horoscope.id": id });
 
+    revalidateHoroscope(id);
     return NextResponse.json({ success: true });
 }

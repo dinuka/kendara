@@ -6,6 +6,7 @@ import { Horoscope } from "@/models/Horoscope";
 import { Metadata } from "@/models/Metadata";
 
 import { connectDB } from "@/lib/db";
+import { revalidateHoroscope } from "@/lib/revalidate";
 import { canViewHoroscope } from "@/lib/privacy";
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -43,5 +44,6 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         createdBy: { id: session.user.id },
     });
 
+    revalidateHoroscope(id);
     return NextResponse.json(metadata, { status: 201 });
 }

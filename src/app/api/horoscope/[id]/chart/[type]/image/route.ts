@@ -10,6 +10,7 @@ import { ALL_CHART_TYPES, ChartType } from "@/lib/chartTypes";
 import { connectDB } from "@/lib/db";
 import logger from "@/lib/logger";
 import { canViewHoroscope } from "@/lib/privacy";
+import { chartImageCacheControl } from "@/lib/seo";
 
 /** GET /api/horoscope/[id]/chart/[type]/image?download=1 */
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string; type: string }> }) {
@@ -30,8 +31,11 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     logger.debug("serving chart image: horoscope=%s type=%s", id, type);
 
     return chartImageResponse(chart, {
-        // the URL stays the same across recalculations, so keep the cache short
-        cacheControl: horoscope.isPublic ? "public, max-age=300" : "private, max-age=300",
+        cacheControl: chartImageCacheControl(
+            req.nextUrl.searchParams.get("v"),
+            chart?.imageKey,
+            horoscope.isPublic,
+        ),
         download: req.nextUrl.searchParams.get("download") === "1",
     });
 }

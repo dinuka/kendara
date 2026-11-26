@@ -89,6 +89,7 @@
 | source | Enum(auto, manual) | How the chart data was produced: `auto` = calculated from birth details via ephemeris; `manual` = entered by the student from an already-calculated chart (no birth details required) |
 | isPublic | Boolean | Visibility flag — `true` = visible to all students in search; `false` = visible only to owner and Super Admin (and via share link) |
 | displayName | Boolean | Show/hide actual name on public-facing surfaces (search cards, public detail view) — only meaningful when `isPublic=true`; owner and Super Admin always see the name |
+| seo | Object? | Search-engine data, Super Admin only (`PUT /api/admin/horoscope/[id]/seo`); absent until first set. See **SEO** below |
 | createdAt | DateTime | Record created |
 | updatedAt | DateTime | Last updated |
 
@@ -99,6 +100,17 @@
 - **Super Admin**: Sees all horoscopes and actual names, regardless of privacy settings (see US-013)
 - When `isPublic` changes from `true` → `false`, search embeddings must be removed from the shared search index (or filtered at query time)
 - When `isPublic` changes from `false` → `true`, search embeddings must be generated and made available in the shared search index
+
+**SEO** (`seo` sub-document):
+
+| Field | Type | Description |
+|-------|------|-------------|
+| title | String? | `<title>` / `og:title` override (≤ 70 chars); default `"<name> කේන්දරය"` |
+| description | String? | Meta / `og:description` override (≤ 200 chars), also shown as the page intro; default generated from birth date, time, place and lagna |
+| aliases | String[] | URL aliases — `/horoscopes/<alias>` 308-redirects to `/horoscopes/<id>`. Lowercase `[a-z0-9-]`, 2–60 chars, unique across horoscopes (unique sparse index), never ObjectId-shaped or a reserved route (`new`, `edit`, `manual`) |
+| indexed | Boolean | `false` adds `noindex` and drops the horoscope from `/sitemap.xml` (default `true`) |
+
+SEO data only has effect while `isPublic=true`; private horoscopes are always `noindex` with no Open Graph tags.
 
 **Relationships**:
 

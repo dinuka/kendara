@@ -5,6 +5,7 @@ import { Horoscope } from "@/models/Horoscope";
 import { type CalculationSettings, getAstrologySettings, getCalculationSettings } from "@/lib/astrologySettings";
 import { connectDB } from "@/lib/db";
 import logger from "@/lib/logger";
+import { revalidateAllHoroscopes } from "@/lib/revalidate";
 import { recalculateHoroscope } from "@/lib/recalculateHoroscope";
 
 export const RECALC_BATCH_SIZE = Number(process.env.RECALC_BATCH_SIZE ?? 100);
@@ -222,4 +223,5 @@ async function finalizeRun(
     };
     await AstrologySettings.findByIdAndUpdate("system", update);
     logger.info("recalc: completed settings v%d — %d/%d succeeded, %d failed", version, succeeded, total, failed);
+    revalidateAllHoroscopes();
 }

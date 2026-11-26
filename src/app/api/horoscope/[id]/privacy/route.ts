@@ -6,6 +6,7 @@ import { AuditLog } from "@/models/AuditLog";
 import { Horoscope } from "@/models/Horoscope";
 
 import { connectDB } from "@/lib/db";
+import { revalidateHoroscope } from "@/lib/revalidate";
 import logger from "@/lib/logger";
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -61,6 +62,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     });
 
     logger.info("privacy changed for horoscope id=%s by user=%s", id, session.user.id);
+    revalidateHoroscope(id);
 
     return NextResponse.json(horoscope);
 }

@@ -6,6 +6,7 @@ import { CalculatedDetails } from "@/models/CalculatedDetails";
 import { Horoscope } from "@/models/Horoscope";
 
 import { connectDB } from "@/lib/db";
+import { revalidateHoroscope } from "@/lib/revalidate";
 import logger from "@/lib/logger";
 import { SHADBALAYA_KEYS, ShadBalayaKey } from "@/lib/shadBalaya";
 
@@ -69,5 +70,6 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
     logger.info("shadbalaya toggle planet=%d bala=%s value=%s horoscopeId=%s", planet, bala, value, id);
 
+    revalidateHoroscope(id);
     return NextResponse.json({ planet, bala, value, overridden: true });
 }

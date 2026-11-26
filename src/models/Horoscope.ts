@@ -1,5 +1,7 @@
 import mongoose, { Document, Model, Schema } from "mongoose";
 
+import type { HoroscopeSeo } from "@/lib/seo";
+
 export type HoroscopeSource = "auto" | "manual";
 
 export interface IHoroscope extends Document {
@@ -19,6 +21,8 @@ export interface IHoroscope extends Document {
     /** `auto` = ephemeris-calculated from birth details (legacy); `manual` = entered calculated chart. */
     source: HoroscopeSource;
     isPublic: boolean;
+    /** Search-engine data managed by super admins (title/description override, URL aliases). */
+    seo?: HoroscopeSeo;
     createdAt: Date;
     updatedAt: Date;
 }
@@ -54,6 +58,18 @@ const HoroscopeSchema = new Schema<IHoroscope>(
             default: "auto",
         },
         isPublic: { type: Boolean, default: false },
+        seo: {
+            type: new Schema(
+                {
+                    title: { type: String },
+                    description: { type: String },
+                    aliases: { type: [String], default: [] },
+                    indexed: { type: Boolean, default: true },
+                },
+                { _id: false },
+            ),
+            default: undefined,
+        },
     },
     { timestamps: true },
 );
@@ -61,6 +77,8 @@ const HoroscopeSchema = new Schema<IHoroscope>(
 HoroscopeSchema.index({ "owner.id": 1 });
 HoroscopeSchema.index({ isPublic: 1 });
 HoroscopeSchema.index({ createdAt: -1 });
+// each alias (/horoscopes/<alias>) resolves to exactly one horoscope
+HoroscopeSchema.index({ "seo.aliases": 1 }, { unique: true, sparse: true });
 
 export const Horoscope: Model<IHoroscope> =
     mongoose.models.Horoscope || mongoose.model<IHoroscope>("Horoscope", HoroscopeSchema);
