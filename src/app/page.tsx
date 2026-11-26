@@ -1,6 +1,7 @@
 "use client";
 
 import ConfirmDeleteModal from "@/components/ConfirmDeleteModal";
+import HoroscopeCardList from "@/components/HoroscopeCardList";
 import HoroscopeDistributionWidget from "@/components/HoroscopeDistributionWidget";
 import PrivacyBadge from "@/components/PrivacyBadge";
 import { useI18n } from "@/hooks/useI18n";
@@ -118,12 +119,12 @@ export default function DashboardPage() {
 
     return (
         <div>
-            <div className="flex justify-between items-center mb-8">
-                <h1 className="text-2xl font-bold">
+            <div className="flex flex-col gap-3 sm:flex-row sm:justify-between sm:items-center mb-6 sm:mb-8">
+                <h1 className="text-xl sm:text-2xl font-bold">
                     {session ? t("dashboard.welcome", { name: session.user?.name ?? "" }) : t("nav.dashboard")}
                 </h1>
                 {session && (
-                    <div className="flex gap-2">
+                    <div className="flex flex-wrap gap-2">
                         <Link
                             href="/horoscopes/new"
                             className="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700 transition-colors text-sm"
@@ -196,68 +197,88 @@ export default function DashboardPage() {
                 </div>
             ) : (
                 <div className="bg-white rounded-lg shadow-sm border overflow-hidden">
-                    <table className="w-full text-sm">
-                        <thead className="bg-gray-50">
-                            <tr>
-                                <th className="text-left px-4 py-2 font-medium text-gray-600">{t("horoscope.name")}</th>
-                                <th className="text-left px-4 py-2 font-medium text-gray-600">
-                                    {t("horoscope.birthDate")}
-                                </th>
-                                <th className="text-left px-4 py-2 font-medium text-gray-600">
-                                    {t("horoscope.location")}
-                                </th>
-                                <th className="text-center px-4 py-2 font-medium text-gray-600">
-                                    {t("horoscope.public")}
-                                </th>
-                                <th className="px-4 py-2" />
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {recentHoroscopes.map((h) => (
-                                <tr
-                                    key={h._id}
-                                    className="border-t hover:bg-gray-50 cursor-pointer"
-                                    onClick={() => router.push(`/horoscopes/${h._id}`)}
-                                >
-                                    <td className="px-4 py-3 font-medium text-indigo-600">{h.name}</td>
-                                    <td className="px-4 py-3 text-gray-500">
-                                        {formatDate(h.birthDate)} {h.birthTime}
-                                    </td>
-                                    <td className="px-4 py-3 text-gray-500">
-                                        {h.locationName || (h.latitude ? `${h.latitude}, ${h.longitude}` : "")}
-                                    </td>
-                                    <td className="px-4 py-3 text-center">
-                                        <PrivacyBadge
-                                            isPublic={h.isPublic}
-                                            displayName={h.displayName}
-                                            isOwner={isOwner(h)}
-                                            size="sm"
-                                        />
-                                    </td>
-                                    <td className="px-4 py-3 text-right" onClick={(e) => e.stopPropagation()}>
-                                        {isOwner(h) && (
-                                            <div className="flex gap-1 justify-end">
-                                                <button
-                                                    onClick={() => router.push(`/horoscopes/${h._id}/edit`)}
-                                                    aria-label={`${t("horoscope.edit")} ${h.name}`}
-                                                    className="p-1.5 text-gray-400 hover:text-indigo-600 transition-colors rounded hover:bg-indigo-50"
-                                                >
-                                                    ✏️
-                                                </button>
-                                                <button
-                                                    onClick={() => setConfirmDelete(h._id)}
-                                                    aria-label={`${t("common.delete")} ${h.name}`}
-                                                    className="p-1.5 text-gray-400 hover:text-red-600 transition-colors rounded hover:bg-red-50"
-                                                >
-                                                    🗑️
-                                                </button>
-                                            </div>
-                                        )}
-                                    </td>
+                    <div className="md:hidden">
+                        <HoroscopeCardList
+                            items={recentHoroscopes}
+                            renderBadge={(h) => (
+                                <PrivacyBadge
+                                    isPublic={h.isPublic}
+                                    displayName={h.displayName}
+                                    isOwner={isOwner(h)}
+                                    size="sm"
+                                />
+                            )}
+                            canEdit={isOwner}
+                            onEdit={(h) => router.push(`/horoscopes/${h._id}/edit`)}
+                            onDelete={(h) => setConfirmDelete(h._id)}
+                        />
+                    </div>
+                    <div className="hidden md:block overflow-x-auto">
+                        <table className="w-full text-sm">
+                            <thead className="bg-gray-50">
+                                <tr>
+                                    <th className="whitespace-nowrap text-left px-3 sm:px-4 py-2 font-medium text-gray-600">
+                                        {t("horoscope.name")}
+                                    </th>
+                                    <th className="whitespace-nowrap text-left px-3 sm:px-4 py-2 font-medium text-gray-600">
+                                        {t("horoscope.birthDate")}
+                                    </th>
+                                    <th className="whitespace-nowrap text-left px-3 sm:px-4 py-2 font-medium text-gray-600">
+                                        {t("horoscope.location")}
+                                    </th>
+                                    <th className="whitespace-nowrap text-center px-3 sm:px-4 py-2 font-medium text-gray-600">
+                                        {t("horoscope.public")}
+                                    </th>
+                                    <th className="px-4 py-2" />
                                 </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody>
+                                {recentHoroscopes.map((h) => (
+                                    <tr
+                                        key={h._id}
+                                        className="border-t hover:bg-gray-50 cursor-pointer"
+                                        onClick={() => router.push(`/horoscopes/${h._id}`)}
+                                    >
+                                        <td className="px-3 sm:px-4 py-3 font-medium text-indigo-600 whitespace-nowrap">{h.name}</td>
+                                        <td className="px-3 sm:px-4 py-3 text-gray-500 whitespace-nowrap">
+                                            {formatDate(h.birthDate)} {h.birthTime}
+                                        </td>
+                                        <td className="px-3 sm:px-4 py-3 text-gray-500 min-w-[10rem]">
+                                            {h.locationName || (h.latitude ? `${h.latitude}, ${h.longitude}` : "")}
+                                        </td>
+                                        <td className="px-3 sm:px-4 py-3 text-center">
+                                            <PrivacyBadge
+                                                isPublic={h.isPublic}
+                                                displayName={h.displayName}
+                                                isOwner={isOwner(h)}
+                                                size="sm"
+                                            />
+                                        </td>
+                                        <td className="px-3 sm:px-4 py-3 text-right" onClick={(e) => e.stopPropagation()}>
+                                            {isOwner(h) && (
+                                                <div className="flex gap-1 justify-end">
+                                                    <button
+                                                        onClick={() => router.push(`/horoscopes/${h._id}/edit`)}
+                                                        aria-label={`${t("horoscope.edit")} ${h.name}`}
+                                                        className="p-1.5 text-gray-400 hover:text-indigo-600 transition-colors rounded hover:bg-indigo-50"
+                                                    >
+                                                        ✏️
+                                                    </button>
+                                                    <button
+                                                        onClick={() => setConfirmDelete(h._id)}
+                                                        aria-label={`${t("common.delete")} ${h.name}`}
+                                                        className="p-1.5 text-gray-400 hover:text-red-600 transition-colors rounded hover:bg-red-50"
+                                                    >
+                                                        🗑️
+                                                    </button>
+                                                </div>
+                                            )}
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             )}
 

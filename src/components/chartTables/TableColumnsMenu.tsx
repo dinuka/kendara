@@ -9,7 +9,6 @@ import {
     type ColumnDef,
     type ColumnId,
     type ColumnSetting,
-    DEFAULT_TABLE_PREFERENCES,
     PLANET_TAG_OPTIONS,
     type TableKind,
     type TableView,
@@ -40,11 +39,12 @@ const KIND_LABEL_KEYS: Record<TableKind, string> = {
 
 /** "Columns" button + popover that edits one table's layout for one view: show/hide, reorder
  *  (drag or arrow buttons), per-column value options, copy from the other tab, reset. Edits apply
- *  live to every open table of the same view and are saved to the user's profile — every
- *  horoscope uses them. Rendered only for signed-in users. */
+ *  live to every open table of the same view and every horoscope uses them — saved to the
+ *  user's profile, or for guests to this browser. Hidden only while the session is loading. */
 export default function TableColumnsMenu({ view, kind, available }: TableColumnsMenuProps) {
     const { t } = useI18n();
-    const { layout, otherViewLayout, canEdit, status, setLayout, retry } = useTableLayout(view, kind);
+    const { device, layout, defaultLayout, otherViewLayout, canEdit, savedOnDevice, status, setLayout, retry } =
+        useTableLayout(view, kind);
     const [open, setOpen] = useState(false);
     const [dragIndex, setDragIndex] = useState<number | null>(null);
     const [dropIndex, setDropIndex] = useState<number | null>(null);
@@ -76,7 +76,7 @@ export default function TableColumnsMenu({ view, kind, available }: TableColumns
 
     if (!canEdit) return null;
 
-    const defaults = DEFAULT_TABLE_PREFERENCES[view][kind];
+    const defaults = defaultLayout;
     const isDefault = layoutsEqual(kind, layout, defaults);
     const matchesOther = layoutsEqual(kind, layout, otherViewLayout);
     const otherView: TableView = view === "charts" ? "calculations" : "charts";
@@ -196,7 +196,9 @@ export default function TableColumnsMenu({ view, kind, available }: TableColumns
                             {t("tableColumns.title", { table: tableLabel })}
                         </p>
                         <p className="text-xs text-gray-500 mt-0.5">
-                            {t(VIEW_LABEL_KEYS[view])} · {t("tableColumns.appliesToAll")}
+                            {t(VIEW_LABEL_KEYS[view])}
+                            {device === "mobile" && <> · {t("tableColumns.phoneLayout")}</>} ·{" "}
+                            {t(savedOnDevice ? "tableColumns.savedOnDevice" : "tableColumns.appliesToAll")}
                         </p>
                     </div>
 

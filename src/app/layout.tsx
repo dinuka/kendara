@@ -1,7 +1,7 @@
 import { Providers } from "@/components/Providers";
 import { Sidebar } from "@/components/Sidebar";
 import { TopBar } from "@/components/TopBar";
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getMessages } from "next-intl/server";
 import { Geist, Geist_Mono } from "next/font/google";
@@ -23,6 +23,11 @@ export const metadata: Metadata = {
     description: "Astrology study platform for students",
 };
 
+export const viewport: Viewport = {
+    width: "device-width",
+    initialScale: 1,
+};
+
 export default async function RootLayout({
     children,
 }: Readonly<{
@@ -39,7 +44,9 @@ export default async function RootLayout({
                         <TopBar />
                         <div className="flex flex-1 overflow-hidden">
                             <Sidebar />
-                            <main className="flex-1 overflow-y-auto px-6 py-6">{children}</main>
+                            <main className="flex-1 min-w-0 overflow-y-auto overflow-x-hidden px-3 py-4 sm:px-6 sm:py-6">
+                                {children}
+                            </main>
                         </div>
                     </NextIntlClientProvider>
                 </Providers>

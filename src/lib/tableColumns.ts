@@ -10,6 +10,13 @@
  * the Calculations tab shows the full ones.
  */
 
+import {
+    DEFAULT_DASHA_DISPLAY,
+    type DashaDisplayPreferences,
+    isValidDashaPreferences,
+    normalizeDashaPreferences,
+} from "./dashaDisplay";
+
 export type TableView = "charts" | "calculations";
 export type TableKind = "houses" | "planets";
 
@@ -77,7 +84,14 @@ export interface ColumnSetting {
 
 export type TableLayout = ColumnSetting[];
 
-export type TablePreferences = Record<TableView, Record<TableKind, TableLayout>>;
+/** Which screen class a layout is for: phones (below `sm`) keep their own, compact set. */
+export type TableDevice = "desktop" | "mobile";
+
+export type ViewLayouts = Record<TableView, Record<TableKind, TableLayout>>;
+
+/** Desktop layouts at the top level (the original shape), phone layouts under `mobile`, and the
+ *  Dasha tab's row display settings (per device) under `dasha`. */
+export type TablePreferences = ViewLayouts & { mobile: ViewLayouts; dasha: DashaDisplayPreferences };
 
 const SYMBOL_OPTION: ColumnOptionDef = { id: "symbol", labelKey: "tableColumns.options.symbol" };
 const DEGREE_OPTION: ColumnOptionDef = { id: "degree", labelKey: "tableColumns.options.degree" };
@@ -167,7 +181,7 @@ function col(id: ColumnId, visible: boolean, offOptions: string[] = []): ColumnS
 
 /** Historical layouts. Hidden columns sit at their natural position so turning one on places it
  *  where a reader would expect it. */
-export const DEFAULT_TABLE_PREFERENCES: TablePreferences = {
+const DEFAULT_DESKTOP_LAYOUTS: ViewLayouts = {
     charts: {
         houses: [
             col("number", true),
@@ -232,6 +246,44 @@ export const DEFAULT_TABLE_PREFERENCES: TablePreferences = {
     },
 };
 
+/** Columns a phone card shows out of the box — each card stays a line or two. Same order and
+ *  value options as the desktop default; everything else is one tap away in the Columns menu. */
+const MOBILE_DEFAULT_VISIBLE: Record<TableView, Record<TableKind, readonly ColumnId[]>> = {
+    charts: {
+        houses: ["number", "sign", "planets", "aspects", "other"],
+        planets: ["planet", "sign", "strength", "house", "conjunctions", "aspects"],
+    },
+    calculations: {
+        houses: ["number", "start", "end", "planets"],
+        planets: ["planet", "sign", "strength", "house", "nakshatra"],
+    },
+};
+
+function mobileDefault(view: TableView, kind: TableKind): TableLayout {
+    const shown = new Set(MOBILE_DEFAULT_VISIBLE[view][kind]);
+    return DEFAULT_DESKTOP_LAYOUTS[view][kind].map((setting) => ({
+        ...cloneSetting(setting),
+        visible: columnDef(kind, setting.id)?.locked === true || shown.has(setting.id),
+    }));
+}
+
+export const DEFAULT_TABLE_PREFERENCES: TablePreferences = {
+    ...DEFAULT_DESKTOP_LAYOUTS,
+    dasha: DEFAULT_DASHA_DISPLAY,
+    mobile: {
+        charts: { houses: mobileDefault("charts", "houses"), planets: mobileDefault("charts", "planets") },
+        calculations: {
+            houses: mobileDefault("calculations", "houses"),
+            planets: mobileDefault("calculations", "planets"),
+        },
+    },
+};
+
+/** The layouts for one screen class. */
+export function deviceLayouts(preferences: TablePreferences, device: TableDevice): ViewLayouts {
+    return device === "mobile" ? preferences.mobile : preferences;
+}
+
 /** Whether a value option is on (options default to on). */
 export function optionOn(setting: ColumnSetting | undefined, optionId: string): boolean {
     return setting?.options?.[optionId] ?? true;
@@ -278,35 +330,52 @@ export function normalizeTableLayout(kind: TableKind, raw: unknown, fallback: Ta
     return result;
 }
 
-export function normalizeTablePreferences(raw: unknown): TablePreferences {
-    const source = isPlainObject(raw) ? raw : {};
-    const result = {} as TablePreferences;
+function normalizeViewLayouts(source: Record<string, unknown>, defaults: ViewLayouts): ViewLayouts {
+    const result = {} as ViewLayouts;
     for (const view of TABLE_VIEWS) {
         const viewRaw = isPlainObject(source[view]) ? source[view] : {};
         result[view] = {} as Record<TableKind, TableLayout>;
         for (const kind of TABLE_KINDS) {
-            result[view][kind] = normalizeTableLayout(kind, viewRaw[kind], DEFAULT_TABLE_PREFERENCES[view][kind]);
+            result[view][kind] = normalizeTableLayout(kind, viewRaw[kind], defaults[view][kind]);
         }
     }
     return result;
+}
+
+export function normalizeTablePreferences(raw: unknown): TablePreferences {
+    const source = isPlainObject(raw) ? raw : {};
+    const mobile = isPlainObject(source.mobile) ? source.mobile : {};
+    return {
+        ...normalizeViewLayouts(source, DEFAULT_TABLE_PREFERENCES),
+        mobile: normalizeViewLayouts(mobile, DEFAULT_TABLE_PREFERENCES.mobile),
+        dasha: normalizeDashaPreferences(source.dasha),
+    };
 }
 
 /** Strict validator for API input: any unknown key, wrong type, unknown column/option or duplicate
  *  rejects the whole payload (null). A valid payload is returned normalized. */
 export function parseTablePreferences(raw: unknown): TablePreferences | null {
     if (!isPlainObject(raw)) return null;
-    for (const key of Object.keys(raw)) if (!TABLE_VIEWS.includes(key as TableView)) return null;
+    const { mobile, dasha, ...desktop } = raw;
+    if (!isValidViewLayouts(desktop)) return null;
+    if (dasha !== undefined && !isValidDashaPreferences(dasha)) return null;
+    if (mobile !== undefined && (!isPlainObject(mobile) || !isValidViewLayouts(mobile))) return null;
+    return normalizeTablePreferences(raw);
+}
+
+function isValidViewLayouts(raw: Record<string, unknown>): boolean {
+    for (const key of Object.keys(raw)) if (!TABLE_VIEWS.includes(key as TableView)) return false;
     for (const view of TABLE_VIEWS) {
         const viewRaw = raw[view];
         if (viewRaw === undefined) continue;
-        if (!isPlainObject(viewRaw)) return null;
-        for (const key of Object.keys(viewRaw)) if (!TABLE_KINDS.includes(key as TableKind)) return null;
+        if (!isPlainObject(viewRaw)) return false;
+        for (const key of Object.keys(viewRaw)) if (!TABLE_KINDS.includes(key as TableKind)) return false;
         for (const kind of TABLE_KINDS) {
             const layout = viewRaw[kind];
-            if (layout !== undefined && !isValidLayout(kind, layout)) return null;
+            if (layout !== undefined && !isValidLayout(kind, layout)) return false;
         }
     }
-    return normalizeTablePreferences(raw);
+    return true;
 }
 
 function isValidLayout(kind: TableKind, layout: unknown): boolean {

@@ -1,6 +1,6 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { type ReactNode, useId, useState } from "react";
 
 import { BirthChart } from "@/components/BirthChart";
 import HousesTable from "@/components/chartTables/HousesTable";
@@ -58,6 +58,8 @@ interface WargaChartSectionProps {
     sunLongitude?: number;
     /** Extra content under the indication tags (e.g. the Nisheka calculation steps). */
     details?: ReactNode;
+    /** Phone-only control shown in place of the caption text (e.g. the second-chart picker). */
+    captionControl?: ReactNode;
 }
 
 /** Charts whose aspect records carry real degree differences (D1 and its Sun/Moon rotations). The
@@ -86,8 +88,13 @@ const WargaChartSection = ({
     pranapadaLagnaSign,
     sunLongitude,
     details,
+    captionControl,
 }: WargaChartSectionProps) => {
     const { t } = useI18n();
+    // Phones keep the figure in focus: tags, details and tables sit behind a toggle (closed by
+    // default). From `sm` up they are always shown and the toggle is hidden.
+    const [extrasOpen, setExtrasOpen] = useState(false);
+    const extrasId = useId();
     const isD1 = chartKey === "d1";
     const showAspectDelta = DEGREE_ASPECT_CHARTS.has(chartKey);
     // D1 and the Surya/Chandra Lagna rotations render the degree-based engine records (passed in);
@@ -105,10 +112,50 @@ const WargaChartSection = ({
     const planetSigns = Object.fromEntries((planets?.rows ?? []).map((row) => [row.name, row.sign]));
 
     return (
-        <figure className="bg-white rounded-lg border p-4">
-            <figcaption className="text-sm font-semibold text-gray-700">{caption}</figcaption>
-            <WargaIndicationTags chartKey={chartKey} />
-            {details}
+        <figure className="bg-white rounded-lg border p-3 sm:p-4">
+            <figcaption className="flex items-center gap-2 text-sm font-semibold text-gray-700">
+                <div className="flex-1 min-w-0">
+                    {captionControl ? (
+                        <>
+                            <span className="hidden sm:inline">{caption}</span>
+                            <div className="sm:hidden">{captionControl}</div>
+                        </>
+                    ) : (
+                        caption
+                    )}
+                </div>
+                <button
+                    type="button"
+                    onClick={() => setExtrasOpen((open) => !open)}
+                    aria-expanded={extrasOpen}
+                    aria-controls={extrasId}
+                    aria-label={extrasOpen ? t("astrology.wargaKendara.hideTables") : t("astrology.wargaKendara.showTables")}
+                    title={extrasOpen ? t("astrology.wargaKendara.hideTables") : t("astrology.wargaKendara.showTables")}
+                    className={`sm:hidden shrink-0 w-10 h-10 flex items-center justify-center rounded-lg border transition-colors ${
+                        extrasOpen
+                            ? "bg-indigo-600 border-indigo-600 text-white"
+                            : "bg-white border-gray-300 text-gray-600 hover:bg-gray-50"
+                    }`}
+                >
+                    <svg
+                        className="w-5 h-5"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        aria-hidden="true"
+                    >
+                        <rect x="3" y="3" width="18" height="18" rx="2" />
+                        <path d="M3 9h18M3 15h18M12 9v12" />
+                    </svg>
+                </button>
+            </figcaption>
+            <div className="hidden sm:block">
+                <WargaIndicationTags chartKey={chartKey} />
+                {details}
+            </div>
             {chartData ? (
                 <div className="flex justify-center mt-2">
                     <BirthChart
@@ -127,24 +174,30 @@ const WargaChartSection = ({
                     <p className="text-sm text-gray-400">{noDataMessage}</p>
                 </div>
             )}
-            {houses && planets ? (
-                <>
-                    <HousesTable
-                        view="charts"
-                        data={houses}
-                        planetSigns={planetSigns}
-                        showAspectDelta={showAspectDelta}
-                        caption={caption}
-                    />
-                    <PlanetsTable view="charts" data={planets} caption={caption} />
-                </>
-            ) : (
-                chartData !== null && (
-                    <div className="mt-4 bg-white rounded-lg border p-6 min-h-[150px] flex items-center justify-center">
-                        <p className="text-sm text-gray-400">{noDataMessage}</p>
-                    </div>
-                )
-            )}
+            <div id={extrasId} className={`${extrasOpen ? "" : "hidden"} sm:block`}>
+                <div className="sm:hidden">
+                    <WargaIndicationTags chartKey={chartKey} />
+                    {details}
+                </div>
+                {houses && planets ? (
+                    <>
+                        <HousesTable
+                            view="charts"
+                            data={houses}
+                            planetSigns={planetSigns}
+                            showAspectDelta={showAspectDelta}
+                            caption={caption}
+                        />
+                        <PlanetsTable view="charts" data={planets} caption={caption} />
+                    </>
+                ) : (
+                    chartData !== null && (
+                        <div className="mt-4 bg-white rounded-lg border p-6 min-h-[150px] flex items-center justify-center">
+                            <p className="text-sm text-gray-400">{noDataMessage}</p>
+                        </div>
+                    )
+                )}
+            </div>
         </figure>
     );
 };

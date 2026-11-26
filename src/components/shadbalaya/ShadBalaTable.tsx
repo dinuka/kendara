@@ -341,7 +341,7 @@ export default function ShadBalaTable({
             )}
 
             <div className="hidden md:block overflow-x-auto">
-                <table className="w-full text-sm border-collapse">
+                <table className="w-full text-sm text-gray-600 border-collapse">
                     <thead>
                         <tr className="bg-gray-50">
                             <th className="text-left px-3 py-2 font-semibold text-gray-700 border-b border-gray-200 whitespace-nowrap">

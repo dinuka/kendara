@@ -1,11 +1,16 @@
 "use client";
 
+import { PHONE_QUERY, useMediaQuery } from "@/hooks/useMediaQuery";
+import { useDashaDisplay } from "@/hooks/useTablePreferences";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import type { Dashas, Planet } from "@/lib/astrology";
 import { computeDashaNumbers } from "@/lib/dashaNumbers";
+import { parseDashaDate, pranasOf } from "@/lib/pranaDasha";
 
 import CurrentPeriodBadge from "./CurrentPeriodBadge";
+import { DashaDisplayContext } from "./DashaDisplayContext";
+import DashaDisplayMenu from "./DashaDisplayMenu";
 import DashaNumberTags from "./DashaNumberTags";
 import DashaPlanetTags from "./DashaPlanetTags";
 import type { PlanetTag } from "./DashaPlanetTags";
@@ -33,8 +38,8 @@ interface Period {
 function findActivePeriodIndex(periods: Period[] | undefined, now: Date): number | null {
     if (!periods) return null;
     for (let i = 0; i < periods.length; i++) {
-        const start = new Date(periods[i].startDate);
-        const end = new Date(periods[i].endDate);
+        const start = parseDashaDate(periods[i].startDate);
+        const end = parseDashaDate(periods[i].endDate);
         if (start <= now && now < end) return i;
     }
     return null;
@@ -64,7 +69,8 @@ function findActiveIndices(dashas: Dashas | null, now: Date): (number | null)[] 
     indices[3] = sk;
     if (sk === null) return indices;
 
-    indices[4] = findActivePeriodIndex(vdNode.sukshama[sk].prana, now);
+    // Stored trees stop at Sukshama; Prana is derived on demand.
+    indices[4] = findActivePeriodIndex(pranasOf(vdNode.sukshama[sk]), now);
     return indices;
 }
 
@@ -81,9 +87,24 @@ export default function DashaSection({
     const [expandedPaths, setExpandedPaths] = useState<ReadonlySet<string>>(() => new Set());
     const [scrollTarget, setScrollTarget] = useState<string | null>(null);
     const [currentDate] = useState(() => new Date());
+    const { display } = useDashaDisplay();
+    const { fields } = display;
 
     const activeIndices = useMemo(() => findActiveIndices(dashas, currentDate), [dashas, currentDate]);
     const [activeMdIndex, activeAdIndex, activeVdIndex, activeSkIndex, activePrIndex] = activeIndices;
+    const isPhone = useMediaQuery(PHONE_QUERY);
+
+    // The stored current period has no Prana lord (the tree stops at Sukshama) — fill it from the
+    // derived Prana so the "Current" summary reaches Prana too.
+    const currentPeriod = useMemo(() => {
+        const period = dashas?.currentPeriod;
+        if (!period || period.pranaLord || activePrIndex === null || activeSkIndex === null) return period;
+        const sk =
+            dashas?.mahadasha[activeMdIndex ?? -1]?.antardasha[activeAdIndex ?? -1]?.vidasa[activeVdIndex ?? -1]
+                ?.sukshama[activeSkIndex];
+        const pranaLord = sk ? pranasOf(sk)[activePrIndex]?.planet : undefined;
+        return pranaLord ? { ...period, pranaLord } : period;
+    }, [dashas, activeMdIndex, activeAdIndex, activeVdIndex, activeSkIndex, activePrIndex]);
 
     // Open the running period down to the sukshama level (prana rows have no children).
     useEffect(() => {
@@ -91,6 +112,13 @@ export default function DashaSection({
         const deepest = buildPath(activeMdIndex, activeAdIndex, activeVdIndex, activeSkIndex);
         setExpandedPaths(new Set(ancestorPaths(deepest)));
     }, [activeMdIndex, activeAdIndex, activeVdIndex, activeSkIndex]);
+
+    // Phones: the running period usually sits below the fold under the collapsed earlier periods,
+    // so bring its deepest row into view once on open (desktop keeps its position).
+    useEffect(() => {
+        if (!isPhone || activeMdIndex === null) return;
+        setScrollTarget(buildPath(activeMdIndex, activeAdIndex, activeVdIndex, activeSkIndex, activePrIndex));
+    }, [isPhone, activeMdIndex, activeAdIndex, activeVdIndex, activeSkIndex, activePrIndex]);
 
     // Children mount only once their parent is open, so scroll after the expansion has rendered.
     useEffect(() => {
@@ -116,11 +144,23 @@ export default function DashaSection({
                     numbers={dashaNumbers[planet]}
                     getPlanetName={getPlanetName}
                     getSignName={getSignName}
+                    showOwn={fields.ownNumbers}
+                    showNakshatraLord={fields.nakshatraNumbers}
+                    showConjunctions={fields.conjunctionNumbers}
                 />
-                <DashaPlanetTags tags={planetTags[planet]} />
+                {fields.planetTags && <DashaPlanetTags tags={planetTags[planet]} />}
             </>
         ),
-        [dashaNumbers, getPlanetName, getSignName, planetTags],
+        [
+            dashaNumbers,
+            getPlanetName,
+            getSignName,
+            planetTags,
+            fields.ownNumbers,
+            fields.nakshatraNumbers,
+            fields.conjunctionNumbers,
+            fields.planetTags,
+        ],
     );
 
     const handleToggle = useCallback((path: string) => {
@@ -151,9 +191,12 @@ export default function DashaSection({
     }
 
     return (
-        <div>
+        <DashaDisplayContext.Provider value={display}>
+            <div className="flex justify-end mb-2">
+                <DashaDisplayMenu getDashaLevelName={getDashaLevelName} />
+            </div>
             <CurrentPeriodBadge
-                currentPeriod={dashas.currentPeriod}
+                currentPeriod={currentPeriod ?? dashas.currentPeriod}
                 mahadashaList={dashas.mahadasha}
                 activeIndices={activeIndices}
                 onJumpToPeriod={handleJumpToPeriod}
@@ -172,6 +215,6 @@ export default function DashaSection({
                 getDashaLevelName={getDashaLevelName}
                 renderDashaNumbers={renderDashaNumbers}
             />
-        </div>
+        </DashaDisplayContext.Provider>
     );
 }

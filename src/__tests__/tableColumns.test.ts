@@ -1,5 +1,6 @@
 import {
     COLUMN_DEFS,
+    deviceLayouts,
     DEFAULT_TABLE_PREFERENCES,
     type TableLayout,
     layoutsEqual,
@@ -202,5 +203,52 @@ describe("layout editing helpers", () => {
 
     it("normalizeTablePreferences fills both views", () => {
         expect(normalizeTablePreferences(undefined)).toEqual(DEFAULT_TABLE_PREFERENCES);
+    });
+});
+
+describe("phone (mobile) layouts", () => {
+    it("default to a compact column set per view", () => {
+        const mobile = DEFAULT_TABLE_PREFERENCES.mobile;
+        expect(ids(mobile.charts.houses)).toEqual(["number", "sign", "planets", "aspects", "other"]);
+        expect(ids(mobile.charts.planets)).toEqual(["planet", "sign", "strength", "house", "conjunctions", "aspects"]);
+        // Planet symbols on, retrograde brackets off (desktop default options).
+        const planet = mobile.charts.planets.find((s) => s.id === "planet");
+        expect(optionOn(planet, "symbol")).toBe(true);
+        expect(optionOn(planet, "retrograde")).toBe(false);
+        expect(ids(mobile.calculations.houses)).toEqual(["number", "start", "end", "planets"]);
+        expect(ids(mobile.calculations.planets)).toEqual(["planet", "sign", "strength", "house", "nakshatra"]);
+    });
+
+    it("keep every column (hidden) in the desktop order and options", () => {
+        const desktop = DEFAULT_TABLE_PREFERENCES.charts.planets;
+        const mobile = DEFAULT_TABLE_PREFERENCES.mobile.charts.planets;
+        expect(ids(mobile, false)).toEqual(ids(desktop, false));
+        expect(mobile.find((s) => s.id === "sign")?.options).toEqual(desktop.find((s) => s.id === "sign")?.options);
+    });
+
+    it("deviceLayouts picks the phone or desktop set", () => {
+        expect(deviceLayouts(DEFAULT_TABLE_PREFERENCES, "mobile")).toBe(DEFAULT_TABLE_PREFERENCES.mobile);
+        expect(deviceLayouts(DEFAULT_TABLE_PREFERENCES, "desktop").charts).toBe(DEFAULT_TABLE_PREFERENCES.charts);
+    });
+
+    it("stored preferences without a mobile branch get the phone defaults", () => {
+        const normalized = normalizeTablePreferences({ charts: { houses: [{ id: "number", visible: true }] } });
+        expect(normalized.mobile).toEqual(DEFAULT_TABLE_PREFERENCES.mobile);
+    });
+
+    it("parse accepts a mobile branch and keeps it separate from desktop", () => {
+        const parsed = parseTablePreferences({
+            mobile: { charts: { houses: [{ id: "aspects", visible: true }] } },
+        });
+        expect(parsed?.mobile.charts.houses.find((s) => s.id === "aspects")?.visible).toBe(true);
+        expect(parsed?.charts).toEqual(DEFAULT_TABLE_PREFERENCES.charts);
+    });
+
+    it.each([
+        ["non-object mobile", { mobile: [] }],
+        ["unknown view under mobile", { mobile: { other: {} } }],
+        ["unknown column under mobile", { mobile: { charts: { houses: [{ id: "bogus", visible: true }] } } }],
+    ])("parse rejects %s", (_label, payload) => {
+        expect(parseTablePreferences(payload)).toBeNull();
     });
 });

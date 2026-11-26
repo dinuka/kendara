@@ -546,7 +546,13 @@ export function BirthChart({
     };
 
     return (
-        <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} className="max-w-full h-auto">
+        <svg
+            width={W}
+            height={H}
+            viewBox={`0 0 ${W} ${H}`}
+            className="block w-full h-auto mx-auto"
+            style={{ maxWidth: W }}
+        >
             <defs>
                 {Object.entries(SIGN_COLORS).map(([sign, colors]) => (
                     <linearGradient key={sign} id={`sign-grad-${sign}`} x1="0%" y1="0%" x2="100%" y2="100%">

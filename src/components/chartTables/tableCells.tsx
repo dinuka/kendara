@@ -37,19 +37,19 @@ export const strengthKey = (strength: PlanetaryStrength): string =>
     `astrology.${STRENGTH_TRANSLATION_KEYS[strength] ?? "neutral"}`;
 
 /** Per-view table chrome: the Calculations tab tables are a page section, the Charts tab tables sit
- *  inside a chart figure. */
+ *  inside a chart figure. Both tables of a view share one size and one grey for values. */
 export const VIEW_STYLES: Record<TableView, { section: string; heading: string; houses: string; planets: string }> = {
     calculations: {
         section: "bg-white rounded-lg border p-4",
         heading: "font-semibold text-sm text-indigo-700 uppercase tracking-wide",
-        houses: "text-sm",
-        planets: "text-sm",
+        houses: "text-sm text-gray-600",
+        planets: "text-sm text-gray-600",
     },
     charts: {
         section: "mt-4",
         heading: "text-xs font-semibold text-indigo-700 uppercase tracking-wide",
-        houses: "text-sm",
-        planets: "text-xs",
+        houses: "text-xs text-gray-600",
+        planets: "text-xs text-gray-600",
     },
 };
 

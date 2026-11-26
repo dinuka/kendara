@@ -6,6 +6,7 @@ import { memo, useCallback } from "react";
 import type { Vidasa } from "@/lib/astrology";
 import { PLANET_COLORS, PLANET_SYMBOLS, formatDayDuration } from "@/lib/astrology";
 
+import { useDashaRowDisplay } from "./DashaDisplayContext";
 import SukshamaAccordion from "./SukshamaAccordion";
 import { pathsFor } from "./expandedPaths";
 
@@ -34,15 +35,16 @@ function VidasaAccordion({
     getDashaLevelName,
     renderDashaNumbers,
 }: VidasaAccordionProps) {
-    const isExpanded = expandedPaths.has(path);
-    const hasSukshama = vidasa.sukshama && vidasa.sukshama.length > 0;
+    const { fields, depth } = useDashaRowDisplay();
+    const hasSukshama = depth >= 4 && vidasa.sukshama && vidasa.sukshama.length > 0;
+    const isExpanded = hasSukshama && expandedPaths.has(path);
 
     const handleToggle = useCallback(() => {
-        onToggle(path);
-    }, [onToggle, path]);
+        if (hasSukshama) onToggle(path);
+    }, [onToggle, path, hasSukshama]);
 
     return (
-        <div role="treeitem" aria-expanded={isExpanded} aria-current={isActive ? "true" : undefined}>
+        <div role="treeitem" aria-expanded={hasSukshama ? isExpanded : undefined} aria-current={isActive ? "true" : undefined}>
             <div
                 role="button"
                 tabIndex={0}
@@ -55,12 +57,13 @@ function VidasaAccordion({
                         handleToggle();
                     }
                 }}
-                className={`flex items-center gap-2 py-2 px-2 ml-8 text-xs cursor-pointer select-none transition-colors ${isActive ? "border-l-3 border-indigo-700 bg-indigo-100 rounded" : "hover:bg-gray-50/50"}`}
+                className={`flex flex-wrap items-center gap-x-2 gap-y-0.5 py-2 px-2 ml-4 sm:ml-8 text-xs cursor-pointer select-none transition-colors ${isActive ? "border-l-3 border-indigo-700 bg-indigo-100 rounded" : "hover:bg-gray-50/50"}`}
             >
                 <span
-                    className={`inline-block transition-transform duration-200 text-gray-400 text-[10px] ${isExpanded ? "rotate-180" : ""}`}
+                    className={`inline-block w-2 transition-transform duration-200 text-gray-400 text-[10px] ${isExpanded ? "rotate-180" : ""}`}
+                    aria-hidden="true"
                 >
-                    {String.fromCharCode(0x25b8)}
+                    {hasSukshama && String.fromCharCode(0x25b8)}
                 </span>
                 <span
                     className="inline-flex items-center justify-center w-4 h-4 text-xs"
@@ -72,13 +75,21 @@ function VidasaAccordion({
                     {PLANET_SYMBOLS[vidasa.planet] ?? ""}
                 </span>
                 <span className="text-gray-600 font-medium">{getPlanetName(vidasa.planet)}</span>
-                <span className="text-[10px] text-gray-400 ml-1">{getDashaLevelName("vidasa")}</span>
+                {fields.levelName && (
+                    <span className="text-[10px] text-gray-400 ml-1">{getDashaLevelName("vidasa")}</span>
+                )}
                 {renderDashaNumbers(vidasa.planet)}
-                <span className="text-gray-400 ml-auto">
-                    {vidasa.startDate} &mdash; {vidasa.endDate}
+                <span className="ml-auto inline-flex flex-wrap items-center justify-end gap-x-2 text-gray-400">
+                    {fields.dates && (
+                        <span>
+                            {vidasa.startDate} &mdash; {vidasa.endDate}
+                        </span>
+                    )}
+                    {fields.age && <span className="text-gray-500">(age {Math.floor(vidasa.startAge)}y)</span>}
+                    {fields.duration && (
+                        <span className="whitespace-nowrap">{formatDayDuration(vidasa.durationDays)}</span>
+                    )}
                 </span>
-                <span className="text-gray-500 ml-1">(age {Math.floor(vidasa.startAge)}y)</span>
-                <span className="text-gray-400 whitespace-nowrap">{formatDayDuration(vidasa.durationDays)}</span>
                 {isActive && (
                     <span className="text-[10px] font-semibold bg-indigo-600 text-white px-1.5 py-0.5 rounded-full">
                         Active

@@ -240,7 +240,7 @@ export default function PlanetsTable({ view, data, caption }: PlanetsTableProps)
                                     <td
                                         key={setting.id}
                                         className={`py-1 pr-3 ${nowrap(setting.id)} ${
-                                            setting.id === "planet" ? "font-medium" : ""
+                                            setting.id === "planet" ? "font-medium text-gray-700" : ""
                                         }`}
                                     >
                                         {cell(setting, row)}

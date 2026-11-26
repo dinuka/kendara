@@ -741,9 +741,9 @@ export function HouseChart({
     const zoomReset = () => setZoom(1);
 
     return (
-        <div className="flex flex-col items-center gap-0.5" ref={chartRef}>
+        <div className="flex flex-col items-center gap-0.5 w-full min-w-0" ref={chartRef}>
             {horoscopeId && (
-                <div className="flex items-center justify-center gap-2">
+                <div className="flex flex-wrap items-center justify-center gap-2">
                     <button
                         type="button"
                         role="switch"
@@ -774,7 +774,7 @@ export function HouseChart({
                         </span>
                     )}
                     {showCurrentPlanets && (
-                        <div className="flex items-center gap-1 text-xs ml-1">
+                        <div className="flex flex-wrap items-center justify-center gap-1 text-xs ml-1">
                             <input
                                 type="date"
                                 value={selectedDate}
@@ -862,73 +862,76 @@ export function HouseChart({
                     +
                 </button>
             </div>
-            <svg
-                width={viewSize * zoom}
-                height={viewSize * zoom}
-                viewBox={`${viewOrigin} ${viewOrigin} ${viewSize} ${viewSize}`}
-                className={zoom <= 1 ? "max-w-full h-auto" : undefined}
-            >
-                <circle cx={CX} cy={CY} r={R_NAKSHATRA_OUTER} fill="#ffffff" stroke="#d1d5db" strokeWidth={1} />
-                {nakshatraWedges}
-                {padaWedges}dd
-                {navamsaWedges}
-                {signWedges}
-                {houseWedges}
-                {planetMarkers}
-                {currentPlanetMarkers}
-                {mergedSymbols}
-                <g
-                    onClick={() => setSelectedAbsDeg((prev) => (prev === ascAbsDeg ? null : ascAbsDeg))}
-                    className="cursor-pointer"
+            {/* Zoomed charts scroll inside this box; `m-auto` centers without clipping the left edge. */}
+            <div className="w-full max-w-full overflow-auto flex">
+                <svg
+                    width={viewSize * zoom}
+                    height={viewSize * zoom}
+                    viewBox={`${viewOrigin} ${viewOrigin} ${viewSize} ${viewSize}`}
+                    className={`m-auto shrink-0 ${zoom <= 1 ? "max-w-full h-auto" : ""}`}
                 >
-                    <line x1={CX} y1={CY} x2={lagnaOuterX} y2={lagnaOuterY} stroke="#16a34a" strokeWidth={1.5} />
-                    <circle
-                        cx={lagnaLabelX}
-                        cy={lagnaLabelY}
-                        r={11}
-                        fill="#ffffff"
-                        stroke="#16a34a"
-                        strokeWidth={selectedAbsDeg === ascAbsDeg ? 3 : 1.5}
-                    />
-                    <text
-                        x={lagnaLabelX}
-                        y={lagnaLabelY}
-                        fontSize={13}
-                        fontWeight="bold"
-                        fill="#16a34a"
-                        textAnchor="middle"
-                        dominantBaseline="central"
+                    <circle cx={CX} cy={CY} r={R_NAKSHATRA_OUTER} fill="#ffffff" stroke="#d1d5db" strokeWidth={1} />
+                    {nakshatraWedges}
+                    {padaWedges}
+                    {navamsaWedges}
+                    {signWedges}
+                    {houseWedges}
+                    {planetMarkers}
+                    {currentPlanetMarkers}
+                    {mergedSymbols}
+                    <g
+                        onClick={() => setSelectedAbsDeg((prev) => (prev === ascAbsDeg ? null : ascAbsDeg))}
+                        className="cursor-pointer"
                     >
-                        ල
-                    </text>
-                </g>
-                {loadingCurrent && (
-                    <g>
-                        <circle cx={CX} cy={CY} r={28} fill="rgba(255,255,255,0.9)" stroke="#d1d5db" strokeWidth={1} />
+                        <line x1={CX} y1={CY} x2={lagnaOuterX} y2={lagnaOuterY} stroke="#16a34a" strokeWidth={1.5} />
                         <circle
-                            cx={CX}
-                            cy={CY}
-                            r={16}
-                            fill="none"
-                            stroke="#0EA5E9"
-                            strokeWidth={3}
-                            strokeLinecap="round"
-                            className="animate-spin"
-                            style={{ strokeDasharray: 75, strokeDashoffset: 25, transformOrigin: `${CX}px ${CY}px` }}
+                            cx={lagnaLabelX}
+                            cy={lagnaLabelY}
+                            r={11}
+                            fill="#ffffff"
+                            stroke="#16a34a"
+                            strokeWidth={selectedAbsDeg === ascAbsDeg ? 3 : 1.5}
                         />
                         <text
-                            x={CX}
-                            y={CY + 18}
-                            fontSize={9}
-                            fill="#6b7280"
+                            x={lagnaLabelX}
+                            y={lagnaLabelY}
+                            fontSize={13}
+                            fontWeight="bold"
+                            fill="#16a34a"
                             textAnchor="middle"
                             dominantBaseline="central"
                         >
-                            loading
+                            ල
                         </text>
                     </g>
-                )}
-            </svg>
+                    {loadingCurrent && (
+                        <g>
+                            <circle cx={CX} cy={CY} r={28} fill="rgba(255,255,255,0.9)" stroke="#d1d5db" strokeWidth={1} />
+                            <circle
+                                cx={CX}
+                                cy={CY}
+                                r={16}
+                                fill="none"
+                                stroke="#0EA5E9"
+                                strokeWidth={3}
+                                strokeLinecap="round"
+                                className="animate-spin"
+                                style={{ strokeDasharray: 75, strokeDashoffset: 25, transformOrigin: `${CX}px ${CY}px` }}
+                            />
+                            <text
+                                x={CX}
+                                y={CY + 18}
+                                fontSize={9}
+                                fill="#6b7280"
+                                textAnchor="middle"
+                                dominantBaseline="central"
+                            >
+                                loading
+                            </text>
+                        </g>
+                    )}
+                </svg>
+            </div>
 
             {tooltipContent && (
                 <div

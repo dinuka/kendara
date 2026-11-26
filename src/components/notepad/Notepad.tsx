@@ -655,7 +655,7 @@ export default function Notepad({ horoscopeId, calculatedDetails }: NotepadProps
                 <div
                     role="alert"
                     aria-live="assertive"
-                    className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 bg-red-600 text-white text-xs px-3 py-2 rounded shadow-lg"
+                    className="fixed bottom-20 sm:bottom-4 left-1/2 -translate-x-1/2 z-50 bg-red-600 text-white text-xs px-3 py-2 rounded shadow-lg"
                 >
                     {t("notepad.toast.saveFailed")}
                 </div>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useI18n } from "@/hooks/useI18n";
-import { Fragment, memo } from "react";
+import { Fragment, type ReactNode, memo } from "react";
 
 import { DASHA_NUMBER_GROUP_STARTS } from "@/lib/dashaNumbers";
 import type { DashaNumber, PlanetDashaNumbers } from "@/lib/dashaNumbers";
@@ -12,9 +12,21 @@ interface DashaNumberTagsProps {
     numbers: PlanetDashaNumbers | undefined;
     getPlanetName: (id: number) => string;
     getSignName: (id: number) => string;
+    /** Which groups to show (Dasha display settings). Conjunction groups include the nakshatra
+     *  lord's conjunctions. */
+    showOwn?: boolean;
+    showNakshatraLord?: boolean;
+    showConjunctions?: boolean;
 }
 
-const DashaNumberTags = ({ numbers, getPlanetName, getSignName }: DashaNumberTagsProps) => {
+const DashaNumberTags = ({
+    numbers,
+    getPlanetName,
+    getSignName,
+    showOwn = true,
+    showNakshatraLord = true,
+    showConjunctions = true,
+}: DashaNumberTagsProps) => {
     const { t } = useI18n();
 
     if (!numbers || numbers.own.length === 0) return null;
@@ -41,45 +53,53 @@ const DashaNumberTags = ({ numbers, getPlanetName, getSignName }: DashaNumberTag
 
     const { own, nakshatraLord, nakshatraLordNumbers, conjunctions, nakshatraLordConjunctions } = numbers;
 
+    const groups: ReactNode[] = [];
+    if (showOwn) groups.push(renderTags(own, null, "own"));
+    if (showNakshatraLord && nakshatraLord !== null && nakshatraLordNumbers.length > 0) {
+        groups.push(
+            renderTags(
+                nakshatraLordNumbers,
+                t("astrology.dashaNumbers.nakshatraLord", { planet: getPlanetName(nakshatraLord) }),
+                "nak",
+            ),
+        );
+    }
+    if (showConjunctions) {
+        conjunctions.forEach(({ planet, numbers: conjunctionNumbers }) =>
+            groups.push(
+                renderTags(
+                    conjunctionNumbers,
+                    t("astrology.dashaNumbers.conjunction", { planet: getPlanetName(planet) }),
+                    `conj-${planet}`,
+                ),
+            ),
+        );
+        if (nakshatraLord !== null) {
+            nakshatraLordConjunctions.forEach(({ planet, numbers: conjunctionNumbers }) =>
+                groups.push(
+                    renderTags(
+                        conjunctionNumbers,
+                        t("astrology.dashaNumbers.nakshatraLordConjunction", {
+                            planet: getPlanetName(planet),
+                            lord: getPlanetName(nakshatraLord),
+                        }),
+                        `nak-conj-${planet}`,
+                    ),
+                ),
+            );
+        }
+    }
+    if (groups.length === 0) return null;
+
     return (
         <span className="inline-flex items-center gap-0.5 text-[10px] text-gray-400">
-            ({renderTags(own, null, "own")}
-            {nakshatraLord !== null && nakshatraLordNumbers.length > 0 && (
-                <Fragment>
-                    <span className="mx-0.5">|</span>
-                    {renderTags(
-                        nakshatraLordNumbers,
-                        t("astrology.dashaNumbers.nakshatraLord", {
-                            planet: getPlanetName(nakshatraLord),
-                        }),
-                        "nak",
-                    )}
-                </Fragment>
-            )}
-            {conjunctions.map(({ planet, numbers: conjunctionNumbers }) => (
-                <Fragment key={`conj-${planet}`}>
-                    <span className="mx-0.5">|</span>
-                    {renderTags(
-                        conjunctionNumbers,
-                        t("astrology.dashaNumbers.conjunction", { planet: getPlanetName(planet) }),
-                        `conj-${planet}`,
-                    )}
+            (
+            {groups.map((group, index) => (
+                <Fragment key={index}>
+                    {index > 0 && <span className="mx-0.5">|</span>}
+                    {group}
                 </Fragment>
             ))}
-            {nakshatraLord !== null &&
-                nakshatraLordConjunctions.map(({ planet, numbers: conjunctionNumbers }) => (
-                    <Fragment key={`nak-conj-${planet}`}>
-                        <span className="mx-0.5">|</span>
-                        {renderTags(
-                            conjunctionNumbers,
-                            t("astrology.dashaNumbers.nakshatraLordConjunction", {
-                                planet: getPlanetName(planet),
-                                lord: getPlanetName(nakshatraLord),
-                            }),
-                            `nak-conj-${planet}`,
-                        )}
-                    </Fragment>
-                ))}
             )
         </span>
     );

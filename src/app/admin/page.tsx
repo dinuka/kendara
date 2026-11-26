@@ -62,7 +62,7 @@ export default function AdminPage() {
 
     return (
         <div>
-            <h1 className="text-2xl font-bold mb-6">{t("admin.title")}</h1>
+            <h1 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6">{t("admin.title")}</h1>
 
             <div className="flex gap-1 mb-6 border-b">
                 <button
@@ -86,8 +86,8 @@ export default function AdminPage() {
             {loading ? (
                 <div className="text-center py-10 text-gray-500">{t("common.loading")}</div>
             ) : (
-                <div className="bg-white rounded-lg border overflow-hidden">
-                    <table className="w-full text-sm">
+                <div className="bg-white rounded-lg border overflow-x-auto">
+                    <table className="w-full min-w-[36rem] text-sm">
                         <thead className="bg-gray-50">
                             <tr>
                                 {tab === "horoscopes" ? (

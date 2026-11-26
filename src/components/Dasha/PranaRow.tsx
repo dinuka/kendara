@@ -6,6 +6,8 @@ import { memo } from "react";
 import type { Prana } from "@/lib/astrology";
 import { PLANET_COLORS, PLANET_SYMBOLS } from "@/lib/astrology";
 
+import { useDashaRowDisplay } from "./DashaDisplayContext";
+
 interface PranaRowProps {
     prana: Prana;
     path: string;
@@ -16,11 +18,12 @@ interface PranaRowProps {
 }
 
 function PranaRow({ prana, path, isActive, getPlanetName, getDashaLevelName, renderDashaNumbers }: PranaRowProps) {
+    const { fields } = useDashaRowDisplay();
     return (
         <div
             data-dasha-path={path}
             aria-current={isActive ? "true" : undefined}
-            className={`flex items-center gap-2 py-1.5 px-2 ml-16 text-xs ${isActive ? "bg-indigo-100 rounded" : ""}`}
+            className={`flex flex-wrap items-center gap-x-2 gap-y-0.5 py-1.5 px-2 ml-8 sm:ml-16 text-xs ${isActive ? "bg-indigo-100 rounded" : ""}`}
         >
             <span className="text-gray-400 text-[10px]">{String.fromCharCode(0x25cf)}</span>
             <span
@@ -33,12 +36,18 @@ function PranaRow({ prana, path, isActive, getPlanetName, getDashaLevelName, ren
                 {PLANET_SYMBOLS[prana.planet] ?? ""}
             </span>
             <span className="text-gray-600">{getPlanetName(prana.planet)}</span>
-            <span className="text-[10px] text-gray-400 ml-0.5">{getDashaLevelName("prana")}</span>
+            {fields.levelName && (
+                <span className="text-[10px] text-gray-400 ml-0.5">{getDashaLevelName("prana")}</span>
+            )}
             {renderDashaNumbers(prana.planet)}
-            <span className="text-gray-400 ml-auto">
-                {prana.startDate} &mdash; {prana.endDate}
+            <span className="ml-auto inline-flex flex-wrap items-center justify-end gap-x-2 text-gray-400">
+                {fields.dates && (
+                    <span>
+                        {formatPranaTime(prana.startDate)} &mdash; {formatPranaTime(prana.endDate)}
+                    </span>
+                )}
+                {fields.duration && <span className="whitespace-nowrap">{prana.durationHours}h</span>}
             </span>
-            <span className="text-gray-400 whitespace-nowrap">{prana.durationHours}h</span>
             {isActive && (
                 <span className="text-[10px] font-semibold bg-indigo-600 text-white px-1.5 py-0.5 rounded-full">
                     Active
@@ -46,6 +55,11 @@ function PranaRow({ prana, path, isActive, getPlanetName, getDashaLevelName, ren
             )}
         </div>
     );
+}
+
+/** "2026-11-16T05:30:00" → "2026-11-16 05:30" (Prana periods last hours, so the time matters). */
+function formatPranaTime(value: string): string {
+    return value.replace("T", " ").slice(0, 16);
 }
 
 export default memo(PranaRow);

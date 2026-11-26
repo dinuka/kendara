@@ -22,7 +22,7 @@ import { TablePreferencesProvider } from "@/hooks/useTablePreferences";
 import { useSession } from "next-auth/react";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import type { KeyboardEvent as ReactKeyboardEvent } from "react";
+import type { KeyboardEvent as ReactKeyboardEvent, ReactNode } from "react";
 
 import ValidationBadges from "@/components/ManualChart/ValidationBadges";
 import type { Ascendant, Aspect, CalculationResult, Dashas, House, Planet } from "@/lib/astrology";
@@ -114,6 +114,8 @@ const SECOND_CHART_KEYS: WargaStripKey[] = [
     "nisheka",
     ...VARGA_CATALOG.filter((v) => v.key !== "d1" && v.key !== "d9").map((v) => v.key as WargaStripKey),
 ];
+/** SECOND_CHART_KEYS opens with the main charts (D9, Surya/Chandra Lagna, Nisheka); the rest are vargas. */
+const MAIN_SECOND_CHART_COUNT = 4;
 
 /** Whether a strip key has a computed figure + tables (D9, Surya/Chandra Lagna). The other catalog
  *  keys (D2..D60) currently render name + indication tags only. */
@@ -194,12 +196,14 @@ function birthDateInputValue(value?: Date | string): string {
     return `${y}-${m}-${d}`;
 }
 
-/** Table column layouts are a per-user preference shared by every horoscope; signed-out viewers of
- *  public horoscopes get the defaults. */
+/** Table column layouts are a per-viewer preference shared by every horoscope: saved to the
+ *  profile when signed in, to this browser for guests viewing public horoscopes. */
 export default function HoroscopeDetailPage() {
     const { status } = useSession();
     return (
-        <TablePreferencesProvider enabled={status === "authenticated"}>
+        <TablePreferencesProvider
+            mode={status === "authenticated" ? "account" : status === "unauthenticated" ? "device" : "off"}
+        >
             <HoroscopeDetail />
         </TablePreferencesProvider>
     );
@@ -1243,11 +1247,61 @@ function HoroscopeDetail() {
     // section keeps just the House (bhava) chart.
     const chartTypes = [ChartType.HOUSE];
 
+    const getSecondChartLabel = (key: WargaStripKey): string =>
+        isComputedChart(key)
+            ? t(SECOND_CHART_TAB_KEYS[key as "d9" | "suryaLagna" | "chandraLagna"])
+            : key === "nisheka"
+              ? t("astrology.wargaKendara.tabs.nisheka")
+              : `${t(`astrology.wargaKendara.vargas.${key}.name`)} (D${VARGA_CATALOG.find((v) => v.key === key)?.d})`;
+
+    // Phone second-chart picker: one native select (grouped) in the second figure's caption, in
+    // place of the 18-chip strip used from `sm` up.
+    const secondChartPicker = (
+        <div className="relative">
+            <label htmlFor="second-chart-select" className="sr-only">
+                {t("astrology.wargaKendara.secondChartAria")}
+            </label>
+            <select
+                id="second-chart-select"
+                value={secondChart}
+                onChange={(e) => setSecondChart(e.target.value as WargaStripKey)}
+                className="w-full appearance-none rounded-lg border border-gray-300 bg-white pl-3 pr-9 py-2 text-sm font-semibold text-gray-800 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            >
+                <optgroup label={t("astrology.wargaKendara.mainChartsGroup")}>
+                    {SECOND_CHART_KEYS.slice(0, MAIN_SECOND_CHART_COUNT).map((key) => (
+                        <option key={key} value={key}>
+                            {getSecondChartLabel(key)}
+                        </option>
+                    ))}
+                </optgroup>
+                <optgroup label={t("astrology.wargaKendara.vargaChartsGroup")}>
+                    {SECOND_CHART_KEYS.slice(MAIN_SECOND_CHART_COUNT).map((key) => (
+                        <option key={key} value={key}>
+                            {getSecondChartLabel(key)}
+                        </option>
+                    ))}
+                </optgroup>
+            </select>
+            <svg
+                className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+            >
+                <path d="m6 9 6 6 6-6" />
+            </svg>
+        </div>
+    );
+
     return (
-        <div>
+        <div className="pb-20 sm:pb-0">
             {toast && (
                 <div
-                    className={`fixed top-4 right-4 z-50 px-4 py-3 rounded-lg shadow-lg text-sm transition-all ${
+                    className={`fixed top-4 left-4 right-4 sm:left-auto z-50 px-4 py-3 rounded-lg shadow-lg text-sm transition-all ${
                         toast.type === "success"
                             ? "bg-green-600 text-white"
                             : toast.type === "info"
@@ -1259,12 +1313,13 @@ function HoroscopeDetail() {
                 </div>
             )}
 
-            {renderNav()}
+            {/* Phones: prev/next lives only at the end of the page (below), so the charts lead. */}
+            <div className="hidden sm:block">{renderNav()}</div>
 
-            <div className="flex justify-between items-start mb-2 gap-3">
+            <div className="flex flex-col gap-3 sm:flex-row sm:justify-between sm:items-start mb-4 sm:mb-2">
                 <div className="min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                        <h1 className="text-2xl font-bold">{horoscope.name}</h1>
+                    <div className="flex flex-wrap items-center gap-2 mb-1">
+                        <h1 className="text-xl sm:text-2xl font-bold break-words min-w-0">{horoscope.name}</h1>
                         {horoscope.source === "manual" && <CalculatedChartBadge />}
                         <PrivacyBadge
                             isPublic={isPublicState}
@@ -1274,7 +1329,7 @@ function HoroscopeDetail() {
                         />
                     </div>
                     {horoscope.source !== "manual" && (
-                        <p className="text-sm text-gray-500 truncate" title={horoscope.locationName || undefined}>
+                        <p className="text-sm text-gray-500 sm:truncate" title={horoscope.locationName || undefined}>
                             {formatDate(horoscope.birthDate)} {horoscope.birthTime} |{" "}
                             {horoscope.locationName
                                 ? horoscope.locationName
@@ -1282,7 +1337,7 @@ function HoroscopeDetail() {
                         </p>
                     )}
                 </div>
-                <div className="flex items-center gap-2 shrink-0">
+                <div className="flex flex-wrap items-center gap-2 shrink-0">
                     {session && <Notepad horoscopeId={params.id as string} calculatedDetails={calculatedDetails} />}
                     {horoscope.owner?.id === session?.user?.id && (
                         <>
@@ -1426,12 +1481,47 @@ function HoroscopeDetail() {
 
             {!editingChart && (
                 <>
-                    <div className="flex gap-1 mb-6 border-b">
+                    {/* Phones: sections live in a fixed bottom bar so the charts lead the page.
+                        `sm`+: the underline tab strip below. */}
+                    <nav
+                        aria-label={t("horoscope.sectionsAria")}
+                        className="sm:hidden fixed inset-x-0 bottom-0 z-20 border-t border-gray-200 bg-white/95 backdrop-blur pb-[env(safe-area-inset-bottom)] shadow-[0_-1px_8px_rgba(0,0,0,0.04)]"
+                    >
+                        <div className="grid grid-cols-5">
+                            {tabs.map((tab) => {
+                                const active = activeTab === tab.id;
+                                return (
+                                    <button
+                                        key={tab.id}
+                                        onClick={() => {
+                                            setActiveTab(tab.id);
+                                            document.querySelector("main")?.scrollTo({ top: 0 });
+                                        }}
+                                        aria-current={active ? "page" : undefined}
+                                        className={`relative flex flex-col items-center justify-center gap-0.5 min-h-14 px-0.5 py-1.5 text-[11px] leading-tight text-center transition-colors ${
+                                            active ? "text-indigo-700 font-medium" : "text-gray-500 hover:text-gray-800"
+                                        }`}
+                                    >
+                                        {active && (
+                                            <span
+                                                className="absolute top-0 inset-x-3 h-0.5 rounded-full bg-indigo-600"
+                                                aria-hidden="true"
+                                            />
+                                        )}
+                                        <HoroscopeTabIcon tab={tab.id} />
+                                        <span className="line-clamp-2 break-words">{tab.label}</span>
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    </nav>
+                    <div className="hidden sm:flex gap-1 mb-6 border-b">
                         {tabs.map((tab) => (
                             <button
                                 key={tab.id}
                                 onClick={() => setActiveTab(tab.id)}
-                                className={`px-4 py-2 text-sm border-b-2 transition-colors ${
+                                aria-pressed={activeTab === tab.id}
+                                className={`whitespace-nowrap px-4 py-2 text-sm border-b-2 transition-colors ${
                                     activeTab === tab.id
                                         ? "border-indigo-600 text-indigo-600"
                                         : "border-transparent text-gray-500 hover:text-gray-700"
@@ -1449,7 +1539,7 @@ function HoroscopeDetail() {
                                     <div
                                         role="group"
                                         aria-label={t("astrology.wargaKendara.secondChartAria")}
-                                        className="flex flex-wrap gap-2 mb-4"
+                                        className="hidden sm:flex flex-wrap gap-2 mb-4"
                                     >
                                         <span
                                             aria-label={t("astrology.wargaKendara.pinnedAria")}
@@ -1473,11 +1563,7 @@ function HoroscopeDetail() {
                                         </span>
                                         {SECOND_CHART_KEYS.map((key, index) => {
                                             const selected = secondChart === key;
-                                            const label = isComputedChart(key)
-                                                ? t(SECOND_CHART_TAB_KEYS[key as "d9" | "suryaLagna" | "chandraLagna"])
-                                                : key === "nisheka"
-                                                  ? t("astrology.wargaKendara.tabs.nisheka")
-                                                  : `${t(`astrology.wargaKendara.vargas.${key}.name`)} (D${VARGA_CATALOG.find((v) => v.key === key)?.d})`;
+                                            const label = getSecondChartLabel(key);
                                             return (
                                                 <button
                                                     key={key}
@@ -1510,7 +1596,7 @@ function HoroscopeDetail() {
                                     }
                                     return (
                                         <div
-                                            className={`grid gap-4 ${navamsaAvailable ? "grid-cols-1 lg:grid-cols-[3fr_2fr]" : ""}`}
+                                            className={`grid gap-4 [&>*]:min-w-0 ${navamsaAvailable ? "grid-cols-1 lg:grid-cols-[3fr_2fr]" : ""}`}
                                         >
                                             <WargaChartSection
                                                 chartKey="d1"
@@ -1537,6 +1623,7 @@ function HoroscopeDetail() {
                                                         key={secondChart}
                                                         chartKey={secondChart}
                                                         caption={t(SECOND_CHART_CAPTION_KEYS[secondChart])}
+                                                        captionControl={secondChartPicker}
                                                         chartData={getSecondChartData()}
                                                         entry={secondChartEntry}
                                                         noDataMessage={t("astrology.noChartData")}
@@ -1559,6 +1646,7 @@ function HoroscopeDetail() {
                                                         key={secondChart}
                                                         chartKey="nisheka"
                                                         caption={t("astrology.chartCaptions.nisheka")}
+                                                        captionControl={secondChartPicker}
                                                         chartData={nishekaChart}
                                                         entry={nishekaEntry}
                                                         noDataMessage={t("astrology.noChartData")}
@@ -1570,6 +1658,7 @@ function HoroscopeDetail() {
                                                         key={secondChart}
                                                         chartKey={secondChart}
                                                         caption={`${t(`astrology.wargaKendara.vargas.${secondChart}.name`)} (${secondChart.toUpperCase()})`}
+                                                        captionControl={secondChartPicker}
                                                         chartData={degreeVargaChart}
                                                         entry={degreeVargaEntry}
                                                         noDataMessage={t("astrology.noChartData")}
@@ -1577,10 +1666,13 @@ function HoroscopeDetail() {
                                                         rashiAspects={aspectSettings.rashiAspects}
                                                     />
                                                 ) : (
-                                                    <figure className="bg-white rounded-lg border p-4">
+                                                    <figure className="bg-white rounded-lg border p-3 sm:p-4">
                                                         <figcaption className="text-sm font-semibold text-gray-700">
-                                                            {t(`astrology.wargaKendara.vargas.${secondChart}.name`)} ( D
-                                                            {VARGA_CATALOG.find((v) => v.key === secondChart)?.d})
+                                                            <span className="hidden sm:inline">
+                                                                {t(`astrology.wargaKendara.vargas.${secondChart}.name`)} ( D
+                                                                {VARGA_CATALOG.find((v) => v.key === secondChart)?.d})
+                                                            </span>
+                                                            <div className="sm:hidden">{secondChartPicker}</div>
                                                         </figcaption>
                                                         <WargaIndicationTags chartKey={secondChart} />
                                                         <div className="mt-4 bg-white rounded-lg border p-6 min-h-[150px] flex items-center justify-center">
@@ -1633,7 +1725,7 @@ function HoroscopeDetail() {
 
                                     if (selectedChart === ChartType.HOUSE) {
                                         return (
-                                            <div className="flex justify-center bg-white rounded-lg border p-4 overflow-auto">
+                                            <div className="bg-white rounded-lg border p-2 sm:p-4">
                                                 <HouseChart
                                                     planets={getManualAdjustedPlanets()}
                                                     houses={calculatedDetails.houses}
@@ -1664,7 +1756,7 @@ function HoroscopeDetail() {
                                     scope="birth"
                                 />
                             )}
-                            <section className="bg-white rounded-lg border p-4">
+                            <section className="bg-white rounded-lg border p-3 sm:p-4">
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div className="bg-gray-50 rounded p-3">
                                         <h4 className="font-semibold text-sm text-indigo-700 uppercase tracking-wide mb-2">
@@ -1815,7 +1907,7 @@ function HoroscopeDetail() {
                     )}
 
                     {activeTab === "dashas" && calculatedDetails && (
-                        <div className="bg-white rounded-lg border p-4">
+                        <div className="bg-white rounded-lg border p-3 sm:p-4">
                             <DashaSection
                                 dashas={calculatedDetails.dashas as unknown as Dashas}
                                 getPlanetName={getPlanetName}
@@ -1856,5 +1948,51 @@ function HoroscopeDetail() {
                 error={deleteError}
             />
         </div>
+    );
+}
+
+const TAB_ICON_PATHS: Record<string, ReactNode> = {
+    // Square South-Indian style chart grid.
+    charts: (
+        <>
+            <rect x="3" y="3" width="18" height="18" rx="2" />
+            <path d="M3 9h18M3 15h18M9 3v18M15 3v18" />
+        </>
+    ),
+    calculations: (
+        <>
+            <rect x="5" y="2" width="14" height="20" rx="2" />
+            <path d="M9 6h6M9 11h.01M12 11h.01M15 11h.01M9 15h.01M12 15h.01M15 15h.01M9 18h6" />
+        </>
+    ),
+    dashas: (
+        <>
+            <circle cx="12" cy="12" r="9" />
+            <path d="M12 7v5l3 2" />
+        </>
+    ),
+    "yoga-doshas": <path d="M12 3l2.3 5.6L20 9.3l-4.4 3.9 1.3 5.8L12 16l-4.9 3 1.3-5.8L4 9.3l5.7-.7z" />,
+    metadata: (
+        <>
+            <path d="M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8Z" />
+            <circle cx="7.5" cy="7.5" r="1.5" />
+        </>
+    ),
+};
+
+function HoroscopeTabIcon({ tab }: { tab: string }) {
+    return (
+        <svg
+            className="w-5 h-5 shrink-0"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+        >
+            {TAB_ICON_PATHS[tab]}
+        </svg>
     );
 }

@@ -396,7 +396,7 @@ const DashaTimeline = ({ dashas }: { dashas: Record<string, unknown> }) => {
                                     toggleMd(mdIdx);
                                 }
                             }}
-                            className={`flex items-center gap-3 px-4 py-3 cursor-pointer select-none transition-colors ${isActive ? "bg-indigo-100" : "hover:bg-gray-50"}`}
+                            className={`flex flex-wrap items-center gap-x-2 sm:gap-x-3 gap-y-1 px-3 sm:px-4 py-3 cursor-pointer select-none transition-colors ${isActive ? "bg-indigo-100" : "hover:bg-gray-50"}`}
                         >
                             <span
                                 className={`inline-block transition-transform duration-200 text-gray-400 text-sm ${isExpanded ? "rotate-90" : ""}`}
@@ -431,7 +431,7 @@ const DashaTimeline = ({ dashas }: { dashas: Record<string, unknown> }) => {
                                         return (
                                             <div
                                                 key={adIdx}
-                                                className={`flex items-center gap-2 py-2 px-2 ml-4 text-sm ${isAdActive ? "bg-indigo-100 rounded" : ""}`}
+                                                className={`flex flex-wrap items-center gap-x-2 gap-y-0.5 py-2 px-2 ml-2 sm:ml-4 text-sm ${isAdActive ? "bg-indigo-100 rounded" : ""}`}
                                             >
                                                 <span
                                                     className="inline-flex items-center justify-center w-4 h-4 text-xs"
@@ -2169,11 +2169,11 @@ export default function SearchPage() {
 
     return (
         <div className="relative">
-            <h1 className="text-2xl font-bold mb-6">{t("search.title")}</h1>
+            <h1 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6">{t("search.title")}</h1>
 
-            <div className="bg-white rounded-lg shadow-sm border p-4 mb-6" suppressHydrationWarning>
-                <div className="flex gap-2">
-                    <div className="flex-1 relative">
+            <div className="bg-white rounded-lg shadow-sm border p-3 sm:p-4 mb-6" suppressHydrationWarning>
+                <div className="flex flex-wrap gap-2">
+                    <div className="relative basis-full sm:basis-0 sm:flex-1 min-w-0">
                         <input
                             ref={queryInputRef}
                             type="text"
@@ -2245,7 +2245,7 @@ export default function SearchPage() {
                         onClick={() => handleSearch()}
                         disabled={loading || !query.trim()}
                         suppressHydrationWarning
-                        className="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700 disabled:opacity-50 text-sm"
+                        className="flex-1 sm:flex-none bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700 disabled:opacity-50 text-sm"
                     >
                         {loading ? "Searching..." : t("search.search")}
                     </button>
@@ -2294,10 +2294,10 @@ export default function SearchPage() {
                 <p className="text-xs text-gray-400">{t("search.complexSearch")}</p>
             </div>
 
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
                 {searched && (
                     <>
-                        <div className="flex items-center gap-2">
+                        <div className="flex flex-wrap items-center gap-2">
                             <p className="text-sm text-gray-500">Found {totalResults} horoscopes</p>
                             <div className="flex gap-1">
                                 {isAllExpanded ? (
@@ -2363,7 +2363,7 @@ export default function SearchPage() {
                     ) : (
                         <>
                             <div
-                                className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
+                                className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 [&>*]:min-w-0"
                                 role="region"
                                 aria-label="Search results"
                             >

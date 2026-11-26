@@ -102,7 +102,6 @@ export default function HousesTable({ view, data, planetSigns, showAspectDelta, 
         }
     };
 
-    const muted = (id: string) => (["start", "mid", "end"].includes(id) ? "text-gray-600" : "");
     const detailColumns = columns.filter((c) => c.id !== "number" && c.id !== "sign");
     const signShown = columns.some((c) => c.id === "sign");
 
@@ -130,11 +129,15 @@ export default function HousesTable({ view, data, planetSigns, showAspectDelta, 
                             <tr key={row.houseNumber} className="border-b border-gray-100 align-top even:bg-gray-100">
                                 {columns.map((setting) =>
                                     setting.id === "number" ? (
-                                        <th key={setting.id} scope="row" className="py-1 pr-3 font-medium text-left">
+                                        <th
+                                            key={setting.id}
+                                            scope="row"
+                                            className="py-1 pr-3 font-medium text-left text-gray-700"
+                                        >
                                             {row.houseNumber}
                                         </th>
                                     ) : (
-                                        <td key={setting.id} className={`py-1 pr-3 ${muted(setting.id)}`}>
+                                        <td key={setting.id} className="py-1 pr-3">
                                             {cell(setting, row)}
                                         </td>
                                     ),

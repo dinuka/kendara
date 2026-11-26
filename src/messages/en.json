@@ -14,6 +14,7 @@
         "viewAll": "View All Horoscopes →"
     },
     "nav": {
+        "menu": "Menu",
         "dashboard": "Dashboard",
         "addHoroscope": "Add Horoscope",
         "horoscopes": "Horoscopes",
@@ -61,6 +62,10 @@
         "public": "Public",
         "showName": "Show name",
         "searchPlaceholder": "Search by name, birth date, year, or location...",
+        "sortBy": "Sort by",
+        "sortAsc": "Ascending",
+        "sortDesc": "Descending",
+        "sectionsAria": "Horoscope sections",
         "searchNoResults": "No horoscopes match your search",
         "nav": {
             "prev": "Previous",
@@ -646,6 +651,10 @@
             },
             "noDetails": "—",
             "comingSoon": "Chart and tables coming soon.",
+            "showTables": "Show tables",
+            "hideTables": "Hide tables",
+            "mainChartsGroup": "Main charts",
+            "vargaChartsGroup": "Divisional charts (Varga)",
             "vargas": {
                 "d1": {
                     "name": "Rāśi",
@@ -2037,11 +2046,35 @@
             "planetFactor": "{factor} — {classification}"
         }
     },
+    "dashaDisplay": {
+        "button": "Display",
+        "buttonAria": "Choose what Dasha rows show",
+        "title": "Dasha — display",
+        "depth": "Show levels down to",
+        "groups": {
+            "labels": "Labels",
+            "numbers": "Numbers & tags",
+            "timing": "Timing"
+        },
+        "fields": {
+            "levelName": "Level name (Mahadasha, Antardasha…)",
+            "ownNumbers": "House numbers",
+            "nakshatraNumbers": "Nakshatra lord's numbers",
+            "conjunctionNumbers": "Conjunction numbers",
+            "planetTags": "Planet tags (uchcha, pushkara…)",
+            "dates": "Start — end dates",
+            "age": "Age",
+            "duration": "Duration"
+        },
+        "shownCount": "{shown} of {total} shown"
+    },
     "tableColumns": {
         "button": "Columns",
         "buttonAria": "Configure {table} columns",
         "title": "{table} — columns",
         "appliesToAll": "applies to every horoscope",
+        "savedOnDevice": "saved in this browser",
+        "phoneLayout": "Phone layout",
         "listAria": "Columns — drag or use the arrows to reorder",
         "alwaysShown": "Always shown",
         "notAvailable": "No data here",

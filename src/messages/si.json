@@ -14,6 +14,7 @@
         "viewAll": "සියලුම කේන්දර බලන්න →"
     },
     "nav": {
+        "menu": "මෙනුව",
         "dashboard": "මුල් පිටුව",
         "addHoroscope": "කේන්දරයක් එක් කරන්න",
         "horoscopes": "කේන්දර",
@@ -61,6 +62,10 @@
         "public": "ප්‍රසිද්ධ",
         "showName": "නම පෙන්වන්න",
         "searchPlaceholder": "නම, උපන් දිනය, වර්ෂය හෝ ස්ථානය අනුව සොයන්න...",
+        "sortBy": "අනුපිළිවෙල",
+        "sortAsc": "ආරෝහණ",
+        "sortDesc": "අවරෝහණ",
+        "sectionsAria": "කේන්දර කොටස්",
         "searchNoResults": "ඔබේ සෙවුමට ගැළපෙන කේන්දර හමු නොවීය",
         "nav": {
             "prev": "පෙර",
@@ -646,6 +651,10 @@
             },
             "noDetails": "—",
             "comingSoon": "සටහන සහ වගු ඉක්මනින් එක් කෙරේ.",
+            "showTables": "වගු පෙන්වන්න",
+            "hideTables": "වගු සඟවන්න",
+            "mainChartsGroup": "ප්‍රධාන සටහන්",
+            "vargaChartsGroup": "වර්ග සටහන්",
             "vargas": {
                 "d1": {
                     "name": "රාශි",
@@ -2037,11 +2046,35 @@
             "planetFactor": "{factor} — {classification}"
         }
     },
+    "dashaDisplay": {
+        "button": "පෙන්වීම",
+        "buttonAria": "දශා පේළිවල පෙන්විය යුතු දේ තෝරන්න",
+        "title": "දශා — පෙන්වීම",
+        "depth": "පෙන්වන මට්ටම",
+        "groups": {
+            "labels": "ලේබල",
+            "numbers": "අංක සහ ටැග්",
+            "timing": "කාලය"
+        },
+        "fields": {
+            "levelName": "මට්ටමේ නම (මහා දශා, අන්තර් දශා…)",
+            "ownNumbers": "භාව අංක",
+            "nakshatraNumbers": "නක්ෂත්‍ර අධිපතිගේ අංක",
+            "conjunctionNumbers": "යුති අංක",
+            "planetTags": "ග්‍රහ ටැග් (උච්ච, පුෂ්කර…)",
+            "dates": "ආරම්භ — අවසාන දින",
+            "age": "වයස",
+            "duration": "කාලසීමාව"
+        },
+        "shownCount": "{total} න් {shown} ක් පෙන්වයි"
+    },
     "tableColumns": {
         "button": "තීරු",
         "buttonAria": "{table} තීරු සකසන්න",
         "title": "{table} — තීරු",
         "appliesToAll": "සියලු කේන්දර සඳහා අදාළ වේ",
+        "savedOnDevice": "මෙම බ්‍රවුසරයේ සුරැකේ",
+        "phoneLayout": "දුරකථන පිරිසැලසුම",
         "listAria": "තීරු — පිළිවෙල වෙනස් කිරීමට ඇදගෙන යන්න හෝ ඊතල භාවිත කරන්න",
         "alwaysShown": "සැමවිටම පෙන්වයි",
         "notAvailable": "මෙහි දත්ත නැත",

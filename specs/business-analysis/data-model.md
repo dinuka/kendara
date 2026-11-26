@@ -12,7 +12,7 @@
 | name | String | Display name |
 | role | Enum(student, super-admin) | System role |
 | preferredLanguage | Enum(si, en) | UI language (si=Sinhala, en=English) |
-| tablePreferences | JSON | Optional. Per-user column layouts of the Houses/Planets tables, applied to every horoscope: `{ charts: { houses, planets }, calculations: { houses, planets } }`, each an ordered array of `{ id, visible, options? }` (column ids/options per `src/lib/tableColumns.ts`). Absent → defaults (Charts tab: compact columns; Calculations tab: full columns) |
+| tablePreferences | JSON | Optional. Per-user column layouts of the Houses/Planets tables, applied to every horoscope: `{ charts: { houses, planets }, calculations: { houses, planets }, mobile?: { charts: {…}, calculations: {…} } }`, each an ordered array of `{ id, visible, options? }` (column ids/options per `src/lib/tableColumns.ts`). Top-level views are the desktop layouts; `mobile` holds separate layouts used below 640px. Optional `dasha: { desktop, mobile }` holds the Dasha tab's row display settings, each `{ fields: { levelName, ownNumbers, nakshatraNumbers, conjunctionNumbers, planetTags, dates, age, duration: boolean }, depth: 1–5 }` (per `src/lib/dashaDisplay.ts`; depth 1 = Mahadasha only … 5 = down to Prana). Absent → defaults (Charts tab: compact columns; Calculations tab: full columns; phone: a few essential columns per table; Dasha: everything on desktop, house numbers + dates + duration on phones) |
 | planetaryOrbs | JSON | DEPRECATED — legacy per-user Planetary Orbs setting (`Record<string, number>` keyed by numeric Planet enum string, e.g., `"1": 15`). No longer read for calculations; the system-wide `AstrologySettings.planetaryOrbs` is the source of truth (see [AstrologySettings](#astrologysettings)). Existing values are ignored |
 | planetAspects | JSON | DEPRECATED — legacy per-user "Planets Aspects houses and degrees" (දෘෂ්ඨි) setting (see [PlanetAspects (System Setting)](#planetaspects-system-setting)). No longer read; existing values are ignored |
 | rashiAspects | JSON | DEPRECATED — legacy per-user "Rashi Aspects" (රාශි දෘෂ්ඨි) setting (see [RashiAspects (System Setting)](#rashiaspects-system-setting)). No longer read; existing values are ignored |
@@ -899,6 +899,8 @@ Computed (and persisted) probable birth ranges derived from Ravi's and Shani's p
 | 3 | Vidasa | Antardasha | Days–Weeks |
 | 4 | Sukshama | Vidasa | Days |
 | 5 | Prana (optional) | Sukshama | Hours |
+
+Stored trees are calculated to depth 4, so `prana` is normally an empty array and `currentPeriod.pranaLord` is `null` (depth 5 would multiply the tree by 9). The UI derives Prana periods on demand from each Sukshama with the same Vimshottari rule (`src/lib/pranaDasha.ts`); a stored non-empty `prana` list is used as-is.
 
 **Date range rules:**
 - Every period at every level must have both `startDate` and `endDate` in ISO date (or ISO datetime for Prana) format

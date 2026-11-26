@@ -36,6 +36,13 @@ import type { PlanetAspectsMap } from "@/lib/planetAspects";
 import type { RashiAspectsSetting } from "@/lib/rashiAspects";
 import { computeShadBalaya, deriveDay } from "@/lib/shadBalaya";
 import { computeSubaAsuba } from "@/lib/subaAsuba";
+import {
+    TOTAL_VIMSHOTTARI_YEARS,
+    VIMSHOTTARI_CYCLE,
+    getCyclePlanets,
+    getPlanetYears,
+    getStartPlanetIndex,
+} from "@/lib/vimshottari";
 import { computeWargaKendara } from "@/lib/wargaKendara";
 import { YOGA_DOSHA_VERSION, buildChartFacts, computeYogaDoshas } from "@/lib/yogaDosha";
 
@@ -95,32 +102,6 @@ const NAKSHATRA_NAMES: string[] = [
     "Uttara Bhadrapada",
     "Revati",
 ];
-
-const VIMSHOTTARI_CYCLE: { planet: number; years: number }[] = [
-    { planet: 9, years: 7 },
-    { planet: 6, years: 20 },
-    { planet: 1, years: 6 },
-    { planet: 2, years: 10 },
-    { planet: 3, years: 7 },
-    { planet: 8, years: 18 },
-    { planet: 5, years: 16 },
-    { planet: 7, years: 19 },
-    { planet: 4, years: 17 },
-];
-
-const PLANET_TO_CYCLE_INDEX: Record<number, number> = {
-    9: 0,
-    6: 1,
-    1: 2,
-    2: 3,
-    3: 4,
-    8: 5,
-    5: 6,
-    7: 7,
-    4: 8,
-};
-
-const TOTAL_VIMSHOTTARI_YEARS = 120;
 
 const AYANAMSHA_MAP: Record<string, number> = {
     lahari: 1,
@@ -822,23 +803,6 @@ function toISODatetime(date: Date): string {
 function yearsBetween(from: Date, to: Date): number {
     const diffMs = to.getTime() - from.getTime();
     return +(diffMs / (365.25 * 24 * 60 * 60 * 1000)).toFixed(4);
-}
-
-function getStartPlanetIndex(planet: number): number {
-    return PLANET_TO_CYCLE_INDEX[planet] ?? 0;
-}
-
-function getPlanetYears(planet: number): number {
-    const entry = VIMSHOTTARI_CYCLE.find((e) => e.planet === planet);
-    return entry?.years ?? 0;
-}
-
-function getCyclePlanets(startIndex: number, count: number): number[] {
-    const result: number[] = [];
-    for (let i = 0; i < count; i++) {
-        result.push(VIMSHOTTARI_CYCLE[(startIndex + i) % 9].planet);
-    }
-    return result;
 }
 
 function fractionToDays(fractionOfYear: number): number {
