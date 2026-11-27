@@ -983,7 +983,10 @@ Super Admin manages all horoscopes and users.
 | Nav: Search | Search | සොයන්න |
 | Nav: Saved Filters | Saved Filters | සුරැකුම් පෙරහන් |
 | Nav: Settings | Settings | සැකසුම් |
+| Nav: Locations | Locations | ස්ථාන |
 | Nav: Admin | Admin | පරිපාලක |
+| Nav: Add Location | Add Location | ස්ථානයක් එකතු කරන්න |
+| Nav: Edit Location | Edit Location | ස්ථානය සංස්කරණය |
 | Button: Save | Save | සුරකින්න |
 | Button: Cancel | Cancel | අවලංගු |
 | Button: Delete | Delete | මකන්න |
@@ -995,8 +998,32 @@ Super Admin manages all horoscopes and users.
 | Status: Public | Public | පොදු |
 | Status: Private | Private | පුද්ගලික |
 | Error: Not found | Not found | සොයාගත නොහැක |
-| Loading: Calculating | Calculating... | ගණනය කරමින්... |
+| Loading: Calculating | Calculating... | ගණනය කරමින් |
+| Loading: Locating | Locating... | ස්ථානගත කරමින්... |
+| Loading: Validating CSV | Validating... | වලංගු කරමින්... |
+| Loading: Saving location | Saving location... | ස්ථානය සුරකිමින්... |
 | Success: Saved | Saved successfully | සාර්ථකව සුරැකිණි |
+| Status: Location | Location | ස්ථානය |
+| Field: Latitude | Latitude | අක්ෂාංශ |
+| Field: Longitude | Longitude | දේශාංශ |
+| Field: Location Name | Location Name | ස්ථානයේ නම |
+| Toggle: Public | Public | පොදු |
+| Toggle: Private | Private | පුද්ගලික |
+| Action: Add Location | Add Location | ස්ථානයක් එකතු කරන්න |
+| Action: Edit Location | Edit | සංස්කරණය |
+| Action: Delete Location | Delete | මකන්න |
+| Action: Search Locations | Search locations... | ස්ථාන සොයන්න... |
+| Action: Paste CSV | Paste CSV | CSV පාඨය අලවන්න |
+| Action: Search by name | Search by name | නමෙන් සොයන්න |
+| Hint: CSV format | Enter latitude,longitude (e.g., 6.9271,79.8612) | අක්ෂාංශ,දේශාංශ ඇතුළත් කරන්න (උදා: 6.9271,79.8612) |
+| Empty: No locations | No saved locations yet. Add your first one! | තවම සුරැකි ස්ථාන නැත. ඔබේ පළමු ස්ථානය එකතු කරන්න! |
+| Badge: Public | Public | පොදු |
+| Badge: Private | Private | පුද්ගලික |
+| Group: Public Locations | Public Locations | පොදු ස්ථාන |
+| Group: My Locations | My Locations | මගේ ස්ථාන |
+| Option: Add new location | + Add new location... | + නව ස්ථානයක් එකතු කරන්න... |
+| Confirm: Delete location | Delete this location? | මෙම ස්ථානය මකන්නද? |
+| Confirm: Delete body | This action cannot be undone. Horoscopes using this location will keep their current data. | මෙම ක්‍රියාව ආපසු හැරවිය නොහැක. මෙම ස්ථානය භාවිතා කරන ලග්නවල දත්ත එලෙසම පවතී. |
 
 ---
 

@@ -1,6 +1,7 @@
 "use client";
 
-import { LocationInput } from "@/components/LocationInput";
+import LocationPicker from "@/components/LocationPicker";
+import PrivacyToggle from "@/components/PrivacyToggle";
 import { useI18n } from "@/hooks/useI18n";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
@@ -11,23 +12,33 @@ export default function NewHoroscopePage() {
     const router = useRouter();
     const { t } = useI18n();
     const [loading, setLoading] = useState(false);
+    const [birthDate, setBirthDate] = useState("");
     const [lat, setLat] = useState("");
     const [lng, setLng] = useState("");
-    const [locationLabel, setLocationLabel] = useState("");
+    const [locationName, setLocationName] = useState("");
+    const [locationId, setLocationId] = useState<string | null>(null);
+    const [isPublic, setIsPublic] = useState(false);
+    const [displayName, setDisplayName] = useState(true);
 
     if (status === "unauthenticated") {
         router.push("/signin");
         return null;
     }
 
-    const handleLocationSelect = (latitude: number, longitude: number, label: string) => {
-        setLat(latitude.toString());
-        setLng(longitude.toString());
-        setLocationLabel(label);
-    };
-
-    const handleLocationQuery = (value: string) => {
-        setLocationLabel(value);
+    const handleLocationChange = (
+        location: { id: string; name: string; latitude: number; longitude: number } | null,
+    ) => {
+        if (location) {
+            setLocationId(location.id);
+            setLocationName(location.name);
+            setLat(location.latitude.toString());
+            setLng(location.longitude.toString());
+        } else {
+            setLocationId(null);
+            setLocationName("");
+            setLat("");
+            setLng("");
+        }
     };
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -37,15 +48,16 @@ export default function NewHoroscopePage() {
         const form = new FormData(e.currentTarget);
         const data = {
             name: form.get("name"),
-            birthDate: form.get("birthDate"),
+            birthDate,
             birthTime: form.get("birthTime"),
-            location: locationLabel,
+            location: locationId ? { id: locationId } : null,
+            locationName: locationName,
             latitude: parseFloat(lat) || 0,
             longitude: parseFloat(lng) || 0,
             gender: form.get("gender"),
             ayanamsha: form.get("ayanamsha") || "lahiri",
-            isPublic: form.get("isPublic") === "true",
-            displayName: true,
+            isPublic,
+            displayName,
         };
 
         try {
@@ -68,7 +80,7 @@ export default function NewHoroscopePage() {
 
     return (
         <div className="max-w-2xl mx-auto">
-            <h1 className="text-2xl font-bold mb-6">{t("horoscope.add")}</h1>
+            <h1 className="text-2xl font-bold mb-6">{t("horoscope.addBirth")}</h1>
 
             <form onSubmit={handleSubmit} className="bg-white rounded-lg shadow-sm border p-6 space-y-4">
                 <div>
@@ -76,13 +88,15 @@ export default function NewHoroscopePage() {
                     <input name="name" required className="w-full border rounded px-3 py-2 text-sm" />
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                         <label className="block text-sm font-medium mb-1">{t("horoscope.birthDate")}</label>
                         <input
-                            name="birthDate"
                             type="date"
+                            value={birthDate}
+                            onChange={(e) => setBirthDate(e.target.value)}
                             required
+                            lang="sv"
                             className="w-full border rounded px-3 py-2 text-sm"
                         />
                     </div>
@@ -98,18 +112,48 @@ export default function NewHoroscopePage() {
                 </div>
 
                 <div>
-                    <label className="block text-sm font-medium mb-1">{t("horoscope.location")}</label>
-                    <LocationInput
-                        onSelect={handleLocationSelect}
-                        lat={lat}
-                        lng={lng}
-                        onLatChange={setLat}
-                        onLngChange={setLng}
-                        onQueryChange={handleLocationQuery}
-                    />
+                    <LocationPicker selectedLocationId={locationId} onChange={handleLocationChange} />
+
+                    {locationId && (
+                        <div className="mt-3 space-y-2">
+                            <div>
+                                <label className="block text-sm font-medium mb-1">
+                                    {t("location_picker.cached_name")}
+                                </label>
+                                <input
+                                    value={locationName}
+                                    onChange={(e) => setLocationName(e.target.value)}
+                                    className="w-full border rounded px-3 py-2 text-sm"
+                                />
+                            </div>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-sm font-medium mb-1">{t("horoscope.latitude")}</label>
+                                    <input
+                                        type="number"
+                                        step="any"
+                                        value={lat}
+                                        onChange={(e) => setLat(e.target.value)}
+                                        className="w-full border rounded px-3 py-2 text-sm"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium mb-1">{t("horoscope.longitude")}</label>
+                                    <input
+                                        type="number"
+                                        step="any"
+                                        value={lng}
+                                        onChange={(e) => setLng(e.target.value)}
+                                        className="w-full border rounded px-3 py-2 text-sm"
+                                    />
+                                </div>
+                            </div>
+                            <p className="text-xs text-gray-400">{t("location_picker.override_hint")}</p>
+                        </div>
+                    )}
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                         <label className="block text-sm font-medium mb-1">{t("horoscope.gender")}</label>
                         <select name="gender" required className="w-full border rounded px-3 py-2 text-sm">
@@ -129,12 +173,17 @@ export default function NewHoroscopePage() {
                     </div>
                 </div>
 
-                <div className="flex items-center gap-4">
-                    <label className="flex items-center gap-2 text-sm">
-                        <input name="isPublic" type="checkbox" value="true" />
-                        {t("horoscope.public")}
-                    </label>
-                </div>
+                <PrivacyToggle
+                    isPublic={isPublic}
+                    displayName={displayName}
+                    onChange={(settings) => {
+                        if (settings.isPublic !== undefined) setIsPublic(settings.isPublic);
+                        if (settings.displayName !== undefined) setDisplayName(settings.displayName);
+                    }}
+                    saving={false}
+                    error={null}
+                    context="create"
+                />
 
                 <button
                     type="submit"

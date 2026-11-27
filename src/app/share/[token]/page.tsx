@@ -4,11 +4,12 @@ import { useI18n } from "@/hooks/useI18n";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 
+import { formatDate } from "@/lib/date";
 import Link from "next/link";
 
 export default function SharedHoroscopePage() {
     const params = useParams();
-    const { t, locale } = useI18n();
+    const { t } = useI18n();
     const [data, setData] = useState<Record<string, unknown> | null>(null);
     const [error, setError] = useState("");
     const [loading, setLoading] = useState(true);
@@ -48,8 +49,7 @@ export default function SharedHoroscopePage() {
 
             <h1 className="text-2xl font-bold mb-2">{horoscope.name as string}</h1>
             <p className="text-sm text-gray-500 mb-6">
-                {horoscope.birthDate ? new Date(horoscope.birthDate as string).toLocaleDateString() : ""} |{" "}
-                {horoscope.location as string}
+                {formatDate(horoscope.birthDate as string)} | {horoscope.location as string}
             </p>
 
             <Link href="/" className="text-indigo-600 hover:underline text-sm">

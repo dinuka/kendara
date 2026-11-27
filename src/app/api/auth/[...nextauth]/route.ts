@@ -1,8 +1,10 @@
 import NextAuth, { AuthOptions } from "next-auth";
+import FacebookProvider from "next-auth/providers/facebook";
 import GoogleProvider from "next-auth/providers/google";
 
 import { User } from "@/models/User";
 
+import { resolveSsoUser } from "@/lib/authUser";
 import { connectDB } from "@/lib/db";
 import logger from "@/lib/logger";
 
@@ -12,25 +14,20 @@ export const authOptions: AuthOptions = {
             clientId: process.env.GOOGLE_CLIENT_ID!,
             clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
         }),
+        FacebookProvider({
+            clientId: process.env.FACEBOOK_CLIENT_ID!,
+            clientSecret: process.env.FACEBOOK_CLIENT_SECRET!,
+        }),
     ],
     callbacks: {
-        async signIn({ profile }) {
-            if (!profile?.email) return false;
-            await connectDB();
-            const existing = await User.findOne({ googleId: profile.sub });
-            if (!existing) {
-                logger.info("creating new user: email=%s", profile.email);
-                await User.create({
-                    googleId: profile.sub,
-                    email: profile.email,
-                    name: profile.name,
-                    role: "student",
-                    preferredLanguage: "si",
-                });
-            } else {
-                logger.debug("existing user signed in: email=%s", profile.email);
-            }
-            return true;
+        async signIn({ account, user }) {
+            if (!account) return false;
+            return resolveSsoUser({
+                provider: account.provider,
+                providerAccountId: account.providerAccountId,
+                email: user.email,
+                name: user.name,
+            });
         },
         async session({ session }) {
             await connectDB();

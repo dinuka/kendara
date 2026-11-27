@@ -1,0 +1,278 @@
+import type { CalculationResult } from "@/lib/astrology";
+import {
+    NAKSHATRA_LABELS_EN,
+    NAKSHATRA_LABELS_SI,
+    PLANET_LABELS_EN,
+    PLANET_LABELS_SI,
+    STRENGTH_DISPLAY_EN,
+    STRENGTH_DISPLAY_SI,
+    THITHI_LABELS_EN,
+    THITHI_LABELS_SI,
+    ZODIAC_SIGN_LABELS_EN,
+    ZODIAC_SIGN_LABELS_SI,
+} from "@/lib/astrologyEnums";
+import { resolveLagnaBhavaSuchika, resolvePlanetBhavaSuchika } from "@/lib/bhavaSuchika";
+import { BHAVA_SUCHIKA_NAMES_EN, BHAVA_SUCHIKA_NAMES_SI } from "@/lib/search/vocabulary";
+import { catalogNameFor } from "@/lib/yogaDosha/catalog";
+
+/** Dual-read display name for yoga/dosha entries: v1 evaluations carry a catalog id; legacy
+ *  entries carry a display string on `.name` (US-YD-011 — legacy snapshots without an id are
+ *  skipped by the id branch and fall back to `.name`). Only PRESENT entries are listed — v1
+ *  evaluations mark absence explicitly (`isPresent: false`), while legacy snapshots predate the
+ *  flag and were stored as the yogas that actually formed, so absence of the field means listed. */
+const yogaDoshaDisplayNames = (
+    entries: ReadonlyArray<{ id?: unknown; name?: unknown; isPresent?: boolean; classification?: unknown }>,
+    locale: "en" | "si",
+): string[] =>
+    entries
+        .filter((entry) => entry.isPresent !== false)
+        .map((entry) => {
+            if (typeof entry.id === "string") {
+                const classification = typeof entry.classification === "string" ? entry.classification : undefined;
+                const name = catalogNameFor(entry.id, locale, classification);
+                if (name) return name;
+            }
+            return typeof entry.name === "string" ? entry.name : "";
+        })
+        .filter(Boolean);
+
+// Bhava Suchika (භාව සුචික) sentences share the persistence rules with the render path (stored
+// value wins; corrupt stored → skip; absent → pure-function fallback; manual charts without entered
+// Navamsa data → no sentence, since Navamsa is never derived from birth-sign positions).
+const bhavaSuchikaParts = (
+    calc: CalculationResult,
+    names: Record<string, number>,
+    lagnaLabel: string,
+    suchikaLabel: string,
+    planetLabels: Record<number, string>,
+): string[] => {
+    const parts: string[] = [];
+    // The name maps are keyed by display name → value (1..12); invert for the sentence.
+    const nameOfValue = (value: number): string => Object.keys(names).find((k) => names[k] === value) ?? String(value);
+
+    const lagnaValue = resolveLagnaBhavaSuchika(calc);
+    if (lagnaValue !== undefined) {
+        parts.push(`${lagnaLabel} ${suchikaLabel}: ${nameOfValue(lagnaValue)} (${lagnaValue}).`);
+    }
+
+    for (const p of calc.planets) {
+        const value = resolvePlanetBhavaSuchika(calc, p.name);
+        if (value !== undefined) {
+            parts.push(
+                `${planetLabels[p.name] || `Planet ${p.name}`} ${suchikaLabel}: ${nameOfValue(value)} (${value}).`,
+            );
+        }
+    }
+
+    return parts;
+};
+
+const textPartsEn = (calc: CalculationResult): string[] => {
+    const parts: string[] = [];
+
+    const ascSign = ZODIAC_SIGN_LABELS_EN[calc.ascendant.sign] || `Sign ${calc.ascendant.sign}`;
+    parts.push(`Ascendant: ${ascSign}.`);
+
+    for (const p of calc.planets) {
+        const pName = PLANET_LABELS_EN[p.name] || `Planet ${p.name}`;
+        const pSign = ZODIAC_SIGN_LABELS_EN[p.sign] || `Sign ${p.sign}`;
+        const strength = STRENGTH_DISPLAY_EN[p.strength] || p.strength;
+        parts.push(`${pName} is in ${pSign} in house ${p.house}. Strength: ${strength}.`);
+        if (p.retrograde) parts.push(`${pName} is retrograde.`);
+        if (p.combustion) parts.push(`${pName} is combust.`);
+    }
+
+    const moonNak =
+        NAKSHATRA_LABELS_EN[calc.nakshatra.moonNakshatra.id] || `Nakshatra ${calc.nakshatra.moonNakshatra.id}`;
+    parts.push(`Moon nakshatra: ${moonNak}, pada ${calc.nakshatra.moonNakshatra.pada}.`);
+
+    const ascNak =
+        NAKSHATRA_LABELS_EN[calc.nakshatra.ascendantNakshatra.id] ||
+        `Nakshatra ${calc.nakshatra.ascendantNakshatra.id}`;
+    parts.push(`Ascendant nakshatra: ${ascNak}, pada ${calc.nakshatra.ascendantNakshatra.pada}.`);
+
+    const thithiName = THITHI_LABELS_EN[calc.thithi] || `Thithi ${calc.thithi}`;
+    parts.push(`Thithi: ${thithiName} (${calc.thithi}).`);
+
+    const houseLords = calc.houses.map((h) => {
+        const lordName = PLANET_LABELS_EN[h.lord] || `Planet ${h.lord}`;
+        return `House ${h.houseNumber} lord: ${lordName}`;
+    });
+    parts.push(houseLords.join(". "));
+
+    if (calc.dashas.mahadasha.length > 0) {
+        const dashaSeq = calc.dashas.mahadasha.map((m) => {
+            const lord = PLANET_LABELS_EN[m.planet] || `Planet ${m.planet}`;
+            return `${lord} (${m.startDate} - ${m.endDate})`;
+        });
+        parts.push(`Mahadasha sequence: ${dashaSeq.join(", ")}.`);
+    }
+
+    if (calc.yogas.some((y) => y.isPresent !== false)) {
+        const yogaNames = yogaDoshaDisplayNames(calc.yogas, "en");
+        if (yogaNames.length > 0) {
+            parts.push(`Yogas: ${yogaNames.join(", ")}.`);
+        } else {
+            parts.push(`${calc.yogas.filter((y) => y.isPresent !== false).length} yoga formations present.`);
+        }
+    }
+
+    if (calc.doshas.doshas?.length > 0) {
+        const presentDoshas = yogaDoshaDisplayNames(
+            calc.doshas.doshas.filter((d) => d.isPresent !== false),
+            "en",
+        );
+        if (presentDoshas.length > 0) {
+            parts.push(`Doshas: ${presentDoshas.join(", ")}.`);
+        } else {
+            parts.push("No doshas present.");
+        }
+    }
+
+    parts.push(`Atmakaraka: ${PLANET_LABELS_EN[calc.atmakaraka] || `Planet ${calc.atmakaraka}`}.`);
+    parts.push(
+        calc.maranakaraka.length > 0
+            ? `Maranakaraka: ${calc.maranakaraka.map((p) => PLANET_LABELS_EN[p] || `Planet ${p}`).join(", ")}.`
+            : "No Maranakaraka.",
+    );
+    // Legacy CalculatedDetails docs predate the yogakaraka field, so guard the read.
+    parts.push(
+        (calc.yogakaraka?.length ?? 0) > 0
+            ? `Yogakaraka: ${(calc.yogakaraka ?? []).map((p) => PLANET_LABELS_EN[p] || `Planet ${p}`).join(", ")}.`
+            : "No Yogakaraka.",
+    );
+    parts.push(`Badhaka planets: ${calc.badhakaPlanet.map((p) => PLANET_LABELS_EN[p] || `Planet ${p}`).join(", ")}.`);
+    parts.push(`Maraka planets: ${calc.marakaPlanets.map((p) => PLANET_LABELS_EN[p] || `Planet ${p}`).join(", ")}.`);
+    parts.push(
+        `Nidhanamsha planets: ${calc.nidhanamshaPlanets.map((p) => PLANET_LABELS_EN[p] || `Planet ${p}`).join(", ")}.`,
+    );
+    parts.push(
+        `Ashtamansha planets: ${calc.ashtamanshaPlanets.map((p) => PLANET_LABELS_EN[p] || `Planet ${p}`).join(", ")}.`,
+    );
+    parts.push(
+        `Wargoththama planets: ${calc.wargoththamaPlanets.map((p) => PLANET_LABELS_EN[p] || `Planet ${p}`).join(", ")}.`,
+    );
+    parts.push(
+        `Gandanta planets: ${calc.gandanthaPlanets.map((p) => PLANET_LABELS_EN[p] || `Planet ${p}`).join(", ")}.`,
+    );
+    parts.push(
+        `Gandamula planets: ${calc.gandamulaPlanets.map((p) => PLANET_LABELS_EN[p] || `Planet ${p}`).join(", ")}.`,
+    );
+    parts.push(
+        `Pushkara planets: ${calc.pushkaraPlanets.map((p) => PLANET_LABELS_EN[p] || `Planet ${p}`).join(", ")}.`,
+    );
+    parts.push(`22nd Drekkana lord: ${PLANET_LABELS_EN[calc.lord22ndDrekkana] || `Planet ${calc.lord22ndDrekkana}`}.`);
+    parts.push(`64th Navamsa lord: ${PLANET_LABELS_EN[calc.lord64thNavamsa] || `Planet ${calc.lord64thNavamsa}`}.`);
+    parts.push(...bhavaSuchikaParts(calc, BHAVA_SUCHIKA_NAMES_EN, "Lagna", "Bhava Suchika", PLANET_LABELS_EN));
+
+    return parts;
+};
+
+const textPartsSi = (calc: CalculationResult): string[] => {
+    const parts: string[] = [];
+
+    const ascSign = ZODIAC_SIGN_LABELS_SI[calc.ascendant.sign] || `Sign ${calc.ascendant.sign}`;
+    parts.push(`ලග්නය: ${ascSign}.`);
+
+    for (const p of calc.planets) {
+        const pName = PLANET_LABELS_SI[p.name] || `Planet ${p.name}`;
+        const pSign = ZODIAC_SIGN_LABELS_SI[p.sign] || `Sign ${p.sign}`;
+        const strength = STRENGTH_DISPLAY_SI[p.strength] || p.strength;
+        parts.push(`${pName} ${pSign} රාශියේ ${p.house} වන භාවයේ. බලය: ${strength}.`);
+        if (p.retrograde) parts.push(`${pName} වක්‍රය.`);
+        if (p.combustion) parts.push(`${pName} දාහය.`);
+    }
+
+    const moonNak =
+        NAKSHATRA_LABELS_SI[calc.nakshatra.moonNakshatra.id] || `Nakshatra ${calc.nakshatra.moonNakshatra.id}`;
+    parts.push(`චන්ද්‍ර නක්ෂත්‍රය: ${moonNak}, පාද ${calc.nakshatra.moonNakshatra.pada}.`);
+
+    const ascNak =
+        NAKSHATRA_LABELS_SI[calc.nakshatra.ascendantNakshatra.id] ||
+        `Nakshatra ${calc.nakshatra.ascendantNakshatra.id}`;
+    parts.push(`ලග්න නක්ෂත්‍රය: ${ascNak}, පාද ${calc.nakshatra.ascendantNakshatra.pada}.`);
+
+    const thithiName = THITHI_LABELS_SI[calc.thithi] || `Thithi ${calc.thithi}`;
+    parts.push(`තිති: ${thithiName} (${calc.thithi}).`);
+
+    const houseLords = calc.houses.map((h) => {
+        const lordName = PLANET_LABELS_SI[h.lord] || `Planet ${h.lord}`;
+        return `${h.houseNumber} වන භාව අධිපති: ${lordName}`;
+    });
+    parts.push(houseLords.join(". "));
+
+    if (calc.dashas.mahadasha.length > 0) {
+        const dashaSeq = calc.dashas.mahadasha.map((m) => {
+            const lord = PLANET_LABELS_SI[m.planet] || `Planet ${m.planet}`;
+            return `${lord} (${m.startDate} - ${m.endDate})`;
+        });
+        parts.push(`මහා දශා අනුපිළිවෙළ: ${dashaSeq.join(", ")}.`);
+    }
+
+    if (calc.yogas.some((y) => y.isPresent !== false)) {
+        const yogaNames = yogaDoshaDisplayNames(calc.yogas, "si");
+        if (yogaNames.length > 0) {
+            parts.push(`යෝග: ${yogaNames.join(", ")}.`);
+        } else {
+            parts.push(`යෝග ${calc.yogas.filter((y) => y.isPresent !== false).length} ක් පවතී.`);
+        }
+    }
+
+    if (calc.doshas.doshas?.length > 0) {
+        const presentDoshas = yogaDoshaDisplayNames(
+            calc.doshas.doshas.filter((d) => d.isPresent !== false),
+            "si",
+        );
+        if (presentDoshas.length > 0) {
+            parts.push(`දෝෂ: ${presentDoshas.join(", ")}.`);
+        } else {
+            parts.push("දෝෂ නොමැත.");
+        }
+    }
+
+    parts.push(`ආත්මකාරක: ${PLANET_LABELS_SI[calc.atmakaraka] || `Planet ${calc.atmakaraka}`}.`);
+    parts.push(
+        calc.maranakaraka.length > 0
+            ? `මරණකාරක: ${calc.maranakaraka.map((p) => PLANET_LABELS_SI[p] || `Planet ${p}`).join(", ")}.`
+            : "මරණකාරක නැත.",
+    );
+    // Legacy CalculatedDetails docs predate the yogakaraka field, so guard the read.
+    parts.push(
+        (calc.yogakaraka?.length ?? 0) > 0
+            ? `යෝගකාරක: ${(calc.yogakaraka ?? []).map((p) => PLANET_LABELS_SI[p] || `Planet ${p}`).join(", ")}.`
+            : "යෝගකාරක නොමැත.",
+    );
+    parts.push(`බාධක ග්‍රහ: ${calc.badhakaPlanet.map((p) => PLANET_LABELS_SI[p] || `Planet ${p}`).join(", ")}.`);
+    parts.push(`මාරක ග්‍රහ: ${calc.marakaPlanets.map((p) => PLANET_LABELS_SI[p] || `Planet ${p}`).join(", ")}.`);
+    parts.push(
+        `නිධනාම්ශ ග්‍රහ: ${calc.nidhanamshaPlanets.map((p) => PLANET_LABELS_SI[p] || `Planet ${p}`).join(", ")}.`,
+    );
+    parts.push(
+        `අෂ්ඨමාංශ ග්‍රහ: ${calc.ashtamanshaPlanets.map((p) => PLANET_LABELS_SI[p] || `Planet ${p}`).join(", ")}.`,
+    );
+    parts.push(
+        `වර්ගෝත්තම ග්‍රහ: ${calc.wargoththamaPlanets.map((p) => PLANET_LABELS_SI[p] || `Planet ${p}`).join(", ")}.`,
+    );
+    parts.push(`ගණ්ඩාන්ත ග්‍රහ: ${calc.gandanthaPlanets.map((p) => PLANET_LABELS_SI[p] || `Planet ${p}`).join(", ")}.`);
+    parts.push(`ගණ්ඩමූල ග්‍රහ: ${calc.gandamulaPlanets.map((p) => PLANET_LABELS_SI[p] || `Planet ${p}`).join(", ")}.`);
+    parts.push(`පුෂ්කර ග්‍රහ: ${calc.pushkaraPlanets.map((p) => PLANET_LABELS_SI[p] || `Planet ${p}`).join(", ")}.`);
+    parts.push(
+        `22 වන ද්‍රැක්කාන අධිපති: ${PLANET_LABELS_SI[calc.lord22ndDrekkana] || `Planet ${calc.lord22ndDrekkana}`}.`,
+    );
+    parts.push(`64 වන නවාම්ශ අධිපති: ${PLANET_LABELS_SI[calc.lord64thNavamsa] || `Planet ${calc.lord64thNavamsa}`}.`);
+    parts.push(...bhavaSuchikaParts(calc, BHAVA_SUCHIKA_NAMES_SI, "ලග්න", "භාව සුචික", PLANET_LABELS_SI));
+
+    return parts;
+};
+
+export const generateTextContent = (calc: CalculationResult, language: "si" | "en"): string => {
+    const parts = language === "si" ? textPartsSi(calc) : textPartsEn(calc);
+    return parts.join(" ");
+};
+
+export const getTextForBothLanguages = (calc: CalculationResult): { si: string; en: string } => {
+    return {
+        si: generateTextContent(calc, "si"),
+        en: generateTextContent(calc, "en"),
+    };
+};

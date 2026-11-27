@@ -11,18 +11,107 @@
   - Mark own horoscopes as public or private
   - Generate share links for private horoscopes
   - Download horoscopes as PDF/image
-  - Configure visible chart sections
+  - Configure visible chart sections on search result items
+  - Configure which sections (charts, calculations, dashas) appear vertically within each search result card
+  - Collapse/expand individual search result items to compact or full detail view
   - Use system in Sinhala or English
+  - View all public locations
+  - View own private locations
+  - Add new locations with name suggestion via API and auto-populated Lat/Lon
+  - Add locations by pasting CSV-formatted Lat/Lon values
+  - Toggle own locations as public or private
+  - Edit/delete own locations
+  - Select from saved locations when adding horoscopes
+  - Override Lat/Lon values on horoscope after location selection
+  - View full dasha timeline showing Mahadasha, Antardasha, Vidasa, Sukshama, and Prana periods
+  - Expand/collapse dasha hierarchy with nested accordion UI
+  - View automatically expanded current active period at all dasha levels
+  - Toggle between birth and current planetary positions on the House chart
+  - View current planetary positions overlaid on the House chart
+  - Visually distinguish birth planets from current planets on charts
+  - Search horoscopes using natural language queries in Sinhala or English (RAG-based)
+  - Search by simple astrological phrases (ascendant, planetary condition, planet-in-house)
+  - Search by complex multi-condition queries in natural language
+  - Search by yoga-based queries (e.g., "පරිවර්තන යෝග තිබෙන")
+  - Search by career/life-domain queries (e.g., "රැකියාව ගුරු වෘත්තිය විය හැකි")
+  - View search results sorted by relevance score
+  - Paginate through search results
+  - Configure visible result sections (charts, calculations, strengths, aspects, etc.)
+  - Persist result configuration preferences per user account
+  - Save and name search queries for reuse
+  - View recent search history
+  - Bookmark individual search results for later reference
+  - Remove own bookmarks
+  - View own bookmarked horoscopes from a dedicated list
+  - Export search results (as CSV/JSON for off-platform analysis)
+  - Open horoscope detail from search result
+  - Create a horoscope from an already-calculated chart by entering the Lagna instead of birth details
+  - Enter planet placements manually into the derived 12-house table
+  - Enter an optional per-planet degree (0-30° within the planet's sign) when placing planets on a manual chart — the degree enables the full aspect logic (planet-to-planet aspects, the house-aspect degree arm, and the rashi-aspect degree+orb check) on the manual chart; a planet without an entered degree uses the engine's derived fallback degree
+  - Trigger validation of Budha (Mercury), Sikuru (Venus), and Rahu/Kethu placements against Ravi (Sun)
+  - View the derived planets table (Planet, Sign, Str, House, Conjunctions, Aspects, Other)
+  - Enter the Navamsa (D9) Lagna to view the Navamsa house table and enrich the planets table
+  - View derived probable birth ranges: birth time (from Ravi's house), birth month (from Ravi's sign), birth date candidates (from Ravi's degree range), and age ranges (from Shani's position)
+  - Save and manage manually-entered horoscopes with the existing search, share, metadata, and privacy features
+  - View the shared system astrology settings (Planetary Orbs, "Planets Aspects houses and degrees" (ප්ලැනට් ඇස්පෙක්ට්ස් හවුස් ඇන්ඩ් ඩිග්රීස්), "Rashi Aspects" (රාශි දෘෂ්ඨි)) read-only — these are system-wide values managed exclusively by Super Admin; students cannot configure or reset them
+  - View house aspects and planet aspects recomputed according to the system-wide aspect houses/degrees and Planetary Orbs — on both auto (birth-time) and manually-entered horoscopes
+  - View the "Rashi Aspects" (රාශි දෘෂ්ඨි) setting and its Chara/Thira/Ubaya rashi-aspect logic (Chara rashis look at Thira rashis, Thira rashis look at Chara rashis, Ubaya rashis look at Ubaya rashis, nearest rashi excluded) — system-wide and read-only
+  - View house aspects and planet aspects recomputed to include rashi drishti when the system-wide Rashi Aspects setting is enabled (a planet in a sign aspects the houses of the aspected rashis and the planets in those rashis) — on both auto (birth-time) and manually-entered horoscopes
+  - View all reasons for an aspect in the tooltip — the planetary drishti line and each rashi drishti line (multiple lines when an aspect has more than one reason)
+  - View the ෂඩ් බලය (Shad Bala) table in the calculations tab, listing all nine planets with their Sthana, Cheshta, Kala, Dig, Drishti, and Naisargika bala checkboxes plus the Anupatha ratio column
+  - Check/uncheck any bala checkbox on own horoscopes; the change auto-saves without a separate save action
+  - View the reason for each checked or unchecked bala in a tooltip (e.g. "Uchcha" for Sthana, "Because of conjunction with Shukla Chandra" for Kala) — in Sinhala or English
+  - Override any bala the system cannot calculate (e.g. Drishti bala on all horoscopes; Cheshta Uttarayana/planet-war states and Kala varga loads on manual horoscopes)
+  - Persist shad bala overrides so they survive the AstrologySettings full recalculation (never wiped by the recalculation job)
+  - View the Shad Bala table read-only (no checkboxes) on horoscopes owned by others or accessed via a share link
+  - View the භාව සුචික (Bhava Suchika) house-index value for the Lagna in the Lagna section, alongside the Wargoththama/Gandamula tags
+  - View each planet's භාව සුචික (Bhava Suchika) in a dedicated column of the planets table in the calculation tab
+  - View Bhava Suchika values read-only (no editing) on both auto and manual horoscopes; on manual horoscopes the values appear only when Navamsa data has been entered (the value is omitted otherwise)
+  - Search for horoscopes by Bhava Suchika (the Lagna's or a planet's house index, by name or number, in Sinhala or English) and see the values mirrored on the search result cards
+  - View each displayed Warga Kendara chart's main indication as tag chips directly beneath the chart caption (from the static varga catalog, in Sinhala or English) — per product decision 2026-08-15, no 16-varga reference table
+  - View the chart section of the horoscope detail page as warga tabs — Rāśi (D1), Navāṁśa (D9), Surya Lagna, Chandra Lagna (more varga tabs in later phases) — instead of the fixed "Birth & Navamsa" pair
+  - See Rāśi (D1) always selected on the chart section; by default Navāṁśa (D9) is the second selected chart; select any other available warga chart as the second chart (exactly two charts are displayed at once, as today)
+  - View the "Other charts" section showing only the House chart (the warga charts move into the tabs)
+  - View per-chart calculation tables beneath each displayed chart — Houses table (#, Sign, Planets, Aspects) and Planets table (Planet, Sign, Str, House, Conjunctions, Aspects, Other) — each table showing the data of its own chart (e.g. D1 Saturn | Capricorn | Own Sign vs D9 Saturn | Cancer | Enemy)
+  - View the Nakshatra (Pada) and Bhava Suchika columns only in the D1 planets table (these columns are omitted for other charts' tables)
+  - View Conjunctions and Aspects cells without degree differences
+  - View the twelve D1-only planet details — Wargoththama, Pushkara, Gandantha, Gandamula, 64th Navamsa Lord, 22nd Drekkana Lord, Cheshta Bala, Ashtamansha, Kala Bala, Atmakaraka, Combust, Badhaka — only in the D1 tables
+  - View Maraka, Maranakaraka and Dig Bala details calculated for every chart's tables (D1, D9, Surya Lagna, Chandra Lagna)
+  - View all Warga Kendara content read-only (no editing) on own, public and share-linked horoscopes
+  - Open the Student Notepad (ශිෂ්ය සටහන් පොත) popup on any viewable horoscope (own, public, share-linked) and move/resize it; the popup geometry persists per horoscope
+  - Select a single parent tag at a time — the 12 house purposes plus "Other" — and drill into that parent's sub-tags (house significations from the static house-purpose catalog)
+  - View system-generated observations for the selected sub-tag as color-coded tags (green = good, red = bad, white = neutral) with a per-section ratio `(green count/all count)`:
+    - The planets and details of each planet in the house (D1)
+    - House load, house load position, Nakshatra load of the house load, position of the Nakshatra load
+    - The planet(s) and details relevant to the sub-tag (planet significations)
+    - Chandra Lagna's related house and its house load, house load position and details (e.g. for Marriage check the 7th house of the Chandra chart)
+    - Surya Lagna's related house and its house load, house load position and details
+    - The related Warga Kendara and its data: warga lagna + load + position; the related house of the warga chart + load + position; the D1 load in the warga chart + position + details
+  - Add own observation tags (with a selectable color) to the current parent/sub-tag context; edit and delete own observation tags
+  - Add, edit and delete result notes based on all observations
+  - Persist the notepad per horoscope — popup geometry, own observation tags and result notes — privately (never visible to other students, public viewers or share-link recipients)
+  - View the Yoga tags and Dosha tags separated into two distinct groups on the single horoscope (detail) view — never a combined list (see `20260906-0707-yoga-dosha-tags.md`)
+  - View each present yoga's structured details: name (bilingual), why it is happening (the exact planetary conditions that form it — every satisfied rule), what its result is (house-specific themes, tendency language not predictions), and whether/how it is cancelled (cancellation rule + tradition provenance) — with mitigation shown as a distinct subsection
+  - View each present dosha's structured details: name, formation conditions, affected houses, severity, cancellation/mitigation — same depth as the yoga panel
+  - Expand/collapse per-yoga and per-dosha detail panels on the detail view
+  - Distinguish present / cancelled / not-present states on the yoga and dosha tags (e.g. strikethrough for cancelled, mirroring the Wargoththama tag pattern)
+  - View the Yoga/Dosha content read-only on own, public and share-linked horoscopes — no editing, no overrides
 - **Authentication**: Google SSO (auto-assigned)
 
 ## 2. Super Admin
+
 - **Description**: System administrator with full access to manage the platform.
 - **Goals**: Manage all horoscopes, manage users, ensure system integrity
 - **Permissions**:
   - View all horoscopes (public and private)
   - Update any horoscope
   - Delete public horoscopes
+  - View all locations (public and private)
+  - Delete any public location
   - Manage users (activate/deactivate, assign roles)
+  - View and update the three system-wide astrology settings (Planetary Orbs, "Planets Aspects houses and degrees", "Rashi Aspects")
+  - Trigger a full recalculation of ALL horoscopes' `CalculatedDetails` (both `source: "auto"` and `source: "manual"`) after a system settings change, and view the recalculation progress and result (success/failure counts)
+  - View the audit trail of astrology-settings changes and recalculation runs
   - Full system access
 - **Authentication**: Google SSO (manually assigned)
 
@@ -34,4 +123,60 @@
   - Calculate Planetary Strength, Aspects, Lords, Badhaka, Maraka, Atmakaraka, Yoga, Dosha
   - Generate Birth Chart, House Chart, Navamsa (D9), Drekkana (D3), Dasamsa (D10), Shodasha Vargas, Chandra Lagna, Surya Lagna
   - Process RAG-based search queries
-  - Geocode location to Lat/Lon
+  - Geocode location name to Lat/Lon via external API for location suggestions
+  - Calculate current planetary positions in real-time based on current date/time and ephemeris data
+  - Serve current planetary positions as overlay data for the House chart
+  - Generate and maintain vector embeddings for horoscope search indexing
+  - Parse natural language search queries into structured astrological conditions (via LLM)
+  - Convert parsed queries to vector embeddings for similarity search (via Transformers.js)
+  - Execute vector similarity search against Qdrant embedding index using HNSW
+  - Merge vector similarity results with MongoDB structured filters
+  - Rank and score search results by semantic relevance
+  - Rebuild/re-index search embeddings when horoscope data is updated
+  - Remove search embeddings when horoscope is set to private
+  - Generate embeddings when horoscope is set to public
+  - Manage embedding lifecycle asynchronously (queue-based background processing)
+  - Log search queries for analytics and system monitoring
+  - Derive the 12 house signs from an entered Lagna (whole-sign, mod-12)
+  - Validate manual planet placements (Budha, Sikuru, Rahu/Kethu rules against Ravi)
+  - Compute aspects (Drishti) and conjunctions from manual house placements using each planet's stored or derived fallback degree, so the full aspect logic (explicit-houses arm + degree arm, planet-to-planet aspects) applies to manual charts exactly as to auto charts
+  - Derive a deterministic fallback degree for manual-chart planets without an entered degree (navamsa segment midpoint when known, else sign midpoint 15°)
+  - Derive the planets table (Planet, Sign, Str, House, Conjunctions, Aspects, Other) including 22nd Drekkana Lord, 64th Navamsa Lord, and Atmakaraka
+  - Derive the Navamsa (D9) house table from an entered Navamsa Lagna
+  - Enrich the planets table with Navamsa, Navamsa Strength, Degree range, and Nakshatra (Pada)
+  - Derive probable birth time/month/date/age ranges from Ravi's and Shani's placements
+  - Calculate house aspects and planet aspects using the system-wide aspects setting degree values per planet
+  - Apply the system-wide Planetary Orbs values as the orb tolerance when calculating aspects
+  - Apply the fixed Chara/Thira/Ubaya rashi-aspect rules (Chara→Thira, Thira→Chara, Ubaya→Ubaya, nearest rashi excluded) as an additional source of house/planet aspects when the system-wide "Rashi Aspects" (රාශි දෘෂ්ඨි) setting is enabled
+  - Include rashi-drishti targets using the aspecting planet's degree and its system-wide planetary orbs value ("rashmi") as the orb tolerance, matching other aspect calculations
+  - Emit every reason for an aspect (planetary drishti and one line per rashi drishti) so the UI renders the tooltip as multiple lines
+  - Read the three astrology settings (Planetary Orbs, Planet Aspects, Rashi Aspects) from the single system-wide `AstrologySettings` document as the source of truth for ALL calculations (auto and manual); legacy per-user copies on the `User` document are ignored
+  - Run the bulk recalculation job when the system-wide astrology settings change: idempotent and resumable, processes all horoscopes in batches, tracks and reports progress with per-run success/failure counts, and never corrupts stored data on partial failure
+  - Compute the ෂඩ් බලය (Shad Bala) six strengths per planet for `source: "auto"` horoscopes and store them in `CalculatedDetails.shadbalaya` (see `20260813-1954-shadbalaya.md`)
+  - Sthana bala: grant unless the planet is in a Shatru (enemy sign) placement — whether alone or combined with Neecha (the Neecha+Shatru combination uses the dedicated `neecheShatru` reason); a Neecha placement in a non-enemy sign keeps the bala
+  - Cheshta bala: Ravi in Uttarayana; Moon in Shukla paksha; Kuja/Buda/Sikuru/Guru/Shani combined with a Shukla-paksha Chandra; any Vakra (retrograde) planet; and the winning planet of a planet war for 48 hours after the war
+  - Kala bala: any one condition suffices — Chandra/Kuja/Shani for a night birth; Ravi/Guru/Sikuru for a day birth (Ravi's day suppressed during Shukla); Budha/Guru/Sikuru/Rahu when Moon is in Shukla paksha; Kuja/Shani/Rahu when Moon is in Krushna paksha; plus planets carrying Hora/Panchama/Sukshama varga loads (auto horoscopes only)
+  - Dig bala: Guru/Budha in 1st house; Kuja/Ravi in 10th house; Chandra/Shukra in 4th house; Shani in 7th house (Rahu/Ketu have no Dig-bala mapping)
+  - Naisargika bala: grant to every planet except a Maranakaraka planet — the planet occupying its designated death house (Chandra in 8th, Rahu in 9th, Shani in 1st, Ravi in 5th, Shukra in 6th, Kuja in 7th, Budha in 4th, Guru in 3rd; lagna chart only, never D9; multiple planets can qualify — `computeMaranakaraka` in `src/lib/astrology.ts`)
+  - Drishti bala: NOT calculated — the checkbox is left unset for the student to set manually on every horoscope, for both sources
+  - Compose each bala's tooltip reason from i18n keys plus numeric enum fields (Planet/ZodiacSign/strength/house) — never store localized text
+  - Persist `shadbalaya` on `CalculatedDetails` and preserve per-bala `overridden` user toggles across the AstrologySettings recalculation job — an overridden value is never recomputed or overwritten, mirroring `manualHousePlacements`
+  - For `source: "manual"` horoscopes: use the sign-based Ravi rule (Makara/Kumba/Meena/Mesha/Wrushaba) instead of Uttarayana, skip the planet-war and varga-load conditions, and leave Drishti (and any other non-derivable bala) unset for the student
+  - Compute and persist the භාව සුචික (Bhava Suchika) house index — the house (1-12) that a point's Navamsa (D9) sign occupies in the Lagna (D1) chart — for the Lagna (using the sign of the 1st house of the Navamsa chart) and for each of the 9 planets (using the planet's Navamsa sign), on both `source: "auto"` and `source: "manual"` horoscopes; store on `CalculatedDetails` as `lagnaBhavaSuchika` + `bhavaSuchika` (see `20260814-2055-bhava-suchika.md`)
+  - Recompute `lagnaBhavaSuchika`/`bhavaSuchika` during the AstrologySettings full recalculation job like any other derived value — there are no user overrides for Bhava Suchika
+  - Make Bhava Suchika searchable in `/api/search` (Lagna + per-planet, by house-index name or number, bilingual) and include the values in the search text content (`src/lib/search/textContent.ts`) so vector search also matches; mirror the values on the search result cards (US-BS-008)
+  - Maintain the static Warga Kendara catalog — the 16 varga charts (D1–D60) with their D number, chart name and main indication — which supplies each displayed chart's main-indication tags; bilingual display data resolved via i18n, never stored per horoscope (see `20260815-1129-warga-kendara.md`)
+  - Provide chart data for each warga tab: phase 1 covers Rāśi (D1), Navāṁśa (D9), Surya Lagna and Chandra Lagna; the remaining vargas (D2–D60) are added in later phases once per-chart calculation guidance is provided
+  - Compute per-chart calculation tables (Houses: #/Sign/Planets/Aspects; Planets: Planet/Sign/Str/House/Conjunctions/Aspects/Other) for every displayed chart, using that chart's own signs, strengths and houses; Nakshatra (Pada) and Bhava Suchika columns only for D1; Conjunctions/Aspects rendered without degree differences
+  - Compute per-chart planet details: the twelve D1-only details (Wargoththama, Pushkara, Gandantha, Gandamula, 64th Navamsa Lord, 22nd Drekkana Lord, Cheshta Bala, Ashtamansha, Kala Bala, Atmakaraka, Combust, Badhaka) for D1; Maraka, Maranakaraka and Dig Bala for every chart
+  - Persist per-chart Warga Kendara data on `CalculatedDetails.wargaKendara` (see `20260815-1129-warga-kendara.md`) and recompute it during the AstrologySettings full recalculation job — no user overrides exist; provide a render-time pure-function fallback so legacy documents still render correct tables
+  - Maintain the static house-purpose catalog — the 13 notepad parent tags (12 houses, each with its Sanskrit name and main purpose/significations that supply the sub-tags, plus "Other") — bilingual display data resolved via i18n, never stored per horoscope (see `20260816-1543-student-notes.md`)
+  - Maintain the static planet-signification catalog (☉ Sun → self/soul/father…, ☽ Moon → mind/mother…, ♂ Mars → courage/strength…, ☿ Mercury → intelligence/speech…, ♃ Jupiter → wisdom/guru…, ♀ Venus → marriage/spouse…, ♄ Saturn → work/service…, ☊ Rahu → foreign matters…, ☋ Ketu → detachment/spirituality…) and the reverse sub-tag → relevant planet(s) mapping used by the sub-tag observation section
+  - Derive the Student Notepad system-observation payload for a selected parent tag/sub-tag from `CalculatedDetails` (both `source: "auto"` and `source: "manual"`, with a render-time fallback for legacy documents): planets in the house; house load + position; Nakshatra load of the house load + position; sub-tag-relevant planet significations; Chandra/Surya Lagna related house + load + position; the related Warga Kendara (warga lagna, related house, D1 load in the warga chart) + loads + positions + details — computed on-the-fly as pure functions at render time, never stored on the note document
+  - Classify each derived observation as good (green) / bad (red) / neutral (white) and compute each section's `(green count/all count)` ratio at render time
+  - Maintain the static Yoga/Dosha Rule Catalog — the registry of supported yogas and doshas with stable catalog IDs, `yoga`/`dosha` type, tradition/source labels, formation-rule metadata and bilingual display keys; entries are added incrementally one-by-one as the domain guides them, each addition being additive and non-breaking (see `20260906-0707-yoga-dosha-tags.md`)
+  - Evaluate every registered yoga/dosha against the horoscope's stored chart facts via a deterministic rule engine — structured formation output only (rules triggered, primary rule, strength, per-rule reasons with exact planetary conditions; equivalent reasons deduplicated), never a boolean
+  - Evaluate cancellation separately from mitigation per registered rule — each factor carries its rule ID, factor, planets/houses involved and tradition provenance; a mitigation factor never cancels a yoga/dosha unless the registered tradition explicitly defines it as cancellation; conflicting tradition rules are never silently combined
+  - Produce house-specific interpretation via the interpretation engine — theme/expression keys per affected house resolved via i18n at render time; tendency language only, never deterministic predictions
+  - Persist the structured `yogas` and `doshas` arrays on `CalculatedDetails` for **both** `source: "auto"` and `source: "manual"` horoscopes (manual evaluated from the entered `manualHousePlacements`); recompute them during the AstrologySettings full recalculation job like any other derived value — no user overrides
+  - Keep the existing search surfaces working with the new structured shape: resolve yoga/dosha names bilingual per locale in the search text content (`src/lib/search/textContent.ts`), keep `isPresent` filtering on the search result cards, route and export, and support specific yoga/dosha name queries (Sinhala + English) as catalog names join the search vocabulary

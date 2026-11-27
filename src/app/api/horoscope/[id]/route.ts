@@ -5,20 +5,26 @@ import { NextRequest, NextResponse } from "next/server";
 import { CalculatedDetails } from "@/models/CalculatedDetails";
 import { Chart } from "@/models/Chart";
 import { Horoscope } from "@/models/Horoscope";
+import { HoroscopeNote } from "@/models/HoroscopeNote";
 import { Metadata } from "@/models/Metadata";
 
+import { getCalculationSettings } from "@/lib/astrologySettings";
 import { calculateHoroscope } from "@/lib/calculation";
-import { generateChartSvg } from "@/lib/chartRenderer";
+import { deleteCharts, replaceCharts } from "@/lib/chartStorage";
 import { ALL_CHART_TYPES } from "@/lib/chartTypes";
 import { connectDB } from "@/lib/db";
-import { User } from "@/models/User";
+import { loadHoroscopeDetails } from "@/lib/horoscopeView";
 import logger from "@/lib/logger";
+import { revalidateHoroscope } from "@/lib/revalidate";
+import { canViewHoroscope, getAnonymousPlaceholder, visibleHoroscopeFilter } from "@/lib/privacy";
 
 const CALC_FIELDS = ["birthDate", "birthTime", "latitude", "longitude", "ayanamsha"];
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+    // Public horoscopes are readable by signed-out guests too, so the page can be shared by link.
     const session = await getServerSession(authOptions);
-    if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const userId = session?.user?.id;
+    const userRole = session?.user?.role;
 
     const { id } = await params;
     await connectDB();
@@ -26,15 +32,69 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     const horoscope = await Horoscope.findById(id).lean();
     if (!horoscope) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-    if (horoscope.owner.id !== session.user.id && !horoscope.isPublic) {
-        return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    if (!canViewHoroscope(horoscope, session?.user)) {
+        return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
 
-    const calculatedDetails = await CalculatedDetails.findOne({ "horoscope.id": id }).lean();
-    const charts = await Chart.find({ "horoscope.id": id }).lean();
-    const metadata = await Metadata.find({ "horoscope.id": id }).lean();
+    if (horoscope.owner.id !== userId && userRole !== "super-admin" && !horoscope.displayName) {
+        horoscope.name = getAnonymousPlaceholder(horoscope._id.toString());
+    }
 
-    return NextResponse.json({ horoscope, calculatedDetails, charts, metadata });
+    const accessibleFilter = visibleHoroscopeFilter(session?.user);
+
+    const sortBy = req.nextUrl.searchParams.get("sortBy") ?? "name";
+    const sortDir = req.nextUrl.searchParams.get("sortDir") === "desc" ? -1 : 1;
+    const locale = req.cookies.get("NEXT_LOCALE")?.value ?? "si";
+
+    let sort: Record<string, 1 | -1>;
+    let collation: { locale: string; strength: number } | undefined;
+
+    switch (sortBy) {
+        case "birthDate":
+            sort = { birthDate: sortDir };
+            break;
+        case "locationName":
+            sort = { locationName: sortDir };
+            collation = { locale, strength: 2 };
+            break;
+        case "isPublic":
+            sort = { isPublic: sortDir };
+            break;
+        default:
+            sort = { name: sortDir };
+            collation = { locale, strength: 2 };
+    }
+
+    let orderedQuery = Horoscope.find(accessibleFilter)
+        .select({ _id: 1, name: 1, isPublic: 1, displayName: 1, "owner.id": 1 })
+        .sort({ ...sort, createdAt: -1 });
+    if (collation) orderedQuery = orderedQuery.collation(collation);
+    const orderedHoroscopes = await orderedQuery.lean();
+
+    const toNavItem = (h: (typeof orderedHoroscopes)[number] | undefined) => {
+        if (!h) return null;
+        let name = h.name;
+        if (h.owner.id !== userId && userRole !== "super-admin" && !h.displayName) {
+            name = getAnonymousPlaceholder(h._id.toString());
+        }
+        return { id: h._id.toString(), name };
+    };
+
+    const currentIndex = orderedHoroscopes.findIndex((h) => h._id.toString() === id);
+    const navigation = {
+        prev: toNavItem(orderedHoroscopes[currentIndex - 1]),
+        next: toNavItem(orderedHoroscopes[currentIndex + 1]),
+        position: currentIndex === -1 ? 1 : currentIndex + 1,
+        total: orderedHoroscopes.length,
+    };
+
+    // Only owners and super admins see private metadata entries.
+    const { calculatedDetails, charts, metadata } = await loadHoroscopeDetails(horoscope, {
+        publicMetadataOnly: horoscope.owner.id !== userId && userRole !== "super-admin",
+    });
+    const { seo: _seo, ...horoscopeWithoutSeo } = horoscope;
+
+    return NextResponse.json({ horoscope: horoscopeWithoutSeo, calculatedDetails, charts, metadata, navigation });
 }
 
 export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -43,7 +103,8 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 
     const { id } = await params;
     await connectDB();
-    const body = await req.json();
+    // SEO data is admin-only (PUT /api/admin/horoscope/[id]/seo); ownership is never client-set
+    const { seo: _seo, owner: _owner, ...body } = await req.json();
 
     const horoscope = await Horoscope.findById(id);
     if (!horoscope) return NextResponse.json({ error: "Not found" }, { status: 404 });
@@ -52,46 +113,41 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
         return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    const needsRecalc = CALC_FIELDS.some(
-        (f) => body[f] !== undefined && String(body[f]) !== String((horoscope as any)[f]),
-    );
+    const isManual = (horoscope as any).source === "manual";
+    if (isManual) {
+        logger.info("manual horoscope update: skipping ephemeris recalculation id=%s", id);
+    }
+
+    if (body.location !== undefined) {
+        if (body.location && typeof body.location === "object" && body.location.id) {
+            body.location = { id: body.location.id };
+        } else if (typeof body.location === "string") {
+            body.locationName = body.location;
+            body.location = null;
+        }
+    }
+
+    const needsRecalc =
+        !isManual &&
+        CALC_FIELDS.some((f) => body[f] !== undefined && String(body[f]) !== String((horoscope as any)[f]));
 
     Object.assign(horoscope, body);
     await horoscope.save();
 
     if (needsRecalc) {
         logger.info("calculation fields changed, recalculating horoscope id=%s", id);
-        const user = await User.findOne({ googleId: session.user.id }).lean();
-        const planetaryOrbs = (user?.planetaryOrbs ?? {}) as Record<string, number>;
-        const calculated = calculateHoroscope(horoscope, planetaryOrbs);
+        const { planetaryOrbs, planetAspects, rashiAspects } = await getCalculationSettings();
+        const calculated = calculateHoroscope(horoscope, planetaryOrbs, planetAspects, rashiAspects);
 
         await CalculatedDetails.findOneAndUpdate({ "horoscope.id": id }, { ...calculated }, { upsert: true });
 
-        await Chart.deleteMany({ "horoscope.id": id });
-
-        const chartInput = {
-            houses: calculated.houses,
-            planets: calculated.planets,
-            ascendant: calculated.ascendant,
-        } as const;
-
-        const chartDocs = ALL_CHART_TYPES.map((type) => ({
-            horoscope: { id },
-            type,
-            data: chartInput,
-            imageKey: "",
-            svgData: generateChartSvg(
-                { planets: calculated.planets, houses: calculated.houses, ascendant: calculated.ascendant },
-                type,
-            ),
-        }));
-
-        await Chart.insertMany(chartDocs);
+        await replaceCharts(id, ALL_CHART_TYPES, () => calculated, { isManual: false });
         logger.info("recalculation complete for horoscope id=%s", id);
     } else {
         logger.info("no calculation fields changed, skipping recalculation for id=%s", id);
     }
 
+    revalidateHoroscope(id);
     return NextResponse.json(horoscope);
 }
 
@@ -116,8 +172,10 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
     }
 
     await CalculatedDetails.deleteOne({ "horoscope.id": id });
-    await Chart.deleteMany({ "horoscope.id": id });
+    await deleteCharts(id);
     await Metadata.deleteMany({ "horoscope.id": id });
+    await HoroscopeNote.deleteMany({ "horoscope.id": id });
 
+    revalidateHoroscope(id);
     return NextResponse.json({ success: true });
 }

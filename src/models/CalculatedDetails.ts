@@ -1,12 +1,70 @@
 import mongoose, { Document, Model, Schema } from "mongoose";
 
 import type { CalculationResult } from "@/lib/astrology";
+import type { DerivedRanges, ManualHousePlacements } from "@/lib/manualChart";
 
 export interface ICalculatedDetails extends Document, CalculationResult {
     id: string;
     horoscope: { id: string };
+    /** Present only for `source: "manual"` horoscopes — the entered house placements (single source of truth). */
+    manualHousePlacements?: ManualHousePlacements;
+    /** Present only for `source: "manual"` horoscopes — derived probable birth ranges. */
+    derivedRanges?: DerivedRanges;
     createdAt: Date;
 }
+
+const PranaSchema = new Schema({
+    planet: { type: Number, required: true },
+    startDate: { type: String },
+    endDate: { type: String },
+    durationHours: { type: Number, required: true },
+    startAge: { type: Number, required: true },
+});
+
+const SukshamaSchema = new Schema({
+    planet: { type: Number, required: true },
+    startDate: { type: String },
+    endDate: { type: String },
+    durationDays: { type: Number, required: true },
+    prana: { type: [PranaSchema], default: [] },
+    startAge: { type: Number, required: true },
+});
+
+const VidasaSchema = new Schema({
+    planet: { type: Number, required: true },
+    startDate: { type: String },
+    endDate: { type: String },
+    durationDays: { type: Number, required: true },
+    sukshama: { type: [SukshamaSchema], default: [] },
+    startAge: { type: Number, required: true },
+});
+
+const AntardashaSchema = new Schema({
+    planet: { type: Number, required: true },
+    startDate: { type: String },
+    endDate: { type: String },
+    durationMonths: { type: Number, required: true },
+    vidasa: { type: [VidasaSchema], default: [] },
+    startAge: { type: Number, required: true },
+});
+
+const MahadashaSchema = new Schema({
+    planet: { type: Number, required: true },
+    startDate: { type: String },
+    endDate: { type: String },
+    durationYears: { type: Number, required: true },
+    remainingYearsAtBirth: { type: Number, required: true },
+    antardasha: { type: [AntardashaSchema], default: [] },
+    startAge: { type: Number, required: true },
+});
+
+const CurrentPeriodSchema = new Schema({
+    mahadashaLord: { type: Number, required: true },
+    antardashaLord: { type: Number, required: true },
+    vidasaLord: { type: Number, default: null },
+    sukshamaLord: { type: Number, default: null },
+    pranaLord: { type: Number, default: null },
+});
 
 const CalculatedDetailsSchema = new Schema<ICalculatedDetails>({
     horoscope: {
@@ -16,14 +74,68 @@ const CalculatedDetailsSchema = new Schema<ICalculatedDetails>({
     houses: [{ type: Schema.Types.Mixed }],
     planets: [{ type: Schema.Types.Mixed }],
     nakshatra: { type: Schema.Types.Mixed },
-    dashas: { type: Schema.Types.Mixed },
+    thithi: Number,
+    panchaPakshi: Number,
+    dashas: {
+        mahadasha: { type: [MahadashaSchema], default: [] },
+        currentPeriod: { type: CurrentPeriodSchema, required: true },
+    },
     lord22ndDrekkana: Number,
+    lord22ndDrekkanaMoon: Number,
+    lord22ndDrekkanaSun: Number,
+    lord10thDrekkana: Number,
+    lord16thDrekkana: Number,
+    lord34thDrekkana: Number,
     lord64thNavamsa: Number,
+    /** Hora Lagna (src/lib/horaLagna.ts). Absent on legacy docs until recalculated, and on manual charts. */
+    horaLagna: { type: Schema.Types.Mixed },
+    /** Gulika Lagna (src/lib/gulikaLagna.ts). Absent on legacy docs until recalculated, and on manual charts. */
+    gulikaLagna: { type: Schema.Types.Mixed },
+    /** Pranapada Lagna (src/lib/pranapadaLagna.ts). Absent on legacy docs until recalculated, and on manual charts. */
+    pranapadaLagna: { type: Schema.Types.Mixed },
+    /** Nisheka Lagna and chart (src/lib/nishekaLagna.ts). Absent on legacy docs until recalculated, and on manual charts. */
+    nisheka: { type: Schema.Types.Mixed },
     badhakaPlanet: [Number],
     marakaPlanets: [Number],
+    nidhanamshaPlanets: [Number],
+    ashtamanshaPlanets: [Number],
+    isAscendantWargoththama: Boolean,
+    isAscendantGandantha: { type: Boolean, default: false },
+    isAscendantGandamula: { type: Boolean, default: false },
+    isAscendantPushkara: { type: Boolean, default: false },
+    wargoththamaPlanets: [Number],
+    gandanthaPlanets: [Number],
+    gandamulaPlanets: [Number],
+    pushkaraPlanets: [Number],
     atmakaraka: Number,
+    /** Maranakaraka planets (each planet in its designated death house; empty when none). Legacy
+     *  docs stored a single planet (`0` = none) — mongoose wraps scalars into an array; `0` is
+     *  dropped by normalizeMaranakaraka at read time. */
+    maranakaraka: [Number],
+    yogakaraka: [Number],
+    /** Bhava Suchika (භාව සුචික) of the Lagna point — the house (1-12) its Navamsa sign occupies in
+     *  the birth chart. Mixed (not Number) so manual-without-Navamsa docs stay absent, exactly like
+     *  `shadbalaya`. Legacy docs predate the field and are lazily recomputed at render. */
+    lagnaBhavaSuchika: { type: Schema.Types.Mixed },
+    /** Bhava Suchika (භාව සුචික) per planet, keyed by planet enum value ("1".."9"). See above. */
+    bhavaSuchika: { type: Schema.Types.Mixed },
+    shadbalaya: { type: Schema.Types.Mixed },
+    /** Warga Kendara (වර්ග කේනදර) — the D1/D9/Surya Lagna/Chandra Lagna per-chart tables. Mixed (not
+     *  a subdocument schema) because the shape is a derived snapshot. Legacy docs predate the field
+     *  and are lazily derived at render. */
+    wargaKendara: { type: Schema.Types.Mixed },
     yogas: [{ type: Schema.Types.Mixed }],
     doshas: { type: Schema.Types.Mixed },
+    /** Yoga/Dosha evaluation shape version (see src/lib/yogaDosha). Absent on legacy documents —
+     *  those are lazily resolved at render. Additive-only: bumping YOGA_DOSHA_VERSION equals a new
+     *  evaluation shape. */
+    yogaDoshaVersion: { type: Number },
+    /** Suba Asuba (සුබ අසුබ) — per-planet Naisargika benefic/malefic verdict keyed by planet enum
+     *  value ("1".."9"). Mixed (not a subdocument schema) because the shape is a derived snapshot.
+     *  Legacy docs predate the field and are lazily recomputed at render. */
+    subaAsuba: { type: Schema.Types.Mixed },
+    manualHousePlacements: { type: Schema.Types.Mixed },
+    derivedRanges: { type: Schema.Types.Mixed },
     createdAt: { type: Date, default: Date.now },
 });
 

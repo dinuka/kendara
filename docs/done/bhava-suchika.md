@@ -1,0 +1,21 @@
+# භාව සුචික නවාංශක ක්‍රමය
+
+- Should show in the Lagna section as the Wargoththama, Gandamula, etc...
+- Should show with each planet in the planet table in the calculation tab. Need new column for that.
+- How to calculate
+  - Need to check the Navansaka Rashi, then should find the house of that sign in the Lagna chart.
+    - If the house is
+      - 1 – ලග්නාංශකය
+      - 2 – ධනාංශකය
+      - 3 – වික්‍රමාංශකය
+      - 4 – සුඛාංශකය
+      - 5 – පූර්වපුන්‍යාංශකය
+      - 6 – ශෂ්ඨාංශකය
+      - 7 – සප්තමාංශකය
+      - 8 – නිධානාංශකය
+      - 9 – භාග්‍යාංශකය
+      - 10 – අභිමානාංශකය
+      - 11 - ලාභාංශකය
+      - 12 - ව්‍යාංශකය
+  - For Lagna need to check the sign of 1st house of Navansaka chart, then should find the house of that sign in the Lagna chart.
+  - For planets need to check the sign of that planet in, then should find the house of that sign in the Lagna chart.

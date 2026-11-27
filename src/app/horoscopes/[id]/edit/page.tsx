@@ -1,10 +1,12 @@
 "use client";
 
-import { LocationInput } from "@/components/LocationInput";
+import LocationPicker from "@/components/LocationPicker";
 import { useI18n } from "@/hooks/useI18n";
 import { useSession } from "next-auth/react";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+
+import { formatDate } from "@/lib/date";
 
 export default function EditHoroscopePage() {
     const { data: session, status } = useSession();
@@ -16,7 +18,8 @@ export default function EditHoroscopePage() {
     const [form, setForm] = useState<Record<string, string>>({});
     const [lat, setLat] = useState("");
     const [lng, setLng] = useState("");
-    const [locationLabel, setLocationLabel] = useState("");
+    const [locationName, setLocationName] = useState("");
+    const [locationId, setLocationId] = useState<string | null>(null);
 
     useEffect(() => {
         if (status === "unauthenticated") {
@@ -31,7 +34,7 @@ export default function EditHoroscopePage() {
                 const h = d.horoscope;
                 setForm({
                     name: h.name || "",
-                    birthDate: h.birthDate?.split("T")[0] || "",
+                    birthDate: formatDate(h.birthDate) || "",
                     birthTime: h.birthTime || "",
                     gender: h.gender || "male",
                     ayanamsha: h.ayanamsha || "lahiri",
@@ -39,19 +42,26 @@ export default function EditHoroscopePage() {
                 });
                 setLat(String(h.latitude ?? ""));
                 setLng(String(h.longitude ?? ""));
-                setLocationLabel(h.location || "");
+                setLocationName(h.locationName || "");
+                setLocationId(h.location?.id ?? null);
                 setLoading(false);
             });
     }, [status, params.id, router]);
 
-    const handleLocationSelect = (latitude: number, longitude: number, label: string) => {
-        setLat(latitude.toString());
-        setLng(longitude.toString());
-        setLocationLabel(label);
-    };
-
-    const handleLocationQuery = (value: string) => {
-        setLocationLabel(value);
+    const handleLocationChange = (
+        location: { id: string; name: string; latitude: number; longitude: number } | null,
+    ) => {
+        if (location) {
+            setLocationId(location.id);
+            setLocationName(location.name);
+            setLat(location.latitude.toString());
+            setLng(location.longitude.toString());
+        } else {
+            setLocationId(null);
+            setLocationName("");
+            setLat("");
+            setLng("");
+        }
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -63,7 +73,8 @@ export default function EditHoroscopePage() {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
                 ...form,
-                location: locationLabel,
+                location: locationId ? { id: locationId } : null,
+                locationName,
                 latitude: parseFloat(lat) || 0,
                 longitude: parseFloat(lng) || 0,
             }),
@@ -94,7 +105,7 @@ export default function EditHoroscopePage() {
                     />
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                         <label className="block text-sm font-medium mb-1">{t("horoscope.birthDate")}</label>
                         <input
@@ -102,6 +113,7 @@ export default function EditHoroscopePage() {
                             value={form.birthDate}
                             onChange={(e) => setForm({ ...form, birthDate: e.target.value })}
                             required
+                            lang="sv"
                             className="w-full border rounded px-3 py-2 text-sm"
                         />
                     </div>
@@ -118,19 +130,48 @@ export default function EditHoroscopePage() {
                 </div>
 
                 <div>
-                    <label className="block text-sm font-medium mb-1">{t("horoscope.location")}</label>
-                    <LocationInput
-                        onSelect={handleLocationSelect}
-                        lat={lat}
-                        lng={lng}
-                        onLatChange={setLat}
-                        onLngChange={setLng}
-                        initialValue={locationLabel}
-                        onQueryChange={handleLocationQuery}
-                    />
+                    <LocationPicker selectedLocationId={locationId} onChange={handleLocationChange} />
+
+                    {(locationId || locationName) && (
+                        <div className="mt-3 space-y-2">
+                            <div>
+                                <label className="block text-sm font-medium mb-1">
+                                    {t("location_picker.cached_name")}
+                                </label>
+                                <input
+                                    value={locationName}
+                                    onChange={(e) => setLocationName(e.target.value)}
+                                    className="w-full border rounded px-3 py-2 text-sm"
+                                />
+                            </div>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-sm font-medium mb-1">{t("horoscope.latitude")}</label>
+                                    <input
+                                        type="number"
+                                        step="any"
+                                        value={lat}
+                                        onChange={(e) => setLat(e.target.value)}
+                                        className="w-full border rounded px-3 py-2 text-sm"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium mb-1">{t("horoscope.longitude")}</label>
+                                    <input
+                                        type="number"
+                                        step="any"
+                                        value={lng}
+                                        onChange={(e) => setLng(e.target.value)}
+                                        className="w-full border rounded px-3 py-2 text-sm"
+                                    />
+                                </div>
+                            </div>
+                            <p className="text-xs text-gray-400">{t("location_picker.override_hint")}</p>
+                        </div>
+                    )}
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                         <label className="block text-sm font-medium mb-1">{t("horoscope.gender")}</label>
                         <select
