@@ -86,7 +86,6 @@
 ## Key Architecture Decisions
 
 ### 1. Offline-First Astrology Calculations
-
 - All ephemeris and astrological calculations run locally using **jyotish-calculations** (built on Swiss Ephemeris via swisseph)
 - No external astrology API calls — ensures privacy, zero cost, offline capability
 - Calculations run on the server during horoscope creation (Node.js/Next.js API routes)
@@ -393,7 +392,6 @@ User → Click "Login with Google" →
 ## API Route Design
 
 ### Authentication
-
 | Method | Route | Description |
 |--------|-------|-------------|
 | POST | /api/auth/signin | Google SSO sign-in |
@@ -465,7 +463,6 @@ User → Click "Login with Google" →
 | GET | /api/horoscope/:id/export/chart/:type | Export chart as image |
 
 ### Metadata
-
 | Method | Route | Description |
 |--------|-------|-------------|
 | GET | /api/horoscope/:id/metadata | Get metadata |
@@ -474,7 +471,6 @@ User → Click "Login with Google" →
 | DELETE | /api/horoscope/:id/metadata/:metaId | Delete metadata |
 
 ### Share
-
 | Method | Route | Description |
 |--------|-------|-------------|
 | POST | /api/horoscope/:id/share | Generate share link |
@@ -482,7 +478,6 @@ User → Click "Login with Google" →
 | GET | /api/share/:token | Access shared horoscope |
 
 ### Admin
-
 | Method | Route | Description |
 |--------|-------|-------------|
 | GET | /api/admin/horoscope | List all horoscopes |
@@ -503,7 +498,6 @@ User → Click "Login with Google" →
 ### MongoDB Collections
 
 **users**
-
 ```
 {
   id: UUID (string),
@@ -520,7 +514,6 @@ User → Click "Login with Google" →
 ```
 
 **horoscopes**
-
 ```
 {
   id: UUID (string),
@@ -543,7 +536,6 @@ User → Click "Login with Google" →
 ```
 
 **calculatedDetails**
-
 ```
 {
   id: UUID (string),
@@ -619,7 +611,6 @@ User → Click "Login with Google" →
 ```
 
 **charts**
-
 ```
 {
   id: UUID (string),
@@ -632,7 +623,6 @@ User → Click "Login with Google" →
 ```
 
 **metadata**
-
 ```
 {
   id: UUID (string),
@@ -647,7 +637,6 @@ User → Click "Login with Google" →
 ```
 
 **shareLinks**
-
 ```
 {
   id: UUID (string),

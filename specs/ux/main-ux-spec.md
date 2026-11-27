@@ -377,7 +377,6 @@ Settings → "Planets Aspects houses and degrees" section →
 | Wide | > 1440px | Extended sidebar, max-width content |
 
 ### Mobile Considerations
-
 - Sidebar collapses to bottom tab bar or hamburger menu
 - Chart views stack vertically
 - Config panel becomes a slide-up sheet

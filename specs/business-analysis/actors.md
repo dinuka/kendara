@@ -1,7 +1,6 @@
 # Actors
 
 ## 1. Student
-
 - **Description**: Primary user of the system. An astrology student who studies horoscopes.
 - **Goals**: Add and manage horoscopes, search and filter horoscopes for study, apply metadata/labels for research, share horoscopes
 - **Permissions**:
@@ -117,7 +116,6 @@
 - **Authentication**: Google SSO (manually assigned)
 
 ## 3. System (Background Services)
-
 - **Description**: Automated services that perform calculations and background tasks.
 - **Goals**: Calculate horoscope details, generate charts, process search queries
 - **Responsibilities**:
