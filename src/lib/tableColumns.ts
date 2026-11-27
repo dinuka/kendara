@@ -216,10 +216,10 @@ const DEFAULT_DESKTOP_LAYOUTS: ViewLayouts = {
     calculations: {
         houses: [
             col("number", true),
-            col("sign", false),
-            col("start", true),
-            col("mid", true),
-            col("end", true),
+            col("sign", true),
+            col("start", false),
+            col("mid", false),
+            col("end", false),
             col("planets", true),
             col("upagraha", true),
             col("aspects", true),
@@ -240,7 +240,7 @@ const DEFAULT_DESKTOP_LAYOUTS: ViewLayouts = {
             col("conjunctions", true),
             col("aspects", true),
             col("kendrasthana", true),
-            ...MAITRI_COLUMN_IDS.map((id) => col(id, true)),
+            ...MAITRI_COLUMN_IDS.map((id) => col(id, false)),
             col("other", true),
         ],
     },

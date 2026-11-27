@@ -4,6 +4,7 @@ import {
     DEFAULT_TABLE_PREFERENCES,
     type TableLayout,
     layoutsEqual,
+    MAITRI_COLUMN_IDS,
     moveColumn,
     normalizeTableLayout,
     normalizeTablePreferences,
@@ -29,12 +30,10 @@ describe("default layouts reproduce the historical tables", () => {
         ]);
     });
 
-    it("Calculations tab Houses: #, Start, Mid, End, Planets, Upagraha, Aspects, Kendrasthana, Other", () => {
+    it("Calculations tab Houses: #, Sign, Planets, Upagraha, Aspects, Kendrasthana, Other", () => {
         expect(ids(DEFAULT_TABLE_PREFERENCES.calculations.houses)).toEqual([
             "number",
-            "start",
-            "mid",
-            "end",
+            "sign",
             "planets",
             "upagraha",
             "aspects",
@@ -58,8 +57,10 @@ describe("default layouts reproduce the historical tables", () => {
         ]);
     });
 
-    it("Calculations tab Planets shows every column", () => {
-        expect(ids(DEFAULT_TABLE_PREFERENCES.calculations.planets)).toEqual(PLANET_IDS);
+    it("Calculations tab Planets shows every column except Graha Maitri", () => {
+        expect(ids(DEFAULT_TABLE_PREFERENCES.calculations.planets)).toEqual(
+            PLANET_IDS.filter((id) => !(MAITRI_COLUMN_IDS as readonly string[]).includes(id)),
+        );
     });
 
     it("value options differ per view as before", () => {
@@ -194,7 +195,7 @@ describe("layout editing helpers", () => {
 
     it("visibleColumns keeps order and skips columns the chart cannot fill", () => {
         const layout = DEFAULT_TABLE_PREFERENCES.calculations.houses;
-        expect(visibleColumns(layout, new Set(["number", "planets", "aspects", "sign"])).map((s) => s.id)).toEqual([
+        expect(visibleColumns(layout, new Set(["number", "planets", "aspects", "start"])).map((s) => s.id)).toEqual([
             "number",
             "planets",
             "aspects",
