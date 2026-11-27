@@ -11,8 +11,7 @@ const nextConfig: NextConfig = {
       "@xenova/transformers",
       "@qdrant/js-client-rest",
       "@resvg/resvg-js",
-  ],
-  allowedDevOrigins: ['192.168.8.103'],
+  ], 
   // Files read from disk at runtime aren't found by output tracing, so Vercel functions would ship
   // without them: the pre-compiled chart renderer (loaded with a runtime require), the rasterizer
   // fonts and the zodiac icons it inlines (public/ is served from the CDN, not the function), and the
