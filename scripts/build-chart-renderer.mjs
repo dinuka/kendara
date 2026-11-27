@@ -16,8 +16,11 @@ await build({
     target: "node20",
     jsx: "automatic",
     tsconfig: "tsconfig.json",
-    // resolved from node_modules at runtime: the regular (non react-server) React build + native resvg
-    external: ["react", "react-dom", "next-intl", "use-intl", "@resvg/resvg-js"],
+    // React + next-intl are bundled in (the regular, non react-server build) so the file is
+    // self-contained: on Vercel, files loaded with a runtime require aren't traced into the function,
+    // so nothing here may depend on node_modules except native resvg, which the app itself imports.
+    external: ["@resvg/resvg-js"],
+    define: { "process.env.NODE_ENV": '"production"' },
     logLevel: "warning",
 });
 

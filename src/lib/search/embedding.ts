@@ -10,6 +10,9 @@ type TransformersPipeline = (texts: string[]) => Promise<{ data: number[][] | Fl
 
 const loadPipeline = async (): Promise<boolean> => {
     if (pipelineLoaded && embedFn) return true;
+    // Embeddings are only consumed by Qdrant vector search. Without it (e.g. on Vercel, where
+    // Transformers.js is excluded from the function bundle) skip the model entirely.
+    if (!process.env.QDRANT_URL) return false;
 
     try {
         const { pipeline } = await import("@xenova/transformers");

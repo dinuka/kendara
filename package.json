@@ -2,6 +2,7 @@
   "name": "kendara",
   "version": "0.1.0",
   "private": true,
+  "packageManager": "pnpm@12.21.0",
   "scripts": {
     "dev": "pnpm build:chart-renderer && next dev",
     "build": "pnpm build:chart-renderer && next build",
@@ -13,7 +14,8 @@
     "seed-locations": "ts-node --transpile-only -P scripts/tsconfig.scripts.json -r tsconfig-paths/register scripts/seed-locations.ts",
     "sync-user-indexes": "ts-node --transpile-only -P scripts/tsconfig.scripts.json -r tsconfig-paths/register scripts/sync-user-indexes.ts",
     "recalculate-horoscopes": "pnpm build:chart-renderer && ts-node --transpile-only -P scripts/tsconfig.scripts.json -r tsconfig-paths/register -r ./scripts/load-env.js scripts/recalculate-horoscopes.ts",
-    "regenerate-chart-images": "pnpm build:chart-renderer && ts-node --transpile-only -P scripts/tsconfig.scripts.json -r tsconfig-paths/register -r ./scripts/load-env.js scripts/regenerate-chart-images.ts"
+    "regenerate-chart-images": "pnpm build:chart-renderer && ts-node --transpile-only -P scripts/tsconfig.scripts.json -r tsconfig-paths/register -r ./scripts/load-env.js scripts/regenerate-chart-images.ts",
+    "migrate-storage": "ts-node --transpile-only -P scripts/tsconfig.scripts.json -r ./scripts/load-env.js scripts/migrate-storage.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1177.0",

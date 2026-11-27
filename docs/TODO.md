@@ -3,13 +3,21 @@
 - Should calculate Rupa values for Shad bala
 - Should have setting per student, Then need to store calculated values per student.
 - Need to use semantic html everywhere
+- Need to implement life line 
+- The gochara should show the dhasha values
+
 
 ## Quick fixes
+
+- Should use the time zone changes in sri lanka.
+- Need to add google anayltics
+- Need to add help desk 
+- Need to use cache
 
 ### Manual calculated horoscope issues
 
 ### Calculation
-- Need to calculate 10, 16, 34 Derkanadipathi. It should same as the 22 Derkanadipathi. Need to show in the plants table as 10 දෙ.ධි, etc...
+
 ### search query
 
 ### Student notepad
