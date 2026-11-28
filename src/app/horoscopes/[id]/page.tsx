@@ -5,6 +5,7 @@ import { notFound, permanentRedirect } from "next/navigation";
 import { cache } from "react";
 
 import { ChartType } from "@/lib/chartTypes";
+import { computeNavamsaLagnaSign } from "@/lib/bhavaSuchika";
 import { formatDate } from "@/lib/date";
 import { type PublicHoroscopeView, findHoroscopeIdByAlias, getPublicHoroscopeView } from "@/lib/horoscopeView";
 import { CHART_IMAGE_SIZE, isObjectId, siteUrl } from "@/lib/seo";
@@ -25,22 +26,44 @@ const PRIVATE_METADATA: Metadata = { robots: { index: false, follow: false } };
 const describe = async (view: PublicHoroscopeView): Promise<{ title: string; description: string }> => {
     const t = await getTranslations();
     const { horoscope } = view.payload;
-    const details = view.payload.calculatedDetails as { ascendant?: { sign?: number } } | null;
+    const details = view.payload.calculatedDetails as {
+        ascendant?: { sign?: number; degree?: number };
+        nakshatra?: { moonNakshatra?: { id?: number; pada?: number } };
+        manualHousePlacements?: { navamsaLagna?: number };
+    } | null;
     const name = horoscope.name;
 
     const title = view.seo?.title || t("horoscope.seo.titleDefault", { name });
 
     if (view.seo?.description) return { title, description: view.seo.description };
 
-    const facts = [
-        horoscope.birthDate && t("horoscope.seo.descBirthDate", { date: formatDate(horoscope.birthDate) }),
-        horoscope.birthTime && t("horoscope.seo.descBirthTime", { time: horoscope.birthTime }),
-        horoscope.locationName && t("horoscope.seo.descBirthPlace", { place: horoscope.locationName }),
-        details?.ascendant?.sign &&
-            t("horoscope.seo.descLagna", { lagna: t(`astrology.signNames.${details.ascendant.sign}`) }),
+    const ascendant = details?.ascendant;
+    const navamsaLagna =
+        details?.manualHousePlacements?.navamsaLagna ??
+        (ascendant?.sign && typeof ascendant.degree === "number"
+            ? computeNavamsaLagnaSign(ascendant.sign, ascendant.degree)
+            : undefined);
+    const moon = details?.nakshatra?.moonNakshatra;
+
+    // e.g. "1974-04-08 08:57 Kandy. වෘෂභ ලග්නය මීන නවාංශකය සා නැකත 2 පාදය"
+    const birth = [
+        horoscope.birthDate && formatDate(horoscope.birthDate),
+        horoscope.birthTime,
+        horoscope.locationName,
     ].filter(Boolean);
-    const intro = t("horoscope.seo.descIntro", { name });
-    const description = `${intro}${facts.length ? `: ${facts.join(", ")}` : ""}. ${t("horoscope.seo.descTail")}`;
+    const chart = [
+        ascendant?.sign && t("horoscope.seo.descLagna", { lagna: t(`astrology.signNames.${ascendant.sign}`) }),
+        navamsaLagna && t("horoscope.seo.descNavamsa", { sign: t(`astrology.signNames.${navamsaLagna}`) }),
+        moon?.id &&
+            moon.pada &&
+            t("horoscope.seo.descNakshatra", {
+                nakshatra: t(`astrology.nakshatraNames.${moon.id}`),
+                pada: moon.pada,
+            }),
+    ].filter(Boolean);
+    const description =
+        [birth.join(" "), chart.join(" ")].filter(Boolean).join(". ") ||
+        t("horoscope.seo.descFallback", { name });
     return { title, description };
 };
 
