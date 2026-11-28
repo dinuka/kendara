@@ -8,7 +8,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 export default function NewHoroscopePage() {
-    const { data: session, status } = useSession();
+    const { status } = useSession();
     const router = useRouter();
     const { t } = useI18n();
     const [loading, setLoading] = useState(false);

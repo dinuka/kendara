@@ -7,7 +7,7 @@ import * as fs from "fs";
 import * as path from "path";
 
 import { navamsaSign } from "@/lib/astrology";
-import { Planet, PlanetaryStrength } from "@/lib/astrologyEnums";
+import { Planet } from "@/lib/astrologyEnums";
 import {
     computeBhavaSuchika,
     computeLagnaBhavaSuchika,
@@ -200,7 +200,6 @@ describe("Auto pipeline integration (UT-BS-051..054)", () => {
         expect(result.lagnaBhavaSuchika).toBe(computeLagnaBhavaSuchika(sign, computeNavamsaLagnaSign(sign, degree)));
     });
     test("UT-BS-054: Wargoththama planets on real data — value equals D1 house", () => {
-        const ascSign = result.ascendant.sign;
         for (const p of result.planets) {
             if (p.sign === p.navamsaSign) {
                 expect(result.bhavaSuchika?.[String(p.name)]).toBe(p.house);

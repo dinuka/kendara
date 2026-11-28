@@ -19,8 +19,6 @@ import {
     activeYogaEntries,
     catalogAliasesFor,
     catalogNameFor,
-    doshaCatalogEntry,
-    yogaCatalogEntry,
 } from "@/lib/yogaDosha/catalog";
 import {
     SIGN_LORDS,

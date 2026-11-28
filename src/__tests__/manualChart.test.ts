@@ -14,8 +14,6 @@ import {
     deriveAgeRanges,
     deriveBirthDateCandidates,
     deriveBirthDateRange,
-    deriveBirthMonthRange,
-    deriveBirthTimeRange,
     deriveHouseSigns,
     deriveNavamsaData,
     deriveNavamsaLagnaFromDegree,
@@ -731,7 +729,7 @@ describe("buildBhavaHouses", () => {
     test("W005 each bhava house spans 30 degrees centered on its middle (cusps = midAbs ± 15)", () => {
         const houses = buildBhavaHouses(1, 10);
         houses.forEach((h) => {
-            let start = (h.startSign - 1) * 30 + h.startDegree;
+            const start = (h.startSign - 1) * 30 + h.startDegree;
             let end = (h.endSign - 1) * 30 + h.endDegree;
             if (end <= start) end += 360;
             const mid = (h.middleSign - 1) * 30 + h.middleDegree;

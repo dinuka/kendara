@@ -25,7 +25,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     const calculatedDetails = await CalculatedDetails.findOne({ "horoscope.id": id }).lean();
     if (!calculatedDetails) return NextResponse.json({ error: "Horoscope not found" }, { status: 404 });
 
-    const dashas = (calculatedDetails as any).dashas;
+    const dashas = calculatedDetails.dashas;
     if (!dashas) return NextResponse.json({ error: "Dasha data not available" }, { status: 404 });
 
     logger.info("returning dasha data for horoscope id=%s", id);

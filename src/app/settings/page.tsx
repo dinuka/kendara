@@ -56,9 +56,8 @@ export default function SettingsPage() {
 
     const recalcRunning = adminDoc?.recalcStatus?.status === "running";
 
-    const loadDoc = useCallback(async () => {
-        setLoading(true);
-        setLoadError(false);
+    // State is only set after the first await, so the mount effect can run it directly.
+    const fetchDoc = useCallback(async () => {
         try {
             const res = await fetch(isAdmin ? "/api/admin/astrology-settings" : "/api/settings");
             if (!res.ok) throw new Error("load failed");
@@ -72,14 +71,22 @@ export default function SettingsPage() {
         }
     }, [isAdmin]);
 
+    const loadDoc = useCallback(async () => {
+        setLoading(true);
+        setLoadError(false);
+        await fetchDoc();
+    }, [fetchDoc]);
+
     useEffect(() => {
         if (status === "unauthenticated") {
             router.push("/signin");
             return;
         }
         if (status !== "authenticated") return;
-        void loadDoc();
-    }, [status, router, loadDoc]);
+        void (async () => {
+            await fetchDoc();
+        })();
+    }, [status, router, fetchDoc]);
 
     const baseline = useMemo(() => (adminDoc ? toValues(adminDoc) : null), [adminDoc]);
     const dirty = useMemo(() => !!(values && baseline && !deepEqual(values, baseline)), [values, baseline]);

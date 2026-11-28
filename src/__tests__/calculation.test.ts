@@ -5,6 +5,7 @@ import { computeAscendantSpecialFlags, computeMaranakaraka, computeYogakaraka, n
 import { calculateHoroscope } from "@/lib/calculation";
 import { SHADBALAYA_KEYS } from "@/lib/shadBalaya";
 import { YOGA_DOSHA_VERSION } from "@/lib/yogaDosha";
+import type { IHoroscope } from "@/models/Horoscope";
 
 describe("calculateHoroscope", () => {
     const baseData = {
@@ -19,7 +20,7 @@ describe("calculateHoroscope", () => {
         ayanamsha: "lahiri" as const,
         isPublic: false,
         owner: { id: "user-1" },
-    } as unknown as any;
+    } as unknown as IHoroscope;
 
     test("returns ascendant with sign and degree", () => {
         const result = calculateHoroscope(baseData);
@@ -262,7 +263,7 @@ describe("calculateHoroscope Wargoththama & Gandanta/Gandamula", () => {
         ayanamsha: "lahiri" as const,
         isPublic: false,
         owner: { id: "user-1" },
-    } as unknown as any;
+    } as unknown as IHoroscope;
 
     test("wargoththama flag is a boolean and wargoththama planets match sign==navamsa rule", () => {
         const result = calculateHoroscope(baseData);
@@ -366,7 +367,7 @@ describe("calculateHoroscope Yoga/Dosha tags (IT-YD-200..202)", () => {
         ayanamsha: "lahiri" as const,
         isPublic: false,
         owner: { id: "user-1" },
-    } as unknown as any;
+    } as unknown as IHoroscope;
 
     test("IT-YD-200: yogas array, doshas shape and version ride the CalculationResult (persisted shape)", () => {
         const result = calculateHoroscope(baseData);
@@ -428,6 +429,10 @@ describe("calculateHoroscope Yoga/Dosha tags (IT-YD-200..202)", () => {
             "sasha",
             "deeptaYoga",
             "dhanaYoga",
+            "neechaRajaYoga",
+            "mahaParivartana",
+            "khalaParivartana",
+            "dainyaParivartana",
         ]);
         expect(persisted.yogas[0].isPresent).toBe(true);
         expect(persisted.doshas.doshas[0].id).toBe("shaniMangala");

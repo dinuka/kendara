@@ -173,14 +173,14 @@ export const searchPoints = async (
             ],
         };
 
-        const result = await c.search(COLLECTION_NAME, {
-            vector: queryEmbedding,
+        const { points } = await c.query(COLLECTION_NAME, {
+            query: queryEmbedding,
             filter,
             limit,
             with_payload: true,
         });
 
-        return result.map((r) => ({
+        return points.map((r) => ({
             horoscopeId: (r.payload as QdrantPointPayload).horoscopeId,
             language: (r.payload as QdrantPointPayload).language,
             score: r.score || 0,

@@ -2,6 +2,7 @@ import { getServerSession } from "next-auth";
 
 import { CalculatedDetails } from "@/models/CalculatedDetails";
 import { Horoscope } from "@/models/Horoscope";
+import type { NextRequest } from "next/server";
 
 jest.mock("@/models/Horoscope", () => ({
     Horoscope: { findById: jest.fn() },
@@ -41,7 +42,7 @@ describe("PATCH /api/horoscope/[id]/shadbalaya", () => {
 
         const req = { json: jest.fn().mockResolvedValue(body) };
 
-        return PATCH(req as any, {
+        return PATCH(req as unknown as NextRequest, {
             params: Promise.resolve({ id: horoscopeId }),
         });
     }

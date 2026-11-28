@@ -18,9 +18,12 @@ export function NavDrawerProvider({ children }: { children: ReactNode }) {
     const pathname = usePathname();
     const toggle = useCallback(() => setOpen((o) => !o), []);
 
-    useEffect(() => {
+    // Close on navigation (state adjusted during render when the path changes).
+    const [prevPathname, setPrevPathname] = useState(pathname);
+    if (prevPathname !== pathname) {
+        setPrevPathname(pathname);
         setOpen(false);
-    }, [pathname]);
+    }
 
     useEffect(() => {
         if (!open) return;

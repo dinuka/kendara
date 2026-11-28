@@ -64,7 +64,7 @@ export default function DashboardPage() {
     const [deletingId, setDeletingId] = useState<string | null>(null);
     const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
     const [deleteError, setDeleteError] = useState<string | null>(null);
-    const [error, setError] = useState("");
+    const [loadFailed, setLoadFailed] = useState(false);
 
     useEffect(() => {
         if (status === "loading") return;
@@ -76,7 +76,10 @@ export default function DashboardPage() {
                 setHoroscopes(Array.isArray(data) ? data : []);
                 setLoading(false);
             })
-            .catch(() => setLoading(false));
+            .catch(() => {
+                setLoadFailed(true);
+                setLoading(false);
+            });
 
         fetch("/api/horoscope/stats")
             .then((r) => r.json())
@@ -170,9 +173,9 @@ export default function DashboardPage() {
                 />
             </div>
 
-            {error && (
+            {loadFailed && (
                 <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4" role="alert">
-                    <p className="text-red-700 text-sm">{error}</p>
+                    <p className="text-red-700 text-sm">{t("common.error")}</p>
                 </div>
             )}
 

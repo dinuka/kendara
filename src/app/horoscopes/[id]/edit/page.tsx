@@ -9,7 +9,7 @@ import { useEffect, useState } from "react";
 import { formatDate } from "@/lib/date";
 
 export default function EditHoroscopePage() {
-    const { data: session, status } = useSession();
+    const { status } = useSession();
     const router = useRouter();
     const params = useParams();
     const { t } = useI18n();

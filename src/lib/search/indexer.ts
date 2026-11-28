@@ -120,8 +120,6 @@ export const updateHoroscopeVisibility = async (horoscopeId: string, isPublic: b
         for (const emb of embeddings) {
             if (!qdrantReady) continue;
 
-            const pointId = `${horoscopeId}_${emb.language}`;
-
             if (emb.embedding.length > 0) {
                 await upsertPoint(horoscopeId, "", isPublic, emb.language as "si" | "en", emb.embedding);
             }

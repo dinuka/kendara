@@ -8,20 +8,10 @@
  * Sinhala strings for pending-domain themes stay English placeholders until confirmed (BI-YD-703).
  */
 import {
-    BhadraRuleId,
     DashaActivation,
-    DeeptaYogaRuleId,
-    DhanaYogaRuleId,
     DoshaId,
     DoshaRuleId,
-    HamsaRuleId,
-    KalaAmurthaRuleId,
-    KalaSarpaRuleId,
-    MalavyaRuleId,
     MitigationKey,
-    NeechaRajaYogaRuleId,
-    RuchakaRuleId,
-    SashaRuleId,
     Tradition,
     YogaId,
     YogaRuleId,

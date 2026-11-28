@@ -775,7 +775,7 @@ describe("Not-relevant tag exclusion (TODO #26)", () => {
         const base = resolveNotepadObservation(legacyNoWarga, 7, null);
         const section = sectionOf(base.sections, "planetsInHouse");
         expect(section.ratio).toEqual({ green: 1, total: 3 });
-        const [sunId, moonId, marsId] = section.tags.map((t) => observationTagId("planetsInHouse", t));
+        const [sunId, moonId] = section.tags.map((t) => observationTagId("planetsInHouse", t));
 
         const noMoon = resolveNotepadObservation(legacyNoWarga, 7, null, undefined, new Set([moonId]));
         expect(sectionOf(noMoon.sections, "planetsInHouse").ratio).toEqual({ green: 1, total: 2 });

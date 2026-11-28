@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { CalculatedDetails } from "@/models/CalculatedDetails";
 import { Chart } from "@/models/Chart";
 import { Horoscope } from "@/models/Horoscope";
+import type { NextRequest } from "next/server";
 
 jest.mock("@/models/Horoscope", () => ({
     Horoscope: { findById: jest.fn(), find: jest.fn() },
@@ -50,7 +51,7 @@ describe("search: a house lord placed in a house (e.g. 1 අධිපති 12, 
     const search = async (query: string) => {
         mockGetServerSession.mockResolvedValue({ user: { id: "owner-1", role: "student" } });
         const { POST } = await import("@/app/api/search/route");
-        const response = await POST({ json: jest.fn().mockResolvedValue({ query }) } as any);
+        const response = await POST({ json: jest.fn().mockResolvedValue({ query }) } as unknown as NextRequest);
         return response.json();
     };
 

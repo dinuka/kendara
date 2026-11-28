@@ -7,7 +7,6 @@ import { createPortal } from "react-dom";
 
 import {
     SHADBALAYA_KEYS,
-    type ShadBalaReason,
     type ShadBalaValue,
     type ShadBalaya,
     type ShadBalayaKey,

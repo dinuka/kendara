@@ -34,6 +34,21 @@ const SORT_LABEL_KEYS: Record<SortableColumn, string> = {
     isPublic: "horoscope.public",
 };
 
+function SortIcon({
+    column,
+    sortColumn,
+    sortDirection,
+}: {
+    column: SortableColumn;
+    sortColumn: SortableColumn;
+    sortDirection: "asc" | "desc";
+}) {
+    if (sortColumn !== column) {
+        return <span className="ml-1 text-gray-300">↕</span>;
+    }
+    return <span className="ml-1 text-indigo-600">{sortDirection === "asc" ? "▲" : "▼"}</span>;
+}
+
 /** `useSearchParams` needs a Suspense boundary for the static prerender. */
 export default function HoroscopesPage() {
     return (
@@ -53,15 +68,18 @@ function HoroscopesList() {
     const [deletingId, setDeletingId] = useState<string | null>(null);
     const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
     const [deleteError, setDeleteError] = useState<string | null>(null);
-    const [error, setError] = useState("");
+    const [loadFailed, setLoadFailed] = useState(false);
     const [sortColumn, setSortColumn] = useState<SortableColumn>("name");
     const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
     const [searchQuery, setSearchQuery] = useState(searchParams.get("q") ?? "");
 
     // The top-bar search lands here with `?q=` (guests have no search page).
-    useEffect(() => {
-        setSearchQuery(searchParams.get("q") ?? "");
-    }, [searchParams]);
+    const urlQuery = searchParams.get("q") ?? "";
+    const [prevUrlQuery, setPrevUrlQuery] = useState(urlQuery);
+    if (prevUrlQuery !== urlQuery) {
+        setPrevUrlQuery(urlQuery);
+        setSearchQuery(urlQuery);
+    }
 
     useEffect(() => {
         if (status === "loading") return;
@@ -73,7 +91,10 @@ function HoroscopesList() {
                 setHoroscopes(Array.isArray(data) ? data : []);
                 setLoading(false);
             })
-            .catch(() => setLoading(false));
+            .catch(() => {
+                setLoadFailed(true);
+                setLoading(false);
+            });
     }, [status]);
 
     useEffect(() => {
@@ -129,12 +150,6 @@ function HoroscopesList() {
         return sorted;
     }, [horoscopes, sortColumn, sortDirection, searchQuery]);
 
-    const SortIcon = ({ column }: { column: SortableColumn }) => {
-        if (sortColumn !== column) {
-            return <span className="ml-1 text-gray-300">↕</span>;
-        }
-        return <span className="ml-1 text-indigo-600">{sortDirection === "asc" ? "▲" : "▼"}</span>;
-    };
 
     if (status === "loading" || loading) {
         return <div className="text-center py-20 text-gray-500">{t("common.loading")}</div>;
@@ -200,9 +215,9 @@ function HoroscopesList() {
                 </div>
             )}
 
-            {error && (
+            {loadFailed && (
                 <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4" role="alert">
-                    <p className="text-red-700 text-sm">{error}</p>
+                    <p className="text-red-700 text-sm">{t("common.error")}</p>
                 </div>
             )}
 
@@ -288,28 +303,28 @@ function HoroscopesList() {
                                             onClick={() => handleSort("name")}
                                         >
                                             {t("horoscope.name")}
-                                            <SortIcon column="name" />
+                                            <SortIcon column="name" sortColumn={sortColumn} sortDirection={sortDirection} />
                                         </th>
                                         <th
                                             className="whitespace-nowrap text-left px-3 sm:px-4 py-2 font-medium text-gray-600 cursor-pointer select-none hover:text-indigo-600 transition-colors"
                                             onClick={() => handleSort("birthDate")}
                                         >
                                             {t("horoscope.birthDate")}
-                                            <SortIcon column="birthDate" />
+                                            <SortIcon column="birthDate" sortColumn={sortColumn} sortDirection={sortDirection} />
                                         </th>
                                         <th
                                             className="whitespace-nowrap text-left px-3 sm:px-4 py-2 font-medium text-gray-600 cursor-pointer select-none hover:text-indigo-600 transition-colors"
                                             onClick={() => handleSort("locationName")}
                                         >
                                             {t("horoscope.location")}
-                                            <SortIcon column="locationName" />
+                                            <SortIcon column="locationName" sortColumn={sortColumn} sortDirection={sortDirection} />
                                         </th>
                                         <th
                                             className="whitespace-nowrap text-center px-3 sm:px-4 py-2 font-medium text-gray-600 cursor-pointer select-none hover:text-indigo-600 transition-colors"
                                             onClick={() => handleSort("isPublic")}
                                         >
                                             {t("horoscope.public")}
-                                            <SortIcon column="isPublic" />
+                                            <SortIcon column="isPublic" sortColumn={sortColumn} sortDirection={sortDirection} />
                                         </th>
                                         <th className="px-4 py-2" />
                                     </tr>

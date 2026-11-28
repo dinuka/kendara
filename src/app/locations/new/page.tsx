@@ -13,7 +13,7 @@ interface Suggestion {
 }
 
 export default function NewLocationPage() {
-    const { data: session, status } = useSession();
+    const { status } = useSession();
     const router = useRouter();
     const { t } = useI18n();
 

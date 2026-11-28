@@ -23,7 +23,6 @@ export default function LocationsPage() {
     const { t } = useI18n();
 
     const [locations, setLocations] = useState<LocationItem[]>([]);
-    const [total, setTotal] = useState(0);
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
     const [search, setSearch] = useState("");
@@ -32,15 +31,13 @@ export default function LocationsPage() {
     const [deletingId, setDeletingId] = useState<string | null>(null);
     const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
 
-    if (status === "unauthenticated") {
-        router.push("/signin");
-        return null;
-    }
+    useEffect(() => {
+        if (status === "unauthenticated") router.push("/signin");
+    }, [status, router]);
 
-    const fetchLocations = useCallback(
+    // Only async state updates here, so it can run directly from an effect.
+    const loadLocations = useCallback(
         async (p: number, q?: string) => {
-            setLoading(true);
-            setError("");
             try {
                 const params = new URLSearchParams({ page: String(p), limit: "20" });
                 if (q) params.set("search", q);
@@ -48,7 +45,6 @@ export default function LocationsPage() {
                 if (!res.ok) throw new Error("Failed to load");
                 const data = await res.json();
                 setLocations(data.locations || []);
-                setTotal(data.total);
                 setPage(data.page);
                 setTotalPages(data.totalPages);
             } catch {
@@ -60,9 +56,17 @@ export default function LocationsPage() {
         [t],
     );
 
+    const fetchLocations = (p: number, q?: string) => {
+        setLoading(true);
+        setError("");
+        loadLocations(p, q);
+    };
+
     useEffect(() => {
-        fetchLocations(page, search);
-    }, []);
+        void (async () => {
+            await loadLocations(1, "");
+        })();
+    }, [loadLocations]);
 
     const handleSearch = (value: string) => {
         setSearch(value);
@@ -75,7 +79,6 @@ export default function LocationsPage() {
             const res = await fetch(`/api/location/${id}`, { method: "DELETE" });
             if (!res.ok) throw new Error("Delete failed");
             setLocations((prev) => prev.filter((l) => l.id !== id));
-            setTotal((prev) => prev - 1);
             setConfirmDelete(null);
         } catch {
             setError(t("locations.save_error"));
@@ -85,6 +88,8 @@ export default function LocationsPage() {
     };
 
     const isOwner = (loc: LocationItem) => loc.createdBy.id === session?.user?.id;
+
+    if (status === "unauthenticated") return null;
 
     if (loading) {
         return (

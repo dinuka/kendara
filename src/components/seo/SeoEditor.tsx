@@ -1,7 +1,7 @@
 "use client";
 
 import { useI18n } from "@/hooks/useI18n";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import type { KeyboardEvent } from "react";
 
 import { ChartType } from "@/lib/chartTypes";
@@ -18,6 +18,8 @@ interface SeoEditorProps {
     horoscopeId: string;
 }
 
+const noopSubscribe = () => () => {};
+
 const EMPTY: SeoState = { title: "", description: "", aliases: [], indexed: true };
 
 /** Super-admin editor for a horoscope's search-engine data: title/description overrides, alias
@@ -30,10 +32,14 @@ export default function SeoEditor({ horoscopeId }: SeoEditorProps) {
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
-    const [origin, setOrigin] = useState("");
+    // Empty on the server, the real origin once hydrated.
+    const origin = useSyncExternalStore(
+        noopSubscribe,
+        () => window.location.origin,
+        () => "",
+    );
 
     useEffect(() => {
-        setOrigin(window.location.origin);
         fetch(`/api/admin/horoscope/${horoscopeId}/seo`)
             .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
             .then((d) => {

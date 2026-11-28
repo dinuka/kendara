@@ -109,7 +109,18 @@ export default function Notepad({ horoscopeId, calculatedDetails }: NotepadProps
     const [resizing, setResizing] = useState<{ x: number; y: number } | null>(null);
     const [dragOffset, setDragOffset] = useState<{ dx: number; dy: number } | null>(null);
 
-    docRef.current = doc;
+    useEffect(() => {
+        docRef.current = doc;
+    }, [doc]);
+
+    // Reset to an empty, loading note when switching horoscopes (state adjusted
+    // during render rather than in the fetch effect, per React guidance).
+    const [loadedForId, setLoadedForId] = useState(horoscopeId);
+    if (loadedForId !== horoscopeId) {
+        setLoadedForId(horoscopeId);
+        setLoading(true);
+        setDoc(EMPTY_DOC);
+    }
 
     // --- persistence ---------------------------------------------------------
 
@@ -172,8 +183,6 @@ export default function Notepad({ horoscopeId, calculatedDetails }: NotepadProps
     useEffect(() => {
         let cancelled = false;
         horoscopeIdRef.current = horoscopeId;
-        setLoading(true);
-        setDoc(EMPTY_DOC);
         confirmedRef.current = EMPTY_DOC;
         dirtyRef.current = false;
         if (saveTimerRef.current) {

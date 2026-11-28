@@ -345,7 +345,6 @@ export function BirthChart({
                     id={`sign-mask-${sign}-${cx}-${cy}`}
                     maskUnits="userSpaceOnUse"
                     maskContentUnits="userSpaceOnUse"
-                    // eslint-disable-next-line react/no-unknown-property
                     mask-type="alpha"
                 >
                     <image
