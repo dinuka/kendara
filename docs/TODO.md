@@ -10,9 +10,9 @@
 ## Quick fixes
 
 - Should use the time zone changes in sri lanka.
-- Need to add google anayltics
-- Need to add help desk 
+- Need to add google anayltics 
 - Need to use cache
+- Need to share private horoscopes with giving permission, for specipic emails, or share for all with url, etc.... Other wise should show 403 page. 
 
 ### Manual calculated horoscope issues
 
