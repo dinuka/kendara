@@ -17,8 +17,8 @@ interface PageProps {
 /** One cached lookup per request, shared by generateMetadata and the page. */
 const loadView = cache((id: string) => getPublicHoroscopeView(id));
 
-const chartImageUrl = (id: string, type: ChartType, version: string | null): string =>
-    `${siteUrl()}/api/horoscope/${id}/chart/${type}/image${version ? `?v=${version}` : ""}`;
+const birthChartImageUrl = (id: string, version: string | null): string =>
+    `${siteUrl()}/api/horoscope/${id}/chart/${ChartType.BIRTH}/image${version ? `?v=${version}` : ""}`;
 
 const PRIVATE_METADATA: Metadata = { robots: { index: false, follow: false } };
 
@@ -78,14 +78,18 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     const { title, description } = await describe(view);
     const name = view.payload.horoscope.name;
     const canonical = `${siteUrl()}/horoscopes/${id}`;
-    // Facebook uses the first og:image as the primary preview — the birth chart, then the Navamsa
-    const images = view.images.map(({ type, version }) => ({
-        url: chartImageUrl(id, type, version),
-        width: CHART_IMAGE_SIZE,
-        height: CHART_IMAGE_SIZE,
-        type: "image/png",
-        alt: t(type === ChartType.BIRTH ? "horoscope.seo.imageAltBirth" : "horoscope.seo.imageAltNavamsa", { name }),
-    }));
+    // Only the birth chart: link-preview scrapers (Facebook, X, WhatsApp) show just the first og:image
+    const images = view.birthChartImage
+        ? [
+              {
+                  url: birthChartImageUrl(id, view.birthChartImage.version),
+                  width: CHART_IMAGE_SIZE,
+                  height: CHART_IMAGE_SIZE,
+                  type: "image/png",
+                  alt: t("horoscope.seo.imageAltBirth", { name }),
+              },
+          ]
+        : [];
     const indexed = view.seo?.indexed !== false;
 
     return {
@@ -131,7 +135,9 @@ const structuredData = async (id: string, view: PublicHoroscopeView, description
                 inLanguage: "si",
                 dateModified: horoscope.updatedAt,
                 ...(person ? { about: person } : {}),
-                primaryImageOfPage: view.images[0] && chartImageUrl(id, view.images[0].type, view.images[0].version),
+                primaryImageOfPage: view.birthChartImage
+                    ? birthChartImageUrl(id, view.birthChartImage.version)
+                    : undefined,
             },
             {
                 "@type": "BreadcrumbList",

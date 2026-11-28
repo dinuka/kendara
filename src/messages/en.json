@@ -126,7 +126,6 @@
             "descNakshatra": "{nakshatra} nakshatra pada {pada}",
             "descFallback": "{name}'s horoscope",
             "imageAltBirth": "{name} – birth chart (rashi)",
-            "imageAltNavamsa": "{name} – navamsa chart",
             "editorTitle": "Search engine & sharing",
             "editorHint": "Shown in Google results and in Facebook/WhatsApp link previews. Leave empty to use the generated text.",
             "title": "Title",

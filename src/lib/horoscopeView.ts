@@ -48,11 +48,6 @@ export const loadHoroscopeDetails = async (
     return { calculatedDetails, charts, metadata };
 };
 
-export interface ChartImageRef {
-    type: ChartType;
-    version: string | null;
-}
-
 export interface PublicHoroscopeView {
     /** The `/api/horoscope/[id]` payload as a guest sees it, normalised for the client view. */
     payload: Record<string, unknown> & {
@@ -68,12 +63,10 @@ export interface PublicHoroscopeView {
         };
     };
     seo: HoroscopeSeo | null;
-    /** Birth chart and Navamsa image versions, in og:image order. */
-    images: ChartImageRef[];
+    /** The stored birth chart PNG (the og:image), or null when it has not been rendered yet. */
+    birthChartImage: { version: string | null } | null;
     yogaCount: number;
 }
-
-const OG_IMAGE_TYPES = [ChartType.BIRTH, ChartType.NAVAMSA_D9];
 
 /** Navigation for a guest: the public horoscopes in the default (name) order. */
 const guestNavigation = async (id: string) => {
@@ -111,25 +104,28 @@ const loadPublicHoroscopeView = async (id: string): Promise<PublicHoroscopeView 
         JSON.parse(JSON.stringify({ horoscope: guestHoroscope, ...details, navigation })),
     );
 
-    const images = OG_IMAGE_TYPES.flatMap((type) => {
-        const chart = details.charts.find((c) => c.type === type);
-        return chart?.imageKey?.endsWith(".png") ? [{ type, version: chartImageVersion(chart.imageKey) }] : [];
-    });
+    const birthChart = details.charts.find((c) => c.type === ChartType.BIRTH);
+    const birthChartImage = birthChart?.imageKey?.endsWith(".png")
+        ? { version: chartImageVersion(birthChart.imageKey) }
+        : null;
     const yogas = (details.calculatedDetails as { yogas?: unknown[] } | null)?.yogas;
 
     return {
         payload,
         seo: seo ? JSON.parse(JSON.stringify(seo)) : null,
-        images,
+        birthChartImage,
         yogaCount: Array.isArray(yogas) ? yogas.length : 0,
     };
 };
 
 /** Cached guest view of a public horoscope; null when it is missing or private. Invalidated by
  *  `revalidateHoroscope` on every save, and daily so time-dependent ranges stay current. */
+/** Bump when the shape of `PublicHoroscopeView` changes, so entries cached in the old shape are not read. */
+const VIEW_CACHE_VERSION = "v2";
+
 export const getPublicHoroscopeView = (id: string): Promise<PublicHoroscopeView | null> => {
     if (!isObjectId(id)) return Promise.resolve(null);
-    return unstable_cache(() => loadPublicHoroscopeView(id), ["public-horoscope-view", id], {
+    return unstable_cache(() => loadPublicHoroscopeView(id), ["public-horoscope-view", VIEW_CACHE_VERSION, id], {
         tags: [horoscopeTag(id), HOROSCOPES_TAG],
         revalidate: 60 * 60 * 24,
     })();
