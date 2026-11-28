@@ -1,3 +1,4 @@
+import { HelpChat } from "@/components/HelpChat";
 import { Providers } from "@/components/Providers";
 import { Sidebar } from "@/components/Sidebar";
 import { TopBar } from "@/components/TopBar";
@@ -58,6 +59,7 @@ export default async function RootLayout({
                             </main>
                         </div>
                     </NextIntlClientProvider>
+                    <HelpChat />
                 </Providers>
             </body>
         </html>
