@@ -1,6 +1,7 @@
 "use client";
 
 import LocationPicker from "@/components/LocationPicker";
+import PrivacyToggle from "@/components/PrivacyToggle";
 import { useI18n } from "@/hooks/useI18n";
 import { useSession } from "next-auth/react";
 import { useParams, useRouter } from "next/navigation";
@@ -20,6 +21,8 @@ export default function EditHoroscopePage() {
     const [lng, setLng] = useState("");
     const [locationName, setLocationName] = useState("");
     const [locationId, setLocationId] = useState<string | null>(null);
+    const [isPublic, setIsPublic] = useState(false);
+    const [displayName, setDisplayName] = useState(true);
 
     useEffect(() => {
         if (status === "unauthenticated") {
@@ -38,8 +41,9 @@ export default function EditHoroscopePage() {
                     birthTime: h.birthTime || "",
                     gender: h.gender || "male",
                     ayanamsha: h.ayanamsha || "lahiri",
-                    isPublic: h.isPublic ? "true" : "false",
                 });
+                setIsPublic(!!h.isPublic);
+                setDisplayName(h.displayName ?? true);
                 setLat(String(h.latitude ?? ""));
                 setLng(String(h.longitude ?? ""));
                 setLocationName(h.locationName || "");
@@ -73,6 +77,8 @@ export default function EditHoroscopePage() {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
                 ...form,
+                isPublic,
+                displayName,
                 location: locationId ? { id: locationId } : null,
                 locationName,
                 latitude: parseFloat(lat) || 0,
@@ -199,16 +205,17 @@ export default function EditHoroscopePage() {
                     </div>
                 </div>
 
-                <div className="flex items-center gap-4">
-                    <label className="flex items-center gap-2 text-sm">
-                        <input
-                            type="checkbox"
-                            checked={form.isPublic === "true"}
-                            onChange={(e) => setForm({ ...form, isPublic: e.target.checked ? "true" : "false" })}
-                        />
-                        {t("horoscope.public")}
-                    </label>
-                </div>
+                <PrivacyToggle
+                    isPublic={isPublic}
+                    displayName={displayName}
+                    onChange={(settings) => {
+                        if (settings.isPublic !== undefined) setIsPublic(settings.isPublic);
+                        if (settings.displayName !== undefined) setDisplayName(settings.displayName);
+                    }}
+                    saving={false}
+                    error={null}
+                    context="create"
+                />
 
                 <button
                     type="submit"
