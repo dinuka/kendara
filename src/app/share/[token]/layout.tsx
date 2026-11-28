@@ -16,7 +16,7 @@ interface LayoutProps {
 }
 
 /** Share links expire and duplicate the horoscope page, so they are never indexed — but they still
- *  carry Open Graph tags so a pasted link previews with the birth chart and Navamsa images. */
+ *  carry Open Graph tags so a pasted link previews with the birth chart image. */
 export async function generateMetadata({ params }: LayoutProps): Promise<Metadata> {
     const { token } = await params;
     const robots = { index: false, follow: false };
@@ -31,27 +31,25 @@ export async function generateMetadata({ params }: LayoutProps): Promise<Metadat
     const t = await getTranslations();
     const name = anonymizeIfNeeded(horoscope).name;
     const title = t("horoscope.seo.titleDefault", { name });
-    const charts = await Chart.find(
-        { "horoscope.id": link.horoscope.id, type: { $in: [ChartType.BIRTH, ChartType.NAVAMSA_D9] } },
-        { imageKey: 1, type: 1 },
+    const chart = await Chart.findOne(
+        { "horoscope.id": link.horoscope.id, type: ChartType.BIRTH },
+        { imageKey: 1 },
     ).lean();
 
-    const images = [ChartType.BIRTH, ChartType.NAVAMSA_D9].flatMap((type) => {
-        const chart = charts.find((c) => c.type === type);
-        if (!chart?.imageKey?.endsWith(".png")) return [];
-        const version = chartImageVersion(chart.imageKey);
-        return [
-            {
-                url: `${siteUrl()}/api/share/${token}/chart/${type}/image${version ? `?v=${version}` : ""}`,
-                width: CHART_IMAGE_SIZE,
-                height: CHART_IMAGE_SIZE,
-                type: "image/png",
-                alt: t(type === ChartType.BIRTH ? "horoscope.seo.imageAltBirth" : "horoscope.seo.imageAltNavamsa", {
-                    name,
-                }),
-            },
-        ];
-    });
+    // Only the birth chart: link-preview scrapers (Facebook, X, WhatsApp) show just the first og:image
+    const version = chart?.imageKey?.endsWith(".png") ? chartImageVersion(chart.imageKey) : undefined;
+    const images =
+        version === undefined
+            ? []
+            : [
+                  {
+                      url: `${siteUrl()}/api/share/${token}/chart/${ChartType.BIRTH}/image${version ? `?v=${version}` : ""}`,
+                      width: CHART_IMAGE_SIZE,
+                      height: CHART_IMAGE_SIZE,
+                      type: "image/png",
+                      alt: t("horoscope.seo.imageAltBirth", { name }),
+                  },
+              ];
 
     return {
         title,

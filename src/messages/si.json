@@ -126,7 +126,6 @@
             "descNakshatra": "{nakshatra} නැකත {pada} පාදය",
             "descFallback": "{name} ගේ කේන්දරය",
             "imageAltBirth": "{name} – රාශි චක්‍රය (ලග්න කේන්දරය)",
-            "imageAltNavamsa": "{name} – නවාංශක චක්‍රය",
             "editorTitle": "සෙවුම් යන්ත්‍ර සහ බෙදාගැනීම",
             "editorHint": "Google ප්‍රතිඵලවල සහ Facebook/WhatsApp සබැඳි පෙරදසුන්වල පෙන්වයි. හිස්ව තැබුවොත් ස්වයංක්‍රීය පෙළ භාවිත වේ.",
             "title": "මාතෘකාව",
