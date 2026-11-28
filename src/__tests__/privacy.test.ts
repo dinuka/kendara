@@ -7,6 +7,7 @@ import { Horoscope } from "@/models/Horoscope";
 import { Metadata } from "@/models/Metadata";
 
 import { anonymizeIfNeeded, getAnonymousPlaceholder } from "@/lib/privacy";
+import type { NextRequest } from "next/server";
 
 jest.mock("@/models/Horoscope", () => ({
     Horoscope: { findById: jest.fn(), find: jest.fn() },
@@ -153,7 +154,7 @@ describe("PATCH /api/horoscope/[id]/privacy", () => {
             },
         };
 
-        return PATCH(req as any, {
+        return PATCH(req as unknown as NextRequest, {
             params: Promise.resolve({ id: horoscopeId }),
         });
     }
@@ -274,9 +275,13 @@ describe("GET /api/horoscope/[id]", () => {
 
         const { GET } = await import("@/app/api/horoscope/[id]/route");
 
-        const req = { headers: { get: () => null } };
+        const req = {
+            headers: { get: () => null },
+            nextUrl: new URL(`http://localhost/api/horoscope/${horoscopeId}`),
+            cookies: { get: () => undefined },
+        };
 
-        return GET(req as any, {
+        return GET(req as unknown as NextRequest, {
             params: Promise.resolve({ id: horoscopeId }),
         });
     }
@@ -305,6 +310,14 @@ describe("GET /api/horoscope/[id]", () => {
         (Metadata.find as jest.Mock).mockReturnValue({
             lean: jest.fn().mockResolvedValue([]),
         });
+        // Prev/next navigation query: find().select().sort().collation?().lean()
+        const navQuery = {
+            select: jest.fn().mockReturnThis(),
+            sort: jest.fn().mockReturnThis(),
+            collation: jest.fn().mockReturnThis(),
+            lean: jest.fn().mockResolvedValue([]),
+        };
+        (Horoscope.find as jest.Mock).mockReturnValue(navQuery);
     });
 
     test("guest gets 404 for private horoscope", async () => {
@@ -432,7 +445,7 @@ describe("Search anonymization", () => {
             json: jest.fn().mockResolvedValue({ query }),
         };
 
-        return POST(req as any);
+        return POST(req as unknown as NextRequest);
     }
 
     const makeHoroscope = (overrides: Record<string, unknown> = {}) => ({

@@ -69,19 +69,11 @@ import { formatDate } from "@/lib/date";
 import { get22ndDrekkanaLordFromPlanet, getNthDrekkanaLord } from "@/lib/drekkanaLord";
 import { readHoroscopeSort } from "@/lib/horoscopeSort";
 import {
-    buildBhavaHouses,
-    calculateManualDashas,
-    computeAscendantNakshatra,
-    computeMoonNakshatra,
-    deriveBirthTimeRange,
     formatNavamsaDegreeRange,
     hasManualNavamsa,
-    manualAscAbsDeg,
     manualTrimshamshaSource,
     navamsaIndexForSign,
     ownedHousesOf,
-    synthesizeOtherDetails,
-    synthesizeValidation,
 } from "@/lib/manualChart";
 import type { DerivedRanges, ManualHouse, ManualHousePlacements } from "@/lib/manualChart";
 import { computePlanetConjunctions } from "@/lib/planetAspects";
@@ -331,16 +323,26 @@ function HoroscopeDetail({
 
     // The second chart is a client-side preference only — navigating to another horoscope resets it
     // to the D9 (Navamsa) default so each chart pair starts in the canonical state.
-    useEffect(() => {
+    // A server-rendered horoscope stays on screen while the viewer-specific copy loads; otherwise
+    // navigating to another horoscope shows the loading state until its fetch lands.
+    const [prevHoroscopeId, setPrevHoroscopeId] = useState(params.id);
+    if (prevHoroscopeId !== params.id) {
+        setPrevHoroscopeId(params.id);
         setSecondChart("d9");
-    }, [params.id]);
+        if (!initialData) {
+            setLoading(true);
+            setData(null);
+        }
+    }
 
-    useEffect(() => {
+    const [prevData, setPrevData] = useState(data);
+    if (prevData !== data) {
+        setPrevData(data);
         if (data) {
             setIsPublicState(data.horoscope.isPublic);
             setDisplayNameState(data.horoscope.displayName ?? true);
         }
-    }, [data]);
+    }
 
     useEffect(() => {
         if (toast) {
@@ -395,13 +397,6 @@ function HoroscopeDetail({
     useEffect(() => {
         // Public horoscopes open for signed-out guests too, so a page link can be shared.
         if (status === "loading") return;
-
-        // A server-rendered horoscope stays on screen while the viewer-specific copy (owner names,
-        // navigation in the viewer's sort order) loads; otherwise show the loading state.
-        if (!initialData) {
-            setLoading(true);
-            setData(null);
-        }
 
         const { sortBy, sortDir } = readHoroscopeSort();
 

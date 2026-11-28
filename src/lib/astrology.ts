@@ -304,7 +304,7 @@ export interface House {
 export function findHouse(absoluteDegree: number, houses: House[]): number | null {
     const normDegree = ((absoluteDegree % 360) + 360) % 360;
     for (const house of houses) {
-        let startAbs = (house.startSign - 1) * 30 + house.startDegree;
+        const startAbs = (house.startSign - 1) * 30 + house.startDegree;
         let endAbs = (house.endSign - 1) * 30 + house.endDegree;
         if (endAbs <= startAbs) endAbs += 360;
         const checkDegree = normDegree < startAbs ? normDegree + 360 : normDegree;

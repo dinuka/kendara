@@ -487,7 +487,7 @@ const lordDetailConjuncts: LordDetailBuilder = ({ calculated, warga, lord, row }
     return tags;
 };
 
-const lordDetailAspectsMade: LordDetailBuilder = ({ calculated, warga, lord, row }) => {
+const lordDetailAspectsMade: LordDetailBuilder = ({ warga, lord, row }) => {
     const tags: ObservationTagBase[] = [];
     const wargaRow = wargaLordRow(warga, lord);
     if (wargaRow && Array.isArray(wargaRow.aspects)) {

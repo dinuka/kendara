@@ -3,7 +3,6 @@ import { getServerSession } from "next-auth";
 import { NextRequest, NextResponse } from "next/server";
 
 import { CalculatedDetails } from "@/models/CalculatedDetails";
-import { Chart } from "@/models/Chart";
 import { Horoscope } from "@/models/Horoscope";
 import { HoroscopeNote } from "@/models/HoroscopeNote";
 import { Metadata } from "@/models/Metadata";
@@ -113,7 +112,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
         return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    const isManual = (horoscope as any).source === "manual";
+    const isManual = horoscope.source === "manual";
     if (isManual) {
         logger.info("manual horoscope update: skipping ephemeris recalculation id=%s", id);
     }
@@ -129,7 +128,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 
     const needsRecalc =
         !isManual &&
-        CALC_FIELDS.some((f) => body[f] !== undefined && String(body[f]) !== String((horoscope as any)[f]));
+        CALC_FIELDS.some((f) => body[f] !== undefined && String(body[f]) !== String(horoscope.get(f)));
 
     Object.assign(horoscope, body);
     await horoscope.save();

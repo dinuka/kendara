@@ -2,7 +2,7 @@
 
 import TagColorPicker, { type TagColorSwatch } from "@/components/notepad/TagColorPicker";
 import { useI18n } from "@/hooks/useI18n";
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 
 import type { ObservationTag } from "@/models/HoroscopeNote";
 
@@ -82,15 +82,15 @@ export default function NotepadStudentTags({
     const [editingId, setEditingId] = useState<string | null>(null);
     const [editingText, setEditingText] = useState("");
     const [pickerTagId, setPickerTagId] = useState<string | null>(null);
-    const pickerAnchorRef = useRef<HTMLButtonElement | null>(null);
+    const [pickerAnchor, setPickerAnchor] = useState<HTMLButtonElement | null>(null);
 
     const openPicker = (tagId: string, anchor: HTMLButtonElement) => {
         setPickerTagId(tagId);
-        pickerAnchorRef.current = anchor;
+        setPickerAnchor(anchor);
     };
     const closePicker = () => {
         setPickerTagId(null);
-        pickerAnchorRef.current = null;
+        setPickerAnchor(null);
     };
     const pickerTag = pickerTagId !== null ? tags.find((tag) => tag.id === pickerTagId) : undefined;
 
@@ -350,11 +350,11 @@ export default function NotepadStudentTags({
                 </div>
             )}
 
-            {pickerTag && pickerAnchorRef.current && (
+            {pickerTag && pickerAnchor && (
                 <TagColorPicker
                     swatches={paletteSwatches(t)}
                     current={pickerTag.color}
-                    anchor={pickerAnchorRef.current}
+                    anchor={pickerAnchor}
                     onPick={(value) => {
                         if (typeof value === "number") {
                             onUpdate(pickerTag.id, { text: pickerTag.text, color: value as TagColor });

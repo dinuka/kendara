@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { CalculatedDetails } from "@/models/CalculatedDetails";
 import { Chart } from "@/models/Chart";
 import { Horoscope } from "@/models/Horoscope";
+import type { NextRequest } from "next/server";
 
 jest.mock("@/models/Horoscope", () => ({
     Horoscope: { findById: jest.fn(), find: jest.fn() },
@@ -57,7 +58,7 @@ describe("search: navamsa ascendant condition (Mesha lagna Mesha Navanshaka)", (
             json: jest.fn().mockResolvedValue({ query }),
         };
 
-        return POST(req as any);
+        return POST(req as unknown as NextRequest);
     }
 
     const makeHoroscope = (overrides: Record<string, unknown> = {}) => ({
@@ -204,7 +205,7 @@ describe("search: lagna Dhanu + navamsa Mesha (ලග්නය ධනු නව�
             json: jest.fn().mockResolvedValue({ query }),
         };
 
-        return POST(req as any);
+        return POST(req as unknown as NextRequest);
     }
 
     const makeHoroscope = (overrides: Record<string, unknown> = {}) => ({

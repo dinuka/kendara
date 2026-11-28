@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { CalculatedDetails } from "@/models/CalculatedDetails";
 import { Chart } from "@/models/Chart";
 import { Horoscope } from "@/models/Horoscope";
+import type { NextRequest } from "next/server";
 
 jest.mock("@/models/Horoscope", () => ({
     Horoscope: { findById: jest.fn(), find: jest.fn() },
@@ -57,7 +58,7 @@ describe("search: combined exact conditions (AND logic)", () => {
             json: jest.fn().mockResolvedValue({ query }),
         };
 
-        return POST(req as any);
+        return POST(req as unknown as NextRequest);
     }
 
     const makeHoroscope = (overrides: Record<string, unknown> = {}) => ({
@@ -89,8 +90,12 @@ describe("search: combined exact conditions (AND logic)", () => {
         expect(body.results).toHaveLength(1);
         expect(body.queryUnderstanding.mode).toBe("exact_multiple");
         expect(body.queryUnderstanding.exactMatch).toEqual([
-            { type: "ascendant", sign: 1 },
-            { type: "planet_in_house", planet: 3, house: 1 },
+            [
+                [
+                    { type: "ascendant", sign: 1 },
+                    { type: "planet_in_house", planet: 3, house: 1 },
+                ],
+            ],
         ]);
     });
 
@@ -175,8 +180,12 @@ describe("search: combined exact conditions (AND logic)", () => {
         expect(body.results).toHaveLength(1);
         expect(body.queryUnderstanding.mode).toBe("exact_multiple");
         expect(body.queryUnderstanding.exactMatch).toEqual([
-            { type: "ascendant", sign: 1 },
-            { type: "planet_in_house", planet: 3, house: 10 },
+            [
+                [
+                    { type: "ascendant", sign: 1 },
+                    { type: "planet_in_house", planet: 3, house: 10 },
+                ],
+            ],
         ]);
     });
 
@@ -219,8 +228,12 @@ describe("search: combined exact conditions (AND logic)", () => {
 
         expect(body.results).toHaveLength(1);
         expect(body.queryUnderstanding.exactMatch).toEqual([
-            { type: "ascendant", sign: 5 },
-            { type: "planet_in_house", planet: 5, house: 3 },
+            [
+                [
+                    { type: "ascendant", sign: 5 },
+                    { type: "planet_in_house", planet: 5, house: 3 },
+                ],
+            ],
         ]);
     });
 
@@ -243,8 +256,12 @@ describe("search: combined exact conditions (AND logic)", () => {
 
         expect(body.results).toHaveLength(1);
         expect(body.queryUnderstanding.exactMatch).toEqual([
-            { type: "ascendant", sign: 2 },
-            { type: "planet_in_house", planet: 6, house: 7 },
+            [
+                [
+                    { type: "ascendant", sign: 2 },
+                    { type: "planet_in_house", planet: 6, house: 7 },
+                ],
+            ],
         ]);
     });
 });
@@ -259,7 +276,7 @@ describe("search: planet_in_house uses the whole-sign Rashi house", () => {
             json: jest.fn().mockResolvedValue({ query }),
         };
 
-        return POST(req as any);
+        return POST(req as unknown as NextRequest);
     }
 
     const makeHoroscope = (overrides: Record<string, unknown> = {}) => ({
@@ -363,7 +380,7 @@ describe("search: combined planet-strength conditions (AND logic)", () => {
             json: jest.fn().mockResolvedValue({ query }),
         };
 
-        return POST(req as any);
+        return POST(req as unknown as NextRequest);
     }
 
     const makeHoroscope = (overrides: Record<string, unknown> = {}) => ({
@@ -397,8 +414,12 @@ describe("search: combined planet-strength conditions (AND logic)", () => {
         expect(body.results).toHaveLength(1);
         expect(body.queryUnderstanding.mode).toBe("exact_multiple");
         expect(body.queryUnderstanding.exactMatch).toEqual([
-            { type: "planet_strength", planet: 3, strength: 1 },
-            { type: "planet_strength", planet: 2, strength: -1 },
+            [
+                [
+                    { type: "planet_strength", planet: 3, strength: 1 },
+                    { type: "planet_strength", planet: 2, strength: -1 },
+                ],
+            ],
         ]);
     });
 
@@ -464,6 +485,6 @@ describe("search: combined planet-strength conditions (AND logic)", () => {
 
         expect(body.results).toHaveLength(1);
         expect(body.queryUnderstanding.mode).toBe("exact_planet_strength");
-        expect(body.queryUnderstanding.exactMatch).toEqual([{ type: "planet_strength", planet: 3, strength: 1 }]);
+        expect(body.queryUnderstanding.exactMatch).toEqual([[[{ type: "planet_strength", planet: 3, strength: 1 }]]]);
     });
 });

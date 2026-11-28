@@ -1590,7 +1590,6 @@ export async function POST(req: NextRequest) {
     });
 
     const userId = session.user.id;
-    const userRole = session.user.role;
 
     const horoscopes = await Horoscope.find({
         $or: [{ "owner.id": userId }, { isPublic: true }],
@@ -1598,9 +1597,7 @@ export async function POST(req: NextRequest) {
 
     logger.debug("searching through %d horoscopes", horoscopes.length);
 
-    const horoscopeIdToDoc = new Map(horoscopes.map((h) => [h._id.toString(), h]));
-
-    let vectorScores: Map<string, number> = new Map();
+    const vectorScores: Map<string, number> = new Map();
     let vectorSearchUsed = false;
 
     const queryEmbedding = await generateEmbedding(query);

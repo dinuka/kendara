@@ -44,7 +44,8 @@ function SukshamaAccordion({
     }, [onToggle, path]);
 
     return (
-        <div role="treeitem" aria-expanded={hasPrana ? isExpanded : undefined} aria-current={isActive ? "true" : undefined}>
+        <div role="treeitem" aria-expanded={hasPrana ? isExpanded : undefined} aria-current={isActive ? "true" : undefined}
+            aria-selected={isActive}>
             <div
                 role="button"
                 tabIndex={0}

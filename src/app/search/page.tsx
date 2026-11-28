@@ -17,7 +17,6 @@ import {
     computeMaranakaraka,
     computeYogakaraka,
     formatDegree,
-    formatYearDuration,
     navamsaSign,
     normalizeMaranakaraka,
 } from "@/lib/astrology";
@@ -218,18 +217,6 @@ const SIGN_SYMBOLS: Record<number, string> = {
     12: "\u2653",
 };
 
-const STRENGTH_RECORDS: Array<{ value: number; label: string; color: string }> = [
-    { value: 1.25, label: "Athi Uchcha", color: "text-green-700 bg-green-50" },
-    { value: 1, label: "Exalted", color: "text-green-600 bg-green-50" },
-    { value: 0.75, label: "Moolatrikona", color: "text-teal-600 bg-teal-50" },
-    { value: 0.5, label: "Own Sign", color: "text-blue-600 bg-blue-50" },
-    { value: 0.1, label: "Friend", color: "text-indigo-600 bg-indigo-50" },
-    { value: 0, label: "Neutral", color: "text-gray-500 bg-gray-50" },
-    { value: -0.1, label: "Enemy", color: "text-orange-600 bg-orange-50" },
-    { value: -1, label: "Debilitated", color: "text-red-600 bg-red-50" },
-    { value: -1.25, label: "Athi Neecha", color: "text-red-700 bg-red-50" },
-];
-
 const parseStrength = (val: unknown): number => {
     if (typeof val === "number") return val;
     if (typeof val === "string") {
@@ -247,69 +234,6 @@ const parseStrength = (val: unknown): number => {
         return map[val] ?? 0;
     }
     return 0;
-};
-
-const getStrengthInfo = (val: number) =>
-    STRENGTH_RECORDS.find((r) => r.value === val) || { label: "", color: "text-gray-500" };
-
-const PlanetPositionsTable = ({ planets }: { planets: Array<Record<string, unknown>> }) => {
-    const { t } = useI18n();
-    return (
-        <div className="overflow-x-auto">
-            <table className="w-full text-xs">
-                <thead>
-                    <tr className="border-b text-gray-500">
-                        <th className="text-left py-1 pr-2 font-medium">{t("astrology.planet")}</th>
-                        <th className="text-left py-1 pr-2 font-medium">{t("astrology.sign")}</th>
-                        <th className="text-center py-1 pr-2 font-medium">{t("astrology.house")}</th>
-                        <th className="text-center py-1 pr-2 font-medium">{t("astrology.degree")}</th>
-                        <th className="text-right py-1 font-medium">{t("astrology.strength")}</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {planets.map((p, i) => {
-                        const pName = p.name as number;
-                        const pSign = p.sign as number;
-                        const strengthVal = parseStrength(p.strength);
-                        const strengthInfo = getStrengthInfo(strengthVal);
-                        return (
-                            <tr key={i} className="border-b border-gray-50 hover:bg-gray-50/50">
-                                <td className="py-1.5 pr-2">
-                                    <span className="font-medium">
-                                        {PLANET_SYMBOLS[pName] || ""} {t("search.table.planetName", { id: pName })}
-                                    </span>
-                                    {(p.retrograde as boolean) && (
-                                        <span
-                                            className="text-red-400 text-[10px] ml-1"
-                                            title={t("astrology.retrograde")}
-                                        >
-                                            R
-                                        </span>
-                                    )}
-                                </td>
-                                <td className="py-1.5 pr-2 text-gray-600">
-                                    {SIGN_SYMBOLS[pSign] || ""} {t("search.table.signName", { id: pSign })}
-                                </td>
-                                <td className="py-1.5 pr-2 text-center font-mono">{p.house as string}</td>
-                                <td className="py-1.5 pr-2 text-center font-mono">
-                                    {(p.degree as number)?.toFixed(1)}°
-                                </td>
-                                <td className="py-1.5 text-right">
-                                    {strengthInfo.label && (
-                                        <span
-                                            className={`inline-block px-1.5 py-0.5 rounded text-[10px] leading-tight ${strengthInfo.color}`}
-                                        >
-                                            {strengthInfo.label}
-                                        </span>
-                                    )}
-                                </td>
-                            </tr>
-                        );
-                    })}
-                </tbody>
-            </table>
-        </div>
-    );
 };
 
 const ORB_MAP: Record<number, number> = {
@@ -339,15 +263,14 @@ const DashaTimeline = ({ dashas }: { dashas: Record<string, unknown> }) => {
     const currentPeriod = dashas.currentPeriod as Record<string, unknown> | undefined;
     const [expandedMds, setExpandedMds] = useState<Set<number>>(new Set());
 
-    useEffect(() => {
-        if (currentPeriod && mahadasha) {
-            const activeMdPlanet = currentPeriod.mahadashaLord;
-            const idx = mahadasha.findIndex((md) => md.planet === activeMdPlanet);
-            if (idx >= 0) {
-                setExpandedMds((prev) => new Set(prev).add(idx));
-            }
-        }
-    }, [currentPeriod, mahadasha]);
+    // Auto-expand the running mahadasha whenever it changes.
+    const activeMdIdx =
+        currentPeriod && mahadasha ? mahadasha.findIndex((md) => md.planet === currentPeriod.mahadashaLord) : -1;
+    const [prevActiveMdIdx, setPrevActiveMdIdx] = useState(-1);
+    if (activeMdIdx !== prevActiveMdIdx) {
+        setPrevActiveMdIdx(activeMdIdx);
+        if (activeMdIdx >= 0) setExpandedMds((prev) => new Set(prev).add(activeMdIdx));
+    }
 
     if (!mahadasha || mahadasha.length === 0)
         return <span className="text-sm text-gray-400">{t("search.dashas.noData")}</span>;
@@ -605,7 +528,6 @@ const SearchResultCard = ({
         const asc = cd.ascendant as Ascendant;
         const navamsaPlanets: Planet[] = planets.map((p) => {
             const navSign = p.navamsaSign ?? navamsaSign(p.sign, Math.floor(p.degree / (30 / 9)) + 1);
-            const ascNavSign = asc.sign; // computed below
             return { ...p, sign: navSign };
         });
         const ascNavSign =
@@ -1777,7 +1699,7 @@ const BookmarksPanel = ({
 };
 
 export default function SearchPage() {
-    const { data: session, status } = useSession();
+    const { status } = useSession();
     const router = useRouter();
     const { t } = useI18n();
 
@@ -1802,8 +1724,6 @@ export default function SearchPage() {
     const [savedFilters, setSavedFilters] = useState<SavedFilterEntry[]>([]);
     const [bookmarks, setBookmarks] = useState<BookmarkEntry[]>([]);
 
-    const [debouncedQuery, setDebouncedQuery] = useState(query);
-    const debounceTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
     const [suggestionsOpen, setSuggestionsOpen] = useState(false);
     const [highlightedSuggestion, setHighlightedSuggestion] = useState(0);
@@ -1862,22 +1782,12 @@ export default function SearchPage() {
         }
 
         if (status === "authenticated") {
-            fetchSavedFilters();
-            fetchBookmarks();
+            // Both only set state after awaiting their fetch.
+            void (async () => {
+                await Promise.all([fetchSavedFilters(), fetchBookmarks()]);
+            })();
         }
     }, [status, router, fetchSavedFilters, fetchBookmarks]);
-
-    useEffect(() => {
-        if (debounceTimer.current) clearTimeout(debounceTimer.current);
-
-        debounceTimer.current = setTimeout(() => {
-            setDebouncedQuery(query);
-        }, 300);
-
-        return () => {
-            if (debounceTimer.current) clearTimeout(debounceTimer.current);
-        };
-    }, [query]);
 
     const handleSearch = useCallback(
         async (searchQuery?: string, searchPage?: number) => {
@@ -1989,7 +1899,7 @@ export default function SearchPage() {
     const handleConfigToggle = (key: string) => {
         setConfig((prev) => {
             const next = { ...prev, [key]: !prev[key] };
-            const timeoutId = setTimeout(async () => {
+            setTimeout(async () => {
                 try {
                     await fetch("/api/search/filter", {
                         method: "POST",
@@ -2218,9 +2128,10 @@ export default function SearchPage() {
                             }}
                             placeholder={t("search.placeholder")}
                             className="w-full border rounded px-3 py-2 text-sm pr-12"
-                            role="searchbox"
+                            role="combobox"
                             aria-label="Search horoscopes"
                             aria-autocomplete="list"
+                            aria-controls="search-suggestions"
                             aria-expanded={suggestionsOpen && suggestions.length > 0}
                             maxLength={500}
                         />
@@ -2234,6 +2145,7 @@ export default function SearchPage() {
                         )}
                         {suggestionsOpen && (
                             <SearchSuggestions
+                                id="search-suggestions"
                                 suggestions={suggestions}
                                 highlightedIndex={highlightedSuggestion}
                                 onSelect={handleSelectSuggestion}

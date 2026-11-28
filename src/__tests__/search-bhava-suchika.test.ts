@@ -10,7 +10,6 @@ import { CalculatedDetails } from "@/models/CalculatedDetails";
 import { Chart } from "@/models/Chart";
 import { Horoscope } from "@/models/Horoscope";
 
-import { Planet } from "@/lib/astrologyEnums";
 import { calculateHoroscope } from "@/lib/calculation";
 import { compute } from "@/lib/manualChart";
 import { synthesizeCalculation } from "@/lib/manualChartDetails";
@@ -21,6 +20,7 @@ import {
     BHAVA_SUCHIKA_WORDS,
     SEARCH_VOCABULARY,
 } from "@/lib/search/vocabulary";
+import type { NextRequest } from "next/server";
 
 jest.mock("@/models/Horoscope", () => ({
     Horoscope: { findById: jest.fn(), find: jest.fn() },
@@ -75,7 +75,7 @@ describe("search: Bhava Suchika (භාව සුචික) matching", () => {
             json: jest.fn().mockResolvedValue({ query }),
         };
 
-        return POST(req as any);
+        return POST(req as unknown as NextRequest);
     }
 
     const makeHoroscope = (overrides: Record<string, unknown> = {}) => ({
@@ -490,13 +490,13 @@ describe("search: Bhava Suchika (භාව සුචික) matching", () => {
     test("SR-BS-227 / RE-BS-459: privacy filter unchanged — another user's private chart never returned", async () => {
         const docs = [makeHoroscope({ _id: "a", id: "a", owner: { id: "other-1" }, isPublic: false })];
         // The mock respects the route's $or filter the way Mongo would.
-        (Horoscope.find as jest.Mock).mockImplementation((filter: any) => ({
+        (Horoscope.find as jest.Mock).mockImplementation((filter: { $or: Array<Record<string, unknown>> }) => ({
             lean: jest
                 .fn()
                 .mockResolvedValue(
                     docs.filter((h) =>
                         filter.$or.some(
-                            (c: any) =>
+                            (c) =>
                                 (c["owner.id"] === "owner-1" && h.owner.id === "owner-1") || (c.isPublic && h.isPublic),
                         ),
                     ),

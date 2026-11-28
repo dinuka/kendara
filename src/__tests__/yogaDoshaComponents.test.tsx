@@ -13,7 +13,7 @@ import { CancellationStatus, PlanetaryStrength, YogaStrength } from "@/lib/astro
 import { buildChartFacts, computeYogaDoshas } from "@/lib/yogaDosha/ruleEngine";
 import { DoshaEvaluation, RuleReason, YogaDoshaResult, YogaEvaluation } from "@/lib/yogaDosha/types";
 import "@testing-library/jest-dom";
-import { act, fireEvent, render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 
 jest.mock("@/hooks/useI18n", () => {
     const MESSAGES: Record<string, string> = {

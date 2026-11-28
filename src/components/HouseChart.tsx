@@ -183,7 +183,6 @@ export function HouseChart({
     const chartRef = useRef<HTMLDivElement>(null);
     const ascAbsDeg = ascAbsDegOverride ?? (ascendant.sign - 1) * 30 + ascendant.degree;
     const resolvedAscNavamsaNum = ascNavamsaNum ?? Math.floor(ascendant.degree / NAVAMSA_SPAN) + 1;
-    const ascNavamsaSign = navamsaSign(ascendant.sign, resolvedAscNavamsaNum);
 
     const fetchCurrentPlanets = useCallback(
         async (date?: string, time?: string) => {
@@ -375,7 +374,7 @@ export function HouseChart({
 
     // Ring 5: House (12 unequal wedges from real cusps).
     const houseWedges = houses.map((h) => {
-        let start = (h.startSign - 1) * 30 + h.startDegree;
+        const start = (h.startSign - 1) * 30 + h.startDegree;
         let end = (h.endSign - 1) * 30 + h.endDegree;
         if (end <= start) end += 360;
         const mid = (h.middleSign - 1) * 30 + h.middleDegree;

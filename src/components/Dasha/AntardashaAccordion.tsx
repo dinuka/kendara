@@ -46,7 +46,8 @@ function AntardashaAccordion({
     }, [onToggle, path, hasVidasa]);
 
     return (
-        <div role="treeitem" aria-expanded={hasVidasa ? isExpanded : undefined} aria-current={isActive ? "true" : undefined}>
+        <div role="treeitem" aria-expanded={hasVidasa ? isExpanded : undefined} aria-current={isActive ? "true" : undefined}
+            aria-selected={isActive}>
             <div
                 role="button"
                 tabIndex={0}

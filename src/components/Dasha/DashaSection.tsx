@@ -107,18 +107,26 @@ export default function DashaSection({
     }, [dashas, activeMdIndex, activeAdIndex, activeVdIndex, activeSkIndex, activePrIndex]);
 
     // Open the running period down to the sukshama level (prana rows have no children).
-    useEffect(() => {
-        if (activeMdIndex === null) return;
-        const deepest = buildPath(activeMdIndex, activeAdIndex, activeVdIndex, activeSkIndex);
-        setExpandedPaths(new Set(ancestorPaths(deepest)));
-    }, [activeMdIndex, activeAdIndex, activeVdIndex, activeSkIndex]);
+    // State is adjusted during render when the running period changes, not in an effect.
+    const activeExpandPath =
+        activeMdIndex === null ? null : buildPath(activeMdIndex, activeAdIndex, activeVdIndex, activeSkIndex);
+    const [prevActiveExpandPath, setPrevActiveExpandPath] = useState<string | null>(null);
+    if (activeExpandPath !== prevActiveExpandPath) {
+        setPrevActiveExpandPath(activeExpandPath);
+        if (activeExpandPath !== null) setExpandedPaths(new Set(ancestorPaths(activeExpandPath)));
+    }
 
     // Phones: the running period usually sits below the fold under the collapsed earlier periods,
     // so bring its deepest row into view once on open (desktop keeps its position).
-    useEffect(() => {
-        if (!isPhone || activeMdIndex === null) return;
-        setScrollTarget(buildPath(activeMdIndex, activeAdIndex, activeVdIndex, activeSkIndex, activePrIndex));
-    }, [isPhone, activeMdIndex, activeAdIndex, activeVdIndex, activeSkIndex, activePrIndex]);
+    const phoneScrollPath =
+        !isPhone || activeMdIndex === null
+            ? null
+            : buildPath(activeMdIndex, activeAdIndex, activeVdIndex, activeSkIndex, activePrIndex);
+    const [prevPhoneScrollPath, setPrevPhoneScrollPath] = useState<string | null>(null);
+    if (phoneScrollPath !== prevPhoneScrollPath) {
+        setPrevPhoneScrollPath(phoneScrollPath);
+        if (phoneScrollPath !== null) setScrollTarget(phoneScrollPath);
+    }
 
     // Children mount only once their parent is open, so scroll after the expansion has rendered.
     useEffect(() => {

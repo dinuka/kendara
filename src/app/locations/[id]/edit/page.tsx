@@ -6,7 +6,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 export default function EditLocationPage() {
-    const { data: session, status } = useSession();
+    const { status } = useSession();
     const router = useRouter();
     const params = useParams();
     const { t } = useI18n();
@@ -21,10 +21,9 @@ export default function EditLocationPage() {
     const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
     const [dirty, setDirty] = useState(false);
 
-    if (status === "unauthenticated") {
-        router.push("/signin");
-        return null;
-    }
+    useEffect(() => {
+        if (status === "unauthenticated") router.push("/signin");
+    }, [status, router]);
 
     useEffect(() => {
         const fetchLocation = async () => {
@@ -50,6 +49,8 @@ export default function EditLocationPage() {
         };
         fetchLocation();
     }, [params.id, router, t]);
+
+    if (status === "unauthenticated") return null;
 
     const validate = (): boolean => {
         const errors: Record<string, string> = {};

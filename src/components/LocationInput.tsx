@@ -37,9 +37,11 @@ export function LocationInput({
     const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
     const ref = useRef<HTMLDivElement>(null);
 
-    useEffect(() => {
+    const [prevInitialValue, setPrevInitialValue] = useState(initialValue);
+    if (initialValue !== prevInitialValue) {
+        setPrevInitialValue(initialValue);
         if (initialValue) setQuery(initialValue);
-    }, [initialValue]);
+    }
 
     useEffect(() => {
         const handler = (e: MouseEvent) => {

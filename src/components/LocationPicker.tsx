@@ -79,14 +79,16 @@ export default function LocationPicker({ selectedLocationId, onChange, disabled 
         return () => clearTimeout(timer);
     }, [fetchLocations, search]);
 
+    // Resolve the selected location from the loaded page during render when possible.
+    const selectedInPage =
+        selectedLocationId && selectedLocation?.id !== selectedLocationId
+            ? locations.find((l) => l.id === selectedLocationId)
+            : undefined;
+    if (selectedInPage) setSelectedLocation(selectedInPage);
+
     useEffect(() => {
         if (!selectedLocationId || selectedLocation?.id === selectedLocationId) return;
-
-        const found = locations.find((l) => l.id === selectedLocationId);
-        if (found) {
-            setSelectedLocation(found);
-            return;
-        }
+        if (locations.some((l) => l.id === selectedLocationId)) return;
 
         // The selected location may not be in the current result page — load it directly.
         let cancelled = false;
@@ -356,6 +358,7 @@ export default function LocationPicker({ selectedLocationId, onChange, disabled 
                             }}
                             className="w-full text-left px-3 py-2 text-sm text-indigo-600 hover:bg-indigo-50 transition-colors"
                             role="option"
+                            aria-selected={false}
                         >
                             {t("location_picker.add_new")}
                         </button>

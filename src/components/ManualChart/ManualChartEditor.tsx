@@ -95,13 +95,20 @@ export default function ManualChartEditor({
     }, [lagna, navamsaLagna, houses, navamsaHouses, planetDegrees]);
 
     // A planet with a degree is placed in the Navamsa automatically (the server applies the same rule).
-    useEffect(() => {
-        if (lagna < 1 || navamsaLagna < 1 || Object.keys(planetDegrees).length === 0) return;
-        setNavamsaHouses((prev) => {
-            const next = applyDegreeNavamsaPlacements(lagna, houses, navamsaLagna, prev, planetDegrees);
-            return samePlacements(prev, next) ? prev : next;
-        });
-    }, [lagna, houses, navamsaLagna, planetDegrees]);
+    // Applied during render whenever its inputs change (React's "adjust state on change" pattern).
+    const [placementInputs, setPlacementInputs] = useState({ lagna, houses, navamsaLagna, planetDegrees });
+    if (
+        placementInputs.lagna !== lagna ||
+        placementInputs.houses !== houses ||
+        placementInputs.navamsaLagna !== navamsaLagna ||
+        placementInputs.planetDegrees !== planetDegrees
+    ) {
+        setPlacementInputs({ lagna, houses, navamsaLagna, planetDegrees });
+        if (lagna >= 1 && navamsaLagna >= 1 && Object.keys(planetDegrees).length > 0) {
+            const next = applyDegreeNavamsaPlacements(lagna, houses, navamsaLagna, navamsaHouses, planetDegrees);
+            if (!samePlacements(navamsaHouses, next)) setNavamsaHouses(next);
+        }
+    }
 
     const degreeDrivenPlanets = useMemo(
         () => new Set(navamsaLagna >= 1 ? Object.keys(planetDegrees).map(Number) : []),
@@ -113,34 +120,42 @@ export default function ManualChartEditor({
         return navamsaLagnaOptions(lagna);
     }, [lagna]);
 
-    useEffect(() => {
-        if (navamsaLagna >= 1 && !navamsaSignOptions.includes(navamsaLagna)) {
-            setNavamsaLagna(0);
-            setNavamsaHouses({});
-        }
-    }, [navamsaLagna, navamsaSignOptions]);
+    if (navamsaLagna >= 1 && !navamsaSignOptions.includes(navamsaLagna)) {
+        setNavamsaLagna(0);
+        setNavamsaHouses({});
+    }
 
     const parsedLagnaDegree = parseAmshaKala(lagnaDegree);
     const parsedDegree = parsedLagnaDegree ?? NaN;
     const degreeValid = lagna >= 1 && parsedLagnaDegree !== null;
 
-    useEffect(() => {
+    const degreeKey = degreeValid ? `${lagna}|${parsedDegree}` : null;
+    const [prevDegreeKey, setPrevDegreeKey] = useState<string | null>(null);
+    if (degreeKey !== prevDegreeKey) {
+        setPrevDegreeKey(degreeKey);
         if (degreeValid) {
             const derived = deriveNavamsaLagnaFromDegree(lagna, parsedDegree);
-            setNavamsaLagna((prev) => (prev === derived ? prev : derived));
+            if (derived !== navamsaLagna) setNavamsaLagna(derived);
         }
-    }, [lagna, parsedDegree, degreeValid]);
+    }
 
     const birthDateValid = /^\d{4}-\d{2}-\d{2}$/.test(birthDate);
     const requestSeq = useRef(0);
 
+    const canAutofill = birthDateValid && lagna >= 1;
+    if (!canAutofill && positions !== null) setPositions(null);
+
+    // Show the loading message as soon as the autofill inputs change (the request is debounced).
+    const autofillKey = canAutofill ? `${birthDate}|${lagna}|${lagnaDegree}|${navamsaLagna}` : null;
+    const [prevAutofillKey, setPrevAutofillKey] = useState<string | null>(null);
+    if (autofillKey !== prevAutofillKey) {
+        setPrevAutofillKey(autofillKey);
+        if (autofillKey !== null) setAutofillMsg(t("manualChart.autofillLoading"));
+    }
+
     useEffect(() => {
-        if (!birthDateValid || lagna < 1) {
-            setPositions(null);
-            return;
-        }
+        if (!canAutofill) return;
         const seq = ++requestSeq.current;
-        setAutofillMsg(t("manualChart.autofillLoading"));
         const timer = setTimeout(async () => {
             try {
                 const res = await fetch("/api/horoscope/manual/positions", {
@@ -169,7 +184,7 @@ export default function ManualChartEditor({
             }
         }, 500);
         return () => clearTimeout(timer);
-    }, [birthDate, birthDateValid, lagna, lagnaDegree, parsedDegree, degreeValid, navamsaLagna, t]);
+    }, [birthDate, canAutofill, lagna, lagnaDegree, parsedDegree, degreeValid, navamsaLagna, t]);
 
     const computedHouseByPlanet = useMemo(() => {
         const map: Record<number, number> = {};

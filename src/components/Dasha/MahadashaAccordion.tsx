@@ -52,6 +52,7 @@ function MahadashaAccordion({
             role="treeitem"
             aria-expanded={hasAntardasha ? isExpanded : undefined}
             aria-current={isActive ? "true" : undefined}
+            aria-selected={isActive}
             className={`border rounded-lg mb-2 overflow-hidden transition-colors border-gray-200`}
         >
             <div

@@ -569,7 +569,7 @@ export function calculateHoroscope(
         ...getExtraDrekkanaLords(ascSign, ascLong % 30),
         lord64thNavamsa: computeNavamsaLord(ascSign, ascLong % 30),
         badhakaPlanet: computeBadhaka(ascSign),
-        marakaPlanets: computeMaraka(ascSign, planetDetails),
+        marakaPlanets: computeMaraka(ascSign),
         nidhanamshaPlanets: computeNidhanamsha(ascSign, ascLong % 30, houses, planetDetails),
         ashtamanshaPlanets: computeAshtamansha(ascSign, ascLong % 30, houses, planetDetails),
         atmakaraka: computeAtmakaraka(planetDetails),
@@ -696,7 +696,7 @@ function computeBadhaka(ascSign: number): number[] {
     return [SIGN_LORD[getBadhakaSign(ascSign)] || 1];
 }
 
-function computeMaraka(ascSign: number, planets: Planet[]): number[] {
+function computeMaraka(ascSign: number): number[] {
     const secondSign = (ascSign % 12) + 1;
     const seventhSign = ((ascSign + 6 - 1) % 12) + 1;
 
@@ -765,12 +765,6 @@ function addYearsToDate(date: Date, years: number): Date {
     return d;
 }
 
-function addMonthsToDate(date: Date, months: number): Date {
-    const d = new Date(date);
-    d.setMonth(d.getMonth() + Math.floor(months));
-    return d;
-}
-
 function addDaysToDate(date: Date, days: number): Date {
     const d = new Date(date);
     d.setDate(d.getDate() + days);
@@ -807,14 +801,6 @@ function yearsBetween(from: Date, to: Date): number {
 
 function fractionToDays(fractionOfYear: number): number {
     return Math.round(fractionOfYear * 365.25);
-}
-
-function fractionToMonths(fractionOfYear: number): number {
-    return Math.round(fractionOfYear * 12);
-}
-
-function yearsToDays(years: number): number {
-    return Math.round(years * 365.25);
 }
 
 function computeSubPeriods(
@@ -881,9 +867,6 @@ function computeSubPeriods(
             currentDate = new Date(adEnd);
             continue;
         }
-
-        const adStartAge = yearsBetween(birthDate, adStart);
-        const adYears = adFullDuration;
 
         const vidasaList: Vidasa[] = [];
         if (maxDepth >= 3) {

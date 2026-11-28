@@ -189,7 +189,7 @@ describe("computeCurrentPlanets", () => {
 
     test("different ayanamsha calls swe_set_sid_mode with different values", () => {
         computeCurrentPlanets("lahiri", houses);
-        const sweModule = require("swisseph-v2");
+        const sweModule = jest.requireMock<{ swe_set_sid_mode: jest.Mock }>("swisseph-v2");
         expect(sweModule.swe_set_sid_mode).toHaveBeenLastCalledWith(1, 0, 0);
 
         siderealMode = 0;

@@ -12,17 +12,17 @@ jest.mock("@/lib/logger", () => ({
 }));
 
 jest.mock("mongoose", () => {
-    const mongooseModels: Record<string, any> = {};
+    const mongooseModels: Record<string, { schema: MockSchema; name: string }> = {};
 
     class MockSchema {
-        private _paths: Record<string, any> = {};
-        private _options: Record<string, any>;
+        private _paths: Record<string, unknown> = {};
+        private _options: Record<string, unknown>;
 
-        constructor(def: Record<string, any>, opts?: Record<string, any>) {
+        constructor(def: Record<string, unknown>, opts?: Record<string, unknown>) {
             this._options = opts || {};
             for (const [key, val] of Object.entries(def)) {
                 if (typeof val === "object" && val !== null && !Array.isArray(val)) {
-                    for (const [subKey, subVal] of Object.entries(val as Record<string, any>)) {
+                    for (const [subKey, subVal] of Object.entries(val as Record<string, unknown>)) {
                         this._paths[`${key}.${subKey}`] =
                             typeof subVal === "object" && subVal !== null ? subVal : { type: subVal };
                     }
@@ -43,7 +43,7 @@ jest.mock("mongoose", () => {
         connect: jest.fn().mockResolvedValue(undefined),
         connection: { db: null, readyState: 1 },
         Schema: MockSchema,
-        model: jest.fn((name: string, schema?: any) => {
+        model: jest.fn((name: string, schema?: MockSchema) => {
             if (!mongooseModels[name]) {
                 mongooseModels[name] = { schema: schema || new MockSchema({}), name };
             }
@@ -53,8 +53,8 @@ jest.mock("mongoose", () => {
             return mongooseModels;
         },
         Document: class MockDocument {
-            _doc: any;
-            constructor(doc: any) {
+            _doc: Record<string, unknown>;
+            constructor(doc: Record<string, unknown>) {
                 this._doc = doc;
             }
             save() {

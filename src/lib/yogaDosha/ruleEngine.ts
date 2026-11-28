@@ -11,18 +11,11 @@ import { CatalogEntry, activeDoshaEntries, activeYogaEntries } from "@/lib/yogaD
 import { interpretHouses } from "@/lib/yogaDosha/interpretation";
 import { evaluateRule } from "@/lib/yogaDosha/rules";
 import {
-    CancellationInfo,
     ChartFacts,
     ChartSource,
-    DashaActivation,
     DoshaEvaluation,
-    FinalAssessment,
-    FormationInfo,
-    MitigationFactor,
     MitigationKey,
     RuleEvaluation,
-    ThemeInfo,
-    Tradition,
     YogaDoshaResult,
     YogaEvaluation,
 } from "@/lib/yogaDosha/types";
@@ -223,20 +216,6 @@ const formationPlanets = (entry: CatalogEntry, ruleResults: RuleEvaluation[]): n
     });
     return [...planets].sort((a, b) => a - b);
 };
-
-interface EvaluationBase {
-    id: string;
-    kind: "yoga" | "dosha";
-    isPresent: boolean;
-    tradition: Tradition;
-    formation: FormationInfo;
-    context: { houseImpact: number[] };
-    interpretation: { themes: ThemeInfo[] };
-    mitigation: MitigationFactor[];
-    cancellation: CancellationInfo;
-    finalAssessment: FinalAssessment;
-    dashaActivation?: DashaActivation;
-}
 
 function absentBase(id: string, kind: "yoga" | "dosha"): YogaEvaluation | DoshaEvaluation {
     return {

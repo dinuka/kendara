@@ -9,7 +9,7 @@ interface PrivacyBadgeProps {
     size: "sm" | "md";
 }
 
-export default function PrivacyBadge({ isPublic, displayName, isOwner, size }: PrivacyBadgeProps) {
+export default function PrivacyBadge({ isPublic, displayName, size }: PrivacyBadgeProps) {
     const { t } = useI18n();
 
     if (!isPublic) {

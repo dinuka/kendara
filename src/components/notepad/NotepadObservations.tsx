@@ -17,7 +17,7 @@ import type {
     ObservationTagBase,
 } from "@/lib/notepadObservations";
 import { computePlanetStrengths } from "@/lib/planetStrength";
-import type { PlanetFactorOverrides, PlanetStrengthEntry } from "@/lib/planetStrength";
+import type { PlanetStrengthEntry } from "@/lib/planetStrength";
 import type { WargaChartKey } from "@/lib/wargaKendara";
 
 interface NotepadObservationsProps {
@@ -482,6 +482,7 @@ function TagChip({
     onTogglePlanet,
     onOverridePlanetFactor,
 }: ChipProps) {
+    const [pickerAnchor, setPickerAnchor] = useState<HTMLButtonElement | null>(null);
     const planetKind = isPlanetChipTag(tag);
     if (planetKind) {
         return (
@@ -500,20 +501,20 @@ function TagChip({
             />
         );
     }
-    const [pickerOpen, setPickerOpen] = useState(false);
-    const buttonRef = useRef<HTMLButtonElement>(null);
     const color = effectiveColorOf(tag, overrides, tagId);
     const label = composeTagLabel(t, tag);
     return (
         <>
             <button
-                ref={buttonRef}
                 type="button"
                 aria-label={`${label} (${t(`notepad.observation.classification.${color}`)})${irrelevantSuffix(
                     t,
                     isIrrelevant,
                 )}`}
-                onClick={() => setPickerOpen((current) => !current)}
+                onClick={(e) => {
+                    const target = e.currentTarget;
+                    setPickerAnchor((current) => (current ? null : target));
+                }}
                 className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs ${CHIP_STYLES[color]} hover:border-indigo-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
                     isIrrelevant ? "line-through opacity-70" : ""
                 }`}
@@ -523,20 +524,20 @@ function TagChip({
                 </span>
                 {label}
             </button>
-            {pickerOpen && buttonRef.current && (
+            {pickerAnchor && (
                 <TagColorPicker
                     swatches={paletteSwatches(t)}
                     current={color}
-                    anchor={buttonRef.current}
+                    anchor={pickerAnchor}
                     onPick={(value) => {
                         if (onOverrideColor && typeof value === "string") {
                             onOverrideColor(tagId, value as ObservationColor);
                         }
-                        setPickerOpen(false);
+                        setPickerAnchor(null);
                     }}
-                    onClose={() => setPickerOpen(false)}
+                    onClose={() => setPickerAnchor(null)}
                     footer={irrelevantFooter(t, tag, tagId, isIrrelevant, onToggleIrrelevant, () =>
-                        setPickerOpen(false),
+                        setPickerAnchor(null),
                     )}
                 />
             )}

@@ -80,6 +80,8 @@ export function TablePreferencesProvider({ mode, children }: { mode: TablePrefer
         const cached = readCache(cacheKey);
         if (cached) {
             latest.current = cached;
+            // localStorage is client-only: reading it in the initial state would mismatch hydration.
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             setPreferences(cached);
         }
         if (mode === "device") return;

@@ -8,7 +8,6 @@ import { PLANET_COLORS, PLANET_SYMBOLS, formatDayDuration } from "@/lib/astrolog
 
 import { useDashaRowDisplay } from "./DashaDisplayContext";
 import SukshamaAccordion from "./SukshamaAccordion";
-import { pathsFor } from "./expandedPaths";
 
 interface VidasaAccordionProps {
     vidasa: Vidasa;
@@ -44,7 +43,8 @@ function VidasaAccordion({
     }, [onToggle, path, hasSukshama]);
 
     return (
-        <div role="treeitem" aria-expanded={hasSukshama ? isExpanded : undefined} aria-current={isActive ? "true" : undefined}>
+        <div role="treeitem" aria-expanded={hasSukshama ? isExpanded : undefined} aria-current={isActive ? "true" : undefined}
+            aria-selected={isActive}>
             <div
                 role="button"
                 tabIndex={0}

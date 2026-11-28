@@ -1,6 +1,5 @@
 import logger from "@/lib/logger";
 
-let pipelineFn: ((task: string, model: string) => Promise<unknown>) | null = null;
 let embedFn: ((texts: string[]) => Promise<number[][]>) | null = null;
 let pipelineLoaded = false;
 
@@ -50,7 +49,6 @@ const loadPipeline = async (): Promise<boolean> => {
         return true;
     } catch (err) {
         logger.error("Failed to load Transformers.js pipeline: %s", err);
-        pipelineFn = null;
         embedFn = null;
         pipelineLoaded = false;
         return false;

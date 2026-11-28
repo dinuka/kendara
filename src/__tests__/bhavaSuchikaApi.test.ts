@@ -10,12 +10,12 @@ import * as path from "path";
 
 import { AstrologySettings } from "@/models/AstrologySettings";
 import { CalculatedDetails } from "@/models/CalculatedDetails";
-import { Chart } from "@/models/Chart";
 import { Horoscope } from "@/models/Horoscope";
 
 import { calculateHoroscope } from "@/lib/calculation";
 import * as manualChart from "@/lib/manualChart";
 import * as manualChartDetails from "@/lib/manualChartDetails";
+import type { NextRequest } from "next/server";
 
 jest.mock("next-auth", () => ({
     getServerSession: jest.fn(),
@@ -168,7 +168,7 @@ describe("IT-BS-101/102: auto create persists via the ...calculated spread", () 
                 ayanamsha: "lahiri",
             }),
         };
-        return POST(req as any);
+        return POST(req as unknown as NextRequest);
     }
 
     test("IT-BS-101: payload carries lagnaBhavaSuchika + bhavaSuchika via the spread", async () => {
@@ -202,7 +202,7 @@ describe("IT-BS-103/104/105: manual create/update derive iff navamsa data", () =
         (mockHoroscope.create as jest.Mock).mockResolvedValue({ id: "manual-1" });
         const { POST } = await import("@/app/api/horoscope/manual/route");
         const req = { json: jest.fn().mockResolvedValue(body) };
-        return POST(req as any);
+        return POST(req as unknown as NextRequest);
     }
 
     async function putManualChart(id: string, body: Record<string, unknown>) {
@@ -214,7 +214,7 @@ describe("IT-BS-103/104/105: manual create/update derive iff navamsa data", () =
         });
         const { PUT } = await import("@/app/api/horoscope/[id]/manual-chart/route");
         const req = { json: jest.fn().mockResolvedValue(body) };
-        return PUT(req as any, { params: Promise.resolve({ id }) });
+        return PUT(req as unknown as NextRequest, { params: Promise.resolve({ id }) });
     }
 
     test("IT-BS-103: manual create with navamsaLagna + navamsaHouses persists both fields", async () => {
@@ -363,7 +363,7 @@ describe("IT-BS-112: Shad Bala PATCH never touches Bhava Suchika (regression)", 
 
         const { PATCH } = await import("@/app/api/horoscope/[id]/shadbalaya/route");
         const req = { json: jest.fn().mockResolvedValue({ planet: 1, bala: "sthanaBala", value: true }) };
-        const response = await PATCH(req as any, { params: Promise.resolve({ id: "horo-1" }) });
+        const response = await PATCH(req as unknown as NextRequest, { params: Promise.resolve({ id: "horo-1" }) });
 
         expect(response.status).toBe(200);
         const [, update] = mockCD.findOneAndUpdate.mock.calls[0];

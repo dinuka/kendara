@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { CalculatedDetails } from "@/models/CalculatedDetails";
 import { Chart } from "@/models/Chart";
+import type { ChartType } from "@/lib/chartTypes";
 import { Horoscope } from "@/models/Horoscope";
 
 import { computeCurrentPlanets } from "@/lib/currentPlanets";
@@ -25,13 +26,10 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     if (!horoscope) return NextResponse.json({ error: "Horoscope not found" }, { status: 404 });
     if (!canViewHoroscope(horoscope, session?.user)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
-    const chart = await Chart.findOne({
-        horoscope: { id },
-        type: type as any,
-    } as any).lean();
+    const chart = await Chart.findOne({ horoscope: { id }, type: type as ChartType }).lean();
     if (!chart) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-    let response: Record<string, unknown> = { ...chart };
+    const response: Record<string, unknown> = { ...chart };
 
     if (includeCurrentPlanets && type === "house") {
         const calculatedDetails = await CalculatedDetails.findOne({ "horoscope.id": id }).lean();

@@ -3,6 +3,7 @@ import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 
 import { calculateHoroscope } from "@/lib/calculation";
+import type { IHoroscope } from "@/models/Horoscope";
 
 describe("BirthChart planet capacity", () => {
     const baseData = {
@@ -17,7 +18,7 @@ describe("BirthChart planet capacity", () => {
         ayanamsha: "lahiri" as const,
         isPublic: false,
         owner: { id: "user-1" },
-    } as unknown as any;
+    } as unknown as IHoroscope;
 
     const renderChart = (showInduLagna = false) => {
         const result = calculateHoroscope(baseData);
