@@ -1,0 +1,75 @@
+{
+    "_comment": "Bhava Suchika golden fixture — 1990-06-15 08:30 Colombo, lahiri. Generated 2026-08-15 (era stamp). Regenerate deliberately with the generator test.",
+    "ascendant": {
+        "sign": 4,
+        "degree": 4.76
+    },
+    "lagnaBhavaSuchika": 2,
+    "bhavaSuchika": {
+        "1": 4,
+        "2": 8,
+        "3": 6,
+        "4": 10,
+        "5": 10,
+        "6": 5,
+        "7": 7,
+        "8": 11,
+        "9": 5
+    },
+    "planets": [
+        {
+            "name": 1,
+            "sign": 3,
+            "navamsaSign": 7,
+            "house": 12
+        },
+        {
+            "name": 2,
+            "sign": 11,
+            "navamsaSign": 11,
+            "house": 8
+        },
+        {
+            "name": 3,
+            "sign": 12,
+            "navamsaSign": 9,
+            "house": 9
+        },
+        {
+            "name": 4,
+            "sign": 2,
+            "navamsaSign": 1,
+            "house": 11
+        },
+        {
+            "name": 5,
+            "sign": 3,
+            "navamsaSign": 1,
+            "house": 12
+        },
+        {
+            "name": 6,
+            "sign": 1,
+            "navamsaSign": 8,
+            "house": 10
+        },
+        {
+            "name": 7,
+            "sign": 10,
+            "navamsaSign": 10,
+            "house": 7
+        },
+        {
+            "name": 8,
+            "sign": 10,
+            "navamsaSign": 2,
+            "house": 7
+        },
+        {
+            "name": 9,
+            "sign": 4,
+            "navamsaSign": 8,
+            "house": 1
+        }
+    ]
+}

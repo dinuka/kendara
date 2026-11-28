@@ -1,0 +1,1207 @@
+import jyotish from "jyotish-calculations";
+import swisseph from "swisseph-v2";
+
+import { IHoroscope } from "@/models/Horoscope";
+
+import {
+    Antardasha,
+    Ascendant,
+    CalculationResult,
+    CurrentPeriod,
+    DashaInfo,
+    House,
+    Mahadasha,
+    Planet,
+    Prana,
+    Sukshama,
+    Vidasa,
+    computeMaranakaraka,
+    computePanchaPakshi,
+    computeThithi,
+    computeYogakaraka,
+    navamsaSign,
+} from "@/lib/astrology";
+import { PlanetaryStrength } from "@/lib/astrologyEnums";
+import { getBadhakaSign } from "@/lib/badhaka";
+import { computeBhavaSuchika, computeLagnaBhavaSuchika, computeNavamsaLagnaSign } from "@/lib/bhavaSuchika";
+import { computeChartAspects } from "@/lib/chartAspects";
+import { get22ndDrekkanaLord, get22ndDrekkanaLordFromPlanet, getExtraDrekkanaLords } from "@/lib/drekkanaLord";
+import { type GulikaLagna, findGulikaPeriod, weekdayOfJulianDay } from "@/lib/gulikaLagna";
+import { HoraLagna, calculateHoraLagna } from "@/lib/horaLagna";
+import logger from "@/lib/logger";
+import { type Nisheka, type NishekaPlanet, calculateNishekaOffset, subtractElapsed } from "@/lib/nishekaLagna";
+import { type PranapadaLagna, calculatePranapadaLagna } from "@/lib/pranapadaLagna";
+import { computePlanetStrength } from "@/lib/planetDignity";
+import type { PlanetAspectsMap } from "@/lib/planetAspects";
+import type { RashiAspectsSetting } from "@/lib/rashiAspects";
+import { computeShadBalaya, deriveDay } from "@/lib/shadBalaya";
+import { computeSubaAsuba } from "@/lib/subaAsuba";
+import {
+    TOTAL_VIMSHOTTARI_YEARS,
+    VIMSHOTTARI_CYCLE,
+    getCyclePlanets,
+    getPlanetYears,
+    getStartPlanetIndex,
+} from "@/lib/vimshottari";
+import { computeWargaKendara } from "@/lib/wargaKendara";
+import { YOGA_DOSHA_VERSION, buildChartFacts, computeYogaDoshas } from "@/lib/yogaDosha";
+
+const GRAHA_MAP: Record<string, number> = {
+    Su: 1,
+    Mo: 2,
+    Ma: 3,
+    Me: 4,
+    Ju: 5,
+    Ve: 6,
+    Sa: 7,
+    Ra: 8,
+    Ke: 9,
+};
+
+const RASHI_MAP: Record<string, number> = {
+    Ar: 1,
+    Ta: 2,
+    Ge: 3,
+    Cn: 4,
+    Le: 5,
+    Vi: 6,
+    Li: 7,
+    Sc: 8,
+    Sg: 9,
+    Cp: 10,
+    Aq: 11,
+    Pi: 12,
+};
+
+const NAKSHATRA_NAMES: string[] = [
+    "Ashwini",
+    "Bharani",
+    "Krittika",
+    "Rohini",
+    "Mrigashira",
+    "Ardra",
+    "Punarvasu",
+    "Pushya",
+    "Ashlesha",
+    "Magha",
+    "Purva Phalguni",
+    "Uttara Phalguni",
+    "Hasta",
+    "Chitra",
+    "Swati",
+    "Vishakha",
+    "Anuradha",
+    "Jyestha",
+    "Mula",
+    "Purva Aashada",
+    "Uttara Aashada",
+    "Shravana",
+    "Dhanishta",
+    "Shatabhisha",
+    "Purva Bhadrapada",
+    "Uttara Bhadrapada",
+    "Revati",
+];
+
+const AYANAMSHA_MAP: Record<string, number> = {
+    lahari: 1,
+    raman: 3,
+    krishnamurti: 5,
+    yukteshwar: 7,
+};
+
+const SIGN_LORD: Record<number, number> = {
+    1: 3,
+    2: 6,
+    3: 4,
+    4: 2,
+    5: 1,
+    6: 4,
+    7: 6,
+    8: 3,
+    9: 5,
+    10: 7,
+    11: 7,
+    12: 5,
+};
+
+function getNakshatraId(name: string): number {
+    const idx = NAKSHATRA_NAMES.indexOf(name);
+    return idx >= 0 ? idx + 1 : 1;
+}
+
+function getSign(degree: number): number {
+    return Math.floor(degree / 30) + 1;
+}
+
+const DEFAULT_ORBS: Record<string, number> = {
+    "1": 15,
+    "2": 12,
+    "3": 8,
+    "4": 7,
+    "5": 9,
+    "6": 7,
+    "7": 9,
+    "8": 0,
+    "9": 0,
+};
+
+const MINUTES_PER_DAY = 24 * 60;
+
+/** Julian Day (UT) of the first sunrise or sunset after `jd` at the place, or null when there is none. */
+function sunEventAfter(jd: number, lat: number, lng: number, event: number): number | null {
+    const r = swisseph.swe_rise_trans(jd, swisseph.SE_SUN, "", swisseph.SEFLG_SWIEPH, event, lng, lat, 0, 0, 0);
+    return r.error === undefined ? r.transitTime : null;
+}
+
+/** Julian Day (UT) of the latest sunrise at or before `jdBirth` at the birth place, or null when
+ *  the Sun does not rise there (polar day/night). */
+function findPrecedingSunrise(jdBirth: number, lat: number, lng: number): number | null {
+    const riseAfter = (jd: number) => sunEventAfter(jd, lat, lng, swisseph.SE_CALC_RISE);
+
+    // Start comfortably more than a day back, then step forward through the rises until the next
+    // one would be after birth.
+    let sunrise: number | null = null;
+    let next = riseAfter(jdBirth - 1.5);
+    while (next !== null && next <= jdBirth) {
+        sunrise = next;
+        next = riseAfter(next + 0.01);
+    }
+    return sunrise;
+}
+
+/** Hora Lagna (docs/hora-lagna.md): the sidereal Sun at the preceding sunrise, advanced one sign per
+ *  hour elapsed to birth. Undefined when no sunrise can be found. Expects the sidereal mode set. */
+function computeHoraLagna(jdBirth: number, lat: number, lng: number): HoraLagna | undefined {
+    const sunrise = findPrecedingSunrise(jdBirth, lat, lng);
+    if (sunrise === null) {
+        logger.warn("no sunrise found before birth at lat %d lng %d; skipping Hora Lagna", lat, lng);
+        return undefined;
+    }
+    const sun = swisseph.swe_calc_ut(sunrise, swisseph.SE_SUN, swisseph.SEFLG_SWIEPH | swisseph.SEFLG_SIDEREAL);
+    if (sun.error !== undefined) {
+        logger.warn("Sun position at sunrise failed: %s; skipping Hora Lagna", sun.error);
+        return undefined;
+    }
+    return calculateHoraLagna(sun.longitude, (jdBirth - sunrise) * MINUTES_PER_DAY);
+}
+
+/** Pranapada Lagna (docs/done/pranapada-lagna.md): the sidereal Sun at birth, plus 0°/240°/120° by
+ *  the nature of its sign, plus one sign per 15 palas from the preceding sunrise. Undefined when no
+ *  sunrise can be found. Expects the sidereal mode set. */
+export function computePranapadaLagna(jdBirth: number, lat: number, lng: number): PranapadaLagna | undefined {
+    const sunrise = findPrecedingSunrise(jdBirth, lat, lng);
+    if (sunrise === null) {
+        logger.warn("no sunrise found before birth at lat %d lng %d; skipping Pranapada Lagna", lat, lng);
+        return undefined;
+    }
+    const sun = swisseph.swe_calc_ut(jdBirth, swisseph.SE_SUN, swisseph.SEFLG_SWIEPH | swisseph.SEFLG_SIDEREAL);
+    if (sun.error !== undefined) {
+        logger.warn("Sun position at birth failed: %s; skipping Pranapada Lagna", sun.error);
+        return undefined;
+    }
+    return calculatePranapadaLagna(sun.longitude, (jdBirth - sunrise) * MINUTES_PER_DAY);
+}
+
+const JD_UNIX_EPOCH = 2440587.5;
+const jdToIso = (jd: number): string => new Date(Math.round((jd - JD_UNIX_EPOCH) * 86_400_000)).toISOString();
+
+/** Gulika Lagna (docs/gulika-lagna.md): the sidereal ascendant at the start of Saturn's part of the
+ *  birth day or night. Undefined when the sunrise/sunset can't be found (polar day/night). Expects
+ *  the sidereal mode set. */
+export function computeGulikaLagna(jdBirth: number, lat: number, lng: number): GulikaLagna | undefined {
+    const sunrise = findPrecedingSunrise(jdBirth, lat, lng);
+    const sunset = sunrise === null ? null : sunEventAfter(sunrise, lat, lng, swisseph.SE_CALC_SET);
+    const nextSunrise = sunset === null ? null : sunEventAfter(sunset, lat, lng, swisseph.SE_CALC_RISE);
+    if (sunrise === null || sunset === null || nextSunrise === null || nextSunrise <= jdBirth) {
+        logger.warn("no sunrise/sunset around birth at lat %d lng %d; skipping Gulika Lagna", lat, lng);
+        return undefined;
+    }
+    const period = findGulikaPeriod({
+        sunrise,
+        sunset,
+        nextSunrise,
+        birth: jdBirth,
+        weekday: weekdayOfJulianDay(sunrise, lng),
+    });
+    const { ascendant } = swisseph.swe_houses_ex(period.start, swisseph.SEFLG_SIDEREAL, lat, lng, "P");
+    const longitude = ((ascendant % 360) + 360) % 360;
+    return {
+        absoluteDegree: +longitude.toFixed(4),
+        sign: Math.floor(longitude / 30) + 1,
+        degree: +(longitude % 30).toFixed(4),
+        isNight: period.isNight,
+        weekday: period.weekday,
+        part: period.part,
+        start: jdToIso(period.start),
+        end: jdToIso(period.end),
+    };
+}
+
+/** Swiss Ephemeris body per planet enum, for the planets that can rule a sign (Sun..Saturn). */
+const SWE_BODY: Record<number, number> = {
+    1: swisseph.SE_SUN,
+    2: swisseph.SE_MOON,
+    3: swisseph.SE_MARS,
+    4: swisseph.SE_MERCURY,
+    5: swisseph.SE_JUPITER,
+    6: swisseph.SE_VENUS,
+    7: swisseph.SE_SATURN,
+};
+
+const pad2 = (n: number): string => String(n).padStart(2, "0");
+
+/** Nisheka Lagna and chart (docs/nisheka-lagna.md, BPHS ch. 4 sl. 27–29). Mandi is the Gulika
+ *  Lagna longitude; the Lagna and 9th bhava madhya are Sripati bhava madhyas (Porphyry cusps).
+ *  `birthWallClockMs` holds the local birth date/time in its UTC fields. The nisheka planets come
+ *  from the same jyotish-calculations call as the birth chart. Undefined without Mandi or when an
+ *  ephemeris call fails. Expects the sidereal mode set; restores it before returning. */
+export function computeNisheka(
+    jdBirth: number,
+    birthWallClockMs: number,
+    lat: number,
+    lng: number,
+    timezone: number,
+    ayanamshaId: number,
+    mandiLongitude: number | undefined,
+): Nisheka | undefined {
+    if (mandiLongitude === undefined) {
+        logger.warn("no Mandi (Gulika Lagna) for this birth; skipping Nisheka Lagna");
+        return undefined;
+    }
+    const flags = swisseph.SEFLG_SWIEPH | swisseph.SEFLG_SIDEREAL;
+    const sripati = swisseph.swe_houses_ex(jdBirth, swisseph.SEFLG_SIDEREAL, lat, lng, "O");
+    const ascendantLongitude = ((sripati.ascendant % 360) + 360) % 360;
+    const ninthCuspLongitude = sripati.house[8];
+    const lagnaLord = SIGN_LORD[getSign(ascendantLongitude)];
+    const saturn = swisseph.swe_calc_ut(jdBirth, swisseph.SE_SATURN, flags);
+    const moon = swisseph.swe_calc_ut(jdBirth, swisseph.SE_MOON, flags);
+    const lord = swisseph.swe_calc_ut(jdBirth, SWE_BODY[lagnaLord], flags);
+    if (saturn.error !== undefined || moon.error !== undefined || lord.error !== undefined) {
+        logger.warn("planet positions for Nisheka failed; skipping Nisheka Lagna");
+        return undefined;
+    }
+
+    const offset = calculateNishekaOffset({
+        ascendant: ascendantLongitude,
+        ninthCusp: ninthCuspLongitude,
+        saturn: saturn.longitude,
+        mandi: mandiLongitude,
+        lagnaLord: lord.longitude,
+        moon: moon.longitude,
+    });
+    const wallClock = new Date(subtractElapsed(birthWallClockMs, offset.elapsed));
+    const localDate = `${wallClock.getUTCFullYear()}-${pad2(wallClock.getUTCMonth() + 1)}-${pad2(wallClock.getUTCDate())}`;
+    const localTime = `${pad2(wallClock.getUTCHours())}:${pad2(wallClock.getUTCMinutes())}:${pad2(wallClock.getUTCSeconds())}`;
+
+    const positions = jyotish.grahas.getGrahasPosition(
+        { dateString: localDate, timeString: localTime, lat, lng, timezone },
+        { zodiacType: "S", ayanamsha: ayanamshaId, houseType: "P" },
+    );
+    swisseph.swe_set_sid_mode(ayanamshaId, 0, 0);
+
+    const position = (longitude: number) => ({
+        absoluteDegree: +longitude.toFixed(4),
+        sign: getSign(longitude),
+        degree: +(longitude % 30).toFixed(4),
+    });
+    const planets: NishekaPlanet[] = Object.keys(GRAHA_MAP).map((key) => {
+        const p = positions[key];
+        return {
+            name: GRAHA_MAP[key],
+            ...position(p.longitude),
+            nakshatra: getNakshatraId(p.nakshatra.name),
+            pada: p.nakshatra.pada,
+            retrograde: !!p.isRetrograde,
+        };
+    });
+    logger.debug("nisheka %s %s: arc %d", localDate, localTime, offset.totalAngle);
+
+    return {
+        ...offset,
+        ascendantLongitude: +ascendantLongitude.toFixed(4),
+        ninthCuspLongitude: +ninthCuspLongitude.toFixed(4),
+        saturnLongitude: +saturn.longitude.toFixed(4),
+        mandiLongitude: +mandiLongitude.toFixed(4),
+        lagnaLord,
+        lagnaLordLongitude: +lord.longitude.toFixed(4),
+        moonLongitude: +moon.longitude.toFixed(4),
+        dateTime: new Date(wallClock.getTime() - timezone * 3_600_000).toISOString(),
+        localDate,
+        localTime,
+        ascendant: position(positions.La.longitude),
+        planets,
+    };
+}
+
+export function calculateHoroscope(
+    data: IHoroscope,
+    planetaryOrbs: Record<string, number> = DEFAULT_ORBS,
+    planetAspects?: PlanetAspectsMap,
+    rashiAspects?: RashiAspectsSetting,
+): CalculationResult {
+    logger.info({ name: data.name, ayanamsha: data.ayanamsha }, "starting horoscope calculation");
+
+    if (!data.birthDate) {
+        throw new Error("birthDate is required for ephemeris calculation");
+    }
+
+    const birthDate = new Date(data.birthDate);
+    const year = birthDate.getFullYear();
+    const month = String(birthDate.getMonth() + 1).padStart(2, "0");
+    const day = String(birthDate.getDate()).padStart(2, "0");
+
+    const [hours, minutes] = (data.birthTime || "12:00").split(":").map(Number);
+    const timeString = `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:00`;
+
+    const ayanamshaId = AYANAMSHA_MAP[data.ayanamsha] ?? 1;
+
+    const dateString = `${year}-${month}-${day}`;
+    const timezone = 5.5;
+
+    logger.info(
+        { dateString, timeString, lat: data.latitude, lng: data.longitude, timezone, ayanamshaId },
+        "calling jyotish-calculations",
+    );
+
+    const positions = jyotish.grahas.getGrahasPosition(
+        { dateString, timeString, lat: data.latitude, lng: data.longitude, timezone },
+        { zodiacType: "S", ayanamsha: ayanamshaId, houseType: "P" },
+    );
+
+    const ascLong = positions.La.longitude;
+    const ascSign = getSign(ascLong);
+
+    const ascendant: Ascendant = {
+        sign: ascSign,
+        degree: +(ascLong % 30).toFixed(2),
+        lord: SIGN_LORD[ascSign] || ascSign,
+    };
+
+    const utc = swisseph.swe_utc_time_zone(year, +month, +day, hours, minutes, 0, timezone);
+    const jd = swisseph.swe_utc_to_jd(
+        utc.year,
+        utc.month,
+        utc.day,
+        utc.hour,
+        utc.minute,
+        utc.second,
+        swisseph.SE_GREG_CAL,
+    );
+    swisseph.swe_set_sid_mode(ayanamshaId, 0, 0);
+    const sweResult = swisseph.swe_houses_ex(
+        jd.julianDayUT,
+        swisseph.SEFLG_SIDEREAL,
+        data.latitude,
+        data.longitude,
+        "P",
+    );
+    const cusps = sweResult.house;
+    const horaLagna = computeHoraLagna(jd.julianDayUT, data.latitude, data.longitude);
+    const gulikaLagna = computeGulikaLagna(jd.julianDayUT, data.latitude, data.longitude);
+    const pranapadaLagna = computePranapadaLagna(jd.julianDayUT, data.latitude, data.longitude);
+    const nisheka = computeNisheka(
+        jd.julianDayUT,
+        Date.UTC(year, +month - 1, +day, hours, minutes),
+        data.latitude,
+        data.longitude,
+        timezone,
+        ayanamshaId,
+        gulikaLagna?.absoluteDegree,
+    );
+
+    const houses: House[] = Array.from({ length: 12 }, (_, i) => {
+        const cusp = cusps[i];
+        const nextCusp = cusps[(i + 1) % 12];
+        const prevCusp = cusps[(i + 11) % 12];
+
+        const cForNext = nextCusp < cusp ? nextCusp + 360 : nextCusp;
+        const cForPrev = cusp < prevCusp ? cusp + 360 : cusp;
+
+        const start = ((prevCusp + cForPrev) / 2) % 360;
+        const end = ((cusp + cForNext) / 2) % 360;
+        const mid = cusp;
+
+        const startSign = Math.floor(start / 30) + 1;
+        const endSign = Math.floor(end / 30) + 1;
+        const midSign = Math.floor(mid / 30) + 1;
+        // Rasi houses are whole-sign: house N is always the Nth sign from the
+        // ascendant, sequentially. Placidus cusp midpoints (midSign) can skip or
+        // repeat a sign for unequal houses, so they must not be used as the house's
+        // sign/lord — only as cusp-boundary display data (start/middle/endSign).
+        const houseSign = ((ascSign - 1 + i) % 12) + 1;
+        return {
+            houseNumber: i + 1,
+            startDegree: +(start % 30).toFixed(4),
+            startSign,
+            startLord: SIGN_LORD[startSign] || 1,
+            middleDegree: +(mid % 30).toFixed(4),
+            middleSign: midSign,
+            middleLord: SIGN_LORD[midSign] || 1,
+            endDegree: +(end % 30).toFixed(4),
+            endSign,
+            endLord: SIGN_LORD[endSign] || 1,
+            sign: houseSign,
+            lord: SIGN_LORD[houseSign] || 1,
+        };
+    });
+
+    const grahaKeys = ["Su", "Mo", "Ma", "Me", "Ju", "Ve", "Sa", "Ra", "Ke"];
+    const planetDetails: Planet[] = grahaKeys.map((key) => {
+        const p = positions[key];
+        const name = GRAHA_MAP[key];
+        const sign = RASHI_MAP[p.rashi] || getSign(p.longitude);
+        const degree = +(p.longitude % 30).toFixed(2);
+        const absoluteDegree = +p.longitude.toFixed(2);
+        const house = ((sign - ascSign + 12) % 12) + 1;
+        const nakshatraId = getNakshatraId(p.nakshatra.name);
+
+        const navamsaNum = Math.floor(degree / (30 / 9)) + 1;
+        const nSign = navamsaSign(sign, navamsaNum);
+
+        return {
+            name: name ?? 0,
+            sign,
+            degree,
+            absoluteDegree,
+            house,
+            nakshatra: nakshatraId,
+            pada: p.nakshatra.pada,
+            retrograde: !!p.isRetrograde,
+            combustion: false,
+            strength: PlanetaryStrength.SAMA,
+            navamsaSign: nSign,
+            navamsaStrength: computePlanetStrength(name ?? 0, nSign, 0),
+            aspects: [],
+        };
+    });
+
+    const sunLong = positions.Su.longitude;
+    const moonLong = positions.Mo.longitude;
+
+    const sunOrb = planetaryOrbs["1"] ?? 15;
+
+    for (let i = 0; i < planetDetails.length; i++) {
+        planetDetails[i].combustion =
+            i === 0
+                ? false
+                : Math.abs(planetDetails[i].absoluteDegree - sunLong) < sunOrb ||
+                  Math.abs(planetDetails[i].absoluteDegree - sunLong + 360) < sunOrb ||
+                  Math.abs(planetDetails[i].absoluteDegree - sunLong - 360) < sunOrb;
+    }
+
+    // ASPECTS — planet drishti + rashi drishti from the single engine (src/lib/chartAspects.ts).
+    // Planets store the aspects they cast; houses store the planets aspecting them.
+    const chartAspects = computeChartAspects(planetDetails, houses, { planetAspects, planetaryOrbs, rashiAspects });
+    for (const p of planetDetails) {
+        p.aspects = chartAspects.byPlanet[p.name] ?? [];
+    }
+    for (const h of houses) {
+        h.aspects = chartAspects.byHouse[h.houseNumber] ?? [];
+        h.aspectingPlanets = h.aspects.map(({ planetName }) => planetName);
+    }
+
+    for (const p of planetDetails) {
+        p.strength = computePlanetStrength(p.name, p.sign, p.degree);
+    }
+
+    logger.info("calculation complete: %d planets, %d houses", planetDetails.length, houses.length);
+
+    const moonNakshatra = getNakshatraId(positions.Mo.nakshatra.name);
+    const moonPada = positions.Mo.nakshatra.pada;
+    const ascNakshatra = getNakshatraId(positions.La.nakshatra.name);
+    const ascPada = positions.La.nakshatra.pada;
+
+    // Vimshottari Nakshatra lords follow the cycle: Ketu(9), Venus(6), Sun(1), Moon(2),
+    // Mars(3), Rahu(8), Jupiter(5), Saturn(7), Mercury(4) — repeating every 9 nakshatras.
+    // Derived from VIMSHOTTARI_CYCLE to stay in sync.
+    const nakshatraLords = Array.from({ length: 27 }, (_, i) => VIMSHOTTARI_CYCLE[i % 9].planet);
+
+    const dashas = calculateDashas(positions.Mo.longitude, moonNakshatra, nakshatraLords[moonNakshatra - 1], birthDate);
+
+    const thithi = computeThithi(sunLong, moonLong);
+    const maranakaraka = computeMaranakaraka(planetDetails);
+    const yogakaraka = computeYogakaraka(ascSign);
+
+    // Shad Bala computed once at calculation time so new CalculatedDetails docs carry the table;
+    // legacy docs without the field are lazily recomputed (and merged with stored overrides) at
+    // render in the horoscope detail page. Day/night uses the Sun-whole-sign-house rule (see deriveDay).
+    const shadbalaya = computeShadBalaya(planetDetails, houses, {
+        source: "auto",
+        thithi,
+        day: deriveDay(planetDetails),
+        maranakaraka,
+    });
+
+    // Bhava Suchika (භාව සුචික) computed once at calculation time (whole-sign, Navamsa-into-Lagna
+    // chart house index). Legacy docs without the fields are lazily recomputed at render.
+    const lagnaBhavaSuchika = computeLagnaBhavaSuchika(ascSign, computeNavamsaLagnaSign(ascSign, ascLong % 30));
+    const bhavaSuchika = computeBhavaSuchika(planetDetails, ascSign);
+
+    // Suba Asuba (සුබ අසුබ) computed once at calculation time so new CalculatedDetails docs carry
+    // the per-planet Naisargika benefic/malefic verdict and its reasons; legacy docs without the
+    // field are lazily recomputed at render (see src/lib/subaAsuba.ts).
+    const subaAsuba = computeSubaAsuba(planetDetails, houses, thithi);
+
+    // Warga Kendara (වර්ග කේනදර) computed once at calculation time so new CalculatedDetails docs
+    // carry the four per-chart tables; legacy docs without the field are lazily derived at render.
+    // Yoga/Dosha separated tags (§Rule Catalog) computed once at calculation time so new
+    // CalculatedDetails docs carry versioned evaluations; legacy docs without the field are
+    // lazily resolved at render (see src/lib/yogaDosha/resolve.ts).
+    const yogaDoshas = computeYogaDoshas(
+        buildChartFacts({ ascendantSign: ascSign, source: "auto", planets: planetDetails, thithi }),
+    );
+
+    const result: CalculationResult = {
+        ascendant,
+        houses,
+        planets: planetDetails,
+        nakshatra: {
+            moonNakshatra: { id: moonNakshatra, pada: moonPada, lord: nakshatraLords[moonNakshatra - 1] },
+            ascendantNakshatra: { id: ascNakshatra, pada: ascPada, lord: nakshatraLords[ascNakshatra - 1] },
+        },
+        thithi,
+        panchaPakshi: computePanchaPakshi(moonNakshatra, thithi),
+        dashas,
+        lord22ndDrekkana: computeDrekkanaLord(ascSign, ascLong % 30),
+        lord22ndDrekkanaMoon: computePlanetDrekkanaLord(2, planetDetails, houses),
+        lord22ndDrekkanaSun: computePlanetDrekkanaLord(1, planetDetails, houses),
+        ...getExtraDrekkanaLords(ascSign, ascLong % 30),
+        lord64thNavamsa: computeNavamsaLord(ascSign, ascLong % 30),
+        badhakaPlanet: computeBadhaka(ascSign),
+        marakaPlanets: computeMaraka(ascSign, planetDetails),
+        nidhanamshaPlanets: computeNidhanamsha(ascSign, ascLong % 30, houses, planetDetails),
+        ashtamanshaPlanets: computeAshtamansha(ascSign, ascLong % 30, houses, planetDetails),
+        atmakaraka: computeAtmakaraka(planetDetails),
+        maranakaraka,
+        yogakaraka,
+        shadbalaya,
+        lagnaBhavaSuchika,
+        bhavaSuchika,
+        isAscendantWargoththama: computeAscendantWargoththama(ascSign, ascLong % 30),
+        isAscendantGandantha: computeAscendantGandantha(ascNakshatra, ascPada),
+        isAscendantGandamula: computeAscendantGandamula(ascNakshatra, ascPada),
+        isAscendantPushkara: computeAscendantPushkara(ascSign, ascLong % 30),
+        wargoththamaPlanets: computeWargoththama(planetDetails),
+        gandanthaPlanets: computeGandantha(planetDetails),
+        gandamulaPlanets: computeGandamula(planetDetails),
+        pushkaraPlanets: computePushkara(planetDetails),
+        yogas: yogaDoshas.yogas,
+        doshas: { doshas: yogaDoshas.doshas },
+        yogaDoshaVersion: YOGA_DOSHA_VERSION,
+        subaAsuba,
+        horaLagna,
+        gulikaLagna,
+        pranapadaLagna,
+        nisheka,
+    };
+
+    return {
+        ...result,
+        wargaKendara: computeWargaKendara(result, { source: "auto", planetAspects }),
+    };
+}
+
+/** Gandamula (ගණ්ඩමූල): planets in the 1st pada of Ashwini, Magha, or Mula nakshatras. */
+const GANDAMULA_NAKSHATRAS = new Set([1, 10, 19]);
+const GANDAMULA_PADA = 1;
+
+/** Gandantha (ගණ්ඩාන්ත): planets in the 4th pada of Ashlesha, Jyestha, or Revati nakshatras. */
+const GANDANTHA_NAKSHATRAS = new Set([9, 18, 27]);
+const GANDANTHA_PADA = 4;
+
+/** Pushkara navamsa target signs keyed by birth-chart sign (1-12). */
+const PUSHKARA_NAVAMSA_SIGNS: Record<number, number[]> = {
+    1: [7, 9],
+    2: [2, 12],
+    3: [2, 12],
+    4: [4, 6],
+    5: [7, 9],
+    6: [2, 12],
+    7: [2, 12],
+    8: [4, 6],
+    9: [7, 9],
+    10: [2, 12],
+    11: [2, 12],
+    12: [4, 6],
+};
+
+/** Wargoththama (වර්ගෝත්තම): the horoscope is Wargoththama when the ascendant's lagna sign
+ *  equals its navamsa (D9) sign. */
+function computeAscendantWargoththama(ascSign: number, ascDegree: number): boolean {
+    const ascNavamsaNum = Math.floor(ascDegree / (30 / 9)) + 1;
+    const ascNavamsaSign = navamsaSign(ascSign, ascNavamsaNum);
+    return ascSign === ascNavamsaSign;
+}
+
+/** Gandantha lagna (ගණ්ඩාන්ත ලග්න): the ascendant in the 4th pada of Ashlesha, Jyestha, or Revati. */
+function computeAscendantGandantha(ascNakshatra: number, ascPada: number): boolean {
+    return GANDANTHA_NAKSHATRAS.has(ascNakshatra) && ascPada === GANDANTHA_PADA;
+}
+
+/** Gandamula lagna (ගණ්ඩමූල ලග්න): the ascendant in the 1st pada of Ashwini, Magha, or Mula. */
+function computeAscendantGandamula(ascNakshatra: number, ascPada: number): boolean {
+    return GANDAMULA_NAKSHATRAS.has(ascNakshatra) && ascPada === GANDAMULA_PADA;
+}
+
+/** Pushkara lagna (පුෂ්කර ලග්න): the ascendant's navamsa (D9) sign falls in the Pushkara group
+ *  assigned to its birth-chart sign. */
+function computeAscendantPushkara(ascSign: number, ascDegree: number): boolean {
+    const ascNavamsaNum = Math.floor(ascDegree / (30 / 9)) + 1;
+    const ascNavamsaSign = navamsaSign(ascSign, ascNavamsaNum);
+    return PUSHKARA_NAVAMSA_SIGNS[ascSign]?.includes(ascNavamsaSign) ?? false;
+}
+
+/** Wargoththama planets: a planet is Wargoththama when its birth-chart sign equals its navamsa sign. */
+function computeWargoththama(planets: Planet[]): number[] {
+    return planets.filter((p) => p.sign === p.navamsaSign).map((p) => p.name);
+}
+
+function computeGandantha(planets: Planet[]): number[] {
+    return planets.filter((p) => GANDANTHA_NAKSHATRAS.has(p.nakshatra) && p.pada === GANDANTHA_PADA).map((p) => p.name);
+}
+
+function computeGandamula(planets: Planet[]): number[] {
+    return planets.filter((p) => GANDAMULA_NAKSHATRAS.has(p.nakshatra) && p.pada === GANDAMULA_PADA).map((p) => p.name);
+}
+
+/** Pushkara (පුෂ්කර): a planet whose navamsa (D9) sign falls in the Pushkara group assigned to its
+ *  birth-chart sign. Groups:
+ *    1, 5, 9          => navamsa 7, 9
+ *    2, 6, 10, 3, 7, 11 => navamsa 2, 12
+ *    4, 8, 12         => navamsa 4, 6
+ *  e.g. Mercury (Budha) in Makara (10) is Pushkara when its navamsa sign is Vrishabha (2) or Meena (12). */
+function computePushkara(planets: Planet[]): number[] {
+    return planets.filter((p) => PUSHKARA_NAVAMSA_SIGNS[p.sign]?.includes(p.navamsaSign)).map((p) => p.name);
+}
+
+function computeDrekkanaLord(ascSign: number, ascDegree: number): number {
+    return get22ndDrekkanaLord(ascSign, ascDegree);
+}
+
+/** 22nd Drekkana lord from the bhava a planet (Moon/Sun) occupies; 0 when the planet is missing. */
+function computePlanetDrekkanaLord(planetName: number, planets: Planet[], houses: House[]): number {
+    const planet = planets.find(({ name }) => name === planetName);
+    return (planet && get22ndDrekkanaLordFromPlanet(planet, houses)) || 0;
+}
+
+function computeNavamsaLord(ascSign: number, ascDegree: number): number {
+    const ascNavamsaNum = Math.floor(ascDegree / (30 / 9)) + 1;
+    const d9Lagna = navamsaSign(ascSign, ascNavamsaNum);
+    const fourthHouseSign = ((d9Lagna - 1 + 3) % 12) + 1;
+    return SIGN_LORD[fourthHouseSign] || 1;
+}
+
+function computeBadhaka(ascSign: number): number[] {
+    return [SIGN_LORD[getBadhakaSign(ascSign)] || 1];
+}
+
+function computeMaraka(ascSign: number, planets: Planet[]): number[] {
+    const secondSign = (ascSign % 12) + 1;
+    const seventhSign = ((ascSign + 6 - 1) % 12) + 1;
+
+    const secondLord = SIGN_LORD[secondSign] || 1;
+    const seventhLord = SIGN_LORD[seventhSign] || 1;
+
+    return [secondLord, seventhLord];
+}
+
+/** Nidhanamsha (නිධනාම්ශ): the 8th-house (nidhana) sign of the birth chart is located in the
+ *  navamsa (D9) chart; the navamsa house it occupies is the nidhanamsha house, and any planet
+ *  placed in that navamsa house is a nidhanamsha planet. */
+function computeNidhanamsha(ascSign: number, ascDegree: number, houses: House[], planets: Planet[]): number[] {
+    const eighthHouseSign = houses.find((h) => h.houseNumber === 8)?.sign ?? ((ascSign - 1 + 7) % 12) + 1;
+    const ascNavamsaNum = Math.floor(ascDegree / (30 / 9)) + 1;
+    const navamsaLagna = navamsaSign(ascSign, ascNavamsaNum);
+    const nidhanamshaHouse = ((eighthHouseSign - navamsaLagna + 12) % 12) + 1;
+
+    return planets
+        .filter((p) => ((p.navamsaSign - navamsaLagna + 12) % 12) + 1 === nidhanamshaHouse)
+        .map((p) => p.name);
+}
+
+/** Ashtamansha (අෂ්ඨමාංශ): for each planet, take the sign of the 8th house counted from the
+ *  planet's house in the birth chart, locate that sign's house in the navamsa (D9) chart, and if
+ *  the planet itself occupies that navamsa house it is an ashtamansha planet. */
+function computeAshtamansha(ascSign: number, ascDegree: number, houses: House[], planets: Planet[]): number[] {
+    const ascNavamsaNum = Math.floor(ascDegree / (30 / 9)) + 1;
+    const navamsaLagna = navamsaSign(ascSign, ascNavamsaNum);
+
+    return planets
+        .filter((p) => {
+            const eighthHouseNumber = ((p.house + 6) % 12) + 1;
+            const eighthHouseSign = houses.find((h) => h.houseNumber === eighthHouseNumber)?.sign ?? p.sign;
+            const ashtamanshaSignHouse = ((eighthHouseSign - navamsaLagna + 12) % 12) + 1;
+            return ((p.navamsaSign - navamsaLagna + 12) % 12) + 1 === ashtamanshaSignHouse;
+        })
+        .map((p) => p.name);
+}
+
+function computeAtmakaraka(planets: Planet[]): number {
+    let maxDeg = -1;
+    let atmakaraka = 1;
+    for (const p of planets) {
+        if (p.name === 8 || p.name === 9) continue;
+        if (p.degree > maxDeg) {
+            maxDeg = p.degree;
+            atmakaraka = p.name;
+        }
+    }
+    return atmakaraka;
+}
+
+/** Maranakaraka (මරණකාරක) is computed by the shared computeMaranakaraka in astrology.ts, which uses
+ *  the planet's whole-sign Rashi house (`planet.house` — sign relative to the ascendant sign), never
+ *  the cusp-boundary ranges (house start/end degrees). */
+function addYearsToDate(date: Date, years: number): Date {
+    const d = new Date(date);
+    const y = Math.floor(years);
+    const rem = years - y;
+    const m = Math.floor(rem * 12);
+    const days = Math.round((rem * 12 - m) * 30);
+    d.setFullYear(d.getFullYear() + y);
+    if (m > 0) d.setMonth(d.getMonth() + m);
+    if (days > 0) d.setDate(d.getDate() + days);
+    return d;
+}
+
+function addMonthsToDate(date: Date, months: number): Date {
+    const d = new Date(date);
+    d.setMonth(d.getMonth() + Math.floor(months));
+    return d;
+}
+
+function addDaysToDate(date: Date, days: number): Date {
+    const d = new Date(date);
+    d.setDate(d.getDate() + days);
+    return d;
+}
+
+function addHoursToDate(date: Date, hours: number): Date {
+    const d = new Date(date);
+    d.setHours(d.getHours() + hours);
+    return d;
+}
+
+function toISODate(date: Date): string {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, "0");
+    const d = String(date.getDate()).padStart(2, "0");
+    return `${y}-${m}-${d}`;
+}
+
+function toISODatetime(date: Date): string {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, "0");
+    const d = String(date.getDate()).padStart(2, "0");
+    const h = String(date.getHours()).padStart(2, "0");
+    const min = String(date.getMinutes()).padStart(2, "0");
+    const s = String(date.getSeconds()).padStart(2, "0");
+    return `${y}-${m}-${d}T${h}:${min}:${s}`;
+}
+
+function yearsBetween(from: Date, to: Date): number {
+    const diffMs = to.getTime() - from.getTime();
+    return +(diffMs / (365.25 * 24 * 60 * 60 * 1000)).toFixed(4);
+}
+
+function fractionToDays(fractionOfYear: number): number {
+    return Math.round(fractionOfYear * 365.25);
+}
+
+function fractionToMonths(fractionOfYear: number): number {
+    return Math.round(fractionOfYear * 12);
+}
+
+function yearsToDays(years: number): number {
+    return Math.round(years * 365.25);
+}
+
+function computeSubPeriods(
+    yearsTotal: number,
+    startDate: Date,
+    lordPlanet: number,
+    maxDepth: number,
+    birthDate: Date,
+    adStartOffset: number = 0,
+    fullYearsForProportion?: number,
+): { antardasha: Antardasha[]; vidasa: Vidasa[]; sukshama: Sukshama[]; prana: Prana[] } {
+    const proportionYears = fullYearsForProportion ?? yearsTotal;
+    const fullAdPlanets = getCyclePlanets(getStartPlanetIndex(lordPlanet), 9);
+    // ADs before the offset ended before birth, so only the running AD onwards remain
+    const adPlanets = fullAdPlanets.slice(adStartOffset);
+    const endDate = addYearsToDate(new Date(startDate), yearsTotal);
+
+    // Pre-compute all 9 AD full-proportion durations
+    const fullAdDurations: number[] = [];
+    for (let ai = 0; ai < 9; ai++) {
+        const adLord = fullAdPlanets[ai];
+        fullAdDurations.push((proportionYears * getPlanetYears(adLord)) / TOTAL_VIMSHOTTARI_YEARS);
+    }
+
+    // Portion of the first AD that had already elapsed before this period started (birth balance)
+    let preAdYears = 0;
+    for (let i = 0; i < adStartOffset; i++) {
+        preAdYears += fullAdDurations[i];
+    }
+    const elapsedInFirstAd = Math.max(0, proportionYears - yearsTotal - preAdYears);
+
+    const adList: Antardasha[] = [];
+    let currentDate = new Date(startDate);
+
+    for (let ai = 0; ai < adPlanets.length; ai++) {
+        const adLord = adPlanets[ai];
+        const adFullDuration = fullAdDurations[(adStartOffset + ai) % 9];
+        const remainingFromStart = yearsBetween(currentDate, endDate);
+
+        if (remainingFromStart <= 0.0001) break;
+
+        // Last AD fills to parent end
+        const isLastAd = ai === adPlanets.length - 1;
+
+        // First AD (containing birth): start = birth, end = its remaining balance or capped
+        let adEnd: Date;
+        if (isLastAd) {
+            adEnd = new Date(endDate);
+        } else if (ai === 0) {
+            const theoreticalEnd = addYearsToDate(new Date(startDate), adFullDuration - elapsedInFirstAd);
+            adEnd = theoreticalEnd < endDate ? theoreticalEnd : new Date(endDate);
+        } else {
+            const actualDuration = Math.min(adFullDuration, remainingFromStart);
+            adEnd = addYearsToDate(new Date(currentDate), actualDuration);
+            if (adEnd > endDate) adEnd = new Date(endDate);
+        }
+
+        const adStart = new Date(currentDate);
+        const adDurationYears = yearsBetween(adStart, adEnd);
+        const adMonths = +(adDurationYears * 12).toFixed(2);
+
+        // Never drop the first AD — a short birth balance can leave it under a month
+        if (adMonths < 1 && ai > 0 && !isLastAd) {
+            currentDate = new Date(adEnd);
+            continue;
+        }
+
+        const adStartAge = yearsBetween(birthDate, adStart);
+        const adYears = adFullDuration;
+
+        const vidasaList: Vidasa[] = [];
+        if (maxDepth >= 3) {
+            let vdDate = new Date(adStart);
+
+            // Compute vidasa offset for the first AD (which has remaining balance)
+            let vdPlanets: number[] = [];
+            let remainingVdCount = 9;
+            let vdStartOffset = 0;
+            let firstVdRemainingDays: number | null = null;
+            let elapsedInFirstVd = 0;
+
+            if (ai === 0 && elapsedInFirstAd > 0) {
+                const elapsedInAd = elapsedInFirstAd;
+
+                const fullVdSequence = getCyclePlanets(getStartPlanetIndex(adPlanets[0]), 9);
+
+                const fullVdDurations: number[] = [];
+                for (let vi = 0; vi < 9; vi++) {
+                    fullVdDurations.push(
+                        (adFullDuration * getPlanetYears(fullVdSequence[vi])) / TOTAL_VIMSHOTTARI_YEARS,
+                    );
+                }
+
+                let cumVd = 0;
+                for (let vi = 0; vi < 9; vi++) {
+                    cumVd += fullVdDurations[vi];
+                    if (cumVd > elapsedInAd) {
+                        vdStartOffset = vi;
+                        let preVdYears = 0;
+                        for (let j = 0; j < vi; j++) {
+                            preVdYears += fullVdDurations[j];
+                        }
+                        elapsedInFirstVd = elapsedInAd - preVdYears;
+                        firstVdRemainingDays = fractionToDays(fullVdDurations[vi] - elapsedInFirstVd);
+                        break;
+                    }
+                }
+
+                remainingVdCount = 9 - vdStartOffset;
+                vdPlanets = fullVdSequence.slice(vdStartOffset);
+            } else {
+                vdPlanets = getCyclePlanets(getStartPlanetIndex(adLord), 9);
+            }
+
+            const vdProportionYears = isLastAd ? adDurationYears : adFullDuration;
+
+            for (let vi = 0; vi < remainingVdCount; vi++) {
+                const vdLord = vdPlanets[vi];
+                const vdYears = (vdProportionYears * getPlanetYears(vdLord)) / TOTAL_VIMSHOTTARI_YEARS;
+                const vdDays =
+                    firstVdRemainingDays !== null && vi === 0 ? firstVdRemainingDays : fractionToDays(vdYears);
+
+                if (vdDays < 1 && vi < remainingVdCount - 1) continue;
+
+                const vdStart = new Date(vdDate);
+                let vdEnd: Date;
+
+                if (vi === remainingVdCount - 1) {
+                    vdEnd = new Date(adEnd);
+                } else {
+                    vdEnd = addDaysToDate(vdStart, vdDays);
+                }
+
+                const sukshamaList: Sukshama[] = [];
+                if (maxDepth >= 4) {
+                    let skDate = new Date(vdStart);
+
+                    // Compute sukshama offset for the first VD (which has remaining balance)
+                    let skPlanets: number[] = [];
+                    let remainingSkCount = 9;
+                    let skStartOffset = 0;
+                    let firstSkRemainingDays: number | null = null;
+
+                    if (ai === 0 && vi === 0 && elapsedInFirstVd > 0) {
+                        const elapsedInVd = elapsedInFirstVd;
+
+                        const fullSkSequence = getCyclePlanets(getStartPlanetIndex(vdPlanets[0]), 9);
+
+                        const fullSkDurations: number[] = [];
+                        for (let si = 0; si < 9; si++) {
+                            fullSkDurations.push(
+                                (vdYears * getPlanetYears(fullSkSequence[si])) / TOTAL_VIMSHOTTARI_YEARS,
+                            );
+                        }
+
+                        let cumSk = 0;
+                        for (let si = 0; si < 9; si++) {
+                            cumSk += fullSkDurations[si];
+                            if (cumSk > elapsedInVd) {
+                                skStartOffset = si;
+                                let preSkYears = 0;
+                                for (let j = 0; j < si; j++) {
+                                    preSkYears += fullSkDurations[j];
+                                }
+                                const elapsedInSk = elapsedInVd - preSkYears;
+                                firstSkRemainingDays = fractionToDays(fullSkDurations[si] - elapsedInSk);
+                                break;
+                            }
+                        }
+
+                        remainingSkCount = 9 - skStartOffset;
+                        skPlanets = fullSkSequence.slice(skStartOffset);
+                    } else {
+                        skPlanets = getCyclePlanets(getStartPlanetIndex(vdLord), 9);
+                    }
+
+                    for (let si = 0; si < remainingSkCount; si++) {
+                        const skLord = skPlanets[si];
+                        const skYears = (vdYears * getPlanetYears(skLord)) / TOTAL_VIMSHOTTARI_YEARS;
+                        const skDays =
+                            firstSkRemainingDays !== null && si === 0 ? firstSkRemainingDays : fractionToDays(skYears);
+
+                        if (skDays < 1 && si < remainingSkCount - 1) continue;
+
+                        const skStart = new Date(skDate);
+                        let skEnd: Date;
+
+                        if (si === remainingSkCount - 1) {
+                            skEnd = new Date(vdEnd);
+                        } else {
+                            skEnd = addDaysToDate(skStart, skDays);
+                        }
+
+                        const pranaList: Prana[] = [];
+                        if (maxDepth >= 5) {
+                            let prDate = new Date(skStart);
+
+                            const prPlanets = getCyclePlanets(getStartPlanetIndex(skLord), 9);
+                            for (let pi = 0; pi < 9; pi++) {
+                                const prLord = prPlanets[pi];
+                                const prYears = (skYears * getPlanetYears(prLord)) / TOTAL_VIMSHOTTARI_YEARS;
+                                const prHours = Math.round(prYears * 365.25 * 24);
+
+                                if (prHours < 1 && pi < 8) continue;
+
+                                const prStart = new Date(prDate);
+                                let prEnd: Date;
+
+                                if (pi === 8) {
+                                    prEnd = new Date(skEnd);
+                                } else {
+                                    prEnd = addHoursToDate(prStart, prHours);
+                                }
+
+                                pranaList.push({
+                                    planet: prLord,
+                                    startDate: toISODatetime(prStart),
+                                    endDate: toISODatetime(prEnd),
+                                    durationHours: prHours,
+                                    startAge: yearsBetween(birthDate, prStart),
+                                });
+
+                                prDate = new Date(prEnd);
+                            }
+                        }
+
+                        sukshamaList.push({
+                            planet: skLord,
+                            startDate: toISODate(skStart),
+                            endDate: toISODate(skEnd),
+                            durationDays: skDays,
+                            prana: pranaList,
+                            startAge: yearsBetween(birthDate, skStart),
+                        });
+
+                        skDate = new Date(skEnd);
+                    }
+                }
+
+                vidasaList.push({
+                    planet: vdLord,
+                    startDate: toISODate(vdStart),
+                    endDate: toISODate(vdEnd),
+                    durationDays: vdDays,
+                    sukshama: sukshamaList,
+                    startAge: yearsBetween(birthDate, vdStart),
+                });
+
+                vdDate = new Date(vdEnd);
+            }
+        }
+
+        adList.push({
+            planet: adLord,
+            startDate: toISODate(adStart),
+            endDate: toISODate(adEnd),
+            durationMonths: adMonths,
+            vidasa: vidasaList,
+            startAge: yearsBetween(birthDate, adStart),
+        });
+
+        currentDate = new Date(adEnd);
+    }
+
+    return { antardasha: adList, vidasa: [], sukshama: [], prana: [] };
+}
+
+export function calculateDashas(
+    moonLongitude: number,
+    moonNakshatraId: number,
+    moonNakshatraLord: number,
+    birthDate: Date,
+): DashaInfo {
+    const nakshatraSpan = 360 / 27;
+    const nakshatraStartDeg = (moonNakshatraId - 1) * nakshatraSpan;
+    const degInNakshatra = moonLongitude - nakshatraStartDeg;
+    const remainingDeg = nakshatraSpan - degInNakshatra;
+    const balanceFraction = remainingDeg / nakshatraSpan;
+
+    const firstLordFullYears = getPlanetYears(moonNakshatraLord);
+    const remainingYearsAtBirth = +(firstLordFullYears * balanceFraction).toFixed(4);
+
+    const startIndex = getStartPlanetIndex(moonNakshatraLord);
+
+    const mahadashaList: Mahadasha[] = [];
+    let currentDate = new Date(birthDate);
+
+    for (let mi = 0; mi < 9; mi++) {
+        const planet = VIMSHOTTARI_CYCLE[(startIndex + mi) % 9].planet;
+        const fullYears = getPlanetYears(planet);
+
+        let currentYears: number;
+        if (mi === 0) {
+            currentYears = remainingYearsAtBirth;
+        } else {
+            currentYears = fullYears;
+        }
+
+        const mdStart = new Date(currentDate);
+        const mdEnd = addYearsToDate(mdStart, currentYears);
+
+        // For the first MD (remaining balance), find which AD is running at birth
+        // by computing where the elapsed portion falls in the full AD sequence
+        let adStartOffset = 0;
+        if (mi === 0 && remainingYearsAtBirth < fullYears) {
+            const elapsedBeforeBirth = fullYears - remainingYearsAtBirth;
+            let cum = 0;
+            for (let ai = 0; ai < 9; ai++) {
+                const adPlanet = VIMSHOTTARI_CYCLE[(getStartPlanetIndex(planet) + ai) % 9].planet;
+                const adFullYears = (fullYears * getPlanetYears(adPlanet)) / TOTAL_VIMSHOTTARI_YEARS;
+                cum += adFullYears;
+                if (cum > elapsedBeforeBirth) {
+                    adStartOffset = ai;
+                    break;
+                }
+            }
+        }
+
+        const result = computeSubPeriods(
+            currentYears,
+            mdStart,
+            planet,
+            4,
+            birthDate,
+            adStartOffset,
+            mi === 0 ? fullYears : undefined,
+        );
+
+        mahadashaList.push({
+            planet,
+            startDate: toISODate(mdStart),
+            endDate: toISODate(mdEnd),
+            durationYears: currentYears,
+            remainingYearsAtBirth: mi === 0 ? remainingYearsAtBirth : 0,
+            antardasha: result.antardasha,
+            startAge: yearsBetween(birthDate, mdStart),
+        });
+
+        currentDate = new Date(mdEnd);
+    }
+
+    const now = new Date();
+    const currentPeriod: CurrentPeriod = {
+        mahadashaLord: mahadashaList[0].planet,
+        antardashaLord: mahadashaList[0].antardasha[0]?.planet ?? mahadashaList[0].planet,
+        vidasaLord: null,
+        sukshamaLord: null,
+        pranaLord: null,
+    };
+
+    for (const md of mahadashaList) {
+        if (now >= new Date(md.startDate) && now < new Date(md.endDate)) {
+            currentPeriod.mahadashaLord = md.planet;
+
+            for (const ad of md.antardasha) {
+                if (now >= new Date(ad.startDate) && now < new Date(ad.endDate)) {
+                    currentPeriod.antardashaLord = ad.planet;
+
+                    for (const vd of ad.vidasa) {
+                        if (now >= new Date(vd.startDate) && now < new Date(vd.endDate)) {
+                            currentPeriod.vidasaLord = vd.planet;
+
+                            for (const sk of vd.sukshama) {
+                                if (now >= new Date(sk.startDate) && now < new Date(sk.endDate)) {
+                                    currentPeriod.sukshamaLord = sk.planet;
+
+                                    for (const pr of sk.prana) {
+                                        if (now >= new Date(pr.startDate) && now < new Date(pr.endDate)) {
+                                            currentPeriod.pranaLord = pr.planet;
+                                            break;
+                                        }
+                                    }
+                                    break;
+                                }
+                            }
+                            break;
+                        }
+                    }
+                    break;
+                }
+            }
+            break;
+        }
+    }
+
+    return {
+        mahadasha: mahadashaList,
+        currentPeriod,
+    };
+}

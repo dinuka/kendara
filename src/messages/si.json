@@ -1,0 +1,2142 @@
+{
+    "app": {
+        "title": "කේන්දර",
+        "tagline": "ජ්‍යෝතිෂ්‍ය අධ්‍යයන වේදිකාව"
+    },
+    "dashboard": {
+        "welcome": "ආයුබෝවන්, {name}!",
+        "thisMonth": "මෙම මාසයේ එකතු කළ",
+        "publicHoroscopes": "ප්‍රසිද්ධ කේන්දර",
+        "bySign": "රාශිය අනුව කේන්දර",
+        "byNakshatra": "නැකත අනුව කේන්දර",
+        "noData": "දත්ත නොමැත",
+        "recentHoroscopes": "මෑත කේන්දර",
+        "viewAll": "සියලුම කේන්දර බලන්න →"
+    },
+    "nav": {
+        "menu": "මෙනුව",
+        "dashboard": "මුල් පිටුව",
+        "addHoroscope": "කේන්දරයක් එක් කරන්න",
+        "horoscopes": "කේන්දර",
+        "newHoroscope": "නව කේන්දරයක්",
+        "search": "සොයන්න",
+        "locations": "ස්ථාන",
+        "settings": "සැකසුම්",
+        "admin": "පරිපාලන",
+        "savedFilters": "සුරැකුම් පෙරහන්",
+        "searchPlaceholder": "කේන්දර සොයන්න...",
+        "signOut": "පිටවන්න"
+    },
+    "auth": {
+        "signIn": "පුරනය වන්න",
+        "signInDesc": "කේන්දර වෙත ප්‍රවේශ වීමට ඔබගේ Google හෝ Facebook ගිණුම භාවිතා කරන්න",
+        "signInFacebook": "Facebook සමඟින් පුරනය වන්න",
+        "signInGoogle": "Google සමඟින් පුරනය වන්න",
+        "signOut": "පිටවන්න"
+    },
+    "horoscope": {
+        "add": "කේන්දරයක් එක් කරන්න",
+        "addBirth": "උපන් විස්තර එක් කරන්න",
+        "addCalculated": "ගණනය කළ කේන්දරය එක් කරන්න",
+        "edit": "කේන්දරය සංස්කරණය කරන්න",
+        "name": "නම",
+        "birthDate": "උපන් දිනය",
+        "birthTime": "උපන් වේලාව",
+        "location": "ස්ථානය",
+        "latitude": "අක්ෂාංශ",
+        "longitude": "දේශාංශ",
+        "gender": "ස්ත්‍රී/පුරුෂ භාවය",
+        "male": "පිරිමි",
+        "female": "ගැහැණු",
+        "other": "වෙනත්",
+        "ayanamsha": "අයනාංශ",
+        "lahiri": "ලාහිරි",
+        "raman": "රාමන්",
+        "krishnamurti": "ක්‍රිෂ්ණමූර්ති",
+        "yukteshwar": "යුක්තේශ්වර්",
+        "save": "සුරකින්න",
+        "cancel": "අවලංගු කරන්න",
+        "calculating": "කේන්දරය ගණනය කරමින්...",
+        "delete": "මකන්න",
+        "deleteConfirm": "මෙම කේන්දරය මකන්නද?",
+        "deleteWarning": "මෙම ක්‍රියාව ආපසු හැරවිය නොහැක. මෙම කේන්දරයේ සියලුම සටහන්, ගණනය කිරීම් සහ පාර-දත්ත ස්ථිරවම ඉවත් කරනු ලැබේ.",
+        "private": "පෞද්ගලික",
+        "public": "ප්‍රසිද්ධ",
+        "showName": "නම පෙන්වන්න",
+        "searchPlaceholder": "නම, උපන් දිනය, වර්ෂය හෝ ස්ථානය අනුව සොයන්න...",
+        "sortBy": "අනුපිළිවෙල",
+        "sortAsc": "ආරෝහණ",
+        "sortDesc": "අවරෝහණ",
+        "sectionsAria": "කේන්දර කොටස්",
+        "searchNoResults": "ඔබේ සෙවුමට ගැළපෙන කේන්දර හමු නොවීය",
+        "nav": {
+            "prev": "පෙර",
+            "next": "ඊළඟ",
+            "prevAria": "පෙර කේන්දරය: {name}",
+            "nextAria": "ඊළඟ කේන්දරය: {name}",
+            "position": "{position} / {total}"
+        },
+        "charts": "සටහන්",
+        "calculations": "ගණනය කිරීම්",
+        "dashas": "දශා",
+        "yogaDoshas": "යෝග සහ දෝෂ",
+        "metadata": "පාර-දත්ත",
+        "download": "බාගන්න",
+        "share": "බෙදා ගන්න",
+        "privacy": {
+            "title": "රහස්‍යතා සැකසුම්",
+            "private_label": "පුද්ගලික",
+            "public_label": "පොදු",
+            "private_description": "පුද්ගලික කේන්දර ඔබට, පරිපාලකට සහ බෙදාගැනීමේ සබැඳිය ඇති ඕනෑම කෙනෙකුට පමණක් පෙනේ.",
+            "public_description": "පොදු කේන්දර සියලුම සිසුන්ට සෙවුම් ප්‍රතිඵලවල දෘශ්‍යමාන වේ.",
+            "display_name_title": "නම දර්ශනය",
+            "display_name_show": "නම පෙන්වන්න",
+            "display_name_hide": "නම සඟවන්න",
+            "display_name_show_description": "පුද්ගලයාගේ නම සෙවුම් ප්‍රතිඵලවල, විස්තර පිටුවල සහ පොදු ලැයිස්තුගත කිරීම්වල පෙන්වයි.",
+            "display_name_hide_description": "පොදු ස්ථානවල නම \"නිර්නාමික කේන්දරය #XXXX\" ලෙස ප්‍රතිස්ථාපනය වේ.",
+            "share_link_note": "ඔබ පුද්ගලිකයට මාරු වුවද බෙදාගැනීමේ සබැඳි වලංගු වේ."
+        },
+        "badge": {
+            "private": "පෞද්ගලික",
+            "public": "ප්‍රසිද්ධ",
+            "name_hidden": "නම සඟවා ඇත"
+        },
+        "anonymous": {
+            "label": "නිර්නාමික කේන්දරය #{id}"
+        },
+        "toast": {
+            "privacy": {
+                "now_private": "මෙම කේන්දරය දැන් පෞද්ගලිකයි",
+                "now_public": "මෙම කේන්දරය දැන් ප්‍රසිද්ධයි",
+                "name_hidden": "අනෙකුත් නරඹන්නන්ගෙන් නම සඟවා ඇත",
+                "name_shown": "නම අනෙකුත් නරඹන්නන්ට පෙනේ"
+            }
+        },
+        "error": {
+            "privacy": {
+                "save_failed": "රහස්‍යතා සැකසුම් සුරැකීම අසාර්ථක විය",
+                "not_owner": "හිමිකරුට පමණක් රහස්‍යතා සැකසුම් වෙනස් කළ හැක"
+            }
+        },
+        "seo": {
+            "kendaraya": "කේන්දරය",
+            "titleDefault": "{name} කේන්දරය",
+            "descBirthDate": "උපන් දිනය {date}",
+            "descBirthTime": "උපන් වේලාව {time}",
+            "descBirthPlace": "උපන් ස්ථානය {place}",
+            "descLagna": "{lagna} ලග්නය",
+            "descIntro": "{name} ගේ කේන්දරය",
+            "descTail": "රාශි චක්‍රය, නවාංශකය, යෝග සහ දශා.",
+            "imageAltBirth": "{name} – රාශි චක්‍රය (ලග්න කේන්දරය)",
+            "imageAltNavamsa": "{name} – නවාංශක චක්‍රය",
+            "editorTitle": "සෙවුම් යන්ත්‍ර සහ බෙදාගැනීම",
+            "editorHint": "Google ප්‍රතිඵලවල සහ Facebook/WhatsApp සබැඳි පෙරදසුන්වල පෙන්වයි. හිස්ව තැබුවොත් ස්වයංක්‍රීය පෙළ භාවිත වේ.",
+            "title": "මාතෘකාව",
+            "description": "විස්තරය",
+            "aliases": "අන්වර්ථ URL",
+            "aliasPlaceholder": "උදා. mahinda-rajapaksha",
+            "aliasHint": "සෑම අන්වර්ථයක්ම මෙම කේන්දරය විවෘත කරයි: {path}. කුඩා ඉංග්‍රීසි අකුරු, ඉලක්කම් සහ ඉරි පමණි.",
+            "aliasAdd": "එක් කරන්න",
+            "indexed": "සෙවුම් යන්ත්‍රවල පෙන්වන්න",
+            "notPublic": "මෙම කේන්දරය පෞද්ගලික බැවින් සෙවුම් යන්ත්‍රවලට සහ සබැඳි පෙරදසුන්වලට එය නොපෙනේ.",
+            "save": "සුරකින්න",
+            "saved": "SEO දත්ත සුරැකිණි",
+            "saveFailed": "SEO දත්ත සුරැකීමට නොහැකි විය",
+            "aliasTaken": "මෙම අන්වර්ථය වෙනත් කේන්දරයක් භාවිත කරයි: {aliases}",
+            "invalid": "සලකුණු කළ ක්ෂේත්‍ර පරීක්ෂා කරන්න",
+            "searchPreview": "Google පෙරදසුන",
+            "sharePreview": "බෙදාගැනීමේ පෙරදසුන",
+            "debugger": "Facebook Sharing Debugger විවෘත කරන්න",
+            "chars": "{count}/{max}"
+        }
+    },
+    "search": {
+        "title": "කේන්දර සොයන්න",
+        "placeholder": "සිංහලෙන් හෝ ඉංග්‍රීසියෙන් සොයන්න...",
+        "search": "සොයන්න",
+        "results": "ප්‍රතිඵල",
+        "noResults": "කේන්දර හමු නොවීය",
+        "relevance": "ගැළපුම",
+        "configPanel": "සංදර්ශකය වින්‍යාස කරන්න",
+        "resetConfig": "පෙරනිමියට යළි සකසන්න",
+        "basicSearch": "උදා: මේෂ ලග්නය, ශනි උච්ච, ගුරු 3",
+        "complexSearch": "උදා: මේෂ ලග්නයේ ශනි උච්චව ගුරු 3 භාවයේ",
+        "suggestions": {
+            "ariaLabel": "සෙවුම් වචන යෝජනා"
+        },
+        "card": {
+            "ascSign": "ලග්නය {sign}",
+            "noAscendant": "ලග්න දත්ත නොමැත",
+            "bookmarkRemove": "පොත්යොමුව ඉවත් කරන්න",
+            "bookmarkAdd": "පොත්යොමුව",
+            "noChartData": "සටහන් දත්ත නොමැත",
+            "signAtDegree": "රාශිය {sign}, {degree}° · අධිපති: ග්‍රහයා {lord}",
+            "moonNakshatra": "චන්ද්‍ර: නැකත {id}",
+            "ascNakshatra": "ලග්න: නැකත {id}",
+            "malefic": "පාප",
+            "yogas": "යෝග",
+            "noYogas": "යෝග හමු නොවීය",
+            "doshas": "දෝෂ",
+            "noDoshas": "දෝෂ හමු නොවීය"
+        },
+        "score": {
+            "weak": "දුර්වල",
+            "excellent": "ඉතා හොඳ",
+            "strong": "ශක්තිමත්",
+            "moderate": "මධ්‍යස්ථ",
+            "ariaLabel": "ගැළපුම් ලකුණු: {pct} ප්‍රතිශතය"
+        },
+        "conditions": {
+            "ascendant": "ලග්නය {sign}",
+            "planetInSign": "ග්‍ර. {planet} රාශි {sign}",
+            "planetInSignHouse": "{planet} රාශි {sign}, භාව {house}",
+            "planetNakshatraLord": "{planet} නැකතට අධිපති {lord}",
+            "exaltation": "{planet} උච්ච",
+            "debilitation": "{planet} නීච",
+            "yogaPresent": "යෝග {count}",
+            "dosha": "දෝෂය: {name}",
+            "ashtamansha": "{planet} අෂ්ඨමාංශ",
+            "nidhanamsha": "{planet} නිධනාම්ශ",
+            "maraka": "{planet} මාරක",
+            "badhaka": "{planet} බාධක",
+            "drekkana": "{planet} 22 වන ද්‍රැක්කාන අධිපති",
+            "navamsa": "{planet} 64 වන නවාම්ශ අධිපති",
+            "atmakaraka": "ආත්මකාරක {planet}",
+            "drekkanaPresent": "22 වන ද්‍රැක්කාන අධිපති සිටී",
+            "navamsaPresent": "64 වන නවාම්ශ අධිපති සිටී",
+            "atmakarakaPresent": "ආත්මකාරක සිටී",
+            "ashtamanshaPresent": "අෂ්ඨමාංශ ග්‍රහ තිබේ",
+            "nidhanamshaPresent": "නිධනාම්ශ ග්‍රහ තිබේ",
+            "marakaPresent": "මාරක ග්‍රහ තිබේ",
+            "badhakaPresent": "බාධක ග්‍රහ තිබේ",
+            "wargoththama": "{planet} වර්ගෝත්තම",
+            "wargoththamaPresent": "වර්ගෝත්තම ග්‍රහ තිබේ",
+            "gandanta": "{planet} ගණ්ඩාන්ත",
+            "gandantaPresent": "ගණ්ඩාන්ත ග්‍රහ තිබේ",
+            "gandamula": "{planet} ගණ්ඩමූල",
+            "gandamulaPresent": "ගණ්ඩමූල ග්‍රහ තිබේ",
+            "pushkara": "{planet} පුෂ්කර",
+            "pushkaraPresent": "පුෂ්කර ග්‍රහ තිබේ",
+            "pushkaraLagna": "පුෂ්කර ලග්නය",
+            "pushkaraCount": "පුෂ්කර ග්‍රහ අවම වශයෙන් {count}ක්",
+            "bhavaSuchika": "භාව සුචික: {value}",
+            "planetBhavaSuchika": "{planet} භාව සුචික: {value}"
+        },
+        "table": {
+            "planetName": "ග්‍රහයා {id}",
+            "signName": "රාශිය {id}"
+        },
+        "dashas": {
+            "noData": "දත්ත නොමැත",
+            "currentMD": "වත්මන්: මහා දශා අධිපති {lord}",
+            "currentAD": "· අන්තර් දශා අධිපති {lord}",
+            "currentVidasa": "· විදශා අධිපති {lord}",
+            "planet": "ග්‍රහයා {id}",
+            "active": "සක්‍රීය"
+        },
+        "tabs": {
+            "birth": "උත්පත්ති",
+            "navamsa-d9": "නවාංශ",
+            "house": "භාව",
+            "chandra-lagna": "චන්ද්‍ර",
+            "surya-lagna": "සූර්ය",
+            "drekkana-d3": "D3",
+            "dasamsa-d10": "D10",
+            "shodasha-vargas": "වර්ග"
+        },
+        "pagination": {
+            "previous": "← පෙර",
+            "next": "ඊළඟ →",
+            "pageOf": "පිටුව {page} / {totalPages} (මුළු {total})"
+        }
+    },
+    "admin": {
+        "title": "පරිපාලන",
+        "horoscopes": "සියලුම කේන්දර",
+        "users": "පරිශීලකයින්",
+        "manageUsers": "පරිශීලක කළමනාකරණය"
+    },
+    "settings": {
+        "title": "සැකසුම්",
+        "language": "භාෂාව",
+        "sinhala": "සිංහල",
+        "english": "English",
+        "saved": "සැකසුම් සුරකින ලදී",
+        "planetaryOrbs": "ග්‍රහ රාශ්මි (Orbs)",
+        "orbDescription": "එක් එක් ග්‍රහයා සඳහා දෘෂ්ටි වල උපරිම අන්තරය සකසන්න.",
+        "resetDefaults": "පෙරනිමියට යළි සකසන්න",
+        "planetAspects": "ග්‍රහ දෘෂ්ටි",
+        "planetAspectsDescription": "සෑම ග්‍රහයෙක්ම දෘෂ්ටි කරන ගෘහ සහ කෝණ තෝරන්න. සකසන ලද ගෘහ සම්පූර්ණ ගෘහ අංක ලෙස යොදනු ලැබේ; ඇතුළත් කිරීමක් නොමැති ග්‍රහයෝ පෙරනිමි (ග්‍රහයාගේ ගෘහයෙන් ගණනය කළ) නීති භාවිතා කරති.",
+        "customize": "අභිරුචිකරණය",
+        "houses": "ගෘහ",
+        "degrees": "අංශක",
+        "resetPlanet": "ග්‍රහයා යළි සකසන්න",
+        "rashiAspects": "රාශි දෘෂ්ඨි",
+        "rashiAspectsDescription": "මෙය ක්‍රියාත්මක වූ විට, රාශියක ඇති ග්‍රහයෙක් එය රාශි දෘෂ්ටි කරන රාශිවල ගෘහ සහ ග්‍රහයන්ටද දෘෂ්ටි කරයි (චර→ස්ථිර, ස්ථිර→චර, උභය→උභය, ආසන්නම රාශිය හැර). පහත තනි රාශි අක්‍රිය කිරීමෙන් ඒවා බැහැර කරන්න.",
+        "enable": "ක්‍රියාත්මක කරන්න",
+        "aspectingSigns": "දෘෂ්ටි කරන රාශි",
+        "disableSign": "මෙම රාශිය සඳහා රාශි දෘෂ්ටි අක්‍රිය කිරීමට ක්ලික් කරන්න",
+        "housesColon": "ගෘහ",
+        "degreesColon": "අංශක",
+        "planetAspectsSelectionDescription": "සෑම ග්‍රහයෙක්ම දෘෂ්ටි කරන ගෘහ සහ කෝණ තෝරන්න. ගෘහයක් (H) තේරීමෙන් එහි යුගල කෝණය H×30 ද තේරේ (උදා: ගෘහ 7 → 210°); කෝණයක් තේරීමෙන් එහි යුගල ගෘහය ද තේරේ. පෙරනිමි ග්‍රහයෝ පද්ධති පෙරනිමි අගයන් පෙන්වයි.",
+        "customStatus": "අභිරුචි",
+        "defaultStatus": "පෙරනිමි",
+        "enabled": "ක්‍රියාත්මකයි",
+        "disabled": "අක්‍රියයි",
+        "collapse": "හකුළන්න",
+        "unsavedChanges": "සුරැකීමට ඇති වෙනස්කම්",
+        "errSave": "සැකසුම් සුරැකීමට නොහැකි විය",
+        "resetConfirmTitle": "පෙරනිමියට යළි සකසන්නද?",
+        "resetConfirmBody": "මෙය අංශ තුනම පද්ධති පෙරනිමි අගයන්ට යළි සකසයි. යෙදවීමට සුරකින්න.",
+        "system": {
+            "version": "අනුවාදය",
+            "updatedBy": "විසින් යාවත්කාලීන කරන ලදී",
+            "updatedAt": "යාවත්කාලීන කළේ",
+            "lastRecalculated": "අවසන් වරට නැවත ගණනය කළේ",
+            "neverRecalculated": "කිසි දිනෙක නැත",
+            "managedByAdminTitle": "පද්ධති-පුළුල් සැකසුම්",
+            "managedByAdminBody": "මෙම ජ්‍යෝතිෂ සැකසුම් පද්ධතියටම පොදු වන අතර පරිපාලක විසින් කළමනාකරණය කරනු ලැබේ. සියලුම කේන්දර ගණනය කෙරෙන්නේ මෙම පොදු අගයන් භාවිතයෙනි.",
+            "saveRecalcStarted": "සැකසුම් සුරැකිණි — නැවත ගණනය කිරීම ආරම්භ විය"
+        },
+        "recalc": {
+            "title": "නැවත ගණනය කිරීම",
+            "neverRun": "තවම කිසිදු නැවත ගණනය කිරීමක් සිදු වී නැත.",
+            "neverRunHint": "සැකසුම් වෙනස් කිරීම් සුරැකීම සියලුම කේන්දර නැවත ගණනය කරයි.",
+            "running": "නැවත ගණනය කරමින්…",
+            "processedOf": "කේන්දර {total} න් {processed} ක්",
+            "succeeded": "සාර්ථකයි",
+            "failed": "අසාර්ථකයි",
+            "completed": "සම්පූර්ණයි",
+            "runFailed": "නැවත ගණනය කිරීම අසාර්ථකයි: {error}",
+            "settingsVersion": "සැකසුම් අනුවාදය {version}",
+            "updatesAutomatically": "ස්වයංක්‍රීයව යාවත්කාලීන වේ",
+            "viewFailed": "අසාර්ථක කේන්දර {count} ක් බලන්න",
+            "hideFailed": "අසාර්ථක කේන්දර සඟවන්න",
+            "retryFailed": "අසාර්ථක ඒවා නැවත උත්සාහ කරන්න",
+            "runFull": "සම්පූර්ණ නැවත ගණනය කරන්න",
+            "inProgress": "නැවත ගණනය කිරීමක් ක්‍රියාත්මක වේ. එය අවසන් වූ පසු සුරැකීම නැවත ලබා ගත හැක.",
+            "total": "මුළු"
+        },
+        "conflict": {
+            "title": "සැකසුම් වෙනත් පරිපාලකයෙකු විසින් වෙනස් කර ඇත.",
+            "body": "ඔබගේ පිටපත යල් පැන ගොස් ඇත (අනුවාදය {version}).",
+            "reload": "වත්මන් සැකසුම් නැවත පූරණය කරන්න",
+            "discardConfirmTitle": "සුරැකීමට ඇති වෙනස්කම් ඉවත දමන්නද?",
+            "discardConfirmBody": "නැවත පූරණය කිරීම ඔබගේ සුරැකීමට ඇති වෙනස්කම් ඉවත දමයි."
+        },
+        "audit": {
+            "title": "සැකසුම් වෙනස්කම් ඉතිහාසය",
+            "empty": "තවම සැකසුම් වෙනස්කම් සටහන් වී නැත.",
+            "versionFromTo": "v{from} → v{to}",
+            "fieldPlanetaryOrbs": "ග්‍රහ රාශ්මි",
+            "fieldPlanetAspects": "ග්‍රහ දෘෂ්ටි",
+            "fieldRashiAspects": "රාශි දෘෂ්ටි"
+        },
+        "history": {
+            "title": "නැවත ගණනය කිරීම් ඉතිහාසය",
+            "empty": "තවම නැවත ගණනය කිරීම් නොමැත.",
+            "settingsVersion": "සැකසුම් v{version}"
+        }
+    },
+    "astrology": {
+        "ascendant": "ලග්නය",
+        "houses": "භාව",
+        "planets": "ග්‍රහයෝ",
+        "nakshatra": "නැකත",
+        "thithi": "තිති",
+        "panchaPakshi": "පංච පක්ෂී",
+        "aspects": "දෘෂ්ටි",
+        "upagraha": {
+            "column": "උපග්‍රහ",
+            "dhuma": "ධූම",
+            "vyatipata": "ව්‍යාතීපාත",
+            "parivesha": "පරිවේෂ",
+            "indrachapa": "ඉන්ද්‍රචාප",
+            "upaketu": "උපකේතු"
+        },
+        "specialLagna": {
+            "indu": "ඉන්දු ලග්නය",
+            "hora": "හෝරා ලග්නය",
+            "varnada": "වර්ණද ලග්නය",
+            "gulika": "ගුලික ලග්නය",
+            "pranapada": "ප්‍රාණපද ලග්නය"
+        },
+        "kendrasthana": "කේන්ද්‍රස්ථාන",
+        "aspectReason": {
+            "infoGlyph": "දෘෂ්ඨි හේතුව පෙන්වන්න"
+        },
+        "aspectAngles": {
+            "30": "අර්ධ ෂඩ්කෝණ",
+            "60": "ෂඩ්කෝණ",
+            "90": "චතුරස්‍ර",
+            "120": "ත්‍රිකෝණ",
+            "150": "ක්වින්කන්ක්ස්",
+            "180": "විරුද්ධ",
+            "210": "රාශි 7 දෘෂ්ටිය",
+            "240": "රාශි 8 දෘෂ්ටිය",
+            "270": "රාශි 9 දෘෂ්ටිය",
+            "300": "රාශි 10 දෘෂ්ටිය",
+            "330": "රාශි 11 දෘෂ්ටිය"
+        },
+        "drishti": {
+            "label": "ග්‍රහ දෘෂ්ඨි",
+            "kendraLabel": "කේන්ද්‍රස්ථාන",
+            "rashiLabel": "රාශි දෘෂ්ඨි",
+            "line": "{prefix} {house} ({angle}) ({delta})",
+            "lineNoHouse": "{prefix} ({angle}) ({delta})",
+            "lineMulti": "{prefix} {house} ({angle})",
+            "lineMultiNoHouse": "{prefix} ({angle})",
+            "rashiLine": "{rashiLabel} {aspectingSign} {arrow} {aspectedSign}",
+            "rashiLineWithDelta": "{rashiLabel} {aspectingSign} {arrow} {aspectedSign} ({delta})",
+            "deltaFooter": "Δ {delta}",
+            "arrow": "→",
+            "rashiVerbAria": "දකී",
+            "delta": "{sign}{dd}:{mm}:{ss}"
+        },
+        "strengthsSpecialLords": "බල සහ විශේෂ අධිපතිවරු",
+        "combustLabel": "අස්ථ",
+        "drekkanaLord10Label": "10 දෙ.ධි",
+        "drekkanaLord16Label": "16 දෙ.ධි",
+        "drekkanaLord34Label": "34 දෙ.ධි",
+        "drekkanaLordLabel": "22 දෙ.ධි",
+        "drekkanaLordMoonLabel": "22 දෙ.ධි(සඳු)",
+        "drekkanaLordSunLabel": "22 දෙ.ධි(රවි)",
+        "navamsaLordLabel": "64 න.ධි",
+        "atmakarakaLabel": "ආත්මකාරක",
+        "maranakarakaLabel": "මරණකාරක",
+        "yogakarakaLabel": "යෝගකාරක",
+        "marakaLabel": "මාරක",
+        "badhakaLabel": "බාධක",
+        "badhakaLevelLabel": "බාධක({levels})",
+        "nidhanamshaLabel": "නිධනාම්ශ",
+        "ashtamanshaLabel": "අෂ්ඨමාංශ",
+        "wargoththamaLabel": "වර්ගෝත්තම",
+        "gandantaLabel": "ගණ්ඩාන්ත",
+        "gandamulaLabel": "ගණ්ඩමූල",
+        "pushkaraLabel": "පුෂ්කර",
+        "cheshtaBalaLabel": "චේෂ්ටා බල",
+        "kalaBalaLabel": "කාල බල",
+        "digBalaLabel": "දිග් බල",
+        "grahaMaitri": {
+            "adhiMitra": "අධි මිතුරු",
+            "mitra": "මිතුරු",
+            "sama": "සම",
+            "shatru": "සතුරු",
+            "adhiShatru": "අධි සතුරු",
+            "natural": "නෛසර්ගික",
+            "temporary": "තත්කාලික",
+            "friend": "මිතුරු",
+            "neutral": "සම",
+            "enemy": "සතුරු",
+            "reasonTitle": "{from} → {planet}: {grade}",
+            "reasonNatural": "නෛසර්ගික: {relation}",
+            "reasonTemporary": "තත්කාලික: {relation} ({from} සිට {house} වන ස්ථානයේ {planet})"
+        },
+        "bhavaSuchika": {
+            "label": "භාව සුචික",
+            "tooltip": "භාව සුචික යනු මෙම ලක්ෂ්‍යයේ නවාංශක රාශිය ජන්ම (ලග්න) කේන්ද්‍රයේ පිහිටන භාවය (1–12) යි.",
+            "infoGlyph": "භාව සුචික විස්තරය පෙන්වන්න",
+            "names": {
+                "1": "ලග්නාංශකය",
+                "2": "ධනාංශකය",
+                "3": "වික්‍රමාංශකය",
+                "4": "සුඛාංශකය",
+                "5": "පූර්වපුන්‍යාංශකය",
+                "6": "ශෂ්ඨාංශකය",
+                "7": "සප්තමාංශකය",
+                "8": "නිධානාංශකය",
+                "9": "භාග්‍යාංශකය",
+                "10": "අභිමානාංශකය",
+                "11": "ලාභාංශකය",
+                "12": "ව්‍යාංශකය"
+            },
+            "namesLocative": {
+                "1": "ලග්නාංශකයේ",
+                "2": "ධනාංශකයේ",
+                "3": "වික්‍රමාංශකයේ",
+                "4": "සුඛාංශකයේ",
+                "5": "පූර්වපුන්‍යාංශකයේ",
+                "6": "ශෂ්ඨාංශකයේ",
+                "7": "සප්තමාංශකයේ",
+                "8": "නිධානාංශකයේ",
+                "9": "භාග්‍යාංශකයේ",
+                "10": "අභිමානාංශකයේ",
+                "11": "ලාභාංශකයේ",
+                "12": "ව්‍යාංශකයේ"
+            }
+        },
+        "marakaBadhaka": "මාරක / බාධක",
+        "dashas": "දශා",
+        "dashaLevels": {
+            "mahadasha": "මහා දශා",
+            "antardasha": "අන්තර් දශා",
+            "vidasa": "විදශා",
+            "sukshama": "සූක්ෂම",
+            "prana": "ප්‍රාණ"
+        },
+        "dashaNumbers": {
+            "position": "{planet} {house} වන භාවයේ",
+            "ownedHouse": "{planet} {sign} රාශියට අධිපති ({house} වන භාවය)",
+            "dispositorPosition": "{source}ට භාව අධිපතිත්වයක් නැත — රාශි අධිපති {planet} {house} වන භාවයේ",
+            "dispositorHouse": "{source}ගේ රාශි අධිපති {planet} {sign} රාශියට අධිපති ({house} වන භාවය)",
+            "nodeNakshatraLordPosition": "{source}ගේ නැකත් අධිපති {planet} {house} වන භාවයේ",
+            "nodeNakshatraLordHouse": "{source}ගේ නැකත් අධිපති {planet} {sign} රාශියට අධිපති ({house} වන භාවය)",
+            "nakshatraLord": "නැකත් අධිපති {planet}",
+            "conjunction": "{planet} සමඟ සංයෝග",
+            "nakshatraLordConjunction": "නැකත් අධිපති {lord} සමඟ සංයෝග {planet}"
+        },
+        "sign": "රාශිය",
+        "degree": "අංශකය",
+        "lord": "අධිපති",
+        "start": "ඇරඹුම",
+        "mid": "මැද",
+        "end": "අවසානය",
+        "conjunctions": "සංයෝග",
+        "other": "වෙනත්",
+        "planet": "ග්‍රහයා",
+        "house": "භාවය",
+        "ownership": "හිමිකම",
+        "pada": "පාදය",
+        "retrograde": "වක්‍ර",
+        "combustion": "දාහ",
+        "strength": "බලය",
+        "navamsaka": "නවාංශක (D9)",
+        "navamsa": "නවාංශ",
+        "moon": "චන්ද්‍ර",
+        "ascendantLabel": "ලග්නය",
+        "lordLabel": "අධිපති:",
+        "noAspects": "— දෘෂ්ටි නැත",
+        "orb": "අන්තරය",
+        "drekkanaLord": "22 වන ද්‍රේක්කාණ අධිපති",
+        "navamsaLord": "64 වන නවාංශ අධිපති",
+        "atmakaraka": "ආත්මකාරක",
+        "marakaPlanets": "මාරක ග්‍රහයින්",
+        "badhakaPlanets": "බාධක ග්‍රහයින්",
+        "noChartData": "සටහන් දත්ත නොමැත",
+        "athiUchcha": "අති උච්ච",
+        "athiNeecha": "අති නීච",
+        "exalted": "උච්ච",
+        "debilitated": "නීච",
+        "ownSign": "ස්ව",
+        "moolatrikona": "මූ.ත්‍රි",
+        "friendly": "මිත්‍ර",
+        "enemy": "සතුරු",
+        "neutral": "සම",
+        "strengthInSign": {
+            "athiUchcha": "අති උච්චව",
+            "athiNeecha": "අති නීචව",
+            "exalted": "උච්චව",
+            "debilitated": "නීචව",
+            "ownSign": "ස්වව",
+            "moolatrikona": "මූ.ත්‍රිව",
+            "friendly": "මිත්‍රව",
+            "enemy": "සතුරුව",
+            "neutral": "සමව"
+        },
+        "planetNames": {
+            "1": "රවි",
+            "2": "සඳු",
+            "3": "කුජ",
+            "4": "බුධ",
+            "5": "ගුරු",
+            "6": "ශුක්‍ර",
+            "7": "ශනි",
+            "8": "රාහු",
+            "9": "කේතු"
+        },
+        "signNames": {
+            "1": "මේෂ",
+            "2": "වෘෂභ",
+            "3": "මිථුන",
+            "4": "කටක",
+            "5": "සිංහ",
+            "6": "කන්‍යා",
+            "7": "තුලා",
+            "8": "වෘශ්චික",
+            "9": "ධනු",
+            "10": "මකර",
+            "11": "කුම්භ",
+            "12": "මීන"
+        },
+        "signNamesLocative": {
+            "1": "මේෂයේ",
+            "2": "වෘෂභයේ",
+            "3": "මිථුනයේ",
+            "4": "කටකයේ",
+            "5": "සිංහයේ",
+            "6": "කන්‍යාවේ",
+            "7": "තුලාවේ",
+            "8": "වෘශ්චිකයේ",
+            "9": "ධනුවේ",
+            "10": "මකරයේ",
+            "11": "කුම්භයේ",
+            "12": "මීනයේ"
+        },
+        "nakshatraNames": {
+            "1": "අස්විද",
+            "2": "බෙරණ",
+            "3": "කැති",
+            "4": "රෙහෙණ",
+            "5": "මුවසිරිස",
+            "6": "අද",
+            "7": "පුනාවස",
+            "8": "පුස",
+            "9": "අස්ලිය",
+            "10": "මා",
+            "11": "පුවපල්",
+            "12": "උත්‍රපල්",
+            "13": "හත",
+            "14": "සිත",
+            "15": "සා",
+            "16": "විසා",
+            "17": "අනුර",
+            "18": "දෙට",
+            "19": "මූල",
+            "20": "පුවසල",
+            "21": "උත්‍රසල",
+            "22": "සුවන",
+            "23": "දෙනට",
+            "24": "සියාවස",
+            "25": "පුවපුටුප",
+            "26": "උත්‍රපුටුප",
+            "27": "රේවතී"
+        },
+        "thithiNames": {
+            "1": "පුර පෑලවිය",
+            "2": "පුර දියවක",
+            "3": "පුර තියවක",
+            "4": "පුර ජලවක",
+            "5": "පුර පසවක",
+            "6": "පුර සැටවක",
+            "7": "පුර සතවක",
+            "8": "පුර අටවක",
+            "9": "පුර නවවක",
+            "10": "පුර දසවක",
+            "11": "පුර එකොළොස්වක",
+            "12": "පුර දොළොස්වක",
+            "13": "පුර තෙළෙස්වක",
+            "14": "පුර තුදුස්වක",
+            "15": "පුර පසළොස්වක",
+            "16": "අව පෑලවිය",
+            "17": "අව දියවක",
+            "18": "අව තියවක",
+            "19": "අව ජලවක",
+            "20": "අව පසවක",
+            "21": "අව සැටවක",
+            "22": "අව සතවක",
+            "23": "අව අටවක",
+            "24": "අව නවවක",
+            "25": "අව දසවක",
+            "26": "අව එකොළොස්වක",
+            "27": "අව දොළොස්වක",
+            "28": "අව තෙළෙස්වක",
+            "29": "අව තුදුස්වක",
+            "30": "අමාවක"
+        },
+        "panchaPakshiNames": {
+            "1": "භේරුණ්ඩ",
+            "2": "පිංගල",
+            "3": "කාකක",
+            "4": "කුක්කුට",
+            "5": "මයුර"
+        },
+        "chartTypes": {
+            "birth": "ජන්ම",
+            "navamsa-d9": "නවාංශක",
+            "house": "භාව",
+            "chandra-lagna": "චන්ද්‍ර ලග්න",
+            "surya-lagna": "සූර්ය ලග්න",
+            "drekkana-d3": "ද්‍රේක්කාණ",
+            "dasamsa-d10": "දසාංශ",
+            "shodasha-vargas": "ෂෝඩශ වර්ග",
+            "trimshamsha-d30": "ත්‍රිංශාංශකය"
+        },
+        "chartPairTitle": "ජන්ම හා නවාංශක",
+        "otherCharts": "වෙනත් සටහන්",
+        "chartCaptions": {
+            "birth": "ජන්ම කේන්දරය (D1)",
+            "navamsa-d9": "නවාංශකය (D9)",
+            "suryaLagna": "සූර්ය ලග්න කේන්දරය",
+            "chandraLagna": "චන්ද්‍ර ලග්න කේන්දරය",
+            "nisheka": "නිශේක කේන්දරය"
+        },
+        "wargaKendara": {
+            "title": "වර්ග කේනදර",
+            "tabs": {
+                "rashi": "රාශි (D1)",
+                "navamsa": "නවාංශක (D9)",
+                "suryaLagna": "සූර්ය ලග්න",
+                "chandraLagna": "චන්ද්‍ර ලග්න",
+                "nisheka": "නිශේක"
+            },
+            "pinnedAria": "රාශි (D1) — සැමවිටම පෙන්වයි",
+            "secondChartAria": "දෙවන සටහන තෝරන්න",
+            "indicationLabel": "ප්රධාන අර්ථය",
+            "columns": {
+                "sign": "රාශිය",
+                "strength": "බලය",
+                "house": "භාවය",
+                "conjunctions": "සංයෝග",
+                "aspects": "දෘෂ්ටි",
+                "other": "වෙනත්",
+                "nakshatraPada": "නැකත (පාදය)",
+                "bhavaSuchika": "භාව සුචික"
+            },
+            "noDetails": "—",
+            "comingSoon": "සටහන සහ වගු ඉක්මනින් එක් කෙරේ.",
+            "showTables": "වගු පෙන්වන්න",
+            "hideTables": "වගු සඟවන්න",
+            "mainChartsGroup": "ප්‍රධාන සටහන්",
+            "vargaChartsGroup": "වර්ග සටහන්",
+            "vargas": {
+                "d1": {
+                    "name": "රාශි",
+                    "indication": "සමස්ත ජීවිතය, ශරීරය, පොදු තත්ත්ව"
+                },
+                "d2": {
+                    "name": "හෝරා",
+                    "indication": "ධනය, සම්පත්"
+                },
+                "d3": {
+                    "name": "දෙර්කාණ",
+                    "indication": "සහෝදරයන්, ධෛර්යය"
+                },
+                "d4": {
+                    "name": "චතුර්ථාංශ",
+                    "indication": "දේපළ, භාග්යය"
+                },
+                "d7": {
+                    "name": "සප්තාංශ",
+                    "indication": "දරුවන්"
+                },
+                "d9": {
+                    "name": "නවාංශක",
+                    "indication": "විවාහය, ධර්මය, ග්‍රහ බලය"
+                },
+                "d10": {
+                    "name": "දශාංශ",
+                    "indication": "වෘත්තිය"
+                },
+                "d12": {
+                    "name": "ද්වාදශාංශ",
+                    "indication": "දෙමාපියන්, පරම්පරාව"
+                },
+                "d16": {
+                    "name": "ෂෝඩශාංශ",
+                    "indication": "වාහන, සුවපහසුව"
+                },
+                "d20": {
+                    "name": "විංශාංශ",
+                    "indication": "අධ්යාත්මිකත්වය"
+                },
+                "d24": {
+                    "name": "සිද්ධාංශ",
+                    "indication": "අධ්යාපනය"
+                },
+                "d27": {
+                    "name": "භාංශ",
+                    "indication": "ශක්තිය/දුර්වලතා"
+                },
+                "d30": {
+                    "name": "ත්‍රිංශාංශ",
+                    "indication": "අවාසනා, දුෂ්කරතා"
+                },
+                "d40": {
+                    "name": "ඛවේදාංශ",
+                    "indication": "ශුභ/අශුභ ඵල"
+                },
+                "d45": {
+                    "name": "අක්ෂවේදාංශ",
+                    "indication": "පොදු අර්ථ"
+                },
+                "d60": {
+                    "name": "ෂෂ්ඨාංශ",
+                    "indication": "සූක්ෂ්ම කර්ම ඵල"
+                },
+                "suryaLagna": {
+                    "name": "සූර්ය ලග්න",
+                    "indication": "සූර්ය ලග්න පාදක විශ්ලේෂණය"
+                },
+                "chandraLagna": {
+                    "name": "චන්ද්‍ර ලග්න",
+                    "indication": "චන්ද්‍ර ලග්න පාදක විශ්ලේෂණය"
+                },
+                "nisheka": {
+                    "name": "නිශේක",
+                    "indication": "ගර්භ ධාරණය, උපතට පෙර තත්ත්වය, දෙමාපියන්"
+                }
+            },
+            "nisheka": {
+                "title": "නිශේක ගණනය (BPHS 4.27–29)",
+                "saturnMandi": "A · ශනි – මාන්දි",
+                "lagnaNinth": "B · ලග්නය → නවම භාව මධ්‍යය",
+                "lagnaLord": "ලග්නාධිපති",
+                "invisible": "අදෘශ්‍ය අර්ධය",
+                "visible": "දෘශ්‍ය අර්ධය",
+                "onHorizon": "ක්ෂිතිජය මත",
+                "moonCorrection": "C · රාශියේ සඳු",
+                "notAdded": "එකතු නොකෙරේ",
+                "total": "X = A + B + C",
+                "elapsed": "උපතට පෙර කාලය",
+                "elapsedValue": "මාස {months}, දින {days}, පැය {hours} මිනිත්තු {minutes}",
+                "dateTime": "නිශේක දිනය හා වේලාව",
+                "lagna": "නිශේක ලග්නය"
+            }
+        },
+        "padaFormat": "{pada} වෙනි පාදය",
+        "viewDetails": "විස්තර බලන්න",
+        "less": "අඩුවෙන්",
+        "shadbalaya": {
+            "title": "ෂඩ් බලය",
+            "columns": {
+                "planet": "ග්‍රහයා",
+                "sthanaBala": "ස්ථාන බල",
+                "cheshtaBala": "චේෂ්ටා බලය",
+                "kalaBala": "කාල බලය",
+                "digBala": "දිග් බලය",
+                "drishtiBala": "දෘෂ්ඨි බලය",
+                "naisargikaBala": "නෛසර්ගික බලය",
+                "ratio": "අනුපාතය"
+            },
+            "ratioFormat": "({n}/6)",
+            "balaNames": {
+                "sthanaBala": "ස්ථාන බල",
+                "cheshtaBala": "චේෂ්ටා බලය",
+                "kalaBala": "කාල බලය",
+                "digBala": "දිග් බලය",
+                "drishtiBala": "දෘෂ්ඨි බලය",
+                "naisargikaBala": "නෛසර්ගික බලය"
+            },
+            "tooltip": {
+                "checked": "✓ සලකුණු කළේ මන්ද:",
+                "unchecked": "✗ සලකුණු නොකළේ මන්ද:"
+            },
+            "reason": {
+                "manual": "අතින් සකසන්න — පද්ධතියට මෙම බලය ගණනය කළ නොහැක"
+            },
+            "sthana": {
+                "reason": {
+                    "uchcha": "උච්ච",
+                    "athiUchcha": "අති උච්ච",
+                    "moolatrikona": "මූලත්රිකෝණ",
+                    "ownSign": "ස්වක්ෂේත්‍ර",
+                    "mitra": "මිත්‍ර රාශිය",
+                    "sama": "සම රාශිය",
+                    "shatru": "සතුරු රාශිය",
+                    "neecheShatru": "සතුරු රාශියක නීච — {sign}",
+                    "debilitated": "නීච — {sign}"
+                }
+            },
+            "cheshta": {
+                "reason": {
+                    "uttarayana": "රවි උත්තරායණයේ",
+                    "uttarayanaSign": "රවි මකර/කුම්භ/මීන/මේෂ/වෘෂභ රාශිවල (උත්තරායණ)",
+                    "shuklaPaksha": "සඳු ශුක්ල පක්ෂයේ",
+                    "krushnaPaksha": "සඳු ශුක්ල පක්ෂයේ නොවේ",
+                    "shuklaChandra": "ශුක්ල පක්ෂ චන්ද්‍රයා සමඟ සංයෝගය",
+                    "vakra": "වක්‍ර",
+                    "warWinner": "ග්‍රහ යුද්ධයේ ජයග්‍රාහකයා"
+                }
+            },
+            "kala": {
+                "reason": {
+                    "day": "දිවා උපත",
+                    "night": "රාත්‍රි උපත",
+                    "shuklaPaksha": "සඳු ශුක්ල පක්ෂයේ",
+                    "krushnaPaksha": "සඳු කෘෂ්ණ පක්ෂයේ",
+                    "vargaLoad": "හෝරා/පංචම/සූක්ෂම වර්ග භාරය"
+                }
+            },
+            "dig": {
+                "reason": {
+                    "house": "ග්‍රහයා {house} භාවයේ"
+                }
+            },
+            "drishti": {
+                "reason": {
+                    "manual": "අතින් සකසන්න — පද්ධතියට දෘෂ්ඨි බලය ගණනය කළ නොහැක"
+                }
+            },
+            "naisargika": {
+                "reason": {
+                    "notMaranakaraka": "මරණකාරක නොවේ",
+                    "maranakaraka": "මරණකාරක — {house} භාවයේ"
+                }
+            },
+            "override": {
+                "footer": "අතින් සකසන ලද — නැවත ගණනය කිරීමේදී රඳවා ගැනේ",
+                "ariaShort": "අතින් සකසන ලද",
+                "title": "අතින් සකසන ලද",
+                "hint": "තිත (•) යනු ඔබ අතින් සකසන ලද බලයකි — නැවත ගණනය කිරීමේදී එය රඳවා ගැනේ."
+            },
+            "checkbox": {
+                "ariaChecked": "{planet} {bala} — සලකුණු කර ඇත",
+                "ariaUnchecked": "{planet} {bala} — සලකුණු කර නැත"
+            },
+            "ratioAria": "{planet} — බල 6 න් {n} ක්",
+            "infoGlyph": "බල හේතුව පෙන්වන්න",
+            "readOnlyNotice": "කියවීමට පමණි — බැලීමට පමණි",
+            "toast": {
+                "saveError": "ෂඩ් බලය සුරැකීමට අසමත් විය. නැවත උත්සාහ කරන්න."
+            }
+        },
+        "papiGrahayan": {
+            "column": "නෛසර්ගික",
+            "suba": "සුබ",
+            "asuba": "අසුබ",
+            "reason": {
+                "naturalBenefic": "ස්වභාවයෙන්ම සුබ — {planet}",
+                "naturalMalefic": "ස්වභාවයෙන්ම අසුබ — {planet}",
+                "budhaAlone": "බුද (බුධ) වෙනත් ග්‍රහයකු සමඟ නොසිටියි — සුබ",
+                "budhaWithMalefic": "බුද (බුධ) පාප ග්‍රහයකු ({planets}) සමඟ සිටියි — අසුබ",
+                "budhaWithBenefic": "බුද (බුධ) සුබ ග්‍රහයකු ({planets}) සමඟ සිටියි — සුබ",
+                "moonWaxing": "සඳු දීප්තිමත් (ශුක්ල පක්ෂය, තිති {thithi}) — සුබ",
+                "moonWaning": "සඳු අවපැහැ (කෘෂ්ණ පක්ෂය, තිති {thithi}) — අසුබ",
+                "kendra": "{planet} කේන්ද්‍ර ගෘහයක හිමිකරු ({houses}) — අසුබ ලෙස සැලකේ"
+            },
+            "tooltip": {
+                "stateSuba": "සුබ වන්නේ මන්ද:",
+                "stateAsuba": "අසුබ වන්නේ මන්ද:"
+            }
+        }
+    },
+    "locations": {
+        "title": "ස්ථාන",
+        "add": "ස්ථානයක් එකතු කරන්න",
+        "edit": "ස්ථානය සංස්කරණය",
+        "search_placeholder": "ස්ථාන සොයන්න...",
+        "empty": "තවම සුරැකි ස්ථාන නැත. ඔබේ පළමු ස්ථානය එකතු කරන්න!",
+        "search_empty": "ඔබේ සෙවුමට ගැළපෙන ස්ථාන නැත.",
+        "load_error": "ස්ථාන පූරණය කිරීම අසාර්ථකයි. නැවත උත්සාහ කරන්න.",
+        "save_error": "ස්ථානය සුරැකීම අසාර්ථකයි. නැවත උත්සාහ කරන්න.",
+        "duplicate": "සමාන ඛණ්ඩාංක සහිත ස්ථානයක් දැනටමත් පවතී.",
+        "saved": "ස්ථානය සුරැකිණි!",
+        "updated": "ස්ථානය යාවත්කාලීන කළා!",
+        "deleted": "ස්ථානය මකා දමන ලදී.",
+        "delete_confirm": "මෙම ස්ථානය මකන්නද?",
+        "delete_warning": "මෙම ක්‍රියාව ආපසු හැරවිය නොහැක. මෙම ස්ථානය භාවිතා කරන ලග්නවල දත්ත එලෙසම පවතී.",
+        "badge_public": "පොදු",
+        "badge_private": "පුද්ගලික",
+        "coordinates": "ඛණ්ඩාංක",
+        "added_date": "එකතු කළ දිනය",
+        "title_pair": "ස්ථාන / Locations",
+        "section_search_add": "සොයන්න සහ එකතු කරන්න",
+        "section_list": "ස්ථාන ලැයිස්තුව",
+        "edit_independence": "මෙම ස්ථානය සංස්කරණය කිරීමෙන් එය භාවිතා කරන පවතින ලග්නවලට බලපාන්නේ නැත."
+    },
+    "location_picker": {
+        "title": "ස්ථානය",
+        "placeholder": "සුරැකි ස්ථානයක් තෝරන්න...",
+        "search": "ස්ථාන සොයන්න...",
+        "change": "වෙනස් කරන්න",
+        "add_new": "+ නව ස්ථානයක් එකතු කරන්න...",
+        "empty": "තවම සුරැකි ස්ථාන නැත.",
+        "group_public": "පොදු ස්ථාන",
+        "group_mine": "මගේ ස්ථාන",
+        "loading": "ස්ථාන පූරණය වෙමින්...",
+        "error": "ස්ථාන පූරණය කළ නොහැකි විය.",
+        "retry": "නැවත උත්සාහ කරන්න",
+        "cached_name": "ස්ථානයේ නම (හැඹිලිගත)",
+        "override_hint": "ඛණ්ඩාංක අභිබවන — සංස්කරණය කළ හැකි"
+    },
+    "location_form": {
+        "mode_search": "නමෙන් සොයන්න",
+        "mode_csv": "CSV පාඨය අලවන්න",
+        "search_placeholder": "ස්ථානයේ නම ඇතුළත් කරන්න...",
+        "csv_placeholder": "අක්ෂාංශ,දේශාංශ ඇතුළත් කරන්න (උදා: 6.9271,79.8612)",
+        "csv_parse": "විග්‍රහ කරන්න",
+        "csv_parsed": "විග්‍රහ කළා ✓",
+        "csv_invalid": "අවලංගු CSV ආකෘතිය",
+        "latitude": "අක්ෂාංශ",
+        "longitude": "දේශාංශ",
+        "lat_placeholder": "උදා: 6.9271",
+        "lat_hint": "හෝ lat,long පාඨය මෙහි අලවන්න (උදා: 6.9271,79.8612)",
+        "lng_placeholder": "උදා: 79.8612",
+        "name": "ස්ථානයේ නම",
+        "visibility": "දෘශ්‍යතාව",
+        "save": "ස්ථානය සුරකින්න",
+        "save_changes": "වෙනස්කම් සුරකින්න",
+        "cancel": "අවලංගු කරන්න",
+        "discard": "වෙනස්කම් අවලංගු කරන්නද?",
+        "saving": "සුරකිමින්...",
+        "name_required": "නම අවශ්‍යයි",
+        "lat_invalid": "අවලංගු අක්ෂාංශ",
+        "lon_invalid": "අවලංගු දේශාංශ"
+    },
+    "quick_add": {
+        "title": "ඉක්මන් ස්ථාන එකතු කිරීම",
+        "add_and_select": "එකතු කර තෝරන්න"
+    },
+    "manualChart": {
+        "modeBirth": "උපන් තොරතුරු",
+        "modeCalculated": "ගණනය කළ කේන්දරයක්",
+        "lagna": "ලග්නය",
+        "lagnaDegree": "ලග්න අංශකය",
+        "birthDate": "උපන් දිනය",
+        "birthDateOptional": "(විකල්ප)",
+        "birthDateHint": "උපන් දිනය සහ උපන් වේලාව (12:00, කොළඹ) මත පදනම්ව ග්‍රහයන් ස්වයංක්‍රීයව පිරවන්න",
+        "birthDateCleared": "උපන් දිනය ඉවත් කර ඇත — අතින් ඇතුළත් කිරීම යථා තත්ත්වයට",
+        "autofillLoading": "ග්‍රහ පිහිටීම් ගණනය වෙමින්…",
+        "autofillFilled": "උපන් දිනයෙන් ග්‍රහයන් පිරවී ඇත. නිදහසේ සංස්කරණය කරන්න; වෙනස්කම් දක්වයි.",
+        "autofillFailed": "මෙම දිනය සඳහා පිහිටීම් ගණනය කළ නොහැක. ග්‍රහයන් අතින් ඇතුළත් කරන්න.",
+        "computedMatches": "ගණනය කළ පිහිටීමට ගැලපේ",
+        "computedDiffers": "ගණනය කළ භාවය {house} ට වෙනස්",
+        "navamsaLagna": "නවාංශක ලග්නය (D9)",
+        "name": "නම",
+        "houseTableTitle": "භාව සටහන",
+        "navamsaTableTitle": "නවාංශක භාව සටහන",
+        "navamsaOptional": "විකල්ප",
+        "planetsTableTitle": "ග්‍රහ සටහන",
+        "derivedRangesTitle": "නිගමන",
+        "selectPlanet": "ග්‍රහයා තෝරන්න",
+        "addPlanet": "එකතු කරන්න",
+        "validation": "වලංගුභාවය",
+        "colHouse": "භාවය",
+        "colSign": "රාශිය",
+        "colPlanets": "ග්‍රහයෝ",
+        "colAspects": "දෘෂ්ටි",
+        "colPlanet": "ග්‍රහයා",
+        "colStrength": "බලය",
+        "colConjunctions": "යුති",
+        "colOther": "වෙනත්",
+        "colNavamsa": "නවාංශක",
+        "colNavamsaStrength": "නවාංශක බලය",
+        "colDegreeRange": "අංශක පරාසය",
+        "colNakshatraPada": "නැකත (පාදය)",
+        "budhaValid": "බුධ ✓",
+        "budhaInvalid": "බුධ ✗ (රවිගෙන් ±1 විය යුතුයි)",
+        "budhaSkipped": "බුධ — මුලින් රවි තබන්න",
+        "sikuruValid": "සිකුරු ✓",
+        "sikuruInvalid": "සිකුරු ✗ (රවිගෙන් ±2 විය යුතුයි)",
+        "sikuruSkipped": "සිකුරු — මුලින් රවි තබන්න",
+        "rahuKetuValid": "රාහු–කේතු ✓",
+        "rahuKetuIncomplete": "රාහු–කේතු ⏳ (දෙකම නැත)",
+        "rahuKetuInvalid": "රාහු–කේතු ✗ (විරුද්ධ භාව, 6 ක් වෙන් විය යුතුයි)",
+        "planetCountValid": "ග්‍රහයන් 9ම තබා ඇත",
+        "planetCountIncomplete": "ග්‍රහයන් 9 න් {count} තබා ඇත",
+        "navamsaPlanetCountSkipped": "නවාංශක ඇතුළත් කර නැත",
+        "navamsaPlanetCountValid": "නවාංශක ග්‍රහයන් 9ම තබා ඇත",
+        "navamsaPlanetCountIncomplete": "නවාංශක ග්‍රහයන් 9 න් {count} තබා ඇත",
+        "birthTime": "උපන් වේලාව",
+        "birthMonth": "උපන් මාසය",
+        "birthDates": "උපන් දිනයන්",
+        "ages": "වයස්",
+        "estimateDisclaimer": "මේවා ඇතුළත් කළ ලග්නය අනුව ඇස්තමේන්තුගත පරාසයන් වන අතර නියම උපන් තොරතුරු නොවේ.",
+        "placeRaviFirst": "මුලින් රවි තබන්න",
+        "ageWarning": "ඇස්තමේන්තුව 0 ලෙස ක්ලැම්ප් කළා — තත්කාල ශනි පසුපස විය හැක",
+        "save": "සුරකින්න",
+        "saveChanges": "වෙනස්කම් සුරකින්න",
+        "cancel": "අවලංගු කරන්න",
+        "saving": "සුරකිනවා...",
+        "editChart": "සටහන සංස්කරණය",
+        "calculatedChartBadge": "ගණනය කළ ලග්නය",
+        "savedToast": "ගණනය කළ ලග්නය සුරැකුවා",
+        "updatedToast": "සටහන යාවත්කාලීන කළා",
+        "duplicatePlanet": "මෙම ග්‍රහයා දැනටමත් ඇත",
+        "saveFailed": "සුරැකීමට අසමත් විය. නැවත උත්සාහ කරන්න.",
+        "invalidLagna": "වලංගු ලග්නයක් තෝරන්න",
+        "placePlanetsFirst": "ග්‍රහ සටහන බැලීමට භාව සටහනේ ග්‍රහයන් තබන්න.",
+        "noNavamsaData": "නවාංශක දත්ත නැත",
+        "navamsaEmpty": "විකල්ප — නවාංශක භාව එකතු කරන්න",
+        "lord10thDrekkana": "10වන ද්‍රෙක්කාණ අධිපති",
+        "lord16thDrekkana": "16වන ද්‍රෙක්කාණ අධිපති",
+        "lord34thDrekkana": "34වන ද්‍රෙක්කාණ අධිපති",
+        "lord22ndDrekkana": "22වන ද්‍රෙක්කාණ අධිපති",
+        "lord64thNavamsa": "64වන නවාංශක අධිපති",
+        "atmakaraka": "ආත්මකාරක",
+        "maranakaraka": "මරණකාරක",
+        "yogakaraka": "යෝගකාරක",
+        "navamsaNotApplicable": "දශා දත්ත නොමැත.",
+        "removePlanet": "{planet} ඉවත් කරන්න",
+        "months": {
+            "1": "ජන",
+            "2": "පෙබ",
+            "3": "මාර්",
+            "4": "අප්‍රේ",
+            "5": "මැයි",
+            "6": "ජූනි",
+            "7": "ජූලි",
+            "8": "අගෝ",
+            "9": "සැප්",
+            "10": "ඔක්",
+            "11": "නොවැ",
+            "12": "දෙසැ"
+        },
+        "amsha": "අංශක",
+        "kala": "කලා",
+        "planetDegreeHint": "විකල්ප: ග්‍රහයාගේ අංශක හා කලා ඇතුළත් කරන්න (උදා: අංශක 23 කලා 20). එවිට නවාංශකය ස්වයංක්‍රීයව ස්ථාන ගත වේ.",
+        "navamsaFromDegree": "ඇතුළත් කළ අංශක අනුව ස්වයංක්‍රීයව ස්ථාන ගත කළා",
+        "navamsaNeedsLagna": "අංශක සහිත ග්‍රහයින් නවාංශකයේ ස්ථාන ගත කිරීමට ලග්න අංශකය හෝ නවාංශක ලග්නය ඇතුළත් කරන්න.",
+        "autoTag": "ස්වයං"
+    },
+    "currentPlanets": {
+        "toggleLabel": "තත්කාල",
+        "loading": "තත්කාල බාරගනිමින්...",
+        "error": "තත්කාල පිහිටීම් පූරණය කළ නොහැක. නැවත උත්සාහ කරන්න.",
+        "retry": "නැවත උත්සාහ කරන්න",
+        "legendBirth": "උපත් ග්‍රහයින්",
+        "legendCurrent": "තත්කාල ග්‍රහයින් (ගමන්)"
+    },
+    "common": {
+        "loading": "පූරණය වෙමින්...",
+        "saving": "සුරකිමින්...",
+        "error": "දෝෂයක් ඇති විය",
+        "save": "සුරකින්න",
+        "cancel": "අවලංගු කරන්න",
+        "delete": "මකන්න",
+        "confirm": "තහවුරු කරන්න",
+        "back": "ආපසු",
+        "retry": "නැවත උත්සාහ කරන්න",
+        "previous": "පෙර",
+        "next": "ඊළඟ",
+        "page_of": "පිටුව {page} / {total}"
+    },
+    "yogaDosha": {
+        "title": "යෝග සහ දෝෂ",
+        "infoGlyph": "යෝග තුළින් ග්‍රහ පිහිටීම් ශුභ රටා ලෙස එක් වේ; දෝෂ මගින් අභියෝගාත්මක පිහිටීම් දැක්වේ. එක් එක් ටැගය මත ශක්තිය සහ තත්ත්වය පෙන්වේ — එය සෑදුණේ මන්දැයි බැලීමට ටැගයක් තෝරන්න.",
+        "yogaGroup": "යෝග",
+        "doshaGroup": "දෝෂ",
+        "countLabel": "({count})",
+        "emptyYogas": "යෝග නොමැත.",
+        "emptyDoshas": "දෝෂ නොමැත.",
+        "unknownName": "ලබා ගත නොහැක",
+        "houseHeading": "{house} වන ගෘහය",
+        "itemGroup": "සාමාන්‍ය",
+        "planets": "ග්‍රහයින්",
+        "whyItForms": "සෑදුණු ආකාරය",
+        "references": {
+            "Lagna": "ලග්නය",
+            "Moon": "චන්ද්‍ර ලග්නය",
+            "Sun": "සූර්‍ය ලග්නය",
+            "Venus": "ශුක්‍ර ලග්නය",
+            "Indu": "ඉන්දු ලග්නය"
+        },
+        "result": "ප්‍රතිඵල",
+        "expression": "ප්‍රකාශනය",
+        "cancellation": "අවලංගු කිරීම",
+        "mitigation": "අවම කිරීම",
+        "mitigationNote": "අවම කිරීමෙන් බලපෑම මෘදු වේ — යෝගය හෝ දෝෂය අවලංගු නොවේ.",
+        "groupYogaAria": "යෝග",
+        "groupDoshaAria": "දෝෂ"
+    },
+    "yogaStrength": {
+        "1": "අති ප්රබල",
+        "2": "ප්රබල",
+        "3": "මධ්යම",
+        "4": "දුර්වල"
+    },
+    "cancellationStatus": {
+        "1": "අවලංගු නොවේ",
+        "2": "අවලංගු",
+        "3": "අවම කරන ලද"
+    },
+    "tradition": {
+        "MAIN_STREAM": "ප්‍රධාන ධාරාව"
+    },
+    "yoga": {
+        "dharmaKarmadhipati": {
+            "name": "ධර්ම කර්මාධිපති යෝගය",
+            "rule": {
+                "dk01": "{reference} සිට, {house1} අධිපති {lord1Name} සහ {house2} අධිපති {lord2Name} එකම රාශියේ සහ ගෘහයේ සංයෝග වේ.",
+                "dk02": "{reference} සිට, {house1} අධිපති {lord1Name} සහ {house2} අධිපති {lord2Name} එකිනෙකා දකියී.",
+                "dk03": "{reference} සිට, {house1} අධිපති {lord1Name} සහ {house2} අධිපති {lord2Name} රාශි හුවමාරු (පරිවර්තන) කරයි."
+            },
+            "theme": {
+                "house1": "ස්වයං සහ ජීව ශක්තිය සම්බන්ධ වේ.",
+                "house2": "පවුල සහ ධනය සම්බන්ධ වේ.",
+                "house3": "ධෛර්යය සහ උත්සාහය සම්බන්ධ වේ.",
+                "house4": "නිවස, දේපළ සහ ගෘහස්ථ ජීවිතය සම්බන්ධ වේ.",
+                "house5": "නිර්මාණශීලිත්වය සහ දරුවන් සම්බන්ධ වේ.",
+                "house6": "බාධක සහ සේවය සම්බන්ධ වේ.",
+                "house7": "හවුල්කාරිත්වය සහ විවාහය සම්බන්ධ වේ.",
+                "house8": "ආයුෂ, උරුමය සහ ගුප්ත කරුණු සම්බන්ධ වේ.",
+                "house9": "භාග්‍යය, ධර්මය සහ උසස් අධ්‍යාපනය සම්බන්ධ වේ.",
+                "house10": "රැකියාව, කර්මය සහ සමාජ තත්ත්වය සම්බන්ධ වේ.",
+                "house11": "ලාභ සහ සම්බන්ධතා සම්බන්ධ වේ.",
+                "house12": "අලාභ සහ විදෙස් රටවල් සම්බන්ධ වේ."
+            },
+            "expression": {
+                "main": "මෙම යෝගය භාග්‍යයේ සහ කර්මයේ ශක්තීන් එක් කරයි, ධර්මිෂ්ඨ ක්‍රියා සහ අරමුණු සහිත රැකියාවට වාසිදායක වේ."
+            }
+        },
+        "ruchaka": {
+            "name": "රැචක යෝගය",
+            "rule": {
+                "pmp01": "කුජ {kendra} සිට {house} වන ගෘහයේ (කේන්ද්‍රයක) පිහිටා, ස්වකීය හෝ උච්ච රාශියකි."
+            },
+            "theme": {
+                "house1": "ස්වයං සහ ජීව ශක්තිය සම්බන්ධ වේ.",
+                "house4": "නිවස, දේපළ සහ ගෘහස්ථ ජීවිතය සම්බන්ධ වේ.",
+                "house7": "හවුල්කාරිත්වය සහ විවාහය සම්බන්ධ වේ.",
+                "house10": "රැකියාව, කර්මය සහ සමාජ තත්ත්වය සම්බන්ධ වේ."
+            },
+            "expression": {
+                "main": "මෙම යෝගය ධෛර්යය, ජවය සහ නායකත්වය ලබා දෙයි, තීක්ෂණ ජයග්‍රහණයට වාසිදායක වේ."
+            }
+        },
+        "bhadra": {
+            "name": "බද්‍රා යෝගය",
+            "rule": {
+                "pmp02": "බුධ {kendra} සිට {house} වන ගෘහයේ (කේන්ද්‍රයක) පිහිටා, ස්වකීය හෝ උච්ච රාශියකි."
+            },
+            "theme": {
+                "house1": "ස්වයං සහ ජීව ශක්තිය සම්බන්ධ වේ.",
+                "house4": "නිවස, දේපළ සහ ගෘහස්ථ ජීවිතය සම්බන්ධ වේ.",
+                "house7": "හවුල්කාරිත්වය සහ විවාහය සම්බන්ධ වේ.",
+                "house10": "රැකියාව, කර්මය සහ සමාජ තත්ත්වය සම්බන්ධ වේ."
+            },
+            "expression": {
+                "main": "මෙම යෝගය බුද්ධිය, වාක් චාතුර්යය සහ විවේචනාත්මක චින්තනය තියුණු කරයි."
+            }
+        },
+        "hamsa": {
+            "name": "හංස යෝගය",
+            "rule": {
+                "pmp03": "ගුරු {kendra} සිට {house} වන ගෘහයේ (කේන්ද්‍රයක) පිහිටා, ස්වකීය හෝ උච්ච රාශියකි."
+            },
+            "theme": {
+                "house1": "ස්වයං සහ ජීව ශක්තිය සම්බන්ධ වේ.",
+                "house4": "නිවස, දේපළ සහ ගෘහස්ථ ජීවිතය සම්බන්ධ වේ.",
+                "house7": "හවුල්කාරිත්වය සහ විවාහය සම්බන්ධ වේ.",
+                "house10": "රැකියාව, කර්මය සහ සමාජ තත්ත්වය සම්බන්ධ වේ."
+            },
+            "expression": {
+                "main": "මෙම යෝගය ප්‍රඥාව, ධර්මිෂ්ඨකම සහ කීර්තිය ලබා දෙයි, ධර්මය තුළින් නායකත්වයට වාසිදායකවේ."
+            }
+        },
+        "malavya": {
+            "name": "මාලව්‍ය යෝගය",
+            "rule": {
+                "pmp04": "සිකුරු {kendra} සිට {house} වන ගෘහයේ (කේන්ද්‍රයක) පිහිටා, ස්වකීය හෝ උච්ච රාශියකි."
+            },
+            "theme": {
+                "house1": "ස්වයං සහ ජීව ශක්තිය සම්බන්ධ වේ.",
+                "house4": "නිවස, දේපළ සහ ගෘහස්ථ ජීවිතය සම්බන්ධ වේ.",
+                "house7": "හවුල්කාරිත්වය සහ විවාහය සම්බන්ධ වේ.",
+                "house10": "රැකියාව, කර්මය සහ සමාජ තත්ත්වය සම්බන්ධ වේ."
+            },
+            "expression": {
+                "main": "මෙම යෝගය චමත්කාරය, සංස්කෘතිකභාවය, ධනය සහ සුවපහසුව ලබා දෙයි."
+            }
+        },
+        "sasha": {
+            "name": "ශශ යෝගය",
+            "rule": {
+                "pmp05": "ශනි {kendra} සිට {house} වන ගෘහයේ (කේන්ද්‍රයක) පිහිටා, ස්වකීය හෝ උච්ච රාශියකි."
+            },
+            "theme": {
+                "house1": "ස්වයං සහ ජීව ශක්තිය සම්බන්ධ වේ.",
+                "house4": "නිවස, දේපළ සහ ගෘහස්ථ ජීවිතය සම්බන්ධ වේ.",
+                "house7": "හවුල්කාරිත්වය සහ විවාහය සම්බන්ධ වේ.",
+                "house10": "රැකියාව, කර්මය සහ සමාජ තත්ත්වය සම්බන්ධ වේ."
+            },
+            "expression": {
+                "main": "මෙම යෝගය අධිකාරය, විනය, තනතුර සහ ස්ථාවර ගෞරවය ලබා දෙයි."
+            }
+        },
+        "deeptaYoga": {
+            "name": "දීප්ත යෝගය",
+            "rule": {
+                "dy01": "{planetName} ග්‍රහයා හැර අනෙක් ග්‍රහයන් රාහු හා කේතුට මැදි වී රාහු දෙසට ගමන් කරයි."
+            },
+            "classification": {
+                "Kuja": "කුජ දීප්ත යෝගය",
+                "Budha": "බුධ දීප්ත යෝගය",
+                "Guru": "ගුරු දීප්ත යෝගය",
+                "Shukra": "ශුක්‍ර දීප්ත යෝගය",
+                "Shani": "ශනි දීප්ත යෝගය"
+            },
+            "theme": {
+                "house1": "ස්වයං සහ ජීව ශක්තිය සම්බන්ධ වේ.",
+                "house2": "සම්පත් සහ පවුල සම්බන්ධ වේ.",
+                "house3": "ධෛර්‍ය සහ උත්සාහය සම්බන්ධ වේ.",
+                "house4": "නිවස සහ සුවපහසුව සම්බන්ධ වේ.",
+                "house5": "දරුවන් සහ ප්‍රේම සම්බන්ධතා සම්බන්ධ වේ.",
+                "house6": "බාධක සහ සේවය සම්බන්ධ වේ.",
+                "house7": "හවුල්කාරිත්වය සහ විවාහය සම්බන්ධ වේ.",
+                "house8": "ආයුෂ සහ රහස් කටයුතු සම්බන්ධ වේ.",
+                "house9": "භාග්‍ය සහ ඉහළ අධ්‍යාපනය සම්බන්ධ වේ.",
+                "house10": "රැකියාව සහ තත්ත්වය සම්බන්ධ වේ.",
+                "house11": "ලාභ සහ සම්බන්ධතා සම්බන්ධ වේ.",
+                "house12": "අලාභ සහ විදේශ කටයුතු සම්බන්ධ වේ."
+            },
+            "expression": {
+                "main": "මැද කොටසින් පිටත ඇති එකම ග්‍රහයාගේ ගුණ ජීවිතයේ වැඩි බලපෑමක් ඇති කරයි.",
+                "Kuja": "ධෛර්‍ය සම්පන්නයි. කිසිම දිනක වැටෙන්නෙ නෑ. තව කෙනෙක් යටතේ වැඩ කරලා දියුණු වීමට අපහසුයි.",
+                "Budha": "ප්‍රසින්න ප්‍රිය මනාප පුද්ගනයන් වේ. බුද්ධිමත් වේ. ගිණුම් කටයුතු වැනි වැඩ වලට දක්ෂ වේ. හොදින් කතා කරන්න පුලුවන් වේ.",
+                "Guru": "ධනය ලැබේ. කීර්තිය ප්‍රසංශාව ලැබේ. උපදේශනාත්මක සේවා සපයයි.",
+                "Shukra": "ප්‍රයමනාප වේ. සැප සම්පත් යාන වාහන ඉඩකඩම් ලැබේ. විවාහයට ශුබයි.",
+                "Shani": "ජීවිතයේ ප්‍රශ්න බාධක කරදර මගින් ඉතාම හොඳ උසස් දියුණු තත්වයට පත් වේ."
+            }
+        },
+        "pushkala": {
+            "name": "පුෂ්කල යෝගය",
+            "rule": {
+                "ps01": "{reference} සිට, {house1} අධිපති {lord1Name} සහ {house2} අධිපති {lord2Name} එකම රාශියේ සහ ගෘහයේ සංයෝග වේ.",
+                "ps02": "{reference} සිට, {house1} අධිපති {lord1Name} සහ {house2} අධිපති {lord2Name} එකිනෙකා දකියී.",
+                "ps03": "{reference} සිට, {house1} අධිපති {lord1Name} සහ {house2} අධිපති {lord2Name} රාශි හුවමාරු (පරිවර්තන) කරයි."
+            },
+            "theme": {
+                "house1": "ස්වයං සහ ජීව ශක්තිය සම්බන්ධ වේ.",
+                "house2": "පවුල සහ ධනය සම්බන්ධ වේ.",
+                "house3": "ධෛර්යය සහ උත්සාහය සම්බන්ධ වේ.",
+                "house4": "නිවස, දේපළ සහ ගෘහස්ථ ජීවිතය සම්බන්ධ වේ.",
+                "house5": "නිර්මාණශීලිත්වය සහ දරුවන් සම්බන්ධ වේ.",
+                "house6": "බාධක සහ සේවය සම්බන්ධ වේ.",
+                "house7": "හවුල්කාරිත්වය සහ විවාහය සම්බන්ධ වේ.",
+                "house8": "ආයුෂ, උරුමය සහ ගුප්ත කරුණු සම්බන්ධ වේ.",
+                "house9": "භාග්‍යය, ධර්මය සහ උසස් අධ්‍යාපනය සම්බන්ධ වේ.",
+                "house10": "රැකියාව, කර්මය සහ සමාජ තත්ත්වය සම්බන්ධ වේ.",
+                "house11": "ලාභ සහ සම්බන්ධතා සම්බන්ධ වේ.",
+                "house12": "අලාභ සහ විදෙස් රටවල් සම්බන්ධ වේ."
+            },
+            "expression": {
+                "main": "මෙම යෝගය ධනය හා ද්‍රව්‍යමය සැප සම්පත් රැස් කිරීමට සහ වර්ධනයට හේතු වේ."
+            }
+        },
+        "rajaChitta": {
+            "name": "රාජ චිත්ත යෝගය",
+            "rule": {
+                "ps01": "{reference} සිට, {house1} අධිපති {lord1Name} සහ {house2} අධිපති {lord2Name} එකම රාශියේ සහ ගෘහයේ සංයෝග වේ.",
+                "ps02": "{reference} සිට, {house1} අධිපති {lord1Name} සහ {house2} අධිපති {lord2Name} එකිනෙකා දකියී.",
+                "ps03": "{reference} සිට, {house1} අධිපති {lord1Name} සහ {house2} අධිපති {lord2Name} රාශි හුවමාරු (පරිවර්තන) කරයි."
+            },
+            "theme": {
+                "house1": "ස්වයං සහ ජීව ශක්තිය සම්බන්ධ වේ.",
+                "house2": "පවුල සහ ධනය සම්බන්ධ වේ.",
+                "house3": "ධෛර්යය සහ උත්සාහය සම්බන්ධ වේ.",
+                "house4": "නිවස, දේපළ සහ ගෘහස්ථ ජීවිතය සම්බන්ධ වේ.",
+                "house5": "නිර්මාණශීලිත්වය සහ දරුවන් සම්බන්ධ වේ.",
+                "house6": "බාධක සහ සේවය සම්බන්ධ වේ.",
+                "house7": "හවුල්කාරිත්වය සහ විවාහය සම්බන්ධ වේ.",
+                "house8": "ආයුෂ, උරුමය සහ ගුප්ත කරුණු සම්බන්ධ වේ.",
+                "house9": "භාග්‍යය, ධර්මය සහ උසස් අධ්‍යාපනය සම්බන්ධ වේ.",
+                "house10": "රැකියාව, කර්මය සහ සමාජ තත්ත්වය සම්බන්ධ වේ.",
+                "house11": "ලාභ සහ සම්බන්ධතා සම්බන්ධ වේ.",
+                "house12": "අලාභ සහ විදෙස් රටවල් සම්බන්ධ වේ."
+            },
+            "expression": {
+                "main": "මෙම යෝගය රාජකීය අනුග්‍රහය, කීර්තිය සහ තරඟකරුවන් මැඩ පැවැත්වීම ලබා දෙයි."
+            }
+        },
+        "champaka": {
+            "name": "චම්පක යෝගය",
+            "rule": {
+                "ps01": "{reference} සිට, {house1} අධිපති {lord1Name} සහ {house2} අධිපති {lord2Name} එකම රාශියේ සහ ගෘහයේ සංයෝග වේ.",
+                "ps02": "{reference} සිට, {house1} අධිපති {lord1Name} සහ {house2} අධිපති {lord2Name} එකිනෙකා දකියී.",
+                "ps03": "{reference} සිට, {house1} අධිපති {lord1Name} සහ {house2} අධිපති {lord2Name} රාශි හුවමාරු (පරිවර්තන) කරයි."
+            },
+            "theme": {
+                "house1": "ස්වයං සහ ජීව ශක්තිය සම්බන්ධ වේ.",
+                "house2": "පවුල සහ ධනය සම්බන්ධ වේ.",
+                "house3": "ධෛර්යය සහ උත්සාහය සම්බන්ධ වේ.",
+                "house4": "නිවස, දේපළ සහ ගෘහස්ථ ජීවිතය සම්බන්ධ වේ.",
+                "house5": "නිර්මාණශීලිත්වය සහ දරුවන් සම්බන්ධ වේ.",
+                "house6": "බාධක සහ සේවය සම්බන්ධ වේ.",
+                "house7": "හවුල්කාරිත්වය සහ විවාහය සම්බන්ධ වේ.",
+                "house8": "ආයුෂ, උරුමය සහ ගුප්ත කරුණු සම්බන්ධ වේ.",
+                "house9": "භාග්‍යය, ධර්මය සහ උසස් අධ්‍යාපනය සම්බන්ධ වේ.",
+                "house10": "රැකියාව, කර්මය සහ සමාජ තත්ත්වය සම්බන්ධ වේ.",
+                "house11": "ලාභ සහ සම්බන්ධතා සම්බන්ධ වේ.",
+                "house12": "අලාභ සහ විදෙස් රටවල් සම්බන්ධ වේ."
+            },
+            "expression": {
+                "main": "මෙම යෝගය ශක්තිය, ධෛර්‍යය සහ සතුරන් මැඩලීමේ හැකියාව ලබා දෙයි."
+            }
+        },
+        "amathya": {
+            "name": "අමාත්‍ය යෝගය",
+            "rule": {
+                "ps01": "{reference} සිට, {house1} අධිපති {lord1Name} සහ {house2} අධිපති {lord2Name} එකම රාශියේ සහ ගෘහයේ සංයෝග වේ.",
+                "ps02": "{reference} සිට, {house1} අධිපති {lord1Name} සහ {house2} අධිපති {lord2Name} එකිනෙකා දකියී.",
+                "ps03": "{reference} සිට, {house1} අධිපති {lord1Name} සහ {house2} අධිපති {lord2Name} රාශි හුවමාරු (පරිවර්තන) කරයි."
+            },
+            "theme": {
+                "house1": "ස්වයං සහ ජීව ශක්තිය සම්බන්ධ වේ.",
+                "house2": "පවුල සහ ධනය සම්බන්ධ වේ.",
+                "house3": "ධෛර්යය සහ උත්සාහය සම්බන්ධ වේ.",
+                "house4": "නිවස, දේපළ සහ ගෘහස්ථ ජීවිතය සම්බන්ධ වේ.",
+                "house5": "නිර්මාණශීලිත්වය සහ දරුවන් සම්බන්ධ වේ.",
+                "house6": "බාධක සහ සේවය සම්බන්ධ වේ.",
+                "house7": "හවුල්කාරිත්වය සහ විවාහය සම්බන්ධ වේ.",
+                "house8": "ආයුෂ, උරුමය සහ ගුප්ත කරුණු සම්බන්ධ වේ.",
+                "house9": "භාග්‍යය, ධර්මය සහ උසස් අධ්‍යාපනය සම්බන්ධ වේ.",
+                "house10": "රැකියාව, කර්මය සහ සමාජ තත්ත්වය සම්බන්ධ වේ.",
+                "house11": "ලාභ සහ සම්බන්ධතා සම්බන්ධ වේ.",
+                "house12": "අලාභ සහ විදෙස් රටවල් සම්බන්ධ වේ."
+            },
+            "expression": {
+                "main": "මෙම යෝගය උපදේශන සහ කාර්යක්ෂම හැකියාව, තියුණු මතකය සහ නිවැරදි තීරණ ගැනීමේ හැකියාව ලබා දෙයි."
+            }
+        },
+        "dharukaKarma": {
+            "name": "ධාරුක කර්ම යෝගය",
+            "rule": {
+                "ps01": "{reference} සිට, {house1} අධිපති {lord1Name} සහ {house2} අධිපති {lord2Name} එකම රාශියේ සහ ගෘහයේ සංයෝග වේ.",
+                "ps02": "{reference} සිට, {house1} අධිපති {lord1Name} සහ {house2} අධිපති {lord2Name} එකිනෙකා දකියී.",
+                "ps03": "{reference} සිට, {house1} අධිපති {lord1Name} සහ {house2} අධිපති {lord2Name} රාශි හුවමාරු (පරිවර්තන) කරයි."
+            },
+            "theme": {
+                "house1": "ස්වයං සහ ජීව ශක්තිය සම්බන්ධ වේ.",
+                "house2": "පවුල සහ ධනය සම්බන්ධ වේ.",
+                "house3": "ධෛර්යය සහ උත්සාහය සම්බන්ධ වේ.",
+                "house4": "නිවස, දේපළ සහ ගෘහස්ථ ජීවිතය සම්බන්ධ වේ.",
+                "house5": "නිර්මාණශීලිත්වය සහ දරුවන් සම්බන්ධ වේ.",
+                "house6": "බාධක සහ සේවය සම්බන්ධ වේ.",
+                "house7": "හවුල්කාරිත්වය සහ විවාහය සම්බන්ධ වේ.",
+                "house8": "ආයුෂ, උරුමය සහ ගුප්ත කරුණු සම්බන්ධ වේ.",
+                "house9": "භාග්‍යය, ධර්මය සහ උසස් අධ්‍යාපනය සම්බන්ධ වේ.",
+                "house10": "රැකියාව, කර්මය සහ සමාජ තත්ත්වය සම්බන්ධ වේ.",
+                "house11": "ලාභ සහ සම්බන්ධතා සම්බන්ධ වේ.",
+                "house12": "අලාභ සහ විදෙස් රටවල් සම්බන්ධ වේ."
+            },
+            "expression": {
+                "main": "මෙම යෝගය සතුරන් සහ රෝග බාධා මැඩලීමේ ශක්තිය ලබා දෙන අතර, දරුවන් සම්බන්ධ කාරණාවල අභියෝග ද ඇති කරයි."
+            }
+        },
+        "priyamrityu": {
+            "name": "ප්‍රියමෘත්‍ය යෝගය",
+            "rule": {
+                "ps01": "{reference} සිට, {house1} අධිපති {lord1Name} සහ {house2} අධිපති {lord2Name} එකම රාශියේ සහ ගෘහයේ සංයෝග වේ.",
+                "ps02": "{reference} සිට, {house1} අධිපති {lord1Name} සහ {house2} අධිපති {lord2Name} එකිනෙකා දකියී.",
+                "ps03": "{reference} සිට, {house1} අධිපති {lord1Name} සහ {house2} අධිපති {lord2Name} රාශි හුවමාරු (පරිවර්තන) කරයි."
+            },
+            "theme": {
+                "house1": "ස්වයං සහ ජීව ශක්තිය සම්බන්ධ වේ.",
+                "house2": "පවුල සහ ධනය සම්බන්ධ වේ.",
+                "house3": "ධෛර්යය සහ උත්සාහය සම්බන්ධ වේ.",
+                "house4": "නිවස, දේපළ සහ ගෘහස්ථ ජීවිතය සම්බන්ධ වේ.",
+                "house5": "නිර්මාණශීලිත්වය සහ දරුවන් සම්බන්ධ වේ.",
+                "house6": "බාධක සහ සේවය සම්බන්ධ වේ.",
+                "house7": "හවුල්කාරිත්වය සහ විවාහය සම්බන්ධ වේ.",
+                "house8": "ආයුෂ, උරුමය සහ ගුප්ත කරුණු සම්බන්ධ වේ.",
+                "house9": "භාග්‍යය, ධර්මය සහ උසස් අධ්‍යාපනය සම්බන්ධ වේ.",
+                "house10": "රැකියාව, කර්මය සහ සමාජ තත්ත්වය සම්බන්ධ වේ.",
+                "house11": "ලාභ සහ සම්බන්ධතා සම්බන්ධ වේ.",
+                "house12": "අලාභ සහ විදෙස් රටවල් සම්බන්ධ වේ."
+            },
+            "expression": {
+                "main": "මෙම යෝගය සහකරු සමඟ ගැටුම් හෝ රෝගාබාධ ඇති කරන අතර, ප්‍රතිඵල අතර කේනද්‍ර යෝගයන්ගේ සමාන ප්‍රතිලාභ කොටසක් ද ලබා දෙයි."
+            }
+        },
+        "bhagyaVyaya": {
+            "name": "භාග්‍ය වැය යෝගය",
+            "rule": {
+                "ps01": "{reference} සිට, {house1} අධිපති {lord1Name} සහ {house2} අධිපති {lord2Name} එකම රාශියේ සහ ගෘහයේ සංයෝග වේ.",
+                "ps02": "{reference} සිට, {house1} අධිපති {lord1Name} සහ {house2} අධිපති {lord2Name} එකිනෙකා දකියී.",
+                "ps03": "{reference} සිට, {house1} අධිපති {lord1Name} සහ {house2} අධිපති {lord2Name} රාශි හුවමාරු (පරිවර්තන) කරයි."
+            },
+            "theme": {
+                "house1": "ස්වයං සහ ජීව ශක්තිය සම්බන්ධ වේ.",
+                "house2": "පවුල සහ ධනය සම්බන්ධ වේ.",
+                "house3": "ධෛර්යය සහ උත්සාහය සම්බන්ධ වේ.",
+                "house4": "නිවස, දේපළ සහ ගෘහස්ථ ජීවිතය සම්බන්ධ වේ.",
+                "house5": "නිර්මාණශීලිත්වය සහ දරුවන් සම්බන්ධ වේ.",
+                "house6": "බාධක සහ සේවය සම්බන්ධ වේ.",
+                "house7": "හවුල්කාරිත්වය සහ විවාහය සම්බන්ධ වේ.",
+                "house8": "ආයුෂ, උරුමය සහ ගුප්ත කරුණු සම්බන්ධ වේ.",
+                "house9": "භාග්‍යය, ධර්මය සහ උසස් අධ්‍යාපනය සම්බන්ධ වේ.",
+                "house10": "රැකියාව, කර්මය සහ සමාජ තත්ත්වය සම්බන්ධ වේ.",
+                "house11": "ලාභ සහ සම්බන්ධතා සම්බන්ධ වේ.",
+                "house12": "අලාභ සහ විදෙස් රටවල් සම්බන්ධ වේ."
+            },
+            "expression": {
+                "main": "මෙම යෝගය භාග්‍යය බිඳ දැමීමට නැඹුරු වන අතර ධර්මයේ සහ පින්කම්වල ප්‍රතිඵල අවම කරයි."
+            }
+        },
+        "bhumiDravya": {
+            "name": "භූමි ද්‍රව්‍ය යෝගය",
+            "rule": {
+                "ps01": "{reference} සිට, {house1} අධිපති {lord1Name} සහ {house2} අධිපති {lord2Name} එකම රාශියේ සහ ගෘහයේ සංයෝග වේ.",
+                "ps02": "{reference} සිට, {house1} අධිපති {lord1Name} සහ {house2} අධිපති {lord2Name} එකිනෙකා දකියී.",
+                "ps03": "{reference} සිට, {house1} අධිපති {lord1Name} සහ {house2} අධිපති {lord2Name} රාශි හුවමාරු (පරිවර්තන) කරයි."
+            },
+            "theme": {
+                "house1": "ස්වයං සහ ජීව ශක්තිය සම්බන්ධ වේ.",
+                "house2": "පවුල සහ ධනය සම්බන්ධ වේ.",
+                "house3": "ධෛර්යය සහ උත්සාහය සම්බන්ධ වේ.",
+                "house4": "නිවස, දේපළ සහ ගෘහස්ථ ජීවිතය සම්බන්ධ වේ.",
+                "house5": "නිර්මාණශීලිත්වය සහ දරුවන් සම්බන්ධ වේ.",
+                "house6": "බාධක සහ සේවය සම්බන්ධ වේ.",
+                "house7": "හවුල්කාරිත්වය සහ විවාහය සම්බන්ධ වේ.",
+                "house8": "ආයුෂ, උරුමය සහ ගුප්ත කරුණු සම්බන්ධ වේ.",
+                "house9": "භාග්‍යය, ධර්මය සහ උසස් අධ්‍යාපනය සම්බන්ධ වේ.",
+                "house10": "රැකියාව, කර්මය සහ සමාජ තත්ත්වය සම්බන්ධ වේ.",
+                "house11": "ලාභ සහ සම්බන්ධතා සම්බන්ධ වේ.",
+                "house12": "අලාභ සහ විදෙස් රටවල් සම්බන්ධ වේ."
+            },
+            "expression": {
+                "main": "මෙම යෝගය ඉඩම්, දේපළ, වාහන සහ අනෙකුත් ද්‍රව්‍යමය වත්කම් ලබා ගැනීමට වාසිදායක වේ."
+            }
+        },
+        "rinaVyaya": {
+            "name": "ඍණ වැය යෝගය",
+            "rule": {
+                "ps01": "{reference} සිට, {house1} අධිපති {lord1Name} සහ {house2} අධිපති {lord2Name} එකම රාශියේ සහ ගෘහයේ සංයෝග වේ.",
+                "ps02": "{reference} සිට, {house1} අධිපති {lord1Name} සහ {house2} අධිපති {lord2Name} එකිනෙකා දකියී.",
+                "ps03": "{reference} සිට, {house1} අධිපති {lord1Name} සහ {house2} අධිපති {lord2Name} රාශි හුවමාරු (පරිවර්තන) කරයි."
+            },
+            "theme": {
+                "house1": "ස්වයං සහ ජීව ශක්තිය සම්බන්ධ වේ.",
+                "house2": "පවුල සහ ධනය සම්බන්ධ වේ.",
+                "house3": "ධෛර්යය සහ උත්සාහය සම්බන්ධ වේ.",
+                "house4": "නිවස, දේපළ සහ ගෘහස්ථ ජීවිතය සම්බන්ධ වේ.",
+                "house5": "නිර්මාණශීලිත්වය සහ දරුවන් සම්බන්ධ වේ.",
+                "house6": "බාධක සහ සේවය සම්බන්ධ වේ.",
+                "house7": "හවුල්කාරිත්වය සහ විවාහය සම්බන්ධ වේ.",
+                "house8": "ආයුෂ, උරුමය සහ ගුප්ත කරුණු සම්බන්ධ වේ.",
+                "house9": "භාග්‍යය, ධර්මය සහ උසස් අධ්‍යාපනය සම්බන්ධ වේ.",
+                "house10": "රැකියාව, කර්මය සහ සමාජ තත්ත්වය සම්බන්ධ වේ.",
+                "house11": "ලාභ සහ සම්බන්ධතා සම්බන්ධ වේ.",
+                "house12": "අලාභ සහ විදෙස් රටවල් සම්බන්ධ වේ."
+            },
+            "expression": {
+                "main": "මෙම යෝගය ණය, ණය ගැනීම් සහ වගකීම් ගෙවීම මගින් වියදම් ඇති කිරීමට නැඹුරු වේ."
+            }
+        },
+        "chittaHani": {
+            "name": "චිත්ත හානි යෝගය",
+            "rule": {
+                "ps01": "{reference} සිට, {house1} අධිපති {lord1Name} සහ {house2} අධිපති {lord2Name} එකම රාශියේ සහ ගෘහයේ සංයෝග වේ.",
+                "ps02": "{reference} සිට, {house1} අධිපති {lord1Name} සහ {house2} අධිපති {lord2Name} එකිනෙකා දකියී.",
+                "ps03": "{reference} සිට, {house1} අධිපති {lord1Name} සහ {house2} අධිපති {lord2Name} රාශි හුවමාරු (පරිවර්තන) කරයි."
+            },
+            "theme": {
+                "house1": "ස්වයං සහ ජීව ශක්තිය සම්බන්ධ වේ.",
+                "house2": "පවුල සහ ධනය සම්බන්ධ වේ.",
+                "house3": "ධෛර්යය සහ උත්සාහය සම්බන්ධ වේ.",
+                "house4": "නිවස, දේපළ සහ ගෘහස්ථ ජීවිතය සම්බන්ධ වේ.",
+                "house5": "නිර්මාණශීලිත්වය සහ දරුවන් සම්බන්ධ වේ.",
+                "house6": "බාධක සහ සේවය සම්බන්ධ වේ.",
+                "house7": "හවුල්කාරිත්වය සහ විවාහය සම්බන්ධ වේ.",
+                "house8": "ආයුෂ, උරුමය සහ ගුප්ත කරුණු සම්බන්ධ වේ.",
+                "house9": "භාග්‍යය, ධර්මය සහ උසස් අධ්‍යාපනය සම්බන්ධ වේ.",
+                "house10": "රැකියාව, කර්මය සහ සමාජ තත්ත්වය සම්බන්ධ වේ.",
+                "house11": "ලාභ සහ සම්බන්ධතා සම්බන්ධ වේ.",
+                "house12": "අලාභ සහ විදෙස් රටවල් සම්බන්ධ වේ."
+            },
+            "expression": {
+                "main": "මෙම යෝගය චිත්ත පීඩා සහ අනවශ්‍ය හෝ අධික වියදම් සඳහා නැඹුරුතාවයක් ඇති කරයි."
+            }
+        },
+        "dhanaYoga": {
+            "name": "ධන යෝගය",
+            "classification": {
+                "Prabala": "ප්‍රබල ධන යෝග"
+            },
+            "rule": {
+                "dh01": "{reference} සිට, {house1} අධිපති ({lord1Name}) සහ {house2} අධිපති ({lord2Name}) එකම රාශියේ සහ ගෘහයේ සංයෝග වේ.",
+                "dh02": "{reference} සිට, {house1} අධිපති ({lord1Name}) සහ {house2} අධිපති ({lord2Name}) එකිනෙකා දකියී.",
+                "dh03": "{reference} සිට, {house1} අධිපති ({lord1Name}) සහ {house2} අධිපති ({lord2Name}) රාශි හුවමාරු (පරිවර්තන) කරයි.",
+                "dh04": "{reference} සිට, {house1} අධිපති ({lord1Name}) ධන ස්ථානයක් වන {house2} භාවයේ පිහිටයි.",
+                "dh05": "ඉන්දු ලග්නය {reference} සිට ධන ස්ථානයක් වන {house1} භාවයේ පිහිටයි."
+            },
+            "theme": {
+                "house2": "පවුල සහ ධනය සම්බන්ධ වේ.",
+                "house5": "නිර්මාණශීලිත්වය සහ දරුවන් සම්බන්ධ වේ.",
+                "house9": "භාග්‍යය, ධර්මය සහ උසස් අධ්‍යාපනය සම්බන්ධ වේ.",
+                "house11": "ලාභ සහ සම්බන්ධතා සම්බන්ධ වේ."
+            },
+            "expression": {
+                "main": "මෙම යෝගය ධන නිපාතන ගෘහයන් සම්බන්ධ කරයි, ධනය සහ ද්‍රව්‍යමය සමෘද්ධිය ලබා ගැනීමට වාසිදායක වේ."
+            }
+        },
+        "neechaRajaYoga": {
+            "name": "නීච රාජ යෝගය",
+            "rule": {
+                "nr01": "{planetName} නීච (දුර්වල) තත්ත්වයේ පවතින අතර ලග්නයෙන් {house} වන උපචය ගෘහයේ පිහිටයි."
+            },
+            "theme": {
+                "house2": "පවුල සහ ධනය සම්බන්ධ වේ.",
+                "house3": "ධෛර්යය සහ උත්සාහය සම්බන්ධ වේ.",
+                "house4": "නිවස, දේපළ සහ ගෘහස්ථ ජීවිතය සම්බන්ධ වේ.",
+                "house9": "භාග්‍යය, ධර්මය සහ උසස් අධ්‍යාපනය සම්බන්ධ වේ.",
+                "house10": "රැකියාව, කර්මය සහ සමාජ තත්ත්වය සම්බන්ධ වේ.",
+                "house11": "ලාභ සහ සම්බන්ධතා සම්බන්ධ වේ."
+            },
+            "expression": {
+                "main": "මෙම යෝගය දුර්වල ග්‍රහයාගේ අභියෝග උපචය ගෘහයන් හරහා වර්ධනය සහ අවසානයේ සාර්ථකත්වය බවට පරිවර්තනය කරන බවට ඉඟි කරයි."
+            }
+        },
+        "mahaParivartana": {
+            "name": "මහා පරිවර්තන යෝගය",
+            "rule": {
+                "pv01": "{house1} අධිපති ({lord1Name}) සහ {house2} අධිපති ({lord2Name}) රාශි හුවමාරු (පරිවර්තන) කරයි."
+            },
+            "theme": {
+                "house1": "ස්වයං, ශරීරය සහ පෞරුෂත්වය සම්බන්ධ වේ.",
+                "house2": "පවුල සහ ධනය සම්බන්ධ වේ.",
+                "house4": "නිවස, මව, දේපළ සහ සැපය සම්බන්ධ වේ.",
+                "house5": "දරුවන්, බුද්ධිය සහ නිර්මාණශීලිත්වය සම්බන්ධ වේ.",
+                "house7": "විවාහය සහ හවුල්කාරිත්වය සම්බන්ධ වේ.",
+                "house9": "භාග්‍යය, ධර්මය සහ පියා සම්බන්ධ වේ.",
+                "house10": "රැකියාව, කර්මය සහ සමාජ තත්ත්වය සම්බන්ධ වේ.",
+                "house11": "ලාභ සහ සම්බන්ධතා සම්බන්ධ වේ."
+            },
+            "expression": {
+                "main": "ශුභ භාව අධිපතීන් අතර හුවමාරුවකි: එක් එක් අධිපතියා අනෙකාගේ භාවය ශක්තිමත් කරමින් ඒ භාවවල කටයුතුවලට සමෘද්ධිය සහ සාර්ථකත්වය ගෙන දෙයි."
+            }
+        },
+        "khalaParivartana": {
+            "name": "ඛල පරිවර්තන යෝගය",
+            "rule": {
+                "pv01": "{house1} අධිපති ({lord1Name}) සහ {house2} අධිපති ({lord2Name}) රාශි හුවමාරු (පරිවර්තන) කරයි."
+            },
+            "theme": {
+                "house1": "ස්වයං, ශරීරය සහ පෞරුෂත්වය සම්බන්ධ වේ.",
+                "house2": "පවුල සහ ධනය සම්බන්ධ වේ.",
+                "house3": "ධෛර්යය, උත්සාහය සහ සහෝදරයන් සම්බන්ධ වේ.",
+                "house4": "නිවස, මව, දේපළ සහ සැපය සම්බන්ධ වේ.",
+                "house5": "දරුවන්, බුද්ධිය සහ නිර්මාණශීලිත්වය සම්බන්ධ වේ.",
+                "house7": "විවාහය සහ හවුල්කාරිත්වය සම්බන්ධ වේ.",
+                "house9": "භාග්‍යය, ධර්මය සහ පියා සම්බන්ධ වේ.",
+                "house10": "රැකියාව, කර්මය සහ සමාජ තත්ත්වය සම්බන්ධ වේ.",
+                "house11": "ලාභ සහ සම්බන්ධතා සම්බන්ධ වේ."
+            },
+            "expression": {
+                "main": "3 වන භාවය සම්බන්ධ හුවමාරුවකි: ප්‍රතිඵල උත්සාහය සහ ධෛර්යය හරහා ලැබෙන අතර වාසනාව උච්චාවචනය විය හැකිය."
+            }
+        },
+        "dainyaParivartana": {
+            "name": "දෛන්‍ය පරිවර්තන යෝගය",
+            "rule": {
+                "pv01": "{house1} අධිපති ({lord1Name}) සහ {house2} අධිපති ({lord2Name}) රාශි හුවමාරු (පරිවර්තන) කරයි."
+            },
+            "theme": {
+                "house1": "ස්වයං, ශරීරය සහ පෞරුෂත්වය සම්බන්ධ වේ.",
+                "house2": "පවුල සහ ධනය සම්බන්ධ වේ.",
+                "house3": "ධෛර්යය, උත්සාහය සහ සහෝදරයන් සම්බන්ධ වේ.",
+                "house4": "නිවස, මව, දේපළ සහ සැපය සම්බන්ධ වේ.",
+                "house5": "දරුවන්, බුද්ධිය සහ නිර්මාණශීලිත්වය සම්බන්ධ වේ.",
+                "house6": "සතුරන්, රෝග සහ ණය සම්බන්ධ වේ.",
+                "house7": "විවාහය සහ හවුල්කාරිත්වය සම්බන්ධ වේ.",
+                "house8": "ආයුෂ, හදිසි වෙනස්කම් සහ රහස් කරුණු සම්බන්ධ වේ.",
+                "house9": "භාග්‍යය, ධර්මය සහ පියා සම්බන්ධ වේ.",
+                "house10": "රැකියාව, කර්මය සහ සමාජ තත්ත්වය සම්බන්ධ වේ.",
+                "house11": "ලාභ සහ සම්බන්ධතා සම්බන්ධ වේ.",
+                "house12": "වියදම්, පාඩු සහ මෝක්ෂය සම්බන්ධ වේ."
+            },
+            "expression": {
+                "main": "දුස්ථානයක් (6, 8 හෝ 12) සම්බන්ධ හුවමාරුවකි: මෙම භාවවල කටයුතුවලට බාධා, රෝග හෝ පාඩු ඇතිවිය හැකිය."
+            }
+        }
+    },
+    "dosha": {
+        "shaniMangala": {
+            "name": "ශනි මංගල දෝෂය",
+            "rule": {
+                "sm01": "ශනි සහ කුජ එකම රාශියේ සහ ගෘහයේ සංයෝග වේ.",
+                "sm02": "ශනි සහ කුජ එකිනෙකට 7 වන ගෘහයේ සිට පිහිටයි.",
+                "sm03": "කුජ ශනිගෙන් 10 වන ගෘහයේ සහ ශනි කුජගෙන් 4 වන ගෘහයේ සිටියි."
+            },
+            "theme": {
+                "house1": "ස්වයං සහ ජීව ශක්තිය සම්බන්ධ වේ.",
+                "house2": "පවුල සහ ධනය සම්බන්ධ වේ.",
+                "house3": "ධෛර්යය සහ උත්සාහය සම්බන්ධ වේ.",
+                "house4": "නිවස, දේපළ සහ ගෘහස්ථ ජීවිතය සම්බන්ධ වේ.",
+                "house5": "නිර්මාණශීලිත්වය සහ දරුවන් සම්බන්ධ වේ.",
+                "house6": "බාධක සහ සේවය සම්බන්ධ වේ.",
+                "house7": "හවුල්කාරිත්වය සහ විවාහය සම්බන්ධ වේ.",
+                "house8": "ආයුෂ, උරුමය සහ ගුප්ත කරුණු සම්බන්ධ වේ.",
+                "house9": "භාග්‍යය සහ උසස් අධ්‍යාපනය සම්බන්ධ වේ.",
+                "house10": "රැකියාව, තත්ත්වය සහ කර්මය සම්බන්ධ වේ.",
+                "house11": "ලාභ සහ සම්බන්ධතා සම්බන්ධ වේ.",
+                "house12": "අලාභ සහ විදෙස් රටවල් සම්බන්ධ වේ."
+            },
+            "expression": {
+                "main": "එහි ප්‍රතිඵල කේන්ද්‍රාදී ගෘහ-ආශ්‍රිත කටයුතුවලදී සහ ශනි හෝ කුජ දශා කාලවලදී බලවත් ලෙස මතු වීමට නැඹුරු වේ."
+            },
+            "dashaNote": "ශනි හෝ කුජ දශා කාලවලදී එය වඩාත් කැපී පෙනෙන විය හැක.",
+            "mitigation": {
+                "sm-mit-001": "ගුරුගේ බලපෑම මෙම දෝෂය මෘදු කිරීමට නැඹුරු වේ."
+            }
+        },
+        "agniMarutha": {
+            "name": "අග්නි මාරුත දෝෂය",
+            "rule": {
+                "am01": "ශනි සහ කුජ එකම රාශියේ සහ ගෘහයේ සංයෝග වේ.",
+                "am02": "ශනි දෙස කුජ බලා සිටියි.",
+                "am03": "කුජ දෙස ශනි බලා සිටියි.",
+                "am04": "ශනි කුජට අයත් රාශියක සිටියි.",
+                "am05": "කුජ ශනිට අයත් රාශියක සිටියි.",
+                "am06": "ශනි කුජට අයත් නැකතක සිටියි.",
+                "am07": "කුජ ශනිට අයත් නැකතක සිටියි.",
+                "am08": "ශනි සහ කුජ රාශි හුවමාරු (පරිවර්තන) කරයි."
+            },
+            "theme": {
+                "house1": "ස්වයං සහ ජීව ශක්තිය සම්බන්ධ වේ.",
+                "house2": "පවුල සහ ධනය සම්බන්ධ වේ.",
+                "house3": "ධෛර්යය සහ උත්සාහය සම්බන්ධ වේ.",
+                "house4": "නිවස, දේපළ සහ ගෘහස්ථ ජීවිතය සම්බන්ධ වේ.",
+                "house5": "නිර්මාණශීලිත්වය සහ දරුවන් සම්බන්ධ වේ.",
+                "house6": "බාධක සහ සේවය සම්බන්ධ වේ.",
+                "house7": "හවුල්කාරිත්වය සහ විවාහය සම්බන්ධ වේ.",
+                "house8": "ආයුෂ, උරුමය සහ ගුප්ත කරුණු සම්බන්ධ වේ.",
+                "house9": "භාග්‍යය සහ උසස් අධ්‍යාපනය සම්බන්ධ වේ.",
+                "house10": "රැකියාව, තත්ත්වය සහ කර්මය සම්බන්ධ වේ.",
+                "house11": "ලාභ සහ සම්බන්ධතා සම්බන්ධ වේ.",
+                "house12": "අලාභ සහ විදෙස් රටවල් සම්බන්ධ වේ."
+            },
+            "expression": {
+                "main": "එහි ප්‍රතිඵල විනය, උත්සාහය සහ ඝර්ෂණය සම්බන්ධ කටයුතුවලදී සහ ශනි හෝ කුජ දශා කාලවලදී මතු වීමට නැඹුරු වේ."
+            },
+            "dashaNote": "ශනි හෝ කුජ දශා කාලවලදී එය වඩාත් කැපී පෙනෙන විය හැක."
+        },
+        "manglik": {
+            "name": "කුජ දෝෂය",
+            "rule": {
+                "mk01": "කුජ ලග්නයේ සිට {house} වන ගෘහයේ පිහිටයි.",
+                "mk02": "කුජ චන්ද්‍රයාගේ සිට {house} වන ගෘහයේ පිහිටයි.",
+                "mk03": "කුජ සිකුරුගේ සිට {house} වන ගෘහයේ පිහිටයි."
+            },
+            "theme": {
+                "house1": "ස්වභාවය සහ ජීව ශක්තිය සම්බන්ධ වේ.",
+                "house2": "සම්පත් සහ පවුල් රැස්කිරීම සම්බන්ධ වේ.",
+                "house4": "ගෘහස්ථ සමගිය සම්බන්ධ වේ.",
+                "house7": "විවාහ හවුල්කාරිත්වය සම්බන්ධ වේ.",
+                "house8": "ආයුෂ සහ අර්බුද සම්බන්ධ වේ.",
+                "house12": "වියදම සහ අලාභ සම්බන්ධ වේ."
+            },
+            "expression": {
+                "partnershipStress": "එය හවුල් කටයුතුවලදී ඝර්ෂණ ඇති කිරීමට නැඹුරු වේ; එහි බර සමස්ත කේන්ද්‍රය මත රඳා පවතී."
+            },
+            "mitigation": {
+                "mk-mit-001": "ගුරුගේ දෘෂ්ටිය මෙම දෝෂය මෘදු කිරීමට නැඹුරු වේ."
+            }
+        },
+        "kalaSarpa": {
+            "name": "කාල සර්ප දෝෂය",
+            "rule": {
+                "ks01": "සියලු සත් ග්‍රහයෝ රාහු–කේතු අක්ෂයේ රාහු දිසාවේ පිහිටයි."
+            },
+            "classification": {
+                "Ananta": "අනන්ත කාල සර්ප",
+                "Kulika": "කුලිත් කාල සර්ප",
+                "Vasuki": "වාසුකී කාල සර්ප",
+                "Shankhapala": "සංඛපාල කාල සර්ප",
+                "Padma": "පද්මකාල කාල සර්ප",
+                "Mahapadma": "මහා පද්ම කාල සර්ප",
+                "Takshaka": "තක්ෂන කාල සර්ප",
+                "Karkotaka": "කරකෝටක කාල සර්ප",
+                "Shankhachooda": "සංඛචෝද කාල සර්ප",
+                "Ghataka": "ඝානක කාල සර්ප",
+                "Vishadhara": "විෂධාර කාල සර්ප",
+                "Sheshanaga": "ශේෂනාග කාල සර්ප"
+            },
+            "theme": {
+                "house1": "විවාහය සහ ස්වයං ජීව ශක්තිය සම්බන්ධ වේ.",
+                "house2": "සම්පත්, පවුල සහ සෞඛ්‍ය සම්බන්ධ වේ.",
+                "house3": "සහෝදර සහෝදරියන්, අසල්වාසීන් සහ උත්සාහය සම්බන්ධ වේ.",
+                "house4": "නිවස, දේපළ සහ පවුල් සමගිය සම්බන්ධ වේ.",
+                "house5": "දරුවන්, ප්‍රේම සම්බන්ධතා සහ මිතුරන් සම්බන්ධ වේ.",
+                "house6": "බාධක, සතුරන් සහ ණය සම්බන්ධ වේ.",
+                "house7": "හවුල්කාරිත්වය සහ විවාහය සම්බන්ධ වේ.",
+                "house8": "ආයුෂ, අර්බුද සහ හදිසි සිදුවීම් සම්බන්ධ වේ.",
+                "house9": "ආගම, භාග්‍ය සහ ඉහළ අධ්‍යාපනය සම්බන්ධ වේ.",
+                "house10": "රැකියාව, පිය පාර්ශ්ව සහය සහ තත්ත්වය සම්බන්ධ වේ.",
+                "house11": "ලාභ, මිතුරන් සහ වැඩිමහල් සහෝදරයන් සම්බන්ධ වේ.",
+                "house12": "සිර බන්ධන, අලාභ සහ සෞඛ්‍ය සම්බන්ධ වේ."
+            },
+            "expression": {
+                "main": "රාහුගේ බලපෑම නිසා ජීවිතයේ අඩුපාඩුවක් හෝ දුෂ්කරතාවයක් ඇති විය හැකි අතර බොහෝ විට එය මානසික වශයෙන් දැනේ."
+            },
+            "dashaNote": "රාහු දශා කාලවලදී එය වඩාත් කැපී පෙනෙන විය හැක."
+        },
+        "kalaAmurtha": {
+            "name": "කාල අමුර්ත දෝෂය",
+            "rule": {
+                "ka01": "සියලු සත් ග්‍රහයෝ රාහු–කේතු අක්ෂයේ කේතු දිසාවේ පිහිටයි."
+            },
+            "theme": {
+                "house1": "ස්වයං සහ ජීව ශක්තිය සම්බන්ධ වේ.",
+                "house2": "සම්පත් සහ පවුල සම්බන්ධ වේ.",
+                "house3": "සහෝදර සහෝදරියන් සහ උත්සාහය සම්බන්ධ වේ.",
+                "house4": "නිවස සහ සුවපහසුව සම්බන්ධ වේ.",
+                "house5": "දරුවන් සහ ප්‍රේම සම්බන්ධතා සම්බන්ධ වේ.",
+                "house6": "බාධක සහ සතුරුකම සම්බන්ධ වේ.",
+                "house7": "හවුල්කාරිත්වය සහ විවාහය සම්බන්ධ වේ.",
+                "house8": "ආයුෂ සහ රහස් කටයුතු සම්බන්ධ වේ.",
+                "house9": "භාග්‍ය සහ ඉහළ අධ්‍යාපනය සම්බන්ධ වේ.",
+                "house10": "රැකියාව සහ තත්ත්වය සම්බන්ධ වේ.",
+                "house11": "ලාභ සහ මිතුරන් සම්බන්ධ වේ.",
+                "house12": "සිර බන්ධන සහ අලාභ සම්බන්ධ වේ."
+            },
+            "expression": {
+                "main": "අඩුපාඩුවක් ඇති විය හැකි නමුත් එය කේතු සමඟ සම්බන්ධ වන අතර අවබෝධයෙන් ජයගත හැක."
+            },
+            "dashaNote": "කේතු දශා කාලවලදී එය වඩාත් කැපී පෙනෙන විය හැක."
+        }
+    },
+    "notepad": {
+        "title": "ශිෂ්ය සටහන් පොත",
+        "button": "සටහන් පොත",
+        "close": "සටහන් පොත වසන්න",
+        "hasContent": "මෙහි සුරකින ලද සටහන් ඇත",
+        "resetPosition": "පිහිටීම යළි සකසන්න",
+        "dragHandle": "ඇදගෙන ගෙනයාමට",
+        "resizeHandle": "ඇදගෙන ප්‍රමාණය වෙනස් කිරීමට",
+        "chandraLagna": "චන්ද්‍ර ලග්නය",
+        "suryaLagna": "සූර්ය ලග්නය",
+        "toast": {
+            "saveFailed": "සුරැකීම අසාර්ථක විය. ඔබේ අවසන් වෙනස්කම ආපසු හරවන ලදී."
+        },
+        "hint": "ගෘහ මාතෘකාවක් තේරීමෙන් එහි නිරීක්ෂණ බලන්න",
+        "planetStrengths": {
+            "title": "ග්‍රහ බල",
+            "hint": "ග්‍රහයෙකු මත ක්ලික් කර එහි බලයට පාදක වන කරුණු බලා තීරණය කරන්න",
+            "factors": {
+                "sign": "රාශි බල",
+                "signLabel": "{sign} {strength}",
+                "navamsa": "නවාංශක බල",
+                "navamsaLabel": "{sign} නවාංශකයේ {strength}",
+                "house": "භාව {house}",
+                "dig": "දිග් බලය",
+                "kala": "කාල බලය",
+                "cheshta": "චේෂ්ටා බලය",
+                "naisargika": "මරණකාරක නොවේ",
+                "retrograde": "ප්‍රතිගාමී",
+                "combust": "දවන (Combust)",
+                "atmakaraka": "ආත්මකාරක",
+                "yogakaraka": "යෝගකාරක",
+                "maranakaraka": "මාරණකාරක",
+                "maraka": "මාරක",
+                "badhaka": "බාධක",
+                "wargoththama": "වර්ගෝත්තම",
+                "pushkara": "පුෂ්කර",
+                "gandantha": "ගණ්ඩාන්ත",
+                "gandamula": "ගණ්ඩමූල",
+                "ashtamansha": "අෂ්ටමාංශ",
+                "nidhanamsha": "නිධනාම්ශ"
+            },
+            "conjunct": "{planet} සමග",
+            "aspectedBy": "{planet}ගේ දෘශ්ඨිය",
+            "bhavaSuchika": "{name}({house})",
+            "houseLordship": "{house} වන භාවාධිපති",
+            "rashiLord": "රාශි අධිපති {planet}",
+            "otherHouse": "{planet}ගේ අනෙක් භාවය {house}",
+            "relativeHouse": "{planet} භාවයේ සිට {count}වන භාවයේ",
+            "ownerInOwnHouse": "{planet} තමාගේම භාවයේ",
+            "ownsHouse": "{planet} හිමි ගෘහය {house}",
+            "houseOwner": "ගෘහ අධිපති {planet}",
+            "nakshatraOwner": "නවාංශකාධිපති {planet}"
+        },
+        "housePurpose": {
+            "0": {
+                "label": "වෙනත්",
+                "sanskrit": "වෙනත්"
+            },
+            "1": {
+                "label": "පුද්ගලයා",
+                "sanskrit": "තනු/ලග්න"
+            },
+            "2": {
+                "label": "ඔහුට/ඇයට ඇති දේ",
+                "sanskrit": "ධන"
+            },
+            "3": {
+                "label": "ඔහු/ඇය කරන දේ",
+                "sanskrit": "සහජ/භ්‍රාතෘ"
+            },
+            "4": {
+                "label": "ඔහුට/ඇයට සාමය ලබා දෙන දේ",
+                "sanskrit": "සුඛ"
+            },
+            "5": {
+                "label": "ඔහු/ඇය නිර්මාණය කර දන්නා දේ",
+                "sanskrit": "පුත්‍ර"
+            },
+            "6": {
+                "label": "ඔහු/ඇය ජය ගත යුතු දේ",
+                "sanskrit": "අරි/ෂට්‍රු"
+            },
+            "7": {
+                "label": "ඔහු/ඇය හවුල් වන අය",
+                "sanskrit": "යුවති/කලත්‍ර"
+            },
+            "8": {
+                "label": "ඔහු/ඇයව පරිවර්තනය කරන දේ",
+                "sanskrit": "රන්ධ්‍ර/ආයු"
+            },
+            "9": {
+                "label": "ඔහුට/ඇයට මඟ පෙන්වන දේ",
+                "sanskrit": "ධර්ම/භාග්‍ය"
+            },
+            "10": {
+                "label": "ඔහු/ඇය ඉටු කරන දේ",
+                "sanskrit": "කර්ම"
+            },
+            "11": {
+                "label": "ඔහුට/ඇයට ලැබෙන දේ",
+                "sanskrit": "ලාභ"
+            },
+            "12": {
+                "label": "ඔහු/ඇය මුදා හරින දේ",
+                "sanskrit": "ව්‍යය/මෝක්ෂ"
+            },
+            "subTags": {
+                "self": "ස්වයං",
+                "body": "ශරීරය",
+                "personality": "පෞරුෂත්වය",
+                "identity": "අනන්‍යතාව",
+                "vitality": "ජීව ශක්තිය",
+                "appearance": "පෙනුම",
+                "overallLifeDirection": "සමස්ත ජීවන දිශාව",
+                "wealth": "ධනය",
+                "accumulatedResources": "එක්රැස් වූ සම්පත්",
+                "family": "පවුල",
+                "speech": "කථාව",
+                "food": "ආහාර",
+                "values": "වටිනාකම්",
+                "courage": "ධෛර්යය",
+                "effort": "උත්සාහය",
+                "skills": "දක්ෂතා",
+                "communication": "සන්නිවේදනය",
+                "youngerSiblings": "බාල සහෝදර සහෝදරියන්",
+                "initiative": "මුලපිරීම",
+                "mother": "මව",
+                "home": "නිවස",
+                "property": "දේපළ",
+                "emotionalHappiness": "චිත්ත සුවය",
+                "education": "අධ්‍යාපනය",
+                "vehicles": "වාහන",
+                "innerPeace": "අභ්‍යන්තර සාමය",
+                "intelligence": "බුද්ධිය",
+                "children": "දරුවන්",
+                "creativity": "නිර්මාණශීලිත්වය",
+                "learning": "ඉගෙනීම",
+                "pastLifeMerit": "පූර්ව පුණ්‍ය",
+                "mantra": "මන්ත්‍රය",
+                "enemies": "සතුරන්",
+                "disease": "රෝග",
+                "debts": "ණය",
+                "service": "සේවය",
+                "competition": "තරඟය",
+                "obstacles": "බාධක",
+                "litigation": "නඩු කටයුතු",
+                "marriage": "විවාහය",
+                "spouse": "කලත්‍රයා/කලත්‍රිය",
+                "partnerships": "හවුල්කාරිත්වය",
+                "sexuality": "ලිංගිකත්වය",
+                "businessPartnerships": "ව්‍යාපාර හවුල්කාරිත්වය",
+                "publicDealings": "පොදු කටයුතු",
+                "longevity": "ආයුෂ",
+                "transformation": "පරිවර්තනය",
+                "death": "මරණය",
+                "inheritance": "උරුමය",
+                "secrets": "රහස්",
+                "occultKnowledge": "ගුප්ත විද්‍යාව",
+                "suddenEvents": "හදිසි සිදුවීම්",
+                "dharma": "ධර්මය",
+                "fortune": "භාග්‍යය",
+                "father": "පියා",
+                "guru": "ගුරු",
+                "higherKnowledge": "උසස් දැනුම",
+                "pilgrimage": "වන්දනා ගමන",
+                "blessings": "ආශීර්වාද",
+                "career": "රැකියාව",
+                "profession": "වෘත්තිය",
+                "status": "තත්ත්වය",
+                "authority": "අධිකාරිය",
+                "achievements": "ජයග්‍රහණ",
+                "actionsInTheWorld": "ලෝකයේ ක්‍රියා",
+                "gains": "ලාභ",
+                "income": "ආදායම",
+                "fulfillmentOfDesires": "ආශා සාක්ෂාත් කිරීම",
+                "elderSiblings": "වැඩිමහල් සහෝදර සහෝදරියන්",
+                "networks": "ජාල",
+                "largeOrganizations": "විශාල සංවිධාන",
+                "expenditure": "වියදම",
+                "loss": "අලාභය",
+                "foreignPlaces": "විදේශ ස්ථාන",
+                "isolation": "හුදකලාව",
+                "sleep": "නින්ද",
+                "spiritualLiberation": "ආධ්‍යාත්මික විමුක්තිය",
+                "lettingGo": "අත්හැරීම",
+                "soul": "ආත්මය",
+                "mind": "මනස",
+                "emotions": "හැඟීම්",
+                "happiness": "සතුට",
+                "nourishment": "පෝෂණය",
+                "strength": "ශක්තිය",
+                "land": "ඉඩම",
+                "business": "ව්‍යාපාර",
+                "calculation": "ගණනය",
+                "wisdom": "ප්‍රඥාව",
+                "love": "ආදරය",
+                "relationships": "සබඳතා",
+                "pleasures": "සැප",
+                "labor": "ශ්‍රමය",
+                "suffering": "දුක් වේදනා",
+                "delays": "ප්‍රමාදයන්",
+                "foreignMatters": "විදේශ කටයුතු",
+                "obsession": "උමතුව",
+                "unconventionalThings": "සාම්ප්‍රදායික නොවන දේ",
+                "materialDesires": "භෞතික ආශා",
+                "detachment": "විරක්තිය",
+                "spirituality": "ආධ්‍යාත්මිකත්වය",
+                "moksha": "මෝක්ෂය",
+                "separation": "වෙන්වීම",
+                "government": "රජය"
+            }
+        },
+        "observation": {
+            "planetsInHouse": "මෙම භාවයේ ග්‍රහයෝ",
+            "houseLoad": "ගෘහ භාරය සහ පිහිටීම",
+            "houseLord": "භාවාධිපති හා පිහිටීම",
+            "nakshatraLoad": "නැකත් භාරය සහ පිහිටීම",
+            "subTagPlanet": "කාරක ග්‍රහයෝ",
+            "chandraLagnaHouse": "චන්ද්‍ර ලග්නය — අදාළ ගෘහය",
+            "suryaLagnaHouse": "සූර්ය ලග්නය — අදාළ ගෘහය",
+            "wargaKendara": "අදාළ වර්ග කේන්දරය",
+            "noPlanets": "මෙම භාවයේ ග්‍රහයන් නැත",
+            "noSignificant": "මෙම මාතෘකාවට අදාළ කාරක ග්‍රහයෙක් නැත",
+            "notAvailable": "ලබා ගත නොහැක",
+            "markNotRelevant": "අදාළ නොවන ලෙස සලකුණු කරන්න",
+            "restoreTag": "නැවත අදාළ කරන්න",
+            "notRelevant": "අදාළ නොවේ",
+            "classification": {
+                "green": "හොඳ",
+                "darkGreen": "ඉතා හොඳ",
+                "lightGreen": "හොඳ",
+                "red": "නරක",
+                "lightRed": "නරක",
+                "darkRed": "ඉතා නරක",
+                "white": "මධ්‍යස්ථ",
+                "yellow": "අවිනිශ්චිත"
+            },
+            "ratio": "{green}/{total} ක් හොඳයි",
+            "houseLoadLabel": "ගෘහ භාරය: {count} · ග්‍රහයෝ {planets} · {sign}",
+            "nakshatraLoadLabel": "නැකත් භාරය: {name} {pada}",
+            "chartHouseLabel": "{chart} · {house} වන ගෘහය · ග්‍රහයෝ {planets} · භාරය {load}",
+            "wargaLagnaLabel": "{chart} ලග්නය · {sign} · භාරය {load}",
+            "d1LoadInWargaLabel": "D1 භාරය: {planet} · {sign} · {house}",
+            "lord": {
+                "ownsHouses": "{planet} හිමි ගෘහ: {houses}",
+                "inSign": "{planet} {sign} රාශියෙහි",
+                "inNakshatra": "{planet} {nakshatra} නැකතේ",
+                "strength": "{planet} {strength} වේ",
+                "retrograde": "{planet} ප්‍රතිගාමී වේ",
+                "combust": "{planet} දාහිත වේ",
+                "navamsa": "{planet} {sign} නවාංශයේ",
+                "ashtamamsha": "{planet} අෂ්ටමාම්ශ වේ (8 වන ගෘහයේ)",
+                "ashtamansha": "{planet} අෂ්ටමාංශ වේ",
+                "kalaBala": "{planet}ට කාල බලය ඇත",
+                "noKalaBala": "{planet}ට කාල බලය නැත",
+                "cheshtaBala": "{planet}ට චේෂ්ටා බලය ඇත",
+                "noCheshtaBala": "{planet}ට චේෂ්ටා බලය නැත",
+                "conjuncts": "{planet} {target} සමඟ යුති",
+                "aspects": "{planet} {target} දෘෂ්ටි කරයි",
+                "aspectedBy": "{planet}ට {target} දෘෂ්ටිය ඇත",
+                "bhavaSuchika": "{planet} භාව සුචික — {house} වන ගෘහය",
+                "atmakaraka": "{planet} ආත්මකාරක වේ",
+                "yogakaraka": "{planet} යෝගකාරක වේ",
+                "maranakaraka": "{planet} මරණකාරක වේ",
+                "maraka": "{planet} මාරක වේ",
+                "badhaka": "{planet} බාධක වේ",
+                "nidhanamsha": "{planet} නිධනාංශයේ ඇත",
+                "wargoththama": "{planet} වර්ගෝත්තම වේ",
+                "gandantha": "{planet} ගන්ධාන්තයේ ඇත",
+                "gandamula": "{planet} ගන්ධමූලයේ ඇත",
+                "pushkara": "{planet} පුෂ්කරයේ ඇත",
+                "drekkanaLord": "{planet} 22 වන ඩ්‍රෙක්කාණ අධිපති වේ",
+                "navamsaLord": "{planet} 64 වන නවාංශ අධිපති වේ"
+            }
+        },
+        "tagColors": {
+            "1": "සුදු",
+            "2": "ලා රතු",
+            "3": "තද රතු",
+            "4": "ලා කොළ",
+            "5": "තද කොළ",
+            "6": "කහ"
+        },
+        "studentTags": {
+            "title": "මගේ සටහන්",
+            "addPlaceholder": "නිරීක්ෂණයක් එක් කරන්න…",
+            "add": "එකතු",
+            "edit": "සංස්කරණය",
+            "delete": "මකන්න",
+            "empty": "මෙම මාතෘකාවට තවම ටැග් නැත",
+            "overviewEmpty": "තවම ටැග් නැත. මාතෘකාවක් තෝරා ආරම්භ කරන්න.",
+            "limitReached": "ටැග් සීමාව (200) ඉක්මවා ඇත. තව එක් කිරීමට ටැගයක් මකන්න.",
+            "charCount": "{count}/{max}"
+        },
+        "resultNotes": {
+            "title": "ප්රතිඵල සටහන්",
+            "addPlaceholder": "සටහනක් ලියන්න…",
+            "add": "සටහන එක් කරන්න",
+            "edit": "සංස්කරණය",
+            "delete": "මකන්න",
+            "empty": "තවම සටහන් නැත",
+            "limitReached": "සටහන් සීමාව (100) ඉක්මවා ඇත. තව එක් කිරීමට සටහනක් මකන්න."
+        },
+        "aria": {
+            "parentStrip": "ගෘහ මාතෘකාවක් තෝරන්න",
+            "subTagStrip": "මාතෘකා විස්තරයක් තෝරන්න",
+            "observationsRegion": "පද්ධති නිරීක්ෂණ",
+            "ratio": "{green}/{total} ක් හොඳයි",
+            "planetStrengths": "ග්‍රහ බල",
+            "planetFactor": "{factor} — {classification}"
+        }
+    },
+    "dashaDisplay": {
+        "button": "පෙන්වීම",
+        "buttonAria": "දශා පේළිවල පෙන්විය යුතු දේ තෝරන්න",
+        "title": "දශා — පෙන්වීම",
+        "depth": "පෙන්වන මට්ටම",
+        "groups": {
+            "labels": "ලේබල",
+            "numbers": "අංක සහ ටැග්",
+            "timing": "කාලය"
+        },
+        "fields": {
+            "levelName": "මට්ටමේ නම (මහා දශා, අන්තර් දශා…)",
+            "ownNumbers": "භාව අංක",
+            "nakshatraNumbers": "නක්ෂත්‍ර අධිපතිගේ අංක",
+            "conjunctionNumbers": "යුති අංක",
+            "planetTags": "ග්‍රහ ටැග් (උච්ච, පුෂ්කර…)",
+            "dates": "ආරම්භ — අවසාන දින",
+            "age": "වයස",
+            "duration": "කාලසීමාව"
+        },
+        "shownCount": "{total} න් {shown} ක් පෙන්වයි"
+    },
+    "tableColumns": {
+        "button": "තීරු",
+        "buttonAria": "{table} තීරු සකසන්න",
+        "title": "{table} — තීරු",
+        "appliesToAll": "සියලු කේන්දර සඳහා අදාළ වේ",
+        "savedOnDevice": "මෙම බ්‍රවුසරයේ සුරැකේ",
+        "phoneLayout": "දුරකථන පිරිසැලසුම",
+        "listAria": "තීරු — පිළිවෙල වෙනස් කිරීමට ඇදගෙන යන්න හෝ ඊතල භාවිත කරන්න",
+        "alwaysShown": "සැමවිටම පෙන්වයි",
+        "notAvailable": "මෙහි දත්ත නැත",
+        "notAvailableHint": "මෙම සටහනේ මෙම තීරුවට දත්ත නැත. දත්ත ඇති සටහන්වල එය පෙන්වයි.",
+        "moveUp": "{column} ඉහළට",
+        "moveDown": "{column} පහළට",
+        "tags": "පෙන්වන ටැග් ({shown}/{total})",
+        "all": "සියල්ල",
+        "none": "කිසිවක් නැත",
+        "copyFrom": "{tab} ටැබයෙන් පිටපත් කරන්න",
+        "reset": "පෙරනිමියට යළි සකසන්න",
+        "done": "හරි",
+        "visibleCount": "තීරු {total} න් {shown} ක් පෙන්වයි",
+        "status": {
+            "saving": "සුරකිමින්…",
+            "saved": "සුරැකිණි",
+            "error": "සුරැකීමට නොහැකි විය.",
+            "retry": "නැවත උත්සාහ කරන්න"
+        },
+        "columns": {
+            "houseNumber": "භාව අංකය",
+            "navamsaStrength": "නවාංශ බලය",
+            "nakshatraPada": "නැකත (පාදය)"
+        },
+        "options": {
+            "symbol": "ග්‍රහ සංකේත",
+            "degree": "අංශක පෙන්වන්න",
+            "retrograde": "වක්‍ර ග්‍රහයා වරහන් තුළ",
+            "bhavaSuchikaName": "නම පෙන්වන්න"
+        }
+    }
+}

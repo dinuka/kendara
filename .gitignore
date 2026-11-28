@@ -3,14 +3,21 @@
 # dependencies
 /node_modules
 /.pnp
-.pnp.js
-.yarn/install-state.gz
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
 
 # testing
 /coverage
 
 # next.js
 /.next/
+
+# pre-compiled chart renderer (scripts/build-chart-renderer.mjs)
+/.chart-renderer/
 /out/
 
 # production
@@ -24,9 +31,10 @@
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+.pnpm-debug.log*
 
-# local env files
-.env*.local
+# env files (can opt-in for committing if needed)
+.env*
 
 # vercel
 .vercel
@@ -35,3 +43,6 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 /.chart-renderer/
+
+# local database dumps
+/backups/
