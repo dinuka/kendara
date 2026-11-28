@@ -6,6 +6,7 @@ import { signOut, useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
+import Image from "next/image";
 import Link from "next/link";
 
 export function TopBar() {
@@ -92,12 +93,14 @@ export function TopBar() {
                 </button>
 
                 <Link href="/" className="flex items-center gap-2 min-w-0 group">
-                    <span
-                        className="w-8 h-8 rounded-full border border-amber-400/40 flex items-center justify-center text-amber-300 text-sm leading-none transition-colors group-hover:border-amber-400/80"
-                        aria-hidden="true"
-                    >
-                        ✦
-                    </span>
+                    <Image
+                        src="/logo.png"
+                        alt=""
+                        width={36}
+                        height={36}
+                        priority
+                        className="w-9 h-9 shrink-0 transition-transform group-hover:scale-105"
+                    />
                     <span className="font-semibold text-base sm:text-lg text-white truncate leading-none tracking-tight">
                         {t("app.title")}
                     </span>
